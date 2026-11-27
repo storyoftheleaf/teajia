@@ -1,6 +1,6 @@
 {
   "status": "approved",
-  "composedAt": "2026-11-25T15:42:45.143Z",
+  "composedAt": "2026-11-27T03:57:49.248Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -11,30 +11,20 @@
     "form": "Cake",
     "year": 1998,
     "origin": "Yunnan, China",
-    "stockGrams": 357,
-    "pricePerGramUsd": 0.55,
-    "tags": [
-      "clean earth",
-      "aged sweetness",
-      "dried dates",
-      "smooth wood",
-      "lasting finish"
-    ]
+    "stockGrams": null,
+    "pricePerGramUsd": null,
+    "tags": []
   },
   "entry": {
     "productId": "477098ab-4de2-40b6-be44-9b33cc72d0ee",
     "paragraphs": [
       {
-        "layer": "lot",
-        "text": "A cake of [ripe pu’er](shou:definition) made from Yunnan leaf in 1998 and sold under Zhong Cha Pai, the brand of the China National Tea Corporation. Its mark is the character zhong ringed in red. The label has been used on teas from several factories, so the brand does not name the factory that made this cake."
-      },
-      {
-        "layer": "type",
-        "text": "The tea was made twenty-five years after Yunnan’s state factories began [wet piling](shou:wet-piling) in 1973, which puts it in the style’s third decade. The pile was developed to produce in weeks the dark cup that Hong Kong and Guangdong drinkers knew from raw pu’er aged for years."
+        "layer": "grade",
+        "text": "A cake of ripe pu’er from Yunnan leaf, made in 1998 and sold under the [Zhong Cha mark](zhong-cha-pai:definition), the brand of the China National Tea Corporation. The mark names who sold the tea, not how fine the leaf is. From the late 1980s the larger factories moved to their own names and newer, smaller makers took up the label, so on a cake from this decade the year of making says more than the wrapper does."
       },
       {
         "layer": "age",
-        "text": "At twenty-eight years old it is well into what the trade counts as [aged ripe pu’er](shou:age-aged). The leaf goes on changing slowly with the air and moisture around it, which is why the way a cake has been stored matters as much as its age."
+        "text": "Leaf for [ripe pu’er](shou:definition) is heaped warm and damp in a [fermenting pile](shou:wet-piling) before it is pressed. Yunnan’s factories brought that method into production in 1973, which puts 1998 in the style’s third decade. At twenty-eight years this cake is well past the ten years the trade counts as [aged ripe pu’er](shou:age-aged). The leaf keeps changing slowly with the air and moisture around it, so storage has shaped it as much as the years have."
       }
     ],
     "brewing": {
@@ -53,6 +43,10 @@
     ]
   },
   "claimUses": [
+    {
+      "claimId": "zhong-cha-pai:definition",
+      "rev": 1
+    },
     {
       "claimId": "shou:definition",
       "rev": 1
@@ -80,5 +74,5 @@
   ],
   "problems": [],
   "unsupported": [],
-  "approvedAt": "2026-11-25T23:18:48.632Z"
+  "approvedAt": "2026-11-27T04:17:10.097Z"
 }

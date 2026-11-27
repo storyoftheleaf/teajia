@@ -2,9 +2,10 @@
   "id": "guangxi",
   "name": "Guangxi",
   "country": "China",
-  "province": null,
+  "province": "Guangxi",
   "altitude": null,
-  "climate": null,
+  "climate": "Subtropical monsoon climate in the Wuzhou area, warm and wet with hills and forest, which the trade links to Liu Bao's slow ageing.",
+  "description": "Province-level region in southern China, known for Liu Bao dark tea from Wuzhou and Cangwu and for jasmine tea from Hengzhou.",
   "holding": "regions",
   "license": "CC BY 4.0, see LICENSE.txt",
   "source": "https://teajia.com/wisdom/"

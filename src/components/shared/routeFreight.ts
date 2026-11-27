@@ -1,19 +1,27 @@
 /**
- * Freight for a supplier's order, estimated from the shipping routes in
- * Settings (migration 0042). Silent on purpose: the basket shows one figure,
- * never route lines (Adrian, 2026-10-10).
+ * Freight for a supplier's order, estimated from the logistics services in
+ * Logistics (Adrian, 2026-11-27: freight prices live with the distributors,
+ * never in Settings). Silent on purpose: the basket shows one figure, never
+ * route lines (Adrian, 2026-10-10).
  *
- * Per route, per supplier parcel: the tea's weight, plus packing, rounded up to
- * the carrier's billing step and never under its minimum, times its rate.
- *   - Air with no route, or no rate on its route, follows the shop freight rate.
- *   - Boat with no route or no rate is not estimated: there is no shop boat rate,
- *     and guessing one would print a number nobody gave.
- *   - Both is estimated as air, the dearer leg, so the estimate never comes in under.
- * Unknown is null, never zero. Shelf prices are untouched by any of this.
+ * Per mode, per supplier parcel: the tea's weight, plus the route's packing,
+ * rounded up to its billing step and never under its minimum (the routes in
+ * Settings, migration 0042, which no longer hold a rate), times the dearest
+ * active service of that mode that can price a kilo, so the estimate never
+ * comes in under:
+ *   - a kilo rate as it is, a cubic-metre rate through the planning packing
+ *     allowance (src/lib/packingSizes.ts); a fixed price cannot price a kilo.
+ *   - Air with no such service follows the shop default rate.
+ *   - Boat with none is not estimated: there is no shop boat rate, and guessing
+ *     one would print a number nobody gave.
+ *   - Both is estimated as air, the dearer leg.
+ * A rate once typed on a route is kept as data and no longer read. Unknown is
+ * null, never zero. Shelf prices are untouched.
  */
 import type { ExchangeRate } from '../../admin/types';
 import type { LedgerTransaction } from '../../lib/ledgerStore';
 import { isUnrecordedCurrency, rateToUsd } from '../../lib/currency';
+import { serviceQuotePerKgUsd, serviceRatesFromRows, type ServiceRow } from '../../lib/freightSource';
 import { ledgerItemGrams } from '../CurateV2/curatePricing';
 
 export interface ShippingRoute {
@@ -21,8 +29,6 @@ export interface ShippingRoute {
   mode: 'air' | 'sea';
   carrier: string | null;
   destination: string | null;
-  rate_per_kg: number | null;
-  rate_currency: string | null;
   packing_percent: number | null;
   billing_step_kg: number | null;
   minimum_kg: number | null;
@@ -42,8 +48,18 @@ export function billedKg(teaKg: number, route: Pick<ShippingRoute, 'packing_perc
   return kg;
 }
 
+/** A logistics service as the estimate needs it: the service row plus its mode. */
+export type EstimateService = ServiceRow & { mode: string };
+
 const perUsd = (rates: readonly ExchangeRate[] | null | undefined, currency: string | null | undefined): number | null =>
   isUnrecordedCurrency(currency) ? 1 : rateToUsd(rates, String(currency));
+
+/** USD a kilo by the dearest active service of this mode that can price one, or null. */
+export function modePerKgUsd(services: readonly EstimateService[], mode: RouteMode, rates: readonly ExchangeRate[] | null | undefined): number | null {
+  const quotes = serviceRatesFromRows(services.filter(service => service.mode === mode), currency => perUsd(rates, currency));
+  const priced = Object.values(quotes).map(quote => serviceQuotePerKgUsd(quote, {})).filter((n): n is number => n !== null && Number.isFinite(n));
+  return priced.length ? Math.max(...priced) : null;
+}
 
 export interface OrderFreight {
   /** In the order's own money; null when some leg could not be estimated. */
@@ -57,6 +73,7 @@ export interface OrderFreight {
 export function estimateOrderFreight(
   tx: Pick<LedgerTransaction, 'items' | 'currency'>,
   routes: readonly ShippingRoute[],
+  services: readonly EstimateService[],
   rates: readonly ExchangeRate[] | null | undefined,
   shopFreightPerKgUsd: number | null,
 ): OrderFreight {
@@ -70,13 +87,7 @@ export function estimateOrderFreight(
     const route = routes.find((r) => r.mode === mode) ?? null;
     const kg = billedKg(grams[mode] / 1000, route);
     if (route?.packing_percent) packing = true;
-    let usdPerKg: number | null = null;
-    if (route?.rate_per_kg != null) {
-      const p = perUsd(rates, route.rate_currency);
-      usdPerKg = p ? route.rate_per_kg / p : null;
-    } else if (mode === 'air') {
-      usdPerKg = shopFreightPerKgUsd;
-    }
+    const usdPerKg = modePerKgUsd(services, mode, rates) ?? (mode === 'air' ? shopFreightPerKgUsd : null);
     if (usdPerKg == null || orderPerUsd == null || amount == null) { amount = null; continue; }
     amount += kg * usdPerKg * orderPerUsd;
   }

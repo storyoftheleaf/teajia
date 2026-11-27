@@ -1,6 +1,6 @@
 {
   "status": "approved",
-  "composedAt": "2026-11-25T15:40:13.270Z",
+  "composedAt": "2026-11-27T03:51:48.918Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -11,20 +11,24 @@
     "form": "Loose",
     "year": 1980,
     "origin": "Cangwu, Guangxi, China",
-    "stockGrams": 600,
-    "pricePerGramUsd": 0.95,
+    "stockGrams": null,
+    "pricePerGramUsd": null,
     "tags": []
   },
   "entry": {
     "productId": "82124f03-a6a6-4a40-8a5b-cf1fc715ce8c",
     "paragraphs": [
       {
-        "layer": "age",
-        "text": "A loose [Liu Bao](liu-bao:definition) from Cangwu County in Guangxi, made in 1980. At forty-six years it is far past the decade after which the trade counts this tea as [aged](liu-bao:age-aged)."
+        "layer": "place",
+        "text": "This is loose [Liu Bao](liu-bao:definition) from [Cangwu County](cangwu:where-it-is), in the hill country of eastern Guangxi, where the town of Liubao gave the tea its name. Like every [dark tea](dark:definition), the leaf was piled after it was made so that warmth, moisture and microbes could change it, and then it was packed away to age."
       },
       {
-        "layer": "type",
-        "text": "Like every [dark tea](dark:definition), its leaf is heaped after it is made so that warmth, moisture and microbes can darken it, and then it is packed away to age. Liu Bao was made for Chinese miners in Malaya, and most of it this old is [old stock](liu-bao:old-stock) that sat in warehouses after the tin mines declined. That is why the trade dates such tea by the basket, the labels and the papers packed with it."
+        "layer": "place",
+        "text": "It was made in 1980, during the long [decline](cangwu:decline-and-return) that began when war broke the river trade. By the early 1990s very few gardens in the county were still worked. Liu Bao had been made for [Chinese miners and labourers in Southeast Asia](liu-bao:nanyang-trade), and most Liu Bao of this age is [old stock](liu-bao:old-stock) that was left in warehouses in Malaysia and Hong Kong when that trade ended."
+      },
+      {
+        "layer": "age",
+        "text": "At forty-six years it is far past the decade after which Liu Bao counts as [aged](liu-bao:age-aged). For a tea this old, the way it was stored has shaped it as much as the years have."
       }
     ],
     "brewing": {
@@ -37,7 +41,6 @@
       "text": "A deep red, thick cup with woody, herbal and betel nut notes; tea several decades old is often described with ginseng and camphor."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "A voice note from you on this lot",
       "Photos"
     ]
@@ -48,7 +51,7 @@
       "rev": 1
     },
     {
-      "claimId": "liu-bao:age-aged",
+      "claimId": "cangwu:where-it-is",
       "rev": 1
     },
     {
@@ -56,7 +59,19 @@
       "rev": 1
     },
     {
+      "claimId": "cangwu:decline-and-return",
+      "rev": 2
+    },
+    {
+      "claimId": "liu-bao:nanyang-trade",
+      "rev": 2
+    },
+    {
       "claimId": "liu-bao:old-stock",
+      "rev": 1
+    },
+    {
+      "claimId": "liu-bao:age-aged",
       "rev": 1
     },
     {
@@ -70,5 +85,5 @@
   ],
   "problems": [],
   "unsupported": [],
-  "approvedAt": "2026-11-25T23:18:46.662Z"
+  "approvedAt": "2026-11-27T04:17:05.097Z"
 }

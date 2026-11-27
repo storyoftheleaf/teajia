@@ -1,6 +1,6 @@
 {
   "status": "approved",
-  "composedAt": "2026-11-26T04:42:49.691Z",
+  "composedAt": "2026-11-27T03:57:45.708Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -11,25 +11,24 @@
     "form": "Loose",
     "year": 2023,
     "origin": "Taiwan",
-    "stockGrams": 150,
-    "pricePerGramUsd": 0.77,
-    "tags": [
-      "honey",
-      "sweet potato",
-      "light muscatel",
-      "floral undertone"
-    ]
+    "stockGrams": null,
+    "pricePerGramUsd": null,
+    "tags": []
   },
   "entry": {
     "productId": "65f1e532-4c89-4519-9aa0-5ab5c14fbcbd",
     "paragraphs": [
       {
-        "layer": "type",
-        "text": "A [red tea](red:definition) from Taiwan, made in 2023. It is the fully oxidised style English calls black tea: the leaf is withered, rolled so its juices and enzymes meet, then left to [oxidise](red:making) until it turns from green to reddish brown, and dried to stop the change. The island’s own red tea dates from the [Japanese period](red:history), at Yuchi near Sun Moon Lake."
+        "layer": "place",
+        "text": "This [red tea](red:definition) was grown in Taiwan, the island off the coast of Fujian whose tea came across the strait with settlers. The label names [only the island](taiwan:on-a-label), with no mountain or township within it. Taiwan is known above all for oolong, but it [turned to red tea under Japanese rule](taiwan:history), and its first red tea was made at Yuchi, near Sun Moon Lake."
       },
       {
         "layer": "age",
-        "text": "Red tea has no tradition of [ageing](red:ageing). Sealed, it keeps its quality for about a year and a half to three years, so at three years this one sits at the far end of that span. It is a tea to drink now, not to set aside."
+        "text": "The leaf was made in 2023, so it is now three years old. [Red tea has no tradition of ageing](red:ageing). It is meant to be drunk fresh, and kept sealed it holds for about a year and a half to three years, so this tea is at the far end of that span."
+      },
+      {
+        "layer": "type",
+        "text": "English calls it black tea after the dark dry leaf, and Chinese calls it red after the colour of the cup. It is the fully oxidised tea. The fresh leaf is [withered](red:making) until it is soft enough to work, then rolled to break its cells, so that its juices and enzymes meet. It is left in warm, damp air until it turns from green to reddish brown, a step the Chinese trade calls fermentation. Hot air then dries it, which stops the change and keeps the tea stable."
       }
     ],
     "brewing": {
@@ -42,7 +41,6 @@
       "text": "A sweet cup, often with honey, floral or fruity notes, malt in many, and a brisk strength in the stronger teas. The liquor runs red, bright to deep."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "A voice note from you on this lot",
       "Photos"
     ]
@@ -53,15 +51,19 @@
       "rev": 1
     },
     {
-      "claimId": "red:making",
+      "claimId": "taiwan:on-a-label",
       "rev": 1
     },
     {
-      "claimId": "red:history",
+      "claimId": "taiwan:history",
       "rev": 1
     },
     {
       "claimId": "red:ageing",
+      "rev": 1
+    },
+    {
+      "claimId": "red:making",
       "rev": 1
     },
     {
@@ -75,5 +77,5 @@
   ],
   "problems": [],
   "unsupported": [],
-  "approvedAt": "2026-11-26T04:48:22.818Z"
+  "approvedAt": "2026-11-27T04:17:10.484Z"
 }

@@ -5,6 +5,81 @@ export const GENERATED_TEA_REFERENCE_REGISTRY = {
   "schemaVersion": 1,
   "pages": [
     {
+      "id": "alishan",
+      "slug": "alishan",
+      "kind": "tea_area",
+      "label": "Alishan",
+      "nativeName": "阿里山",
+      "parentId": "taiwan",
+      "sourceIds": [],
+      "sections": [
+        {
+          "key": "where-it-is",
+          "label": "Where Alishan is",
+          "text": "Alishan is a mountain range and tea area in Chiayi County, in the southwest of central Taiwan. It is one of the three best known high mountain tea areas on the island, with Lishan and Shanlinxi. Its gardens sit on the western and southern slopes, mostly at about 1,000 to 1,600 metres, though places quote the range differently, from about 700 up to 1,800 metres. On a tea record, Alishan names the mountain area. The county is Chiayi, and some records file Alishan under Nantou, which is not where it is.",
+          "sourceIds": []
+        },
+        {
+          "key": "why-people-value-it",
+          "label": "Why people value Alishan tea",
+          "text": "Alishan matters to a buyer for its air and its approachability. Cloud and fog cover the gardens for much of the day, the sun is filtered, and nights are cool, so the leaf grows slowly and comes out thick and soft with little bitterness. The trade explains the cup this way: sweet, smooth and light in astringency, with a floral aroma that lasts through many infusions. Most Alishan tea is lightly oxidised, ball-rolled oolong with little or no roast. It is often the first high mountain oolong people try, and the style most buyers picture when they say high mountain tea.",
+          "sourceIds": []
+        },
+        {
+          "key": "cultivars",
+          "label": "The cultivars grown",
+          "text": "Qingxin oolong is the main cultivar, and it is the one people most often mean by classic Alishan, with orchid-like or osmanthus-like fragrance and lasting sweetness. Jin Xuan, the milky cultivar also sold as TTES No. 12, is grown too, mostly on the lower and middle ground. Which cultivar a tea is, and how high it grew, changes the cup more than the name Alishan does.",
+          "sourceIds": []
+        },
+        {
+          "key": "sub-areas",
+          "label": "Townships and sub-areas",
+          "text": "The tea area is wider than Alishan Township. Tea grows in three townships. Meishan, on the northern edge, has lower and middle gardens in villages such as Taiping, Ruili and Taixing. Zhuqi is the centre, with Shizhuo and Fenqihu. Alishan Township itself holds the higher gardens along the mountain road. Named sub-areas also carry weight with sellers: Shizhuo, Zhangshuhu and Ruifeng are among those most often named, and garden height varies a lot even within one village.",
+          "sourceIds": []
+        },
+        {
+          "key": "on-a-label",
+          "label": "Alishan on a label",
+          "text": "Alishan on a label is a market name that covers a lot of ground, and it does not say which township, garden or height the tea came from. Tea from outside Taiwan, including high-altitude oolong from other countries, is sometimes sold as Alishan, so a bare name with no garden, height or cultivar is the weaker claim. Fenqihu is a related case: it is a tourist town with only a few tea gardens, and much tea sold under its name comes from nearby areas such as Shizhuo. A named village, a stated height and a cultivar make the fuller claim.",
+          "sourceIds": []
+        }
+      ]
+    },
+    {
+      "id": "anhua",
+      "slug": "anhua",
+      "kind": "major_region",
+      "label": "Anhua",
+      "nativeName": "安化",
+      "sourceIds": [],
+      "sections": [
+        {
+          "key": "where-it-is",
+          "label": "Where Anhua is",
+          "text": "Anhua is a mountain county in north-central Hunan, in the city of Yiyang. It lies on the middle stretch of the Zi river, at the northern foot of the Xuefeng mountains, and is the southernmost and westernmost county of Yiyang. Most of the land is hills and steep valleys, with streams running down to the river. It is a place where rice is hard to grow and tea does well.",
+          "sourceIds": []
+        },
+        {
+          "key": "why-people-value-it",
+          "label": "Why people value Anhua",
+          "text": "People value Anhua first as the home of Chinese dark tea, and then for the ground the tea grows in. The county is warm and very wet, with four clear seasons, a short cold spell, and cloud and mist on the high mountains such as Yuntai. The slopes on both sides of the river are deep, loose, slightly acidic soil weathered from shale, which drains well. A large share of the county is forest, and the tea sits among it, not on cleared plains. The local large-leaf tea, best known from Yuntai Mountain, has thick, soft leaf that suits dark tea making. In Anhua the same wet, warm air that helps the tea grow is also the air the tea is piled, pressed and aged in, which is why the trade ties the character of the finished tea to the place and not only to the method.",
+          "sourceIds": []
+        },
+        {
+          "key": "history",
+          "label": "How Anhua became a tea county",
+          "text": "Anhua was set up as a county in the Northern Song, after the Meishan hill country was opened to the outside world, and tea has been recorded in the area since the Tang. The trade grew under the Ming and Qing, when Anhua tea went north and north-west by road and river to the north-west and on to Russia. Old stone paths and merchant towns such as Tangjiaguan, a stop on the long tea road, still show where that trade passed. For the tea itself, how it was made and what it became, see the Anhua dark tea page.",
+          "sourceIds": []
+        },
+        {
+          "key": "tea-today",
+          "label": "Tea in the county today",
+          "text": "Tea is the main industry of Anhua. Tea gardens cover a large part of the hills, more than two hundred firms process the leaf, and hundreds of thousands of people in and around the county make a living from tea in some way. Visitors come to the tea museum, the old tea roads and the tea farms on Yuntai Mountain, so the place is also a destination in its own right.",
+          "sourceIds": []
+        }
+      ]
+    },
+    {
       "id": "anhua-dark",
       "slug": "anhua-dark",
       "kind": "tea_type",
@@ -76,6 +151,104 @@ export const GENERATED_TEA_REFERENCE_REGISTRY = {
       ]
     },
     {
+      "id": "anhui",
+      "slug": "anhui",
+      "kind": "major_region",
+      "label": "Anhui",
+      "nativeName": "安徽",
+      "sourceIds": [],
+      "sections": [
+        {
+          "key": "where-it-is",
+          "label": "Where Anhui is",
+          "text": "Anhui is a province in eastern China, inland from the coast and crossed by the Yangtze. Tea is grown only in its south and west, in the hills and mountains: the Huangshan range and the country around it in the south, and the Dabie Mountains in the west. The flat north of the province grows none. Most Anhui tea sits in a few separate pockets, each with its own famous tea, so the name Anhui on a label says less than the name of the county or mountain does.",
+          "sourceIds": []
+        },
+        {
+          "key": "land-and-climate",
+          "label": "Why the hills suit tea",
+          "text": "The tea hills have a humid, subtropical climate with four clear seasons, plenty of rain, and mist and cloud that lie on the mountains for much of the year. People in the trade link that cover, together with acidic, well-drained mountain soil, to slow-growing leaf with a clean fragrance and a sweet aftertaste. The cold winters let the bushes rest, so spring leaf comes on strong. The west is cooler and drier than the south, which is why its tea grows on hardier bushes.",
+          "sourceIds": []
+        },
+        {
+          "key": "known-for",
+          "label": "What Anhui is known for",
+          "text": "Anhui is one of the great tea provinces of China, and it is best known for green tea. Three green teas carry most of its name: Huangshan Maofeng from the Huangshan area, Taiping Houkui from the Taiping area, and Lu'an Guapian from the Lu'an area in the west. Its one world-famous red tea is Keemun, from Qimen County. Several of these are on the lists of China's famous teas and the trade often names Anhui among the provinces with many famous teas. Besides these, Anhui makes smaller teas such as Huoshan Huangya, a rare yellow tea, and Liu An basket tea, a dark tea.",
+          "sourceIds": []
+        },
+        {
+          "key": "places-inside",
+          "label": "The places inside Anhui",
+          "text": "Four areas hold most of the fame. Huangshan, in the south, gives Huangshan Maofeng, a green tea with fine down on slightly curled leaf. Taiping, now part of the Huangshan area, gives Taiping Houkui, a long, flat green tea. Qimen, in the south-west, gives Keemun. Lu'an, in the west, gives Lu'an Guapian, a green tea made from single leaves with no bud and no stem, which is why it looks like a melon seed. Each of these is a separate tea with its own method, and none is a grade of another.",
+          "sourceIds": []
+        },
+        {
+          "key": "keemun",
+          "label": "Keemun and the red tea of Qimen",
+          "text": "Keemun began in Qimen County in the late nineteenth century, when red tea making was brought into Anhui, which until then was known for green tea. It was sold abroad early and became a base for English blends. The trade describes it as a light, smooth red tea with a floral scent and little bitterness. Keemun in this sense is the tea of Qimen County and the hills around it, and the name does not cover other teas that are called Keemun style.",
+          "sourceIds": []
+        },
+        {
+          "key": "lu-an-names",
+          "label": "Lu'an, Liu An and Lu'an Guapian",
+          "text": "The names Lu'an and Liu An look alike and are easy to mix up. Lu'an Guapian is a green tea from the city of Lu'an in western Anhui. Liu An basket tea is a dark tea made in Qimen County, in the south. It takes its name from the old Liu An way of making and trading, not from the city, and it is not green tea. A label that says Liu An or Lu'an needs the rest of the name to tell which tea is meant.",
+          "sourceIds": []
+        }
+      ]
+    },
+    {
+      "id": "anxi",
+      "slug": "anxi",
+      "kind": "major_region",
+      "label": "Anxi",
+      "nativeName": "安溪",
+      "sourceIds": [],
+      "sections": [
+        {
+          "key": "where-it-is",
+          "label": "Where Anxi is",
+          "text": "Anxi is a county in southern Fujian, in the prefecture of Quanzhou, inland from the coast and north of Xiamen. It sits on the southern side of the Daiyun mountains. The county town lies in a low basin, and the land rises into hills and ridges all round it. Anxi is the home of Tieguanyin and one of the main oolong counties of China.",
+          "sourceIds": []
+        },
+        {
+          "key": "why-tea",
+          "label": "Why tea does well here",
+          "text": "Anxi is warm, wet and misty, with mild winters and rain through most of the year. The mountains are weathered granite, which breaks down into acidic, free-draining red and yellow soil, the kind tea likes. Farmers build terraced gardens on the slopes, keep forest on the ridges above, and farm the foothills and river valleys below. The higher gardens have cooler nights, more fog and slower growth, and sellers connect that with a more concentrated, more fragrant leaf. The soil is not strongly mineral the way Wuyi rock is, so Anxi tea is usually described through its cultivar and its making more than through its ground.",
+          "sourceIds": []
+        },
+        {
+          "key": "known-for",
+          "label": "What Anxi is known for",
+          "text": "Anxi is known for oolong, and above all for Tieguanyin, which fills most of the county's tea land. Anxi is also where the trade places the craft of oolong making in southern Fujian, and where farmers learned to grow new plants from cuttings and layers instead of seed. Alongside Tieguanyin, four other local cultivars are well known: Huangjingui (also called Huangdan), Benshan, Maoxie and Meizhan. Each is sold as its own tea, and none of them is Tieguanyin. For the tea itself, how it is made and how it is sorted, see the Tieguanyin page.",
+          "sourceIds": []
+        },
+        {
+          "key": "townships",
+          "label": "Xiping, Xianghua, Gande and the others",
+          "text": "Trade writing treats a few Anxi townships as names in their own right. Xiping, in the west, is where Tieguanyin is said to have begun, and its teas are usually described as the traditional kind, more oxidised and often roasted. Xianghua is high and often in cloud, and its tea is known for a strong, lasting taste. Gande is the newest of the three, lower, with younger bushes, and is tied to the lighter, greener style. Changkeng is often named as a fourth. Away from Tieguanyin, Daping is linked to Maoxie, Huqiu to Huangjingui and Lutian to Meizhan. A township is a pointer to the style of tea you may meet and is not a grade.",
+          "sourceIds": []
+        },
+        {
+          "key": "inner-outer",
+          "label": "Inner and outer Anxi",
+          "text": "Sellers often speak of inner Anxi, the high mountain areas, and outer Anxi, the lower, warmer land nearer the county town. Inner Anxi is said to give the deeper, longer-lasting tea, and outer Anxi a quicker, brighter fragrance but a thinner cup. Places draw the line between the two in different ways, so treat it as a rough guide to height and not as a fixed border.",
+          "sourceIds": []
+        },
+        {
+          "key": "history",
+          "label": "A tea county with a long trading past",
+          "text": "Anxi has grown tea for many centuries, and local sources trace it back to the late Tang. Tieguanyin itself is told as a story of the 1700s in Xiping, and the stories are folk accounts and not records. Oolong from southern Fujian was shipped out through Quanzhou and later Xiamen, and families from Anxi, many of them from Xiping, carried the tea and the trade to Southeast Asia, where they opened tea houses. Tea is still the main income of the county. Until the 1990s Anxi was one of the poorer counties in Fujian, and the Tieguanyin boom that followed changed that.",
+          "sourceIds": []
+        },
+        {
+          "key": "on-a-label",
+          "label": "Anxi on a label",
+          "text": "Anxi Tieguanyin is a protected name, and Anxi on a label is a statement about where the leaf grew. It says nothing about the style, which can be light and green or roasted, and nothing about the grade. Not every tea sold as Tieguanyin comes from Anxi: some is grown elsewhere, and some is made from other cultivars under the name. A township on a label, such as Xiping or Xianghua, is a narrower claim than Anxi, and a label rarely proves it.",
+          "sourceIds": []
+        }
+      ]
+    },
+    {
       "id": "banzhang",
       "slug": "banzhang",
       "kind": "tea_area",
@@ -123,6 +296,41 @@ export const GENERATED_TEA_REFERENCE_REGISTRY = {
       ]
     },
     {
+      "id": "beipu",
+      "slug": "beipu",
+      "kind": "tea_area",
+      "label": "Beipu",
+      "nativeName": "北埔",
+      "parentId": "hsinchu",
+      "sourceIds": [],
+      "sections": [
+        {
+          "key": "where-it-is",
+          "label": "Where Beipu is",
+          "text": "Beipu is a township in the south-west of Hsinchu County, in north-western Taiwan. It sits in low hill country between the central mountains and the coastal plain, well below the altitudes of the high-mountain oolong areas. It is one of the most Hakka townships on the island, and the tea grown here is Hakka farmers' tea.",
+          "sourceIds": []
+        },
+        {
+          "key": "known-for",
+          "label": "Oriental Beauty, the tea Beipu is known for",
+          "text": "Beipu is best known for Oriental Beauty, called Dongfang Meiren in Mandarin. It is a heavily oxidised oolong, close to black tea in how it is made, with a sweet, honeyed and fruity cup and little bitterness. Beipu is counted among the core places where it is made, together with Emei and Zhudong in the same county. The tea is sold under other names too, including Pengfeng tea and white-tip oolong.",
+          "sourceIds": []
+        },
+        {
+          "key": "leafhopper",
+          "label": "Why a leafhopper makes the tea",
+          "text": "Oriental Beauty is made from young shoots that a small green leafhopper has bitten. The plant answers the bite by producing aroma compounds, and the leaf curls and takes on white, green, red and brown tones as it is made. This is why Beipu growers keep sprays off the gardens, and why the tea is picked only in the heat of early summer, when the insects are active. Because the leaf cannot be made to order, the harvest is small and the tea costs more than most oolong. Qingxin Dapang is the cultivar most often named as the best suited, with other cultivars also used.",
+          "sourceIds": []
+        },
+        {
+          "key": "in-hsinchu",
+          "label": "Beipu and the rest of Hsinchu",
+          "text": "Beipu is one place among several that make Oriental Beauty. Emei and Zhudong in Hsinchu, the Toufen area in Miaoli and parts of Taoyuan and New Taipei all grow it. A label that says Beipu names a township. A label that says Oriental Beauty names a style, which is not limited to Beipu.",
+          "sourceIds": []
+        }
+      ]
+    },
+    {
       "id": "bulang-mountain",
       "slug": "bulang-mountain",
       "kind": "tea_area",
@@ -165,6 +373,129 @@ export const GENERATED_TEA_REFERENCE_REGISTRY = {
           "key": "in-ripe-pu-er",
           "label": "Bulang in ripe pu’er",
           "text": "Bulang leaf is also used for ripe pu’er, and ripe cakes and loose tea sold under the name Bulang Mountain are common. The raw tea is strong, so ripe tea made from it is described by sellers as thick and full. Sellers disagree on whether it stays bitter after piling, so ripe Bulang tea is better judged cup by cup than from the name.",
+          "sourceIds": []
+        }
+      ]
+    },
+    {
+      "id": "cangwu",
+      "slug": "cangwu",
+      "kind": "major_region",
+      "label": "Cangwu",
+      "nativeName": "苍梧",
+      "parentId": "guangxi",
+      "sourceIds": [],
+      "sections": [
+        {
+          "key": "where-it-is",
+          "label": "Where Cangwu is",
+          "text": "Cangwu is a county of Wuzhou city, in eastern Guangxi, close to the border with Guangdong. Its northern part is hill and mountain country, and that is where the tea is. The town of Liubao lies there, in the north of the county, and Liu Bao tea takes its name from the town. Cangwu is the original home of Liu Bao, the place the style comes from.",
+          "sourceIds": []
+        },
+        {
+          "key": "land-and-climate",
+          "label": "Why the mountains matter to the tea",
+          "text": "Liubao town sits among forested mountains, north of the Tropic of Cancer, in a warm, wet, subtropical monsoon climate. Mist and cloud are frequent, so the tea bushes grow in a good deal of shade, and the soils are acidic red earth. People in the trade point to this soft, damp, shaded setting as the reason the local leaf suits Liu Bao. It is the reason buyers who care about origin look to Cangwu first and to the rest of Wuzhou second.",
+          "sourceIds": []
+        },
+        {
+          "key": "known-for",
+          "label": "The home of Liu Bao",
+          "text": "Cangwu is known for one tea, Liu Bao, and for being where it began. The town's own villages are the ones the trade names for prized leaf, and Heishi is the village most often mentioned beside Liubao itself. The county gazetteer of 1697 is the earliest record usually cited for the tea, and many accounts give the style a very long history, although that older date is not settled. What the style is, how it is made and how it ages are on the Liu Bao page, so this page does not repeat them.",
+          "sourceIds": []
+        },
+        {
+          "key": "tea-boat-road",
+          "label": "The tea boat road",
+          "text": "Tea left the mountains by water. Merchants gathered it at the river landing of Hekou, below Liubao, and boats carried it down the Xijiang river through Wuzhou to Guangzhou, then on to Hong Kong, Macau and Southeast Asia. The trade calls this the tea boat road. It explains why Liu Bao was long drunk more in Malaysia and Singapore than in China, and why its history belongs to the overseas Chinese communities as much as to Guangxi.",
+          "sourceIds": []
+        },
+        {
+          "key": "decline-and-return",
+          "label": "Decline and return",
+          "text": "The river trade broke down in the war years, and demand from Southeast Asia fell again later. By the early 1990s very few tea gardens were still worked in the county, and some were cut down for other crops. Interest returned in the 2000s, helped by the wider rise of aged dark tea, and Liu Bao was registered as a protected origin in 2011. Today Cangwu is one part of a larger industry centred on Wuzhou, not the whole of it.",
+          "sourceIds": []
+        },
+        {
+          "key": "on-a-label",
+          "label": "Cangwu on a label",
+          "text": "Cangwu on a label names a county, and Liubao names a town inside it. They tell a buyer more than Wuzhou or Guangxi do, because the protected Liu Bao name covers the wider Wuzhou area and the leaf there does not all come from Cangwu. A label that says Cangwu is still not proof of leaf from the Liubao mountains, so a named village or a named maker backs it up better than the county word alone.",
+          "sourceIds": []
+        }
+      ]
+    },
+    {
+      "id": "da-xue-shan",
+      "slug": "da-xue-shan",
+      "kind": "tea_area",
+      "label": "Da Xue Shan",
+      "nativeName": "大雪山",
+      "parentId": "yunnan",
+      "sourceIds": [],
+      "sections": [
+        {
+          "key": "where-it-is",
+          "label": "One name, several mountains",
+          "text": "Da Xue Shan means Big Snow Mountain, and Yunnan has more than one mountain called that. In Lincang alone, trade writing lists four: the Mengku one on the Bangma ridge in Shuangjiang County, the Bangdong one east of Lincang County, the Yongde one in the south-east of Yongde County, and the Fengqing one near Sanchahu. The name on a label does not settle which of them the leaf came from.",
+          "sourceIds": []
+        },
+        {
+          "key": "which-one",
+          "label": "The one the trade usually means",
+          "text": "When pu'er writing says Da Xue Shan, it most often means the Mengku mountain: the main peak of the Bangma ridge, on the border of Shuangjiang and Gengma counties. Teas from it are often sold under the Mengku name. The Yongde mountain is the next most common, and sellers of its tea name Yongde or the reserve there. A seller who writes only Da Xue Shan has not said which one, and the other three are not rare enough to rule out.",
+          "sourceIds": []
+        },
+        {
+          "key": "wild-trees",
+          "label": "Wild trees in the forest",
+          "text": "People value Da Xue Shan for its wild tea trees. On the Mengku mountain a wild ancient tree community grows on the mid slopes in dense forest, at roughly 2,200 to 2,750 metres, and is described as large and well kept. The tea there is left to grow without pruning, fertilizer or managed picking paths. The core of that forest is now closed and protected, so it is no longer picked. Tea sold from the mountain comes from lower and managed ground.",
+          "sourceIds": []
+        },
+        {
+          "key": "wild-and-old",
+          "label": "Wild tea is not the same as old garden tea",
+          "text": "Wild tree tea, ancient garden tea and ordinary plantation tea are three different things, and Da Xue Shan is sold under all three. A cake described as wild arbor may come from trees tens of years old rather than from the ancient forest itself. Sellers describe raw tea from the mountain as strong and bitter, with a lasting sweet return, but taste varies by which mountain and which trees.",
+          "sourceIds": []
+        },
+        {
+          "key": "on-a-label",
+          "label": "Da Xue Shan on a label",
+          "text": "Treat Da Xue Shan on a label as a lead, not a source. Ask which county the leaf came from, whether the trees are wild, ancient or planted, and what the seller means by wild. Menghai is sometimes named in this context, but a Da Xue Shan in Menghai is not established by the places read.",
+          "sourceIds": []
+        }
+      ]
+    },
+    {
+      "id": "dali",
+      "slug": "dali",
+      "kind": "major_region",
+      "label": "Dali",
+      "nativeName": "大理",
+      "parentId": "yunnan",
+      "sourceIds": [],
+      "sections": [
+        {
+          "key": "where-it-is",
+          "label": "Where Dali is",
+          "text": "Dali is a prefecture in western Yunnan, north of Lincang and well north of the pu’er mountains of Xishuangbanna. Its best known tea place is the town of Xiaguan, which sits between the Cang mountains and Erhai lake. Dali is a place in tea mostly because of what was pressed and traded there, and much less because of what grows there.",
+          "sourceIds": []
+        },
+        {
+          "key": "tuocha-trade",
+          "label": "The tuocha trade at Xiaguan",
+          "text": "Xiaguan stood on the old caravan routes that carried Yunnan tea north to Sichuan and Tibet, and from the early twentieth century it was a gathering and pressing town for compressed tea. The bowl shaped tuocha is tied to Xiaguan: trading houses there are credited with developing it, and it is pressed there still. Sources give different years for when the shape first appeared, so no date is settled here. The trade at Xiaguan is the reason the name Dali shows up on pu’er at all.",
+          "sourceIds": []
+        },
+        {
+          "key": "on-a-label",
+          "label": "Pressed in Dali, grown elsewhere",
+          "text": "Dali on a tuocha or cake says where the tea was pressed, not where the leaf grew. The Xiaguan trade has long blended leaf brought in from other parts of Yunnan, with Lincang counties such as Fengqing often named among them. Reading a Xiaguan tuocha as Dali leaf is a mistake. It is better read as a Dali pressing of Yunnan leaf, and the maker is a separate question from the place.",
+          "sourceIds": []
+        },
+        {
+          "key": "grown-in-dali",
+          "label": "Tea grown in Dali",
+          "text": "Dali makes only a small amount of tea itself. Gardens lie mainly on the Cang mountains and on the Wuliang range in Nanjian County, and what is sold locally is often green tea. Dali sits north of the zone where Yunnan’s large leaf tea trees are most concentrated, in a belt where large and smaller leaf plants grow side by side. Dali is not usually named as a source of prized pu’er leaf.",
           "sourceIds": []
         }
       ]
@@ -365,6 +696,99 @@ export const GENERATED_TEA_REFERENCE_REGISTRY = {
           "key": "common-impressions",
           "label": "What people often notice",
           "text": "A full, sweet cup, often described as malty, with chocolate or cocoa and honey notes and sometimes something floral. The liquor runs golden to bright red, and a good grade has little bitterness.",
+          "sourceIds": []
+        }
+      ]
+    },
+    {
+      "id": "fuding",
+      "slug": "fuding",
+      "kind": "major_region",
+      "label": "Fuding",
+      "nativeName": "福鼎",
+      "parentId": "fujian",
+      "sourceIds": [],
+      "sections": [
+        {
+          "key": "where-it-is",
+          "label": "Where Fuding is",
+          "text": "Fuding is a county-level city in the north-east corner of Fujian, on the coast and against the Zhejiang border. Mountains close it in on three sides and the East China Sea lies to the east. It is hilly almost everywhere, and Taimu Mountain, a scenic and geopark area, is its best known peak.",
+          "sourceIds": []
+        },
+        {
+          "key": "why-it-matters",
+          "label": "Why people value Fuding",
+          "text": "Fuding is where mountain and sea meet, and that is the reason most often given for its tea. Hills and mountains cover most of the land and forest covers well over half of it, so the gardens sit on terraced mid-slopes with forest above them. The climate is mild, humid and often misty, with sea air moving up the valleys, and the soil is acidic red and yellow earth. The trade ties this to the plump, downy buds that white tea needs, and to a tea that is usually described as fresh, sweet and floral. Many gardens are also grown with other plants and animals around the bushes, which the region now presents as a farming heritage in its own right.",
+          "sourceIds": []
+        },
+        {
+          "key": "known-for",
+          "label": "What Fuding is known for",
+          "text": "Fuding is known as the home of white tea. Fuding, Zhenghe and Jianyang are the three places in Fujian that make it, and Fuding is the one most often named as its origin. Its way of making white tea, a long natural wither without any frying or rolling, is listed as national cultural heritage in China. The leaf comes mostly from two local bushes, Fuding Da Bai and Fuding Da Hao, which together make up nearly all the tea grown there. What the types and grades of white tea are, and how Fuding and Zhenghe compare, is covered on the white tea pages.",
+          "sourceIds": []
+        },
+        {
+          "key": "inside-fuding",
+          "label": "Taimu, Bailin and the other districts",
+          "text": "Taimu Mountain and Bailin are the two places inside Fuding that the trade names most. Taimu is tied to the first famous bud tea and to the mother tree of the Fuding bush. Bailin is tied to an early bud tea of its own, known as white down tea. Diantou, Panxi and Guanyang are also named as main growing districts. Sellers say tea from higher and cooler ground is lighter and cleaner, and that each district differs in scent, body and sweetness, but too few places agree on how to tell them apart to treat any of that as settled. The year and the maker change the cup as much as the district does.",
+          "sourceIds": []
+        },
+        {
+          "key": "on-a-label",
+          "label": "Fuding on a label",
+          "text": "Fuding white tea is a protected origin name in China, recognised since 2009. On a label it means that the leaf grew and was made inside Fuding, which is a claim about place only. It does not say which grade the tea is, which year it was picked or how long it has aged. Taimu and Bailin are narrower names inside it, and a label rarely proves which of them is meant.",
+          "sourceIds": []
+        }
+      ]
+    },
+    {
+      "id": "fujian",
+      "slug": "fujian",
+      "kind": "major_region",
+      "label": "Fujian",
+      "nativeName": "福建",
+      "sourceIds": [],
+      "sections": [
+        {
+          "key": "where-it-is",
+          "label": "Where Fujian is",
+          "text": "Fujian is a coastal province in south-east China, facing Taiwan across the strait. Most of it is mountain and hill country, with short rivers running to the sea, and the provincial capital is Fuzhou. Tea grows in nearly every part of the province, and four areas stand out: the Wuyi Mountains in the north-west, Anxi in the south, Fuding on the north-east coast and Zhenghe in the north. Each has its own page.",
+          "sourceIds": []
+        },
+        {
+          "key": "why-diverse",
+          "label": "Why so many teas come from one province",
+          "text": "Fujian is warm and wet, with a subtropical monsoon climate, mist on the hills and mild winters. Its mountains and valleys cut the province into pockets with their own weather, and before modern roads the makers in each pocket worked on their own. Over centuries each area settled on its own plant varieties and its own way of making tea. That is the reason sellers give for Fujian making more distinct styles than any other Chinese province, and it is why Fujian on its own says little about what a tea is.",
+          "sourceIds": []
+        },
+        {
+          "key": "known-for",
+          "label": "What Fujian is known for",
+          "text": "Fujian is known for oolong, white tea and black tea, and it also makes green tea and scented tea. The best-known names are Wuyi rock oolong such as Da Hong Pao, Tieguanyin from Anxi, Fuding and Zhenghe white tea, Lapsang Souchong from Wuyi, and jasmine tea from Fuzhou. Smaller oolong traditions sit beside them, such as the pressed square cakes of Zhangping and Yongchun Fo Shou. These are different teas from different hands, so one of them is never a description of the whole province.",
+          "sourceIds": []
+        },
+        {
+          "key": "areas",
+          "label": "The four areas, and how they differ",
+          "text": "The Wuyi Mountains make heavily roasted rock oolong and the original smoked black tea. Anxi makes lighter, floral oolong, above all Tieguanyin. Fuding and Zhenghe make most of Fujian's white tea, Fuding on the cooler, damp coast and Zhenghe inland and colder in winter, and the two are usually described as having slightly different tastes. The trade treats these as separate worlds of tea that happen to share a province, with different cultivars, craft and cup.",
+          "sourceIds": []
+        },
+        {
+          "key": "history",
+          "label": "Where black tea and oolong began",
+          "text": "Fujian is widely named as the birthplace of black tea, and Lapsang Souchong, from Tongmu village in the Wuyi Mountains, is the tea usually given as the first. Oolong is also traced to the Wuyi area, and its making is said to have spread from there to Anxi in southern Fujian, to Guangdong and then to Taiwan. How early either began is not settled, and the dates given vary from one account to the next. What the sources agree on is the place, with Wuyi at the centre. Tea shipped from this area to Europe in the seventeenth and eighteenth centuries was sold as Bohea, a spelling of the local pronunciation of Wuyi.",
+          "sourceIds": []
+        },
+        {
+          "key": "word-tea",
+          "label": "The word tea",
+          "text": "The English word tea comes from the southern Fujian pronunciation of the Chinese word, close to te, which Dutch traders carried home from the coast around Xiamen. Languages that received tea by sea mostly say some form of tea, and those that received it overland say some form of cha. It is a small reason people link Fujian with the early overseas tea trade.",
+          "sourceIds": []
+        },
+        {
+          "key": "on-a-label",
+          "label": "Fujian on a label",
+          "text": "Fujian on a label is a province, not a style. It can sit on oolong, white, black, green or scented tea, and the teas differ in leaf, roast, oxidation and price. It also does not say which of the main areas the tea came from. For that, look for Wuyi, Anxi, Fuding or Zhenghe, and for the tea's own name. A white tea that names Fujian only may come from either of the two white tea counties, or from another county that makes it.",
           "sourceIds": []
         }
       ]
@@ -574,6 +998,24 @@ export const GENERATED_TEA_REFERENCE_REGISTRY = {
           "sourceIds": [
             "teadb-greater-yiwu"
           ]
+        },
+        {
+          "key": "where-it-is",
+          "label": "Where Yiwu is",
+          "text": "Yiwu is in the north of Mengla County, the eastern county of Xishuangbanna in southern Yunnan, on the east side of the Lancang River (the upper Mekong). It is one of the old Six Famous Tea Mountains, and the town of Yiwu has long been where tea from the surrounding villages is gathered and processed. Mahei, Mansa and Luoshuidong are among the villages around it where old trees still grow.",
+          "sourceIds": []
+        },
+        {
+          "key": "known-for",
+          "label": "What Yiwu is known for",
+          "text": "Yiwu is known for raw pu’er that drinks soft and sweet rather than forceful. The trade describes a smooth, thick liquor with little bitterness, a floral and honeyed fragrance, and a sweet aftertaste that lasts through many infusions. People like it because it is easy to drink young and is said to hold up well with age. It is the usual contrast to the heavier teas of Menghai and Bulang. This is a regional tendency. The area is large, and the tea from one village can taste quite different from another.",
+          "sourceIds": []
+        },
+        {
+          "key": "on-a-label",
+          "label": "Yiwu on a label",
+          "text": "Yiwu on a label is a market name, and it is not proof of where the leaf grew. The word is used for the town, for the mountain and for a wider area, and sellers also use it for tea made with Yiwu leaf or in a Yiwu style. Some cakes sold under the name blend in leaf from elsewhere. The clearest labels name the village or plot as well as Yiwu, and a seller who can tie a tea to a village, a harvest and a maker is giving you something you can check.",
+          "sourceIds": []
         }
       ]
     },
@@ -625,6 +1067,157 @@ export const GENERATED_TEA_REFERENCE_REGISTRY = {
           "key": "common-impressions",
           "label": "What people often notice",
           "text": "A fresh, clean cup that many call crisp, with a sweet, soft finish, and a pale green to yellow-green liquor. The smell runs from fresh leaf to flowers, and steamed teas lean grassy or seaweed-like. Too much heat or too long a steep turns the cup bitter and drying.",
+          "sourceIds": []
+        }
+      ]
+    },
+    {
+      "id": "guangdong",
+      "slug": "guangdong",
+      "kind": "major_region",
+      "label": "Guangdong",
+      "nativeName": "广东",
+      "sourceIds": [],
+      "sections": [
+        {
+          "key": "where-it-is",
+          "label": "Where Guangdong is",
+          "text": "Guangdong is a large province on the south coast of China, built around the Pearl River Delta. Its capital is Guangzhou, the old Canton, and Hong Kong and Macao sit beside it. The climate is hot and humid, with a rainy season and a drier one. Tea is grown mostly in the hills of the east and the north, away from the delta.",
+          "sourceIds": []
+        },
+        {
+          "key": "known-for",
+          "label": "What Guangdong is known for",
+          "text": "Guangdong does not grow tea on the scale of Yunnan, Fujian or Hunan, and the trade knows it for two teas rather than for volume. One is the oolong of Phoenix Mountain, called dancong, which is the tea most buyers mean when they say Guangdong. The other is Yingde black tea. Beyond these, the province matters for what happens to tea after it is made: where it is traded, stored and drunk.",
+          "sourceIds": []
+        },
+        {
+          "key": "phoenix-dancong",
+          "label": "Phoenix Mountain and dancong",
+          "text": "The oolong of Phoenix Mountain, in Chaozhou in the east, is the province's best known tea. It is valued for its strong scent, floral or fruity depending on the bush, and for old trees that give each tea its own character. The mountain, its villages and its trees have their own page, so this page does not repeat them. On a label, Guangdong alone says very little, and the mountain or village name is what points to the tea.",
+          "sourceIds": []
+        },
+        {
+          "key": "yingde-black",
+          "label": "Yingde black tea",
+          "text": "Yingde, north of Guangzhou, makes the province's black tea. It is a young style by Chinese standards: machine production began in the late 1950s, and much of it has been sold abroad. Writers describe it as sweet, with a cocoa or chocolate note, and a malty, slightly peppery finish. It is not a mountain tea in the way Phoenix oolong is, and it should not be read as a fact about the province's other teas.",
+          "sourceIds": []
+        },
+        {
+          "key": "trade-hub",
+          "label": "A trading province",
+          "text": "Guangdong's weight in tea comes as much from its ports and markets as from its gardens. Guangzhou has been a gateway for tea leaving China, and its Fangcun market is described as the largest tea trading centre in the south, with thousands of shops and merchants from many provinces, Hong Kong and Taiwan. Pu'er in particular moves through Guangzhou, and for most of the last century its main buyers were in Hong Kong and Taiwan. A tea sold in Guangzhou is therefore not a tea grown in Guangdong.",
+          "sourceIds": []
+        },
+        {
+          "key": "drinking-culture",
+          "label": "How Guangdong drinks tea",
+          "text": "Tea is a daily habit here, in two very different forms. In the east, Chaozhou gongfu tea is the local way of brewing: small pots and cups, quick infusions, and a tea station at the front of many shops and homes. In Guangzhou and the delta, tea is drunk at yum cha, the morning or midday meal of a pot of tea with small dishes of dim sum. Pu'er, chrysanthemum and other teas are served this way, and pu'er has long been an everyday tea for ordinary people across the province.",
+          "sourceIds": []
+        },
+        {
+          "key": "storage",
+          "label": "Hong Kong and Guangdong storage",
+          "text": "Hong Kong and Guangzhou are the places the trade names when it talks about traditionally stored pu'er. Both are hot and humid, which ages tea faster and darker than a dry climate does. Old pu'er sat for decades in the storerooms of Hong Kong teahouses and restaurants, and the \"Hong Kong storage\" label grew out of that. Whether a given tea sold under that name was really kept in Hong Kong, and how damp it was, is not something the label settles. See the pu'er pages for what storage does to the tea.",
+          "sourceIds": []
+        }
+      ]
+    },
+    {
+      "id": "guangxi",
+      "slug": "guangxi",
+      "kind": "major_region",
+      "label": "Guangxi",
+      "nativeName": "广西",
+      "sourceIds": [],
+      "sections": [
+        {
+          "key": "where-it-is",
+          "label": "Where Guangxi is",
+          "text": "Guangxi is a province-level region in the south of China, officially the Guangxi Zhuang Autonomous Region, and it borders Guangdong on its eastern side. Its tea is not one thing. Two very different teas carry its name: Liu Bao, an aged dark tea from the east, and jasmine tea from Hengzhou.",
+          "sourceIds": []
+        },
+        {
+          "key": "wuzhou-and-cangwu",
+          "label": "How Wuzhou and Cangwu sit inside it",
+          "text": "Wuzhou is the city in eastern Guangxi that anchors the Liu Bao trade, and Cangwu is a county under it. Liubao town, which gave the tea its name, lies in Cangwu. When a label says Wuzhou it names the wider tea area and the city's factories, and when it says Cangwu or Liubao it points to the original home of the tea. Making has since spread to other counties around Wuzhou, so the three names are nested rather than interchangeable.",
+          "sourceIds": []
+        },
+        {
+          "key": "land-and-climate",
+          "label": "What the land gives the tea",
+          "text": "Wuzhou sits near the Tropic of Cancer, with a warm, wet, subtropical monsoon climate, plenty of rain, and hills and forest all around. People in the trade link this damp, steady warmth to the way Liu Bao ages slowly in cool storehouses, because the microbes that shape a dark tea like it. The soils are acidic, and the trade sees the setting as part of why Liu Bao is made here and not simply anywhere.",
+          "sourceIds": []
+        },
+        {
+          "key": "known-for-liu-bao",
+          "label": "What Guangxi is known for in dark tea",
+          "text": "Guangxi is known above all for Liu Bao, a dark tea the trade values for how it ages. It matters to buyers as the one famous dark tea of the south, made for the hot, humid life of Chinese workers in Southeast Asia, and Wuzhou has grown it into a large industry with its own protected name. The style, its making and its aged stock are on the Liu Bao page, so this page does not repeat them.",
+          "sourceIds": []
+        },
+        {
+          "key": "hengzhou-jasmine",
+          "label": "Hengzhou jasmine tea",
+          "text": "The other tea Guangxi is known for is jasmine tea from Hengzhou, a county-level city. Hengzhou is described as the largest jasmine growing area in China, and a very large part of the country's jasmine flowers are picked there, which is why so much scented tea starts from its flowers. This is a scented tea of a different kind from Liu Bao, and the two share nothing but the province.",
+          "sourceIds": []
+        },
+        {
+          "key": "on-a-label",
+          "label": "Guangxi on a label",
+          "text": "Guangxi on a label names a region, not a style. A Guangxi dark tea is most often Liu Bao, but a tea from Guangxi can also be jasmine, and a tea made like Liu Bao elsewhere is not from Guangxi. The finer names, Wuzhou, Cangwu and Liubao, tell you more than the province does.",
+          "sourceIds": []
+        }
+      ]
+    },
+    {
+      "id": "hsinchu",
+      "slug": "hsinchu",
+      "kind": "major_region",
+      "label": "Hsinchu",
+      "nativeName": "新竹",
+      "parentId": "taiwan",
+      "sourceIds": [],
+      "sections": [
+        {
+          "key": "where-it-is",
+          "label": "Where Hsinchu is",
+          "text": "Hsinchu is a county in the north west of Taiwan, with Taoyuan to the north, Miaoli to the south and the Taiwan Strait to the west. Most of it is hills and uplands, rising to the Xueshan and Dabajian ranges in the east. Most of its people are Hakka. Hsinchu City is a separate city and not part of the county, so on a tea record Hsinchu normally means the county, and a township such as Emei or Beipu is the finer place.",
+          "sourceIds": []
+        },
+        {
+          "key": "why-people-value-it",
+          "label": "Why people value Hsinchu tea",
+          "text": "Hsinchu is the home of Oriental Beauty, the honey-sweet, fruity oolong that is the county's best known tea. It is a hill country tea, grown on low to middling ground rather than on the cold high mountains of central Taiwan, and the style depends on the climate of these hills in summer, when a small insect feeds on the young shoots. A buyer who sees Hsinchu on a tea is most likely looking at Oriental Beauty, and the place matters because the tea is hard to make well anywhere else.",
+          "sourceIds": []
+        },
+        {
+          "key": "tea-townships",
+          "label": "The tea townships",
+          "text": "Within the county, Emei and Beipu are the two names the trade gives most often. They are neighbouring Hakka townships on the same river valley. Emei is described as the larger producer today, while Beipu has become better known as a heritage town with a historic old street and as a place to buy. Hengshan and Zhudong are also named as Oriental Beauty areas, and Guanxi is named in some accounts. Which township a tea comes from is worth reading on the label, because the county name covers all of them.",
+          "sourceIds": []
+        },
+        {
+          "key": "hakka",
+          "label": "A Hakka tea country",
+          "text": "Tea in Hsinchu is largely a Hakka trade. Local Hakka families grow the leaf, make the tea and sell it, and many farms have passed down through generations, with family tea making reaching back to the Japanese period. Hakka tea culture here also includes lei cha, a ground tea drink with nuts and grains, which is associated with Beipu. Farm visits and tea trails are now part of how the county presents its tea.",
+          "sourceIds": []
+        },
+        {
+          "key": "summer-leafhopper",
+          "label": "The summer leafhopper",
+          "text": "Oriental Beauty depends on a small green leafhopper that feeds on the young shoots in summer. Its bite makes the plant produce the compounds that give the tea its honey and ripe fruit character, so growers avoid spraying pesticide on these gardens. The buds are picked by hand, usually the bud and the next two leaves, and the leaf is oxidised heavily, close to a black tea, before it is dried. This is why Oriental Beauty is a summer tea in Hsinchu, and why it is more costly to grow than an oolong that does not need the insect.",
+          "sourceIds": []
+        },
+        {
+          "key": "oriental-beauty-names",
+          "label": "Oriental Beauty and its names",
+          "text": "Oriental Beauty is also called bai hao oolong, meaning white tip oolong, after the pale buds in the leaf. In Hsinchu it has an older folk name, pengfeng cha, which means braggart's tea. Stories about how it got the name Oriental Beauty, and about it being sent to a queen, are told in many places, but they differ in detail and are not settled history.",
+          "sourceIds": []
+        },
+        {
+          "key": "on-a-label",
+          "label": "Hsinchu on a label",
+          "text": "Hsinchu on a label names the county, and it does not by itself say which township or what kind of tea. Oriental Beauty is not made only in Hsinchu, and accounts say that production has spread to nearby areas such as Miaoli and Taoyuan, so the county name is part of what a buyer is paying for. A county name with a township, such as Emei or Beipu, says more. Whether Hsinchu makes other teas in quantity, such as green or red tea, is not established here, though small amounts of Baozhong, high mountain oolong and black tea are served at local tea events.",
           "sourceIds": []
         }
       ]
@@ -754,6 +1347,47 @@ export const GENERATED_TEA_REFERENCE_REGISTRY = {
           "key": "notice-aged",
           "label": "What people often notice in Lapsang kept for years",
           "text": "The smoke softer and further back, with dried fruit coming forward.",
+          "sourceIds": []
+        }
+      ]
+    },
+    {
+      "id": "li-shan",
+      "slug": "li-shan",
+      "kind": "tea_area",
+      "label": "Li Shan",
+      "nativeName": "梨山",
+      "parentId": "taiwan",
+      "sourceIds": [],
+      "sections": [
+        {
+          "key": "where-it-is",
+          "label": "Where Li Shan is",
+          "text": "Li Shan, which means Pear Mountain, is a high mountain area in the middle of Taiwan, on the Central Cross-Island Highway. It is a tea area and also a town, with orchards of pears, peaches and apples around it. The tea gardens are the highest in Taiwan, at roughly 1,800 to 2,500 metres, though places quote the range differently and some start as low as about 1,450. On a tea record the name covers the whole area, and a garden or sub-area inside it, such as Hua Gang, is the finer place.",
+          "sourceIds": []
+        },
+        {
+          "key": "why-people-value-it",
+          "label": "Why people value Li Shan tea",
+          "text": "Li Shan is valued for cold. At this height the nights are cool, mist and cloud sit on the slopes, there is little direct sun, and frost or snow can reach the gardens in winter. Leaves grow slowly, come out thick and soft, and are said to carry more sweetness and less bitterness. The usual tea is a lightly oxidised, ball-rolled high mountain oolong, most often from the Qing Xin cultivar. Sellers describe it as sweet, thick in the mouth and clean, with a fresh green finish. The cold also limits how often it can be picked: spring and autumn crops are usual, and the coldest gardens may give only two or three harvests a year or skip winter. That, with the cost of working steep ground at this height, is why it is priced high.",
+          "sourceIds": []
+        },
+        {
+          "key": "history",
+          "label": "From orchards to tea",
+          "text": "Fruit came to Li Shan before tea. After the Central Cross-Island Highway opened, the high ground was settled and planted with temperate fruit, and Li Shan became known for its pears. Tea was planted among the orchards later, in the last decades of the twentieth century, and it spread because the leaf sold well. By the 1990s Li Shan counted as one of Taiwan's main high mountain tea names. Places do not agree on who planted the first tea or in which year, so no start date is given here.",
+          "sourceIds": []
+        },
+        {
+          "key": "taichung-or-nantou",
+          "label": "Taichung or Nantou",
+          "text": "Most places put Li Shan in Heping District, Taichung City, not in Nantou. A few seller pages file it under Nantou, and it sits close to the Nantou border, near Ren'ai Township, which is probably why the two are mixed. A record that says Lishan, Nantou follows that looser habit. Treat Taichung as the usual answer for the place, and treat the county on a seller's label as a convenience.",
+          "sourceIds": []
+        },
+        {
+          "key": "on-a-label",
+          "label": "Li Shan on a label",
+          "text": "Li Shan on a label is a trade place name, and its edges are not fixed. Neighbouring high ground, such as Fu Shou Shan farm and the gardens near Da Yu Ling, is sometimes sold as Li Shan and sometimes under its own name. Some sellers say a tea sold as Li Shan should come from above 2,000 metres, but this is not a common rule. A label that says Li Shan but gives no garden, height or harvest season does not say much beyond the general area.",
           "sourceIds": []
         }
       ]
@@ -944,6 +1578,47 @@ export const GENERATED_TEA_REFERENCE_REGISTRY = {
       ]
     },
     {
+      "id": "lugu",
+      "slug": "lugu",
+      "kind": "tea_area",
+      "label": "Lugu",
+      "nativeName": "鹿谷",
+      "parentId": "nantou",
+      "sourceIds": [],
+      "sections": [
+        {
+          "key": "where-it-is",
+          "label": "Where Lugu is",
+          "text": "Lugu is a mountain township in the south west of Nantou County, in central Taiwan. It sits in the foothills of the Central Mountain Range and is a township of valleys, bamboo forest and tea gardens. Xitou, Shan Lin Xi and Dong Ding mountain are all known place names in or beside it. On a tea record, Lugu names a township, which is a finer place than the county Nantou and a larger one than any single mountain or garden inside it.",
+          "sourceIds": []
+        },
+        {
+          "key": "known-for",
+          "label": "Why people value Lugu tea",
+          "text": "Lugu is known as the home of Dong Ding oolong, and for most buyers that is the whole reason the name matters. The place is cool and often under cloud and mist, with sunny mornings and foggy afternoons, and the trade ties the character of its tea to that weather and to the mountain setting. Tea shares the township with bamboo, and the bamboo shoots and bamboo goods of Lugu are as well known in Taiwan as its tea. This page covers the place only. For what Dong Ding oolong is and how it is made, see the Taiwan oolong page.",
+          "sourceIds": []
+        },
+        {
+          "key": "history",
+          "label": "How tea came to Lugu",
+          "text": "The story told locally is that tea bushes were brought to Lugu from the Wuyi Mountains in Fujian in the middle of the nineteenth century. In the most repeated version, a local man named Lin Fengchi returned from the mainland with a small number of seedlings, said to be 36, and some were planted on the slopes of Dong Ding. Places differ on the year, giving 1851 in some and 1855 in others, and on who planted what, so the details are told, not settled. What is agreed is that the bushes came from Fujian, that tea has been grown here since the nineteenth century, and that it grew into the township's main cash crop.",
+          "sourceIds": []
+        },
+        {
+          "key": "dong-ding-and-dalunshan",
+          "label": "Dong Ding and the higher gardens",
+          "text": "Dong Ding is a mountain in Lugu, and gardens on and around it are where the tea took its name. Dong Ding mountain itself is not high, with one local source putting it at about 750 metres. Altitude for Dong Ding tea is quoted very differently, from about 600 metres up past 1,000, because the name covers more than the one mountain. Some growers have moved to higher ground in the township, such as Dalunshan, where gardens are described at about 1,250 to 1,500 metres. One account gives declining soil fertility on the old slopes as the reason. A tea from those gardens is still a Lugu tea, but it grows higher and cooler than Dong Ding mountain itself.",
+          "sourceIds": []
+        },
+        {
+          "key": "on-a-label",
+          "label": "Lugu on a label",
+          "text": "Lugu on a label or a record says the tea was grown in that township. It does not say the tea is Dong Ding oolong, and it does not say how the tea was made, whether roasted or not. Local grade marks that appear on Lugu tea are a separate matter from the place. The name Dong Ding is also used for the style when it is made outside Lugu, so Lugu is the stronger place claim of the two.",
+          "sourceIds": []
+        }
+      ]
+    },
+    {
       "id": "mahei",
       "slug": "mahei",
       "kind": "tea_area",
@@ -1045,7 +1720,7 @@ export const GENERATED_TEA_REFERENCE_REGISTRY = {
         {
           "key": "scope",
           "label": "Western Xishuangbanna",
-          "text": "Menghai County anchors much of western Xishuangbanna’s Pu’er landscape. Names such as Nannuo, Bulang, Mengsong, Hekai, Pasha, and Bada describe distinct mountain areas within the county rather than interchangeable synonyms for Menghai.",
+          "text": "Menghai County is the core of pu’er country in western Xishuangbanna. Nannuo, Bulang, Mengsong, Hekai, Pasha and Bada are distinct mountain areas within it, each with its own tea, not interchangeable names for Menghai.",
           "sourceIds": [
             "teadb-menghai-county"
           ]
@@ -1079,6 +1754,65 @@ export const GENERATED_TEA_REFERENCE_REGISTRY = {
           "label": "Where ripe pu’er began",
           "text": "Ripe pu’er was born in the early 1970s, when Yunnan’s state factories learned to speed up ageing by wet piling the leaf, and Menghai Tea Factory was one of the first to master it. Its 7572 cake became the benchmark ripe recipe, the cup other ripe teas are still judged against. The number reads as the recipe itself: 75 for the year the recipe began, 7 for the main leaf grade in the blend, 2 for the Menghai factory.",
           "sourceIds": []
+        },
+        {
+          "key": "peoples",
+          "label": "Who tends the mountains",
+          "text": "Menghai’s tea mountains are not one community. Bulang Mountain is the home of the Bulang people, and the Bulang are widely credited as some of the first to grow and make tea here. Nannuo is mostly tended by Hani families today (the Aini branch), although the Bulang are said to have planted its earliest trees. In Mengsong, most of the old gardens were planted by Lahu villagers. Who planted and who picks shapes each mountain’s gardens and its tea, so a mountain name is a better guide to a cup than the county name.",
+          "sourceIds": []
+        },
+        {
+          "key": "county-and-factory",
+          "label": "Menghai the place, Menghai Tea Factory the maker",
+          "text": "Menghai on a label can mean the county where the leaf grew, or Menghai Tea Factory, which sits in the county and is part of the Dayi group. They are not the same claim. The factory buys and blends leaf from several Menghai mountains, and some of its ripe tea uses leaf from outside the county, such as Lincang. Its recipes and its history belong to its own cakes. A Menghai tea from a village or a small maker is not a factory tea, and a factory cake is not a single mountain unless it says so.",
+          "sourceIds": []
+        },
+        {
+          "key": "old-gardens",
+          "label": "Old trees, left to grow",
+          "text": "What sets the old Menghai gardens apart is how they are kept. The trees are allowed to grow tall, with little pruning, and farmers use little or no fertiliser or spray. They give far less leaf than pruned plantation bushes, which are picked again and again through the season. People who buy old-garden Menghai tea are paying for that slow, low-yield leaf, and it is why the same mountain can taste so different from its plantation tea.",
+          "sourceIds": []
+        }
+      ]
+    },
+    {
+      "id": "muzha",
+      "slug": "muzha",
+      "kind": "tea_area",
+      "label": "Muzha",
+      "nativeName": "木柵",
+      "parentId": "taiwan",
+      "sourceIds": [],
+      "sections": [
+        {
+          "key": "where-it-is",
+          "label": "Where Muzha is",
+          "text": "Muzha is a hill district in the southeast of Taipei, in Wenshan District, on the edge of the city. The tea slopes are low hills of a few hundred metres, and Maokong, the best known tea hillside, is part of the same tea country. The area is wet, with a large gap between day and night temperatures. Growers and sellers say this resembles Anxi in Fujian, where Tieguanyin comes from.",
+          "sourceIds": []
+        },
+        {
+          "key": "history",
+          "label": "How Tieguanyin came to Muzha",
+          "text": "Tieguanyin reached Muzha from Anxi in Fujian in the late nineteenth century, carried by Fujian settlers. The trade most often names the tea master Zhang Naimiao, who brought plants over in 1895 and planted them in the Zhanghu part of Muzha. Many tea families in the hills still carry the Zhang name. Later shipments of plants are reported, but the years and numbers differ from place to place, so they are not settled here.",
+          "sourceIds": []
+        },
+        {
+          "key": "known-for",
+          "label": "The tea Muzha is known for",
+          "text": "Muzha is known for Tieguanyin made in the traditional Taiwanese way: a ball-rolled oolong, oxidised part way and then roasted over charcoal. It is far darker and heavier than the green, lightly finished Tieguanyin many people know from Fujian. The trade describes roasted and ripe-fruit notes, nuts and honey, an amber cup with a full body, and a sweet, lingering return. The slow roasting, repeated over many days, is a large part of why the tea costs more.",
+          "sourceIds": []
+        },
+        {
+          "key": "visiting",
+          "label": "Visiting the tea hills",
+          "text": "Tea here is also a place people go to. From the later twentieth century the city encouraged tea farms to open to visitors, and the hills now hold tea houses and farms that sell their own leaf. Most of those farms grow Tieguanyin. Buying at the source is common, which makes the farm and the year worth asking about.",
+          "sourceIds": []
+        },
+        {
+          "key": "on-a-label",
+          "label": "Muzha on a label",
+          "text": "Muzha Tieguanyin on a label names a place and a style of making. It is not proof of the plant. True Tieguanyin trees, often called zhengcong, give little leaf and need careful hands, and some growers in Muzha now use other cultivars such as Qingxin oolong for the same style of tea. Tieguanyin is also a name used for a way of making, so leaf sold as Tieguanyin may come from other plants. Place, cultivar and roast are three separate facts, and a label rarely gives all three. How the name sits with the wider tea is on the [Tieguanyin](tieguanyin) page.",
+          "sourceIds": []
         }
       ]
     },
@@ -1109,6 +1843,98 @@ export const GENERATED_TEA_REFERENCE_REGISTRY = {
           "sourceIds": [
             "ctma-nanqiao-company"
           ]
+        }
+      ]
+    },
+    {
+      "id": "nantou",
+      "slug": "nantou",
+      "kind": "major_region",
+      "label": "Nantou",
+      "nativeName": "南投",
+      "parentId": "taiwan",
+      "sourceIds": [],
+      "sections": [
+        {
+          "key": "where-it-is",
+          "label": "Where Nantou is",
+          "text": "Nantou is a county in the middle of Taiwan, and the only one that does not touch the sea. About four fifths of it is hills and mountains, rising to the Central Mountain Range in the east and to Yushan, the island's highest peak, in the south. Sun Moon Lake, the island's largest lake, lies in the middle. On a tea record, Nantou usually names the county as a whole, and a township or mountain inside it, such as Lugu or Shan Lin Xi, is the finer place.",
+          "sourceIds": []
+        },
+        {
+          "key": "why-people-value-it",
+          "label": "Why people value Nantou tea",
+          "text": "Nantou is Taiwan's biggest tea county, with more than half of the island's tea plantings and output. What makes it matter to a buyer is range. In one county the land climbs from low hills to cold mountain gardens, so it makes very different teas side by side: roasted oolong from the lower slopes, lightly oxidised high mountain oolong from the cool heights, and black tea near the lake. A tea sold as Nantou says which county it came from, and the township, mountain or garden says which of those teas it is.",
+          "sourceIds": []
+        },
+        {
+          "key": "altitude-bands",
+          "label": "Low, middle and high Nantou",
+          "text": "The trade splits Nantou's tea country by height. Low hills such as Mingjian grow tea for volume. The middle belt, around Zhushan, Sun Moon Lake and Dong Ding, is where roasted oolong is at home. Above about a thousand metres, around Shan Lin Xi and the high ground of Ren'ai Township, the gardens are cool and misty and make the light, sweet high mountain style. Which style a Nantou oolong follows depends on where in the county it grew, so the county name alone does not tell you whether it will be roasted or green and floral.",
+          "sourceIds": []
+        },
+        {
+          "key": "lugu-dong-ding",
+          "label": "Lugu and Dong Ding",
+          "text": "Lugu Township, in the south west of Nantou, is where Dong Ding oolong comes from, and it is the best known tea place in the county. Lugu has grown tea for sale since the nineteenth century, and Dong Ding mountain is covered in gardens. For what Dong Ding oolong is and how it is made, see the Taiwan oolong page. What this page adds is its place: Lugu sits in the middle belt of Nantou, below the high mountain gardens, so it is a county of roasted teas as well as light ones.",
+          "sourceIds": []
+        },
+        {
+          "key": "shan-lin-xi",
+          "label": "Shan Lin Xi",
+          "text": "Shan Lin Xi is a high mountain tea area in Zhushan Township, in Nantou, and it is described as lying near Dong Ding. Its gardens are among the county's highest and are known for bamboo forest, mist and steep slopes. Places quote its altitude differently, from the low hundreds of metres up to about 1,950 metres in one account and 1,600 to 1,800 metres in another, so no single range is safe to state.",
+          "sourceIds": []
+        },
+        {
+          "key": "ren-ai-and-lishan",
+          "label": "Ren'ai Township and Lishan",
+          "text": "Ren'ai Township, in the east of Nantou, grows high mountain tea at roughly 1,100 to 2,000 metres. Lishan is next door but is not in Nantou. Sources place it in Taichung, and sellers sell it as its own name for tea grown above about 1,800 metres. Teas from the high ground between the two, such as Dayuling, are placed in different counties by different sources, so a seller's county for them is not safe to assume. Alishan, often named with these, is in Chiayi County.",
+          "sourceIds": []
+        },
+        {
+          "key": "sun-moon-lake",
+          "label": "Sun Moon Lake and Yuchi",
+          "text": "Yuchi Township, around Sun Moon Lake, is Nantou's black tea country. It grows Assam type tea, introduced in Japanese times, and its Sun Moon Lake black tea became better known after the 1999 earthquake, when growers there turned to it. It is not oolong, so it matters here only as the other half of Nantou's tea picture.",
+          "sourceIds": []
+        }
+      ]
+    },
+    {
+      "id": "northern-vietnam-highlands",
+      "slug": "northern-vietnam-highlands",
+      "kind": "major_region",
+      "label": "Northern Vietnam highlands",
+      "sourceIds": [],
+      "sections": [
+        {
+          "key": "where-it-is",
+          "label": "Where the northern highlands are",
+          "text": "The northern Vietnam highlands are the mountain provinces along and near the border with China, where old Shan Tuyet tea trees grow. Ha Giang and Lao Cai are the two most often named for this tea, and Yen Bai and Son La are usually listed with them. Within Ha Giang the trade names Hoang Su Phi and Vi Xuyen, within Lao Cai the Bac Ha area, and Suoi Giang is the best known grove on the Yen Bai side. Gardens sit high, mostly above about 1,000 metres, and the range is cool and misty.",
+          "sourceIds": []
+        },
+        {
+          "key": "old-trees",
+          "label": "Shan Tuyet old trees",
+          "text": "Shan Tuyet means snow mountain, a name that comes from the fine white down on the buds. It names a family of large-leaf Shan tea trees and not one single cultivar. Many of the trees are old, with some said to be several hundred years, though ages are mostly local estimates and not measured. Mông and Dao communities look after many of the groves, and a number of old stands have been listed as Vietnam heritage trees. People value the tea for these old, lightly managed trees on forested slopes, in the same way they value old-tree leaf in Yunnan.",
+          "sourceIds": []
+        },
+        {
+          "key": "beside-yunnan",
+          "label": "Why it is set beside Yunnan",
+          "text": "The highlands share the large-leaf tea trees, the mountain climate and the forest setting of the Yunnan hills just over the border. For that reason the trade often compares Shan Tuyet leaf with the leaf used for pu'er, and some sellers press it into cakes in the pu'er manner. How far back tea crossed the border, and how much of it is traded across it today, is not established here. The Vietnamese tea is its own product from its own country, and a comparison with Yunnan does not make it a Yunnan tea.",
+          "sourceIds": []
+        },
+        {
+          "key": "ripe-tea",
+          "label": "Ripe tea from the highlands",
+          "text": "Ripe, pu'er style tea is made here from old-tree leaf, mostly in Ha Giang, and some Lao Cai makers also list a pu'er style tea. Sellers describe a medium fermentation, which they say gives a softer cup than ripe tea from Yunnan, with woody, earthy and nutty notes and a sweet finish. Some keep it for several years in the humid mountain climate. The stated age and the trees behind a given cake are usually the seller's own account, so they are read as that and not as a standard.",
+          "sourceIds": []
+        },
+        {
+          "key": "on-a-label",
+          "label": "The pu'er name on a label",
+          "text": "Whether a ripe cake from Vietnam may be called pu'er is not agreed. Many people hold that the name belongs to tea grown in Yunnan, and some sellers of these teas say so themselves, calling the tea a Vietnamese dark tea made in the pu'er style. Others use the pu'er name freely. A label that says Ha Giang or Shan Tuyet gives a place and a tree type, and not a legal grade, a recipe or an age.",
+          "sourceIds": []
         }
       ]
     },
@@ -1177,6 +2003,46 @@ export const GENERATED_TEA_REFERENCE_REGISTRY = {
       ]
     },
     {
+      "id": "phoenix-mountain",
+      "slug": "phoenix-mountain",
+      "kind": "major_region",
+      "label": "Phoenix Mountain",
+      "nativeName": "凤凰山",
+      "sourceIds": [],
+      "sections": [
+        {
+          "key": "where-it-is",
+          "label": "Where Phoenix Mountain is",
+          "text": "Phoenix Mountain, Fenghuang Shan, is a mountain range in Fenghuang town, in Chao'an district of Chaozhou, in eastern Guangdong. It is the high ground of the Chaoshan region, with its top peak rising to about 1,500 metres. Tea grows on its slopes from low foothills up to roughly 1,100 metres, and the name on a tea label usually means this range as a whole rather than one village.",
+          "sourceIds": []
+        },
+        {
+          "key": "mist-and-climate",
+          "label": "Mist, cool air and slow leaf",
+          "text": "People value the mountain for the weather the tea grows in. Cloud and mist sit on the upper slopes for much of the year, the light is soft, and the nights are cool. The bushes grow slowly in these conditions, and the trade links that slow growth to the thick leaf and the lasting scent prized in this tea. The higher the garden, the cooler it is, and the more a tea is expected to show what the trade calls mountain rhyme.",
+          "sourceIds": []
+        },
+        {
+          "key": "wudong-and-villages",
+          "label": "Wudong and the other gardens",
+          "text": "Wudong, the high ridge around the top of the range, is the part named most often as the heart of the mountain, and its high gardens are the ones the trade prices highest. Wudong village sits high on the ridge, with gardens near and above 900 metres. Da'an, lower on gentler slopes in Fengxi, is known for the largest old tea garden on the mountain. Other villages such as Shiguping, Lizipping and Guantou are also named, and each is said to give its own character, though little of that is written down plainly. A village name on a tea tells you more about where it grew than the mountain name does.",
+          "sourceIds": []
+        },
+        {
+          "key": "old-trees",
+          "label": "The old trees",
+          "text": "The mountain is known for tea trees that stand where they have grown for hundreds of years, left unpruned so that they grow tall and send roots deep into the granite. A few are said to be 600 or 700 years old, and are tied by tradition to the Song dynasty, though no age is agreed or proven. Their leaf is made on its own and sold at very high prices, because each gives only a few kilograms a year. Most of what is sold today comes from bushes grown from these trees, not from the trees themselves.",
+          "sourceIds": []
+        },
+        {
+          "key": "people",
+          "label": "The people of the mountain",
+          "text": "Phoenix Mountain is widely named as the homeland of the She people, who are tied to the tea of the mountain by local tradition. The mountain is also the home of Chaozhou gongfu tea, the small-cup way of brewing the region is known for. Tea has been made here for centuries, but no start date is agreed: sources give 700, 900 and more than 1,000 years.",
+          "sourceIds": []
+        }
+      ]
+    },
+    {
       "id": "puer",
       "slug": "puer",
       "kind": "tea_family",
@@ -1209,6 +2075,41 @@ export const GENERATED_TEA_REFERENCE_REGISTRY = {
           "sourceIds": [
             "ctma-puer-history-2021"
           ]
+        }
+      ]
+    },
+    {
+      "id": "qimen",
+      "slug": "qimen",
+      "kind": "major_region",
+      "label": "Qimen",
+      "nativeName": "祁门",
+      "parentId": "anhui",
+      "sourceIds": [],
+      "sections": [
+        {
+          "key": "where-it-is",
+          "label": "Where Qimen is",
+          "text": "Qimen is a county in the south of Anhui Province, in the hills near the Huangshan mountains and close to the border with Jiangxi. It belongs to Huangshan City. Tea is grown in other parts of the same hill country, but the name Qimen on a tea record points to the county itself.",
+          "sourceIds": []
+        },
+        {
+          "key": "known-for",
+          "label": "Why people know Qimen",
+          "text": "Qimen is known for one tea, Keemun, the red tea named after the county. The land suits it: hilly, wooded ground with mild, damp weather, plenty of rain and frequent cloud and mist. Keemun is made mostly from a small-leaved local tea plant, and the trade prizes its scent above everything else. That scent is so closely tied to the county that it has its own name, Qimen aroma. People describe it as floral and fruity, sometimes with a faint smokiness, over a smooth, sweet cup with little astringency. It is one of the classic Chinese teas of the export trade, and it has long been used in English-style breakfast blends.",
+          "sourceIds": []
+        },
+        {
+          "key": "how-keemun-began",
+          "label": "How Keemun began",
+          "text": "Before the 1870s Qimen made green tea. Red tea was made there from about 1875, using methods carried in from Fujian, by way of Jiangxi in most tellings, after green tea sales fell. Hu Yuanlong, a local man who set up the Rishun tea factory, is the name most often given as the founder. Another account gives the credit to the tea merchant Yu Gancheng, who opened buying stations in Qimen. The accounts disagree and the exact order of events is not established. What is agreed is the period, the late Qing dynasty, and that Western buyers were looking for the tea within a few years.",
+          "sourceIds": []
+        },
+        {
+          "key": "on-a-label",
+          "label": "Keemun on a label",
+          "text": "Keemun is a style as well as a place. Tea made by the Keemun method also comes from nearby counties in Anhui, such as Dongzhi, Shitai and Yi County, and from Fuliang in Jiangxi, so Keemun on a label does not by itself mean the leaf grew in Qimen County. The name also sells well, and tea sold as Keemun varies a lot in quality. Qimen, named as the place of origin, is the stronger claim. Black teas from Hubei sold as Hubei Keemun are not Keemun at all.",
+          "sourceIds": []
         }
       ]
     },
@@ -1582,6 +2483,46 @@ export const GENERATED_TEA_REFERENCE_REGISTRY = {
       ]
     },
     {
+      "id": "taiwan",
+      "slug": "taiwan",
+      "kind": "major_region",
+      "label": "Taiwan",
+      "nativeName": "台湾",
+      "sourceIds": [],
+      "sections": [
+        {
+          "key": "where-it-is",
+          "label": "Where Taiwan is",
+          "text": "Taiwan is an island off the coast of Fujian, across the strait from mainland China, and its tea came from Fujian. A tall mountain range runs down the middle and the east, with many peaks above 2,000 metres, and the tea gardens are mostly on the western side. The range shelters that side from ocean storms, the climate is warm and wet, and the higher gardens sit in cloud and mist for much of the day.",
+          "sourceIds": []
+        },
+        {
+          "key": "known-for",
+          "label": "What Taiwan is known for in tea",
+          "text": "Taiwan is known above all for oolong. Its trade is built on rolled, bead-shaped oolong, much of it lightly oxidised, and on the high mountain teas grown above about 1,000 metres, where cool air, fog and short hours of direct sun slow the leaf and the tea tastes sweet and low in bitterness. Taiwan is also known for how many distinct styles it makes on one small island: roasted Dong Ding, the long-strip Baozhong, the heavily oxidised Oriental Beauty, and traditional Tieguanyin from Muzha. Black tea, green tea and newer oolong styles are made as well, but oolong is what the name Taiwan stands for.",
+          "sourceIds": []
+        },
+        {
+          "key": "areas",
+          "label": "How the tea areas sit on the island",
+          "text": "The tea areas fall into a few groups. In the north, around Taipei and New Taipei, are Pinglin, home of Baozhong, and Muzha, home of Tieguanyin. Further along the north and northwest, Hsinchu and Miaoli are where Oriental Beauty is made. In the centre, Nantou is the largest tea county, with Lugu (Dong Ding), Shanlinxi and the red tea around Yuchi, and it is joined by the Taichung mountains of Lishan and Dayuling. In the southwest, Chiayi holds the Alishan area. The east coast, in Hualien and Taitung, is smaller and makes a wider mix of teas. The high mountain tea areas are mostly in Nantou, Chiayi and Taichung, and the older, lower areas are mostly in the north.",
+          "sourceIds": []
+        },
+        {
+          "key": "history",
+          "label": "How tea came to Taiwan",
+          "text": "Tea came with settlers from Fujian, who brought plants and the craft of making oolong, and it grew into a trade for sale abroad in the nineteenth century, when oolong was sold overseas as Formosa Oolong. Under Japanese rule the island also turned to black tea, and in the late twentieth century more attention went to quality and to tea drunk at home, which is when high mountain oolong became so prized.",
+          "sourceIds": []
+        },
+        {
+          "key": "on-a-label",
+          "label": "Taiwan on a label",
+          "text": "Taiwan on its own is a country, not a mountain, a county or a style. It tells you the tea was grown on the island and nothing more about where, at what height, from which cultivar or in which style. Two teas that both say Taiwan can be a roasted lowland oolong and a light high mountain oolong. Where a seller names a mountain or township, that is the fuller claim, and a bare Taiwan is the weaker one. The kind of tea, such as oolong, red tea or green tea, is a separate fact again.",
+          "sourceIds": []
+        }
+      ]
+    },
+    {
       "id": "taiwan-oolong",
       "slug": "taiwan-oolong",
       "kind": "tea_type",
@@ -1689,6 +2630,29 @@ export const GENERATED_TEA_REFERENCE_REGISTRY = {
           "key": "common-impressions",
           "label": "What people often notice",
           "text": "Because of the pectin, tea heads give many infusions and a thick, smooth, sweet cup with little bitterness. Sellers name date and woody notes. They are brewed with a rinse first, and they often do not open fully.",
+          "sourceIds": []
+        }
+      ]
+    },
+    {
+      "id": "three-cranes",
+      "slug": "three-cranes",
+      "kind": "leaf_grade",
+      "label": "Three Cranes",
+      "nativeName": "三鹤",
+      "parentId": "liu-bao",
+      "sourceIds": [],
+      "sections": [
+        {
+          "key": "definition",
+          "label": "A factory's mark, not a style or a place",
+          "text": "Three Cranes, also written San He, is the trademark of Wuzhou Tea Factory in Guangxi, the largest maker of Liu Bao. It is a brand of one factory. It is not a type of tea, a grade of leaf or a village, and other makers of Liu Bao do not use it. The story of the name, and of the factory behind it, is on the San He Liu Bao page.",
+          "sourceIds": []
+        },
+        {
+          "key": "reading-the-label",
+          "label": "What the mark tells a buyer, and what it does not",
+          "text": "The mark tells a buyer who made the tea: Wuzhou Tea Factory, working in its own warehouses. Sellers also treat it as a sign of consistent factory making, which is a reputation and not a measure of any one tea. It does not say how old the tea is, which leaf it holds or how it is stored. Those come from the rest of the label: the harvest year and the year of packing, which are often printed as a pair, and a grade number such as third grade. The four or five digit codes that follow the brand name on many labels are recipe or batch numbers. What each digit stands for is not established here, so the number is best read as a lookup against the seller's own description.",
           "sourceIds": []
         }
       ]
@@ -1841,6 +2805,134 @@ export const GENERATED_TEA_REFERENCE_REGISTRY = {
       ]
     },
     {
+      "id": "wuliang-mountain",
+      "slug": "wuliang-mountain",
+      "kind": "tea_area",
+      "label": "Wuliang Mountain",
+      "nativeName": "无量山",
+      "parentId": "yunnan",
+      "sourceIds": [],
+      "sections": [
+        {
+          "key": "where",
+          "label": "Where Wuliang Mountain is",
+          "text": "Wuliang Mountain is a long mountain range in west-central Yunnan, not a single village or peak. It starts near Nanjian in Dali Prefecture, runs south through Jingdong, Zhenyuan and Jinggu in Pu’er City, and fades out toward Ning’er and the old tea mountains of Xishuangbanna. The Lancang River (the upper Mekong) lies on its west side, and the range runs beside the Ailao Mountains. Its highest peaks are a little over 3,000 metres, though places give different names and figures for the top.",
+          "sourceIds": []
+        },
+        {
+          "key": "land-and-climate",
+          "label": "A wet, forested mountain",
+          "text": "The range has a monsoon climate: a warm, rainy summer and a drier, misty winter, with large swings between day and night. Climate changes a lot from the valley floors to the high ridges, so the tea on one part of the range can differ from another. Much of it is still forest, and part is a national nature reserve. Old tea trees sit in that forest and in small gardens near villages.",
+          "sourceIds": []
+        },
+        {
+          "key": "trees",
+          "label": "Old trees, wild and planted",
+          "text": "Wuliang Mountain is known for old tea trees, both wild ones in the forest and older planted ones in village gardens. Jingdong and Zhenyuan are the counties most often named for them. Tree age, leaf variety and garden height are quoted differently from seller to seller, so none of them is settled for the range as a whole.",
+          "sourceIds": []
+        },
+        {
+          "key": "name",
+          "label": "What the name means",
+          "text": "Wuliang means “without measure.” The trade explains it as a name for a mountain too tall and wide to measure. When the name began to appear on tea wrappers is not established.",
+          "sourceIds": []
+        },
+        {
+          "key": "on-a-label",
+          "label": "Wuliang on a label",
+          "text": "Wuliang Mountain on a label points to a whole range, and a label rarely says which county or village the leaf came from. Kunlu Mountain in Ning’er is a spur of the same range and has its own page. Qianjiazhai in Zhenyuan, home of a famous wild tea tree, is most often placed in the Ailao Mountains, not in Wuliang, though Zhenyuan sits between the two ranges and the line is not always drawn the same way. The trade says much tea sold as Wuliang comes from the northern part, near Jingdong and Nanjian.",
+          "sourceIds": []
+        },
+        {
+          "key": "common-impressions",
+          "label": "What people often notice",
+          "text": "Sellers and tea writers most often describe a fragrant tea, with floral notes such as orchid, and a soft, fairly gentle cup with little bitterness. Some describe a fuller, sweeter body, and some find the tea thin. Reports differ because the range is so large and the teas come from different parts of it.",
+          "sourceIds": []
+        }
+      ]
+    },
+    {
+      "id": "wuyi-mountains",
+      "slug": "wuyi-mountains",
+      "kind": "major_region",
+      "label": "Wuyi Mountains",
+      "nativeName": "武夷山",
+      "sourceIds": [],
+      "sections": [
+        {
+          "key": "where-it-is",
+          "label": "Where the Wuyi Mountains are",
+          "text": "The Wuyi Mountains run along the border of northern Fujian and Jiangxi in south-east China. The tea town is Wuyishan City, in Fujian. The range is a UNESCO World Heritage site, listed in 1999, and much of it is protected forest and nature reserve. Tea grows in several different parts of it, from the river valleys to the high northern edge, and the parts make different teas.",
+          "sourceIds": []
+        },
+        {
+          "key": "nature",
+          "label": "Why tea grows well here",
+          "text": "Wuyi is steep, wet and misty. The mountains hold in warm air from the sea, so rain is heavy and fog is common through the year. In the eastern part, red sandstone peaks rise out of the Nine-Bend River gorge as cliffs with flat tops. The west is mostly volcanic rock and granite. Tea bushes grow in the thin, stony soil of the ravines, on ledges and between rocks, where the ground drains fast and mist settles on the slopes. This is the reason people give for the mineral, stony character they look for in Wuyi tea, and for the slow growth of the bushes.",
+          "sourceIds": []
+        },
+        {
+          "key": "zones",
+          "label": "The core, the edge and the river banks",
+          "text": "The trade sorts Wuyi tea by how stony the ground is and how close it is to the scenic core. Zheng yan, true rock, is the core of about 70 square kilometres, with steep rocky ground. Its best-known part is the three pits and two streams, among them Niulan Keng and Huiyuan Keng. Ban yan, half rock, is the ring around the core, with less rock in the soil. Zhou cha is tea from the flat, sandy ground along the river. Wai shan, outer mountain, is tea from farther away still. Most buyers and growers say the stony character fades with distance from the core, though the zones are a trade habit and not a guarantee of any one cup. The shop's page on Wuyi rock tea covers how these teas are made and judged.",
+          "sourceIds": []
+        },
+        {
+          "key": "two-teas",
+          "label": "Two kinds of tea, two parts of the mountain",
+          "text": "Wuyi is known for two very different teas, and they come from different ground. Rock oolong, such as Da Hong Pao, Rougui and Shui Xian, comes from the rocky valleys and cliffs lower down. Lapsang Souchong, the original smoked black tea, comes from the high northern edge of the range around Tongmu village, close to the Jiangxi border, in forested country that is also protected. Tongmu is widely called the birthplace of Chinese black tea. Both are sold as Wuyi tea, so a Wuyi label does not tell you which kind you have. The pages on rock tea and Lapsang cover each.",
+          "sourceIds": []
+        },
+        {
+          "key": "on-a-label",
+          "label": "Wuyi on a label",
+          "text": "Wuyi is a famous name, and it is used on a wide range of tea. The strict meaning of Wuyi rock tea is tea grown inside the Wuyi scenic area from the local cultivars and made by the Wuyi method. Tea from the outer mountain, the river banks or other parts of Fujian can still be sold with a Wuyi style name, and the name Da Hong Pao in particular is used loosely. A label that says only Wuyi or Wuyi Mountains, without naming a zone or a pit, does not say how close to the core the tea grew. Ask for the zone and the cultivar when you want to know.",
+          "sourceIds": []
+        }
+      ]
+    },
+    {
+      "id": "wuzhou",
+      "slug": "wuzhou",
+      "kind": "major_region",
+      "label": "Wuzhou",
+      "nativeName": "梧州",
+      "parentId": "guangxi",
+      "sourceIds": [],
+      "sections": [
+        {
+          "key": "where-it-is",
+          "label": "Where Wuzhou is",
+          "text": "Wuzhou is a city in the east of Guangxi, right on the border with Guangdong. It stands where the Xi and Gui rivers meet, and the stretch of river below the meeting is the road down to Guangzhou. The city has been a river town for more than two thousand years, and that position, not its own tea fields, is the reason it matters in tea.",
+          "sourceIds": []
+        },
+        {
+          "key": "river-port",
+          "label": "The river port",
+          "text": "Wuzhou is the gate between Guangxi and the coast. Goods from the hills of eastern Guangxi came down the rivers to its port and went on by water to Guangzhou, Hong Kong and the sea. It was opened to foreign trade as a treaty port in 1897, and it is still described as the main river port of Guangxi. For tea this meant a simple thing: leaf made in the hills had to reach Wuzhou to reach the world.",
+          "sourceIds": []
+        },
+        {
+          "key": "liu-bao-trade",
+          "label": "Wuzhou and Liu Bao",
+          "text": "Liu Bao is named for the town of Liubao, which lies in Cangwu County under Wuzhou, so the tea is grown and first made in the countryside around the city and not in the city itself. Wuzhou was where it was gathered, finished and sent on. Tea came down from the hills by small boat and raft to the river, then by larger boat to Guangzhou, and from there by sea to the Chinese communities of Malaya and Southeast Asia. The trade still calls this the old tea-boat road. This is why Liu Bao is commonly called a Wuzhou tea even though Liubao town is the source of its name.",
+          "sourceIds": []
+        },
+        {
+          "key": "history",
+          "label": "How the trade fell and came back",
+          "text": "Liu Bao sales were strong in the 1930s, then fell sharply after war reached the south in 1937 and the sea trade was cut. Later the planned economy and farmers leaving tea for other crops pushed output very low, and by the end of the 1980s very little was being made. Since the 1990s, and above all in the last fifteen years, Wuzhou has rebuilt the tea as a large local industry, with the city government backing it, new plantings, and a regional brand. Figures for output differ from one report to the next, so the size of the industry today is not settled here.",
+          "sourceIds": []
+        },
+        {
+          "key": "on-a-label",
+          "label": "Wuzhou on a label",
+          "text": "Wuzhou on a label names a city and its tea area, not a single maker. A Liu Bao sold as Wuzhou can come from a farm in Cangwu, from a factory in the city, or from one of the other counties around it, and the word alone does not say which. Liubao or Cangwu is the narrower claim and points to the original home of the tea. The Wuzhou Tea Factory is one maker in the city and has its own page, so its history is not the history of every Wuzhou tea.",
+          "sourceIds": []
+        }
+      ]
+    },
+    {
       "id": "y562",
       "slug": "y562",
       "kind": "named_tea",
@@ -1886,6 +2978,46 @@ export const GENERATED_TEA_REFERENCE_REGISTRY = {
           "sourceIds": [
             "puer-magazine-jixing-design"
           ]
+        }
+      ]
+    },
+    {
+      "id": "ya-an",
+      "slug": "ya-an",
+      "kind": "major_region",
+      "label": "Ya'an",
+      "nativeName": "雅安",
+      "sourceIds": [],
+      "sections": [
+        {
+          "key": "where-it-is",
+          "label": "Where Ya'an is",
+          "text": "Ya'an is a prefecture-level city in western Sichuan, on the western edge of the Sichuan Basin where the land climbs towards the Tibetan plateau. Mountains close it in, and four rivers run through it. It sits on the old road from the basin to Kangding and Tibet, which is why its tea went west. Mengding Shan, the best known tea mountain in Sichuan, is in Mingshan, in the east of the city's area.",
+          "sourceIds": []
+        },
+        {
+          "key": "climate",
+          "label": "Why tea grows well in Ya'an",
+          "text": "Ya'an is nicknamed the Rain City. Rain falls on most days of the year, the air stays damp and mist hangs on the hills, and the winters are mild because the mountains to the north shield it from cold air. Tea likes that: steady moisture, cloud cover and no hard frost. The hills around Mengding Shan are also heavily forested, and the soils are acidic yellow and red earths, which suit the tea bush.",
+          "sourceIds": []
+        },
+        {
+          "key": "known-for",
+          "label": "The two teas Ya'an is known for",
+          "text": "Ya'an is known for two quite different kinds of tea. One is the green tea of Mengding Shan, made from young spring leaf and sold as a fine tea. The other is dark tea for Tibet, made from mature leaf and pressed into bricks. The city's tea trade today carries both names, Mengding Shan tea and Ya'an Tibetan tea. They share a place but not a market, a leaf grade or a way of drinking.",
+          "sourceIds": []
+        },
+        {
+          "key": "mengding-shan",
+          "label": "Mengding Shan",
+          "text": "Mengding Shan is the mountain behind most of the fine tea of Ya'an. It rises to about 1,450 metres, and the tea gardens climb its slopes. Its best known teas are green: Mengding Ganlu, a small curled leaf, and Mengding Mao Feng and Shihua. It also makes a famous yellow tea, Mengding Huangya. The mountain's name is protected as a geographical indication, so Mengding Shan on a label should mean tea from this area. Tea tradition ties it to Wu Lizhen, said to have planted the first tea bushes here more than two thousand years ago. That is a story the trade tells with pride, and it is not proven history.",
+          "sourceIds": []
+        },
+        {
+          "key": "tibet-trade",
+          "label": "Ya'an and the road to Tibet",
+          "text": "For about a thousand years Ya'an was where tea for Tibet began its journey. Porters carried the bricks on foot from Ya'an to Kangding, and from there the tea went on to Lhasa and other Tibetan towns. In return Tibet sent horses. This is the reason Ya'an is a dark tea place as well as a green tea place. The making of that tea, the bricks and how they are drunk are on the page for Sichuan border tea.",
+          "sourceIds": []
         }
       ]
     },
@@ -1985,6 +3117,47 @@ export const GENERATED_TEA_REFERENCE_REGISTRY = {
       ]
     },
     {
+      "id": "yuchi",
+      "slug": "yuchi",
+      "kind": "tea_area",
+      "label": "Yuchi",
+      "nativeName": "魚池",
+      "parentId": "nantou",
+      "sourceIds": [],
+      "sections": [
+        {
+          "key": "where-it-is",
+          "label": "Where Yuchi is",
+          "text": "Yuchi is a township in the middle of Nantou County, in central Taiwan, and it holds Sun Moon Lake. It is a basin of gentle hills around the lake, and its tea is grown mostly on slopes at roughly 600 to 800 metres. Tea from here is often sold under the name Sun Moon Lake, which is the better known name for the same ground.",
+          "sourceIds": []
+        },
+        {
+          "key": "why-red-tea",
+          "label": "Why red tea grew here",
+          "text": "Taiwan is better known for oolong, so red tea in Yuchi needs a reason, and the reason is the land. The basin is warm and wet, with a lot of mist and cloud, deep reddish soil, and a lake that keeps the weather mild and steady. The trade, and the Japanese tea men who first trialled it, compared this to the Assam country of India, where red tea is made from the large leaf variety. That is why Yuchi became Taiwan's red tea place and not only a place that happens to make some.",
+          "sourceIds": []
+        },
+        {
+          "key": "assam-planting",
+          "label": "The Assam planting",
+          "text": "Under Japanese rule, the colonial government wanted red tea for export and brought in large leaf Assam tea seeds from India. Trial plantings went in at several sites, and Yuchi was the one that did well. Sources give different years for the seeds and the first plantings, so no single date is safe to quote. The Assam type is the root of Yuchi red tea, and plantings of that type are still called Assam red tea here.",
+          "sourceIds": []
+        },
+        {
+          "key": "research-station",
+          "label": "The research station",
+          "text": "A tea research station was set up at Yuchi to work on red tea, and the station still stands, now part of Taiwan's national tea research service (the Tea Research and Extension Station). Its work after the war gave Yuchi its named cultivars, among them the Assam type Taicha 8 and the later Taicha 18, called Ruby (Hong Yu), a cross of a Taiwanese wild tea with a Burmese large leaf red tea. The cultivar is a separate fact from the place: Yuchi makes red tea from more than one of them.",
+          "sourceIds": []
+        },
+        {
+          "key": "decline-and-return",
+          "label": "Decline and return",
+          "text": "Red tea from Yuchi was an export crop and it faded when it could no longer compete. From the 1970s rising wages made hand picked leaf expensive against red tea from other countries, and many growers moved to oolong or to other crops. The 1999 earthquake hit the township hard, and rebuilding turned attention back to local red tea. Since then a younger generation has returned to grow and make it, and Yuchi is again the first place most people name for Taiwanese red tea.",
+          "sourceIds": []
+        }
+      ]
+    },
+    {
       "id": "yunnan",
       "slug": "yunnan",
       "kind": "major_region",
@@ -2075,6 +3248,82 @@ export const GENERATED_TEA_REFERENCE_REGISTRY = {
           "key": "common-impressions",
           "label": "What people often notice",
           "text": "A honeyed, sweet cup, often richer and fuller than Fujian white, with little bitterness, sometimes fruit like apricot or melon and a hay or herbal note. Yabao is sweet and silky, often with pine or herbal notes.",
+          "sourceIds": []
+        }
+      ]
+    },
+    {
+      "id": "zhenghe",
+      "slug": "zhenghe",
+      "kind": "major_region",
+      "label": "Zhenghe",
+      "nativeName": "政和",
+      "parentId": "fujian",
+      "sourceIds": [],
+      "sections": [
+        {
+          "key": "where-it-is",
+          "label": "Where Zhenghe is",
+          "text": "Zhenghe is a county in the city of Nanping, in the north of Fujian. It is an inland mountain county, set back from the coast and covered in forest, with mist, cooler air and wider swings between day and night than the coastal tea hills. The trade points to that mountain setting when it explains why Zhenghe tea tastes the way it does. Altitude is quoted differently from place to place, so no single figure is given here. Tieshan is the township most often named in its tea story.",
+          "sourceIds": []
+        },
+        {
+          "key": "known-for",
+          "label": "What Zhenghe is known for",
+          "text": "Zhenghe is one of the two main homes of white tea, with Fuding. It grows its own bush, Zhenghe Da Bai, a large-leaf variety with plump, downy buds. It buds later than the Fuding bushes and is usually described as the darker, taller-growing one. It is used for Silver Needle and White Peony, and it also makes black tea and a scented green tea. The bush is tied to Tieshan, where it is said to have been found in the late nineteenth century, and it is now planted well beyond the county.",
+          "sourceIds": []
+        },
+        {
+          "key": "zhenghe-and-fuding",
+          "label": "Zhenghe and Fuding",
+          "text": "The trade sets Zhenghe against Fuding. Fuding is called the lighter, fresher, more floral style, and Zhenghe the fuller, rounder and mellower one, with a thicker liquor. Because Zhenghe leaf comes later in a rainy season, much of it is withered indoors, and some makers pile it longer, which adds to the deeper cup. This is the trade's comparison of two places and not a rule. Gardens, picking, processing and storage change a cup more than the county name does, and a few sellers reject the contrast altogether.",
+          "sourceIds": []
+        },
+        {
+          "key": "zhenghe-gongfu",
+          "label": "Zhenghe Gongfu",
+          "text": "Zhenghe also makes black tea. Zhenghe Gongfu is a Fujian gongfu black tea named for the county, and it is made from the same Da Bai bush as the white tea. It is counted among the classic Fujian black teas, alongside Bailin and Tanyang. It is described as a full, smooth, mellow cup with a sweet finish, and some sellers call it winey. The date it began and how widely it was exported are told differently from place to place and are not settled here.",
+          "sourceIds": []
+        },
+        {
+          "key": "history",
+          "label": "How Zhenghe's tea story is told",
+          "text": "Zhenghe is an old tea county, and its name is part of the story. The usual telling says the emperor of the Song period renamed it after his reign title because he liked its tea. The tale is widely repeated, but it is copied from one page to the next and not checked against a record, so it is a story and not a fact on this page. What is better supported is the later one: the Da Bai bush was found and spread from Tieshan in the late nineteenth century, and Zhenghe white tea and black tea were both made for sale from about then.",
+          "sourceIds": []
+        }
+      ]
+    },
+    {
+      "id": "zhong-cha-pai",
+      "slug": "zhong-cha-pai",
+      "kind": "leaf_grade",
+      "label": "Zhong Cha Pai",
+      "nativeName": "中茶牌",
+      "parentId": "shou",
+      "sourceIds": [],
+      "sections": [
+        {
+          "key": "definition",
+          "label": "What Zhong Cha Pai means on a cake",
+          "text": "Zhong Cha Pai means “Zhong Cha brand”. It is the name pu’er drinkers give to tea sold under the mark of the China National Tea Corporation, and it appears on ripe cakes, bricks and loose tea alike. It is a brand, not a grade of leaf: it says nothing about how fine or coarse the tea is, and it is not one of the leaf sorts that ripe pu’er is graded by. The company and its mark are covered on the China National Tea Corporation page.",
+          "sourceIds": []
+        },
+        {
+          "key": "era",
+          "label": "Ask when it was made",
+          "text": "On a Zhong Cha tea, the year of manufacture tells you more than the mark does. Until the 1980s the big state factories made pu’er for the company, and the mark sat on teas that came out of one tightly run system. From the late 1980s the larger factories moved to their own names, and newer and smaller makers took up the Zhong Cha label, reportedly paying the company for the right. Two cakes with the same wrapper can therefore come from very different hands.",
+          "sourceIds": []
+        },
+        {
+          "key": "ripe-cakes",
+          "label": "Ripe tea under the mark",
+          "text": "Ripe pu’er only began in the 1970s, so any ripe cake under the mark is from that decade or later. Most ripe Zhong Cha cakes people meet today date from the 1990s onward, the time when the label was being used by many makers, so the page for the mark cannot say how a particular ripe cake will taste. That depends on the factory, the recipe and how the cake has been stored.",
+          "sourceIds": []
+        },
+        {
+          "key": "reading-the-label",
+          "label": "Look past the wrapper",
+          "text": "Buyers who know the mark check more than the outer paper. The inner ticket and the insert, the recipe code where there is one, and whether the stated year fits that recipe all help to place a cake. Wrappers often leave out the year, and the leaf is hard to trace, so a seller’s record of where the cake has been matters. Zhong Cha is also among the most copied pu’er names, and an old date is easy to claim, so a very low price for a tea said to be old is a reason to ask more.",
           "sourceIds": []
         }
       ]

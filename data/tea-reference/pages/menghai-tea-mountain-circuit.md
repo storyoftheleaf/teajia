@@ -9,14 +9,14 @@ source_ids:
   - ctma-menghai-seven-mountains-2025
 ---
 
-## Visiting the mountains behind the names {#editorial-boundary}
+## An itinerary, not an origin {#editorial-boundary}
 
-Menghai's best known tea names, Nannuo, Hekai, Banzhang and Lao Man’e, are places you can drive to. Tea tourism there is organised as a route that links them, and it is the easiest way to see why they taste different: the trees, the villages and the people who pick them change from one mountain to the next. A mountain named on a cake is a good reason to go and look, but it is not proof the leaf came from there. Tea sold under a famous village name is often blended, and a visit is the best way to learn what the real thing is. [cite:ctma-menghai-seven-mountains-2025]
+The Menghai tea-culture circuit is a travel itinerary through tea landscapes, villages, cultural sites, and businesses. It is useful evidence of how places are connected for visitors, but the route itself is not a tea area and does not belong in the geographic origin hierarchy. [cite:ctma-menghai-seven-mountains-2025]
 
 ## Seven mountain stops {#seven-mountain-route}
 
-The route runs through Nannuo, Pasha, Hekai, Bangpen, Xin Banzhang, Lao Banzhang and Lao Man’e, which the tourism board calls seven well-known old tea gardens on one line. For a buyer it puts the main flavour styles of Menghai within a short drive of each other: Nannuo and Hekai on the eastern side, the Bulang mountain villages around Banzhang and Lao Man’e on the south. Many visitor routes add tea tastings and a chance to pick and make tea by hand, often at a tea estate. [cite:ctma-menghai-seven-mountains-2025]
+One line links Nannuo, Pasha, Hekai, Bangpen, Xin Banzhang, Lao Banzhang, and Lao Man’e. The same itinerary also points toward historic factory remains, old cultivated trees, museums, estates, and temples, placing tea production beside the cultural landscape through which the route passes. [cite:ctma-menghai-seven-mountains-2025]
 
 ## Reading the circuit {#reading-the-circuit}
 
-The route also crosses the homelands of several peoples. Hani communities (Aini in local speech) live around Nannuo, Lahu communities around Hekai, and Bulang communities in the Bulang Mountain villages. Each mountain's tea carries the habits of the people who grow it, so knowing who is behind a village helps you read the name on a label. [cite:ctma-menghai-seven-mountains-2025]
+The published circuit begins at Nannuo and ends at Lao Man’e over roughly 78.5 kilometres, passing tea gardens and communities associated with Hani, Lahu, and Bulang peoples. Those route details support travel context; they do not prove that every tea sold under a stop name came from that place. [cite:ctma-menghai-seven-mountains-2025]

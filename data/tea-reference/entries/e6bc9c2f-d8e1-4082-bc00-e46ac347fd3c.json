@@ -1,6 +1,6 @@
 {
   "status": "approved",
-  "composedAt": "2026-11-25T15:56:09.723Z",
+  "composedAt": "2026-11-27T03:58:44.317Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -11,25 +11,24 @@
     "form": "Cake",
     "year": 1998,
     "origin": "Menghai, Yunnan, China",
-    "stockGrams": 100,
-    "pricePerGramUsd": 1.13,
-    "tags": [
-      "aged camphor",
-      "dried longan",
-      "mineral sweetness",
-      "woodsy depth"
-    ]
+    "stockGrams": null,
+    "pricePerGramUsd": null,
+    "tags": []
   },
   "entry": {
     "productId": "e6bc9c2f-d8e1-4082-bc00-e46ac347fd3c",
     "paragraphs": [
       {
-        "layer": "lot",
-        "text": "A cake of [raw pu’er](sheng:identity) from Menghai in Yunnan, made in 1998. The leaf went through the usual [making](sheng:making). It was fried in a wok to kill the green, rolled, and dried in the sun as maocha. It was never hot-air dried, so some of the leaf's own activity survived, and that is what has let this cake keep changing since. It was made in the years when collectors, led at first by Taiwan, were already looking for aged raw pu’er."
+        "layer": "place",
+        "text": "A cake of [raw pu’er](sheng:identity) from 1998, its leaf grown in Menghai County in Yunnan. On a label, [Menghai](menghai-county:county-and-factory) can mean the county or the tea factory of the same name, which blends leaf from several mountains. Here it names the county where the leaf grew."
+      },
+      {
+        "layer": "type",
+        "text": "The leaf was fried in a wok to [kill the green](sheng:making) but never dried with hot air afterwards. That leaves some of the leaf’s own activity alive, and that activity is what lets the tea keep changing in the cake for years."
       },
       {
         "layer": "age",
-        "text": "Twenty-eight years on, it is past both the ten years some count as [aged](sheng:ageing) and the twenty or more that many wait for. How far a cake has come depends on how it was kept. Heat and humidity set the pace of its change in [storage](sheng:storage), so where a cake is kept is part of its history."
+        "text": "At twenty-eight years it is past both points where the trade says [aged](sheng:ageing) raw pu’er begins: ten years for some, twenty or more for many. Raw pu’er is not given shou’s rapid fermentation, so this cake has changed slowly in [storage](sheng:aging). How it was kept is as much a part of its history as its age."
       }
     ],
     "brewing": {
@@ -42,7 +41,6 @@
       "text": "A smoother, thicker, sweeter cup with woody, herbal and camphor notes and something of dried dates or dark fruit."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "A voice note from you on this lot",
       "Photos"
     ]
@@ -50,6 +48,10 @@
   "claimUses": [
     {
       "claimId": "sheng:identity",
+      "rev": 1
+    },
+    {
+      "claimId": "menghai-county:county-and-factory",
       "rev": 1
     },
     {
@@ -61,7 +63,7 @@
       "rev": 1
     },
     {
-      "claimId": "sheng:storage",
+      "claimId": "sheng:aging",
       "rev": 1
     },
     {
@@ -79,5 +81,5 @@
   ],
   "problems": [],
   "unsupported": [],
-  "approvedAt": "2026-11-25T23:18:56.671Z"
+  "approvedAt": "2026-11-27T04:17:14.777Z"
 }

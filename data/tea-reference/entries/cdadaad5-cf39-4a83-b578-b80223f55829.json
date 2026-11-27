@@ -1,6 +1,6 @@
 {
   "status": "approved",
-  "composedAt": "2026-11-25T15:40:59.054Z",
+  "composedAt": "2026-11-27T03:58:18.422Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -11,25 +11,20 @@
     "form": "Rolled",
     "year": 1972,
     "origin": "Muzha, Taipei, Taiwan",
-    "stockGrams": 130,
-    "pricePerGramUsd": 1.44,
-    "tags": [
-      "dark roast",
-      "dried cherry",
-      "toasted walnut",
-      "caramelized sugar"
-    ]
+    "stockGrams": null,
+    "pricePerGramUsd": null,
+    "tags": []
   },
   "entry": {
     "productId": "cdadaad5-cf39-4a83-b578-b80223f55829",
     "paragraphs": [
       {
         "layer": "place",
-        "text": "A [Tie Guan Yin](taiwan-oolong:muzha) made in 1972 in Muzha, in southern Taipei. The tea master Zhang Naimiao is credited with bringing the cultivar there from Anxi with a clansman during the years of Japanese rule, and the district became the home of Taiwan's traditional Tie Guan Yin. Most of the island's [oolong](oolong:definition) is lightly to moderately oxidised. The Muzha style goes further: the leaf is oxidised more, wrapped in cloth and rolled again and again, then roasted over charcoal. This lot was given a heavy charcoal roast in that tradition."
+        "text": "[Muzha](muzha:where-it-is) is a hill district on the southeast edge of Taipei, in Wenshan District, where the tea grows on low slopes of a few hundred metres. Fujian settlers brought Tieguanyin here from [Anxi](muzha:history) in the late nineteenth century. The trade most often credits the tea master Zhang Naimiao, who planted it in the Zhanghu part of Muzha in 1895. The [traditional Muzha style](taiwan-oolong:muzha) is a more oxidised oolong, roasted over charcoal, its leaf wrapped in cloth and rolled again and again. On a label, Muzha names [a place and a way of making](muzha:on-a-label). It does not prove which plant the leaf came from."
       },
       {
         "layer": "age",
-        "text": "At fifty-four years it is far past the figures people give for [lao cha](taiwan-oolong:ageing), old tea. Those who name a figure put it somewhere between ten and thirty years. Tea chosen for keeping in Taiwan starts well roasted and dry. It is roasted again at low heat from time to time to drive out the moisture it takes in, and is stored cool, dry, dark and sealed. Over the years its liquor deepens from amber towards red-brown."
+        "text": "This tea dates from 1972, which makes it fifty-four years old. Taiwan has a tradition of keeping oolong for years, called [lao cha, old tea](taiwan-oolong:ageing). Leaf chosen for keeping starts well roasted and dry. It is roasted again at low heat from time to time, because over the years it takes in moisture that has to be driven out. No standard says when an oolong becomes old. Those who give a figure put it between ten and thirty years, and this tea is well past the longer of the two."
       }
     ],
     "brewing": {
@@ -42,18 +37,25 @@
       "text": "A smooth, mellow, thick cup with little astringency, often plum or prune, sometimes something like medicinal herbs or ginseng, and an amber to red-brown liquor."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "A voice note from you on this lot",
       "Photos"
     ]
   },
   "claimUses": [
     {
+      "claimId": "muzha:where-it-is",
+      "rev": 1
+    },
+    {
+      "claimId": "muzha:history",
+      "rev": 1
+    },
+    {
       "claimId": "taiwan-oolong:muzha",
       "rev": 1
     },
     {
-      "claimId": "oolong:definition",
+      "claimId": "muzha:on-a-label",
       "rev": 1
     },
     {
@@ -71,5 +73,5 @@
   ],
   "problems": [],
   "unsupported": [],
-  "approvedAt": "2026-11-25T23:18:44.508Z"
+  "approvedAt": "2026-11-27T04:17:12.563Z"
 }

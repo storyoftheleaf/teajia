@@ -1,6 +1,6 @@
 {
-  "status": "draft",
-  "composedAt": "2026-11-27T04:07:29.994Z",
+  "status": "approved",
+  "composedAt": "2026-11-27T03:51:25.807Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -12,7 +12,7 @@
     "year": 2009,
     "origin": "Menghai, Yunnan, China",
     "stockGrams": 1750,
-    "pricePerGramUsd": 0.26,
+    "pricePerGramUsd": 0.28,
     "tags": [
       "aged sweetness",
       "clean earth",
@@ -26,11 +26,15 @@
     "paragraphs": [
       {
         "layer": "named",
-        "text": "Nanqiao was once the name of the county around [Mengzhe](nanqiao-ruigong-brick:nanqiao-name) in southern Yunnan. The Menghai County Nanqiao Tea Company, founded in February 2004, kept the old place name; its brand is Che Fo Nan, and its teas went to Hong Kong, Taiwan and Southeast Asia. Separately, at a [Malaysian tea fair](nanqiao-ruigong-brick:malaysian-tea-fair) in 2022, the exhibitor Quanyuxuan offered five Ruigong bricks together at stall 27, listed as ripe tea from 2008."
+        "text": "[Nanqiao](nanqiao-ruigong-brick:nanqiao-name) was once the name of the county around Mengzhe in southern Yunnan. Menghai County Nanqiao Tea Company, founded in February 2004, kept that old name for itself. The China Tea Marketing Association lists Che Fo Nan as its brand and records that its teas went to Hong Kong, Taiwan and Southeast Asia. Ruigong bricks reached that trade: at a Malaysian tea fair in 2022, the exhibitor Quanyuxuan offered five of them together at stall 27, listed as [ripe tea from 2008](nanqiao-ruigong-brick:malaysian-tea-fair), a year older than this one."
+      },
+      {
+        "layer": "type",
+        "text": "This brick holds leaf from [Menghai County](menghai-county:county-and-factory), made into [ripe pu’er](shou:definition) in 2009. The leaf was heaped warm and damp in a [fermenting pile](shou:wet-piling) and turned so that air could reach it, all to give in weeks the dark cup that raw pu’er takes years to reach. Yunnan’s state factories brought that method into production in 1973, so this brick comes from the style’s fourth decade."
       },
       {
         "layer": "age",
-        "text": "This brick is [ripe pu’er](shou:definition) from Menghai, made in 2009. The leaf was wetted and heaped in a covered [pile](shou:wet-piling), turned about once a week to spread the heat and let air in, then dried and pressed. At seventeen years it is well into what the trade counts as [aged ripe pu’er](shou:age-aged), and it is still changing slowly with the air and moisture around it, which is why storage shapes it as much as the years do."
+        "text": "At seventeen years it is well past the ten that the trade counts as [aged ripe pu’er](shou:age-aged). The leaf keeps changing slowly with the air and moisture around it, which is why the way it has been kept matters as much as its years."
       }
     ],
     "brewing": {
@@ -43,7 +47,6 @@
       "text": "A smooth, deep cup with woody, date-like or medicinal notes, which the trade calls aged aroma."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "A voice note from you on this lot",
       "Photos"
     ]
@@ -55,6 +58,10 @@
     },
     {
       "claimId": "nanqiao-ruigong-brick:malaysian-tea-fair",
+      "rev": 1
+    },
+    {
+      "claimId": "menghai-county:county-and-factory",
       "rev": 1
     },
     {
@@ -83,5 +90,6 @@
     }
   ],
   "problems": [],
-  "unsupported": []
+  "unsupported": [],
+  "approvedAt": "2026-11-27T04:17:01.991Z"
 }

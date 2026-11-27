@@ -1,6 +1,6 @@
 {
   "status": "approved",
-  "composedAt": "2026-11-25T02:36:27.691Z",
+  "composedAt": "2026-11-27T03:58:33.182Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -11,20 +11,20 @@
     "form": "Loose",
     "year": null,
     "origin": "Wuyi Mountains, Fujian, China",
-    "stockGrams": 0,
+    "stockGrams": null,
     "pricePerGramUsd": null,
-    "tags": "[\"dark honey\",\"dried apricot\",\"cocoa\",\"warm mineral\",\"lingering sweetness\"]"
+    "tags": []
   },
   "entry": {
     "productId": "e77d2550-f9d0-4965-850a-d2b2096fb71f",
     "paragraphs": [
       {
         "layer": "place",
-        "text": "Zhuangyuan Hong is a loose leaf tea from the Wuyi Mountains in northern Fujian, the home of [Wuyi rock tea](yancha:definition). The bushes there grow among rock, in crevices and on ledges and terraces in cliff country, rooted in soil weathered from that same stone and kept wet by fog and rain. Only tea grown in this protected area may be sold as Wuyi rock tea."
+        "text": "Zhuangyuan Hong (状元红) is an oolong from the [Wuyi Mountains](wuyi-mountains:where-it-is), the range along the border of northern Fujian and Jiangxi, listed as a UNESCO World Heritage site in 1999. The bushes here grow on ledges and between rocks in the ravines, in thin soil that drains fast and under mist that settles on the slopes, and that ground is the reason the trade ties this tea so closely to the rock. [Oolong is traced to this area](fujian:history), and its making is said to have spread from here to Anxi, Guangdong and then Taiwan."
       },
       {
         "layer": "type",
-        "text": "[Oolong](oolong:definition) took shape in these mountains between the sixteenth and seventeenth centuries, at the turn from the Ming to the Qing. Wuyi leaf is twisted into long thin strips rather than rolled into balls, then [roasted over charcoal](yancha:making) in several rounds, with rests of weeks or months between them. The roast dries the leaf so it keeps, and the maker sets its strength by the leaf in hand."
+        "text": "Like all [Wuyi rock tea](yancha:definition), it is [partly oxidised](oolong:definition): withered in the sun, cooled indoors, shaken and rested, fixed in a hot pan or drum, then twisted into long strips rather than rolled into balls. What sets it apart is the [charcoal roast](yancha:making), given in several rounds with rests of weeks or months between them, which dries the leaf so it keeps. After roasting the tea is rested again before it is drunk, and [the heavier the roast](yancha:roast-levels), the longer that rest."
       }
     ],
     "brewing": {
@@ -37,13 +37,20 @@
       "text": "Roast and stone fruit, a mineral, rocky texture and a long, sweet, mouth-watering finish. Light roast is bright and floral, medium roast fruity and rounded, full roast charcoal, wood and roasted nuts. Da Hong Pao is often floral, Rougui spicy with cinnamon, young Shui Xian sweet and smooth, and old-bush Shui Xian woody and mossy."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "The year it was made: unlocks the age paragraph",
       "A voice note from you on this lot",
       "Photos"
     ]
   },
   "claimUses": [
+    {
+      "claimId": "wuyi-mountains:where-it-is",
+      "rev": 1
+    },
+    {
+      "claimId": "fujian:history",
+      "rev": 1
+    },
     {
       "claimId": "yancha:definition",
       "rev": 1
@@ -57,6 +64,10 @@
       "rev": 1
     },
     {
+      "claimId": "yancha:roast-levels",
+      "rev": 1
+    },
+    {
       "claimId": "yancha:brewing",
       "rev": 1
     },
@@ -67,5 +78,5 @@
   ],
   "problems": [],
   "unsupported": [],
-  "approvedAt": "2026-11-25T02:57:18.639Z"
+  "approvedAt": "2026-11-27T04:17:13.521Z"
 }

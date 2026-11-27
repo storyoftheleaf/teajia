@@ -52,22 +52,24 @@ export const PRODUCERS: Producer[] = [
     "id": "liao-fu",
     "name": "Liao Fu",
     "chineseName": "廖福",
-    "altNames": [],
-    "kind": "unknown",
-    "country": "China",
-    "region": "Cangwu",
+    "altNames": [
+      "Liao Fu San",
+      "廖福山"
+    ],
+    "kind": "house",
+    "country": "Hong Kong",
+    "founded": 1960,
     "notableMarks": [
       "Jia Ji (甲级)",
       "Wan Yan AAA (万言AAA)"
     ],
-    "description": "A recognized name in Cangwu, Guangxi dark tea production, appearing across grades from standard loose leaf up to a premium Wan Yan AAA classification. Whether Liao Fu is a factory, house, or family producer is not stated in the source write-ups."
+    "description": "A Hong Kong tea house, Liao Fu San (廖福山), that first imported tea from Vietnam in the 1960s. The Liao Fu name denotes this Hong Kong trading house and the Vietnamese wild-leaf puer it brought in — not a Guangxi producer. Leaf is grown on wild tea trees in the north of Vietnam and aged (notably 1980s material). The house's line spans grades from standard loose leaf to a premium Wan Yan AAA classification."
   },
   {
     "id": "menghai-tea-factory",
     "name": "Menghai Tea Factory",
     "chineseName": "勐海茶厂",
     "altNames": [
-      "Menghai",
       "Dayi",
       "Taetea",
       "大益"

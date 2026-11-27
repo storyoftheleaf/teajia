@@ -1,18 +1,15 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { ShippingRoutesSection } from '../components/settings/ShippingRoutesSection';
 import { CheckCircle2, Circle, Copy, ExternalLink, Loader2, Save, AlertTriangle, ArrowRight, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { useAppStore } from '../store';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import { useLaunchAudit, type LaunchAudit } from '../hooks/useLaunchAudit';
-import { useRates } from '../hooks/useAdminData';
-import { FALLBACK_SHIPPING_RATE_CURRENCY } from '../../lib/shippingRate';
-import { rateToUsd, sameCurrency } from '../../lib/currency';
 import { usePersonReadiness } from '../../components/readiness/usePersonReadiness';
 import { storeOpeningRefusal, type StoreOpeningRefusal } from '../../components/readiness/storeOpening';
 import type { PersonReadinessInput } from '../../components/readiness/teaMasterReadiness';
 import type { Account, AccountMember, AccountRole } from '../../types';
-import { ShippingRoutesSection } from '../components/settings/ShippingRoutesSection';
 import { TeaHousePortfolioSection } from '../components/settings/TeaHousePortfolioSection';
 
 function useCurrentRole(): AccountRole | null {
@@ -86,51 +83,10 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({ embedd
     setAccount((prev) => (prev ? { ...prev, [key]: value } : prev));
   };
 
-  const { data: rates = [] } = useRates();
-
-  /* The freight rate is typed, so it is held as text while the cursor is in it.
-     Running every keystroke through Number() turns "8." into "8" and deletes
-     the decimal point out from under the person typing it. Null means the field
-     has not been touched since the account loaded. */
-  const [freightText, setFreightText] = useState<string | null>(null);
-  const freightValue = freightText ?? (
-    account?.default_shipping_rate_per_kg == null ? '' : String(account.default_shipping_rate_per_kg)
-  );
-  const freightNumber = freightValue.trim() === '' ? null : Number(freightValue);
-  const freightIsValid = freightNumber === null || (Number.isFinite(freightNumber) && freightNumber >= 0);
-
-  /* What the typed rate is worth today, so the number is legible without a
-     calculator. Freight is inside the cost basis the markup multiplies, so the
-     line says what it adds to a gram on the shelf, which is the figure that
-     actually moves when this field changes. */
-  const freightHint = (() => {
-    if (!freightIsValid) return 'Enter a number, or leave it empty to use the platform default.';
-    if (freightNumber === null) return 'Empty means the platform default applies.';
-    const currency = account?.default_shipping_rate_currency ?? FALLBACK_SHIPPING_RATE_CURRENCY;
-    /* Canonicalised, or a shop that had quoted its freight in 'CNY' was told
-       there is no rate for it while the shelf was busy converting it through
-       the 'Yuan' row. Same money, two spellings, and only one of them matched. */
-    const rate = rateToUsd(rates, currency);
-    const row = rates.find(r => sameCurrency(r.currency, currency));
-    if (rate === null || !row) {
-      return `Per kilo, in ${currency}. There is no exchange rate for ${currency}, so this cannot be converted `
-        + 'and every tea on it is priced through the fallback instead.';
-    }
-    const perKgUsd = freightNumber / rate;
-    const perGramOnShelf = (perKgUsd / 1000) * 3;
-    return `${freightNumber} ${currency}/kg is $${(Math.round(perKgUsd * 100) / 100).toFixed(2)} USD/kg `
-      + `at ${rate} to the dollar, adding $${perGramOnShelf.toFixed(3)} per gram to the shelf price `
-      + `after the markup. ${describeRateAge(row.lastUpdated)} `
-      + 'Applies to every tea that has not had a rate entered on it.';
-  })();
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!account || !activeAccountId) return;
-    if (!freightIsValid) {
-      setError('Freight rate must be a number, or empty.');
-      return;
-    }
     setSaving(true);
     setError(null);
     setSaveMsg(null);
@@ -149,14 +105,9 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({ embedd
         whatsapp_number: account.whatsapp_number,
         contact_email: account.contact_email,
         public_enabled: account.public_enabled,
-        default_shipping_rate_per_kg: freightNumber,
-        default_shipping_rate_currency: account.default_shipping_rate_currency,
       });
       setAccount(updated);
       setActiveAccount(updated);
-      // Hand the field back to the saved value, so it shows what the shop is
-      // actually charging rather than what was last typed at it.
-      setFreightText(null);
       setSaveMsg('Saved.');
     } catch (err: any) {
       const refused = storeOpeningRefusal(err);
@@ -378,28 +329,9 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({ embedd
               disabled={disabled}
               placeholder="AUD"
             />
-            {/* Freight. It belongs on this screen and not in code because it is
-                a negotiated number: it changes when the forwarder's price
-                changes, and a rate that needs a deploy to edit is a rate that
-                stays wrong. Quoted in the currency it is paid in, because a
-                yuan rate translated to dollars once goes stale the moment the
-                yuan moves. */}
-            <Field
-              label="Freight Rate per kg"
-              value={freightValue}
-              onChange={(v) => setFreightText(v)}
-              disabled={disabled}
-              placeholder="85"
-              hint={freightHint}
-            />
-            <Field
-              label="Freight Currency"
-              value={account.default_shipping_rate_currency ?? ''}
-              onChange={(v) => update('default_shipping_rate_currency', v.trim() === '' ? null : v.trim())}
-              disabled={disabled}
-              placeholder="Yuan"
-              hint="The currency the freight rate above is quoted in. Yuan, USD, HKD."
-            />
+            {/* Freight rates, the shop default included, are set in Logistics on
+                the Purchases page with the services they belong to (Adrian,
+                2026-11-27), never here. */}
             <Field
               label="Timezone"
               value={account.timezone ?? ''}
@@ -440,7 +372,7 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({ embedd
         )}
       </form>
 
-      {/* How bought tea travels home; saved row by row, outside the form above. */}
+      {/* How bought tea travels home (addresses, packing, rounding; no rates); saved row by row, outside the form above. */}
       <ShippingRoutesSection canEdit={canEdit} />
 
       {/* Tea houses, Adrian's part in each (Launch 4, K5 part two). Platform owner only. */}
@@ -1115,30 +1047,6 @@ const TransferOwnershipSection: React.FC<{
     </div>
   );
 };
-
-/**
- * Say how old the exchange rate is, in the same breath as the number it produced.
- *
- * The freight rate is quoted in yuan and converted on every request, so the
- * conversion is only as live as this row. A rate nobody has refreshed looks
- * exactly like a current one, which is how the shop spent months pricing
- * Indonesia through a figure 8% off the market without anyone noticing. The
- * worker refreshes these daily on its cron; this line is how you find out when
- * it has stopped.
- */
-function describeRateAge(lastUpdated: string | null | undefined): string {
-  if (!lastUpdated) {
-    return 'That rate has never been refreshed from the live feed, so it is a seeded figure, not today\'s.';
-  }
-  const then = new Date(/[Z+]/.test(lastUpdated) ? lastUpdated : `${lastUpdated}Z`).getTime();
-  if (!Number.isFinite(then)) return 'The age of that rate could not be read.';
-  const hours = (Date.now() - then) / 3600000;
-  if (hours < 0) return 'That rate is stamped in the future, which means something is wrong with the refresh.';
-  if (hours < 1) return 'Rate refreshed within the hour.';
-  if (hours < 36) return `Rate refreshed ${Math.round(hours)} hours ago.`;
-  const days = Math.round(hours / 24);
-  return `Rate last refreshed ${days} days ago, so the daily refresh has stopped and this conversion is drifting.`;
-}
 
 interface OrderContactsSectionProps {
   whatsappNumber: string;

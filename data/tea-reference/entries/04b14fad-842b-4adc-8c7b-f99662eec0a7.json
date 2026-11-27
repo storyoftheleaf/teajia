@@ -1,6 +1,6 @@
 {
   "status": "approved",
-  "composedAt": "2026-11-25T15:40:49.302Z",
+  "composedAt": "2026-11-27T03:56:52.279Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -11,25 +11,24 @@
     "form": "Cake",
     "year": 1999,
     "origin": "Wuzhou, Guangxi, China",
-    "stockGrams": 200,
-    "pricePerGramUsd": 2.59,
-    "tags": [
-      "clean earth",
-      "aged betel nut",
-      "subtle sweetness",
-      "smooth mineral"
-    ]
+    "stockGrams": null,
+    "pricePerGramUsd": null,
+    "tags": []
   },
   "entry": {
     "productId": "04b14fad-842b-4adc-8c7b-f99662eec0a7",
     "paragraphs": [
       {
-        "layer": "lot",
-        "text": "A cake of [Liu Bao](liu-bao:definition), the [dark tea](dark:definition) of the country around Wuzhou in Guangxi, made in 1999 by the Wuzhou tea factory under its Three Cranes name. It was made in the factory: the leaf was wetted and heaped at a modest warmth by [cold-water piling](liu-bao:making-factory), the steadier route the factory worked out around 1958, and turned until it had darkened. Then it was pressed into a cake."
+        "layer": "grade",
+        "text": "A cake of [Liu Bao](liu-bao:definition) from 1999, made under [Three Cranes](three-cranes:definition), the trademark of Wuzhou Tea Factory, the largest maker of this [dark tea](dark:definition). The mark belongs to that one factory and names neither a grade of leaf nor a village. Around 1958 the same factory worked out [cold-water piling](liu-bao:making-factory): the leaf is wetted, heaped at a modest warmth and turned until it darkens, a steadier route than the farmhouse steaming that came before."
+      },
+      {
+        "layer": "place",
+        "text": "The city stands in the east of Guangxi on the Guangdong border, where the Xi and Gui rivers meet. The tea takes its name from Liubao town in [Cangwu County](guangxi:wuzhou-and-cangwu), in the countryside under the city. The city itself was where leaf from the hills was gathered, finished and sent downriver on what the trade still calls the [old tea boat road](wuzhou:liu-bao-trade), to Guangzhou and then by sea to the Chinese workers of Southeast Asia."
       },
       {
         "layer": "age",
-        "text": "At twenty-seven years it is well past the ten that the trade sets for [aged Liu Bao](liu-bao:age-aged)."
+        "text": "At twenty-seven years this cake is well past the ten after which the trade counts a Liu Bao as [aged](liu-bao:age-aged). How it was stored matters as much as how long, and the trade does not agree whether such tea keeps improving for decades or peaks sooner."
       }
     ],
     "brewing": {
@@ -42,7 +41,6 @@
       "text": "A deep red, thick cup with woody, herbal and betel nut notes; tea several decades old is often described with ginseng and camphor."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "A voice note from you on this lot",
       "Photos"
     ]
@@ -53,11 +51,23 @@
       "rev": 1
     },
     {
+      "claimId": "three-cranes:definition",
+      "rev": 1
+    },
+    {
       "claimId": "dark:definition",
       "rev": 1
     },
     {
       "claimId": "liu-bao:making-factory",
+      "rev": 1
+    },
+    {
+      "claimId": "guangxi:wuzhou-and-cangwu",
+      "rev": 1
+    },
+    {
+      "claimId": "wuzhou:liu-bao-trade",
       "rev": 1
     },
     {
@@ -79,5 +89,5 @@
   ],
   "problems": [],
   "unsupported": [],
-  "approvedAt": "2026-11-25T23:18:46.806Z"
+  "approvedAt": "2026-11-27T04:17:03.490Z"
 }

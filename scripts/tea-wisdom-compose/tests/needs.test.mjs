@@ -18,9 +18,9 @@ test('needs.mjs prints what a tea is missing and ranks the missing pages', async
   const output = await new Promise((resolve, reject) => execFile(process.execPath, [SCRIPT, '--products', products], { timeout: 60_000 }, (error, stdout) => (
     error ? reject(error) : resolve(stdout)
   )));
-  assert.match(output, /record\s+producer\s+Hengfengyuan/);
+  assert.match(output, /drafted\s+producer\s+Hengfengyuan/);
   assert.match(output, /covered\s+style\s+Shou/);
   assert.match(output, /1 tea\(s\) checked/);
-  assert.match(output, /Hengfengyuan \(producer\): 1 tea, record only/);
+  assert.match(output, /Hengfengyuan \(producer\): 1 tea, page drafted, waiting for approval/);
   await fs.rm(dir, { recursive: true, force: true });
 });

@@ -373,7 +373,7 @@ describe('confirmed MCP pricing keeps the account listing current', () => {
     const beforeProduct = product();
     const beforeListing = listing();
     const args = { cost_amount: 720, cost_currency: 'cny', retail_price_usd: 0.6,
-      quantity_purchased: 2000, shipping_rate_per_kg: 85, stock_verified: true, description: 'New description' };
+      quantity_purchased: 2000, stock_verified: true, description: 'New description' };
     const preview = await call(args);
     expect(preview.preview.changes.cost_currency.new).toBe('Yuan');
     expect(product()).toEqual(beforeProduct);
@@ -382,7 +382,7 @@ describe('confirmed MCP pricing keeps the account listing current', () => {
     // arguments differ. It must never use an unpreviewed amount from this call.
     expect(await call({ ...args, cost_amount: 999, confirm: preview.confirmation_token })).toMatchObject({ committed: true });
     const expected = { cost_amount: 720, cost_currency: 'Yuan', cost_currency_source: 'stated',
-      fixed_retail_price_usd: 0.6, quantity_purchased: 2000, shipping_rate_per_kg: 85 };
+      fixed_retail_price_usd: 0.6, quantity_purchased: 2000, shipping_rate_per_kg: 40 };
     expect(product()).toEqual({ ...beforeProduct, ...expected, description: 'New description',
       stock_verified_at: product().stock_verified_at, updated_at: product().updated_at });
     expect(listing()).toMatchObject({ ...beforeListing, ...expected,
@@ -395,11 +395,26 @@ describe('confirmed MCP pricing keeps the account listing current', () => {
 
   it('keeps deliberate zeros as zeros on both rows', async () => {
     const { product, listing, commit } = await fixture();
-    await commit({ cost_amount: 0, retail_price_usd: 0, quantity_purchased: 0, shipping_rate_per_kg: 0 });
-    const expected = { cost_amount: 0, fixed_retail_price_usd: 0, quantity_purchased: 0, shipping_rate_per_kg: 0,
+    await commit({ cost_amount: 0, retail_price_usd: 0, quantity_purchased: 0 });
+    const expected = { cost_amount: 0, fixed_retail_price_usd: 0, quantity_purchased: 0, shipping_rate_per_kg: 40,
       cost_currency: 'HKD', cost_currency_source: null };
     expect(product()).toMatchObject(expected);
     expect(listing()).toMatchObject(expected);
+  });
+
+  it('refuses to set a tea\'s own freight rate, zero included, and writes nothing', async () => {
+    // Freight rates are typed only in Logistics (Adrian, 2026-11-27).
+    const { product, listing, call } = await fixture();
+    const before = [product(), listing()];
+    for (const rate of [85, 0]) await expect(call({ shipping_rate_per_kg: rate, cost_amount: 500 })).rejects.toThrow(/Logistics/);
+    expect([product(), listing()]).toEqual(before);
+  });
+
+  it('clears a freight rate on its own, with no other field', async () => {
+    const { product, listing, commit } = await fixture();
+    await commit({ clear_fields: ['shipping_rate_per_kg'] });
+    expect(product()).toMatchObject({ shipping_rate_per_kg: null });
+    expect(listing()).toMatchObject({ shipping_rate_per_kg: null });
   });
 
   it('carries an explicit freight clear and verification clear as NULL', async () => {
