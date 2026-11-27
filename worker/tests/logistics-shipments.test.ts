@@ -96,7 +96,7 @@ describe('supplier → logistics → studio through actual worker REST and MCP',
  });
  it('isolates accounts and Stock permissions, with the same scoped manifest on REST and MCP',async()=>{
   const f=fixture();const s=await f.shipment();expect((await f.rest('GET','logistics')).body).toEqual(await f.call('list_logistics'));
-  expect(await f.call('list_logistics',{},'other')).toEqual({orders:[],shipments:[],services:[],addresses:[]});
+  expect(await f.call('list_logistics',{},'other')).toEqual({orders:[],shipments:[],services:[],addresses:[],packing_sizes:{byItem:{},byKind:{}}});
   expect((await f.rest('PATCH',`logistics/shipments/${s.id}`,{tracking_number:'hijack'},'other','other')).status).toBe(404);
   expect((await f.rest('GET','logistics',undefined,'staff')).status).toBe(403);
   const names=(await f.rpc('tools/list',{},'read')).result.tools.map((x:any)=>x.name);expect(names).toContain('list_logistics');expect(names).not.toContain('receive_logistics_shipment');

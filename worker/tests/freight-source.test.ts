@@ -32,8 +32,8 @@ describe('freight from the logistics service', () => {
 
   it('prices a kilo rate as it is and a cubic-metre rate through the packing estimate', () => {
     expect(retail({ freight_service_id: 'air' })).toBe(at(10));
-    expect(packedM3PerKg('Loose')).toBe(0.008);
-    expect(packedM3PerKg('Cake')).toBe(0.003);
+    expect(packedM3PerKg({ form: 'Loose' })).toBe(0.008);
+    expect(packedM3PerKg({ form: 'Cake' })).toBe(0.003);
     expect(freightFor({ ...tea, freight_service_id: 'boat' }, defaults).perKgUsd).toBeCloseTo(100 * 0.008, 12);
     expect(freightFor({ ...tea, form: 'Cake', freight_service_id: 'boat' }, defaults).perKgUsd).toBeCloseTo(100 * 0.003, 12);
   });

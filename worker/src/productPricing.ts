@@ -1,5 +1,6 @@
 import { canonicalCurrency, isUnrecordedCurrency } from '../../src/lib/currency';
 import { SHOP_MARKUP_MULTIPLIER } from './markup';
+import { readPackingSizes } from './packingSizes';
 import { shippingPerGramUsd, resolveShopFreightDefault, freightFor, serviceRatesFromRows, shipmentFreightFromRows, type FreightDefaults, type ServiceRow, type ShipmentLineRow } from './shippingRate';
 
 /**
@@ -35,7 +36,7 @@ export async function accountFreightDefaults(env: { DB: D1Database }, accountId:
   return (await freightDefaultsByAccount(env, [accountId], rates)).get(accountId)!;
 }
 
-/** The same, for every shop a response carries teas from, in three reads however many shops. */
+/** The same, for every shop a response carries teas from: three reads, plus one for each shop's packed sizes. */
 export async function freightDefaultsByAccount(env: { DB: D1Database }, accountIds: readonly string[], rates: Map<string, number>): Promise<Map<string, FreightDefaults>> {
   const ids = [...new Set(accountIds.filter(Boolean))];
   const out = new Map<string, FreightDefaults>();
@@ -68,6 +69,7 @@ export async function freightDefaultsByAccount(env: { DB: D1Database }, accountI
       shopPerKgUsd: resolveShopFreightDefault((accounts.results ?? []).find(a => a.id === id) ?? null, lookup).perKgUsd,
       services: serviceRatesFromRows((services.results ?? []).filter(r => r.account_id === id), lookup),
       shipments: shipmentFreightFromRows(lineRows.filter(r => r.account_id === id), lookup),
+      packing: await readPackingSizes(env, id),
     });
   }
   return out;

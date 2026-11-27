@@ -10,7 +10,8 @@
  *   1. its last shipment by that service with a confirmed bill: the share of
  *      the bill the shipment gave this tea, divided by the grams it carried;
  *   2. that service's quote: a kilo rate as it is, a cubic-metre rate through
- *      the packing estimate shipments already use (loose or pressed);
+ *      the packed size the shop has learned for this tea, else for teas like
+ *      it, else the planning allowance (src/lib/packingSizes.ts);
  *   3. the shop rate, which is also what every tea with no service keeps, so
  *      nothing moves until a service is picked. A fixed-price service cannot
  *      price a gram, and a service since archived prices nothing: both fall
@@ -19,7 +20,8 @@
  * Rates are read at use time, never copied into the tea's row. One home for
  * the worker and the site; worker/src/shippingRate.ts re-exports it.
  */
-import { calculateShipmentFreight, estimatePackedVolume, type LogisticsFreightInput } from './logisticsFreight';
+import { calculateShipmentFreight, type LogisticsFreightInput } from './logisticsFreight';
+import { estimateVolume, packingKindFor, type PackingSizes } from './packingSizes';
 
 export type FreightSourceKind = 'shop' | 'service' | 'shipment';
 
@@ -39,6 +41,8 @@ export interface FreightDefaults {
   services: Record<string, FreightServiceRate>;
   /** Last confirmed shipment freight, keyed `${productId}|${serviceId}`. */
   shipments: Record<string, { perKgUsd: number | null; dated: string }>;
+  /** Packed sizes learned from the shop's shipments; absent means the planning allowances. */
+  packing?: PackingSizes;
 }
 
 export const NO_ROUTES: Pick<FreightDefaults, 'services' | 'shipments'> = { services: {}, shipments: {} };
@@ -53,18 +57,15 @@ export interface FreightAnswer {
   dated?: string;
 }
 
-const PRESSED = new Set(['Cake', 'Tuo', 'Brick', 'Ball', 'Rolled']);
-
-/** Packed cubic metres for a kilo of this tea, from the same planning allowance shipments use. */
-export function packedM3PerKg(form: unknown): number {
-  const kind = typeof form === 'string' && PRESSED.has(form) ? 'pressed_tea' : 'loose_tea';
-  return estimatePackedVolume({ kind, quantity: 1000, unit: 'g' }).volume_m3 ?? 0;
+/** Packed cubic metres for a kilo of this tea: what its shipments taught, else like teas', else the allowance. */
+export function packedM3PerKg(product: { id?: string | null; form?: unknown }, packing?: PackingSizes): number {
+  return estimateVolume({ product_id: product.id, kind: packingKindFor({ unit: 'g', form: product.form }), quantity: 1000, unit: 'g' }, packing).volume_m3 ?? 0;
 }
 
 /** A service's quote as freight for a kilo of this tea, or null when it cannot price one. */
-export function serviceQuotePerKgUsd(service: FreightServiceRate, form: unknown): number | null {
+export function serviceQuotePerKgUsd(service: FreightServiceRate, product: { id?: string | null; form?: unknown }, packing?: PackingSizes): number | null {
   if (service.basis === 'fixed' || service.perUnitUsd === null) return null;
-  return service.basis === 'kg' ? service.perUnitUsd : service.perUnitUsd * packedM3PerKg(form);
+  return service.basis === 'kg' ? service.perUnitUsd : service.perUnitUsd * packedM3PerKg(product, packing);
 }
 
 /** The fallback freight a tea takes when it has no rate typed on it. */
@@ -80,7 +81,7 @@ export function freightFor(
   const shipped = product.id ? defaults.shipments[`${product.id}|${serviceId}`] : undefined;
   if (shipped) return { perKgUsd: shipped.perKgUsd, source: 'shipment', dated: shipped.dated };
   if (service.basis === 'fixed') return { ...shop, fellBack: 'fixed' };
-  return { perKgUsd: serviceQuotePerKgUsd(service, product.form), source: 'service' };
+  return { perKgUsd: serviceQuotePerKgUsd(service, product, defaults.packing), source: 'service' };
 }
 
 export interface ServiceRow { id: string; basis: string; rate: number; currency: string; active: unknown; name: string; logistics_company_name: string }

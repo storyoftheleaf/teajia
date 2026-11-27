@@ -61,7 +61,7 @@ export function TeaFreight({ product, shopPerKgUsd, rates, costRateToUsd, onChoo
           className="w-full bg-transparent border-0 rounded-none py-1 px-0 pr-4 outline-none appearance-none cursor-pointer text-left text-admin-text focus-visible:ring-1 focus-visible:ring-tea-gold">
           <option value="" className="bg-tea-surface text-tea-text">{option('Shop rate', shopPerKgUsd)}</option>
           {services.map(service => {
-            const quote = quotes[service.id] ? serviceQuotePerKgUsd(quotes[service.id], product.form) : null;
+            const quote = quotes[service.id] ? serviceQuotePerKgUsd(quotes[service.id], { id: product.id, form: product.form }, data?.packing_sizes) : null;
             return <option key={service.id} value={service.id} className="bg-tea-surface text-tea-text">
               {option(`${service.logistics_company_name} · ${service.name}`, quote ?? shopPerKgUsd)}
             </option>;
