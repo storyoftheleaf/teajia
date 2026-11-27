@@ -118,6 +118,30 @@ describe('the host saves the way in', () => {
     expect(again.venue_guide).toBe(row.venue_guide);
   });
 
+  it('keeps a picture of the tea space with the way, signed for the host and stored bare, and refuses one that is not theirs', async () => {
+    const space = photo(9);
+    const saved = await call('/api/me/tables/t-ana/way', {
+      actor: ana, method: 'PUT', body: { venue_guide: { steps: [{ description: 'Gate' }], space_image_url: space } },
+    });
+    expect(saved.status).toBe(200);
+    const read = await (await call('/api/me/tables/t-ana/way', { actor: ana })).json() as Record<string, any>;
+    expect(read.way.venue_guide.space_image_url).toMatch(/\?exp=\d+&for=host&sig=[0-9a-f]{64}$/);
+    const row = db.sqlite.prepare('SELECT venue_guide FROM events WHERE id = ?').get('t-ana') as Record<string, string>;
+    expect(JSON.parse(row.venue_guide).space_image_url).toBe(space);
+    // Saving back the signed address stores it bare again; a picture alone is a way worth keeping.
+    const alone = await call('/api/me/tables/t-ana/way', {
+      actor: ana, method: 'PUT', body: { venue_guide: { steps: [], space_image_url: read.way.venue_guide.space_image_url } },
+    });
+    expect(alone.status).toBe(200);
+    const again = db.sqlite.prepare('SELECT venue_guide FROM events WHERE id = ?').get('t-ana') as Record<string, string>;
+    expect(JSON.parse(again.venue_guide)).toEqual({ steps: [], space_image_url: space });
+    const refused = await call('/api/me/tables/t-ana/way', {
+      actor: ana, method: 'PUT', body: { venue_guide: { steps: [], space_image_url: photo(1, bo.accountId) } },
+    });
+    expect(refused.status).toBe(400);
+    expect(await refused.json()).toMatchObject({ code: 'table_way_photo' });
+  });
+
   it('clears the way when every part is left empty, and leaves out a step with nothing in it', async () => {
     await call('/api/me/tables/t-ana/way', { actor: ana, method: 'PUT', body: threeSteps });
     const partial = await call('/api/me/tables/t-ana/way', {
