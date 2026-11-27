@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import type { InventoryItem } from '../../types';
 import { TeaLedger, TeaLedgerRow } from './TeaLedger';
+import { tileTypeWord } from './TeaSaveTile';
 import { TeaWeighControl, startingIndex, weighOptions } from './TeaWeighControl';
 
 vi.mock('../../context/ThemeContext', () => ({
@@ -59,10 +60,20 @@ describe('TeaLedger year favorite control', () => {
     expect(html).toContain('aria-pressed="false"');
     expect(html).toContain('title="Save tea"');
     expect(html).toContain('>Save</span>');
-    expect(html).toContain('>—</span>');
+    expect(html).toContain('>Oolong</span>');
     expect(html).toContain('A Very Long Tea Name That Must Wrap Without Being Cut Off');
     expect(html).not.toContain('line-clamp-2');
     expect(html).not.toContain('Unsave A Very Long');
+  });
+
+  it('shows the kind of tea in the tile when the tea has no date', () => {
+    expect(tileTypeWord('Shou Puer')).toBe('Shou');
+    expect(tileTypeWord('Dark Tea')).toBe('Dark');
+    expect(tileTypeWord('Oolong')).toBe('Oolong');
+    expect(tileTypeWord('Tea')).toBe('');
+    expect(tileTypeWord(null)).toBe('');
+    const html = renderLedger(item({ type: 'Sheng Pu-erh' }));
+    expect(html).toContain('tea-save-tile-word">Sheng</span>');
   });
 
   it('keeps the year visible when saved, with no owner Edit on the list (it lives on the tea page)', () => {

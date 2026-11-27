@@ -4656,12 +4656,22 @@ body.cart-panel-open .commerce-dock {
 .tea-save-tile-year-long {
   font-size: var(--fs-ui-14);
 }
+/* A tea with no date shows its kind here. The word is set smaller and never
+   wraps or pushes: the tile keeps its 54px whatever the word is. */
+.tea-save-tile-word {
+  overflow: hidden;
+  font-size: var(--fs-ui-12);
+  white-space: nowrap;
+}
 /* On a phone the year steps down inside the same tile, so "1990s" has air
    around it and the tile keeps its size beside the name. */
 @media (max-width: 639px) {
   .tea-save-tile-year,
   .tea-save-tile-year-long {
     font-size: var(--fs-ui-13);
+  }
+  .tea-save-tile-word {
+    font-size: var(--fs-ui-12);
   }
 }
 .tea-save-tile[aria-pressed="true"] .tea-save-tile-action::before {
