@@ -180,11 +180,14 @@ function shopPhoto(row: AuthoredRow): FamilySharedPhotograph & { author: FamilyA
  * they did not allow it there is no author at all: no name, no page, no slug.
  */
 function publicPhoto(row: AuthoredRow, credit: boolean): FamilySharedPhotograph {
-  // While the Tea Table is closed the tea page credits a photograph as it
-  // always has: the author's page name and published page, and no
-  // photograph_by. The first-name choice opens with the Tea Table.
-  if (!credit) return { ...photoParts(row), author: { name: row.author_name || 'A member of the Teajia family', page_id: row.page_id ?? null } };
   const firstName = photographBy(row, row.author_name);
+  // A photographer who declined credit is never named, whatever the switch
+  // says (A7-2): no name, no page, no slug.
+  if (!firstName) return { ...photoParts(row), author: null, ...(credit ? { photograph_by: null } : {}) };
+  // While the Tea Table is closed the tea page credits an allowed photograph
+  // as it always has: the author's page name and published page, and no
+  // photograph_by label. The label opens with the Tea Table.
+  if (!credit) return { ...photoParts(row), author: { name: row.author_name || 'A member of the Teajia family', page_id: row.page_id ?? null } };
   return {
     ...photoParts(row),
     author: firstName ? { name: firstName, page_id: row.page_id ?? null } : null,

@@ -110,6 +110,28 @@ describe('a person page shows what they shared', () => {
     expect(a.public_path).toMatch(/^\/shop\/product\/tea-a\?store=/);
   });
 
+  it('shows only the sittings a share agreed to, and an older page-only share as before (A7-3)', async () => {
+    const { db, env } = setup();
+    const words = async () => {
+      const page = await (await get(env, '/api/people/mei')).json() as any;
+      return page.tastings.find((t: any) => t.product_id === 'tea-a').words.map((w: any) => w.text);
+    };
+    // The older page-only shape has no record of which sittings were agreed: every sitting, as before.
+    expect(await words()).toEqual(['Orchid and warm stone', 'Sweeter on the second day']);
+    // A share that records its sittings shows those, and only notes written by then.
+    db.exec(`UPDATE member_tasting_shares SET tea_table_at = '2026-11-12 10:00:00', tea_table_sittings = '["s1"]'
+      WHERE journal_entry_id = 'j-a'`);
+    expect(await words()).toEqual(['Orchid and warm stone']);
+    const later = db.sqlite.prepare(`SELECT tastings FROM customer_tasting_journal WHERE id = 'j-a'`).get() as { tastings: string };
+    const sittings = JSON.parse(later.tastings);
+    sittings[0].tasting.notes.push({ id: 'n-late', text: 'Added to the first sitting later', capturedAt: '2026-11-20T08:00:00Z' });
+    db.sqlite.prepare(`UPDATE customer_tasting_journal SET tastings = ? WHERE id = 'j-a'`).run(JSON.stringify(sittings));
+    const text = JSON.stringify(await words());
+    expect(text).toContain('Orchid and warm stone');
+    expect(text).not.toContain('Added to the first sitting later');
+    expect(text).not.toContain('Sweeter on the second day');
+  });
+
   it('removes shared words and photographs when their tea leaves the shop', async () => {
     const { db, env } = setup();
     db.exec("UPDATE products SET shown_in_shop = 0 WHERE id IN ('tea-a', 'tea-b')");
