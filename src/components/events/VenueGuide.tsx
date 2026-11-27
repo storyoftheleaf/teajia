@@ -137,7 +137,7 @@ const VenueGuide: React.FC<VenueGuideProps> = ({ venueGuide, mapLink, className 
             <p className="text-ui-12 uppercase tracking-[0.15em] text-tea-text-sec">
               Step {index + 1} of {steps.length}
             </p>
-            {step.description && <p className="font-display text-3xl leading-tight text-tea-text" data-way-line>{step.description}</p>}
+            {step.description && <p className="font-display text-ui-30 leading-tight text-tea-text" data-way-line>{step.description}</p>}
             {step.video_url && !film && (
               <a href={step.video_url} target="_blank" rel="noopener noreferrer" className="type-link">Watch the way in</a>
             )}
