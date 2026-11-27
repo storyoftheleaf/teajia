@@ -172,6 +172,9 @@ export function createTablesApi({ apiUrl, authedFetch }: HostingApiDependencies)
     change: (id: string, change: HostedTableChange): Promise<{ ok: true }> => authedFetch(`${apiUrl}/api/me/tables/${encodeURIComponent(id)}`, {
       method: 'PUT', body: JSON.stringify(change),
     }),
+    /** Same table again (review A11-13): a copy with its teas and way, on the day given in the table's own zone. */
+    again: (id: string, when: { date: string; time: string }): Promise<HostedTableCreated> =>
+      authedFetch(`${apiUrl}/api/me/tables/${encodeURIComponent(id)}/again`, { method: 'POST', body: JSON.stringify(when) }),
     /** The host makes their own table a tasting, or clears it (J13 finding 4). */
     setTasting: (id: string, isTasting: boolean): Promise<{ ok: true; is_tasting: boolean }> =>
       authedFetch(`${apiUrl}/api/me/tables/${encodeURIComponent(id)}/tasting`, { method: 'PUT', body: JSON.stringify({ is_tasting: isTasting }) }),

@@ -133,6 +133,12 @@ export type ReleaseSeatsInput = {
   kind: 'cancelled' | 'released';
   cancellationNote?: string;
   userId?: string;
+  /**
+   * While Launch 3 is closed (ANYONE_HOSTS_OPEN off): no seat notice is
+   * written, as before PR 560, and the freed seat goes on by main's cascade
+   * (offerNextAsMain). Queue cases 8, 12 (todo/review/fixes/queue-cases.md).
+   */
+  asMain?: boolean;
 };
 
 /**
@@ -163,11 +169,15 @@ export async function releaseSeats(db: Db, input: ReleaseSeatsInput): Promise<{ 
     END)`;
   const party = [input.attendeeId, input.eventId, input.accountId];
   const id = noticeId();
+  // Closed, no notice is written (main wrote none); the seats are read first instead.
+  const quietSeats = input.asMain
+    ? await db.prepare(`SELECT ${seatsSql} AS seats`).bind(...party, ...party, ...party).first<{ seats: number }>()
+    : null;
   const results = await db.batch([
-    db.prepare(
+    ...(input.asMain ? [] : [db.prepare(
       `INSERT INTO event_seat_notices (id, account_id, event_id, attendee_id, kind, seats)
        SELECT ?, ?, ?, ?, ?, ${seatsSql} WHERE ${stillThere}`
-    ).bind(id, input.accountId, input.eventId, input.attendeeId, input.kind, ...party, ...party, ...party, ...stillThereValues),
+    ).bind(id, input.accountId, input.eventId, input.attendeeId, input.kind, ...party, ...party, ...party, ...stillThereValues)]),
     db.prepare(
       `UPDATE event_party_members SET seat_status = 'cancelled'
         WHERE participation_id = ? AND event_id = ? AND account_id = ?
@@ -182,7 +192,8 @@ export async function releaseSeats(db: Db, input: ReleaseSeatsInput): Promise<{ 
         WHERE id = ? AND event_id = ? AND account_id = ? AND status IN (${statuses})${ownerGuard}`
     ).bind(...(input.cancellationNote !== undefined ? [input.cancellationNote] : []), ...party, ...input.from, ...ownerValues),
   ]);
-  if (!Number(results[3]?.meta?.changes || 0)) return null;
+  if (!Number(results[results.length - 1]?.meta?.changes || 0)) return null;
+  if (quietSeats) return { seats: Number(quietSeats.seats ?? 0) };
   const row = await db.prepare(`SELECT seats FROM event_seat_notices WHERE id = ?`).bind(id).first<{ seats: number }>();
   return { seats: Number(row?.seats ?? 0) };
 }
@@ -199,12 +210,16 @@ export async function cancelGuestSeat(db: Db, input: Omit<ReleaseSeatsInput, 'fr
       ${input.userId === undefined ? '' : 'AND user_id = ?'}`)
       .bind(input.attendeeId, input.eventId, input.accountId, ...(input.userId === undefined ? [] : [input.userId]))
       .first<{ status: string }>();
-    return now?.status === 'cancelled' ? { success: true, status: 'cancelled' } as const : null;
+    if (now?.status !== 'cancelled') return null;
+    // Closed, main ran its cascade after every cancel, a repeated one too (queue case 13).
+    if (input.asMain) await offerNextAsMain(db, input);
+    return { success: true, status: 'cancelled' } as const;
   }
   // Always offered on, as main's cascade was: a waiting guest who held a live
   // offer gives back a seat that has no seat row, so seats can read 0 here.
   // offerFreedSeats offers only a seat that is truly free (A3).
-  await offerFreedSeats(db, input);
+  if (input.asMain) await offerNextAsMain(db, input);
+  else await offerFreedSeats(db, input);
   return {
     success: true, status: 'cancelled',
     ...(input.cancellationNote !== undefined ? { cancellation_note: input.cancellationNote } : {}),
@@ -297,6 +312,51 @@ export async function offerFreedSeats(db: Db, scope: { eventId: string; accountI
     }
   }
   return offered;
+}
+
+/**
+ * Main's cascade, as it ran before PR 560, for while Launch 3 is closed
+ * (ANYONE_HOSTS_OPEN off; todo/review/fixes/queue-cases.md). One call offers
+ * the first guest on the waiting list a claim window, whatever the door, and
+ * whether or not a seat is free or they already hold an offer (whose deadline
+ * is then renewed), and writes main's waitlist_promotion record. No seat
+ * notice is written and nothing is lapsed. Kept from the review run's seat
+ * fixes (A9-6, A9-3): nothing is offered once tea has begun, the deadline
+ * never runs past the start, and a session that is not published (a
+ * cancelled one says so) offers nothing. Returns the guest offered, if any.
+ */
+export async function offerNextAsMain(db: Db, scope: { eventId: string; accountId: string }, now = Date.now()): Promise<string[]> {
+  const event = await db.prepare(
+    `SELECT e.claim_window_minutes, e.lifecycle_status, e.event_date, e.timezone
+       FROM events e WHERE e.id = ? AND e.account_id = ?`
+  ).bind(scope.eventId, scope.accountId).first<{
+    claim_window_minutes: number | null; lifecycle_status: string; event_date: string; timezone: string | null;
+  }>();
+  if (!event || event.lifecycle_status !== 'published') return [];
+  const start = sessionInstant(event.event_date, event.timezone);
+  if (start && start.at <= now) return [];
+  // Main's order: position ascending (SQLite puts an empty position first), then when they asked.
+  const next = await db.prepare(
+    `SELECT id FROM event_attendees WHERE event_id = ? AND account_id = ? AND status = 'waitlist'
+      ORDER BY waitlist_position ASC, created_at ASC, id ASC LIMIT 1`
+  ).bind(scope.eventId, scope.accountId).first<{ id: string }>();
+  if (!next) return [];
+  const deadline = offerDeadline(now, Number(event.claim_window_minutes) || 60, start?.at);
+  await db.prepare(`UPDATE event_attendees SET claim_expires_at = ? WHERE id = ? AND status = 'waitlist'`).bind(deadline, next.id).run();
+  try {
+    await db.prepare(
+      `INSERT INTO event_notifications (id, account_id, event_id, attendee_id, type, message_template, status)
+       VALUES (?, ?, ?, ?, 'waitlist_promotion', 'A spot has opened up! Claim it before it expires.', 'pending')`
+    ).bind(crypto.randomUUID(), scope.accountId, scope.eventId, next.id).run();
+  } catch (error) {
+    console.error('Waiting list record not written', error instanceof Error ? error.message : String(error));
+  }
+  return [next.id];
+}
+
+/** The freed-seat step for the switch's state: Launch 3's offerFreedSeats open, main's cascade closed. */
+export function offerOn(open: boolean, db: Db, scope: { eventId: string; accountId: string }, now = Date.now()): Promise<string[]> {
+  return open ? offerFreedSeats(db, scope, now) : offerNextAsMain(db, scope, now);
 }
 
 /**

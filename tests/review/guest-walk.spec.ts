@@ -504,10 +504,9 @@ test.describe(`W1 the guest (site ${SITE_SET}, worker ${WORKER_SET})`, () => {
     await task(page, '8a share a tasting (2)', { clicks: 2 }, async () => {
       await page.getByText('Private', { exact: true }).click();
       await page.getByRole('button', { name: 'On my page and the Tea Table' }).click();
-      await page.getByRole('button', { name: 'Share', exact: true }).click();
       await expect(page.getByText('On your page and the Tea Table.')).toBeVisible();
     }, info);
-    // W1-10 (S3): the choice is a radio and then a second button; one tap on the choice could do it.
+    // W1-10 (S3), fixed: the choice itself shares (todo/review/fixes/tables.md).
     // W1-11 (S4): behind the sheet the row still says Private.
     expect.soft(await page.getByText('Private', { exact: true }).count(), 'W1-11 the row stops saying Private once it is shared').toBe(0);
     await page.getByRole('button', { name: 'Close', exact: true }).click();
@@ -521,7 +520,6 @@ test.describe(`W1 the guest (site ${SITE_SET}, worker ${WORKER_SET})`, () => {
     await task(page, '8b take it off (2)', { clicks: 2 }, async () => {
       await page.getByText('On your page and the Tea Table', { exact: true }).click();
       await page.getByRole('button', { name: 'Keep private' }).click();
-      await page.getByRole('button', { name: 'Done' }).click();
     }, info);
     await page.waitForTimeout(1000);
     await seen.page.reload();

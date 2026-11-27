@@ -90,7 +90,8 @@ export function tableWallTime(value: string, timezone: string): { date: string; 
   }
 }
 
-function tableSlug(title: string): string {
+/** A new table's slug: its name, then a random suffix nobody can guess. */
+export function tableSlug(title: string): string {
   const stem = title.normalize('NFKD').replace(/\p{M}/gu, '').toLowerCase()
     .replace(/[^a-z0-9]+/g, '-').replace(/^-/, '').slice(0, 32).replace(/-$/, '');
   const suffix = Array.from(crypto.getRandomValues(new Uint8Array(12)), byte => byte.toString(16).padStart(2, '0')).join('');
