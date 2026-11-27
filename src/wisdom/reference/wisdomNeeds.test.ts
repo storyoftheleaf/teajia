@@ -5,6 +5,8 @@ import { GENERATED_DRAFT_CLAIMS, GENERATED_DRAFT_PAGES } from './generatedDraftC
 import type { PublicClaim } from './claims';
 import { wisdomNeeds, type WisdomNeed, type WisdomNeedsSources } from './wisdomNeeds';
 import { gradeIdFor } from './teaMatching';
+import { appliesTo } from './listingPassages';
+import { listingFacts } from './listingFacts';
 import { TEA_PROCESSES } from '../vocabulary';
 
 const published = { pages: GENERATED_TEA_REFERENCE_PAGES, claims: GENERATED_CLAIMS };
@@ -22,13 +24,18 @@ const gaba = { id: '77175e22-e6a2-445a-9f1d-c1bad425e0c9', product_name: 'EU GAB
 const teaHeads = { id: 'heads', product_name: 'Bulang Mountain Banpen Small Tea Heads', type: 'Shou Puer', form: 'Loose', origin_region: 'Bulang Mountain, Menghai, Yunnan', origin_country: 'China' };
 
 describe('wisdomNeeds', () => {
-  it('Banzhang Palace Grade: the place is written, the Gong Ting grade is only drafted', () => {
+  it('Banzhang Palace Grade: the place and the Gong Ting grade are both written', () => {
     const needs = wisdomNeeds(palace, withDrafts);
     expect(find(needs, 'place')).toMatchObject({ label: 'Banzhang', covered: true, pageId: 'banzhang' });
-    expect(find(needs, 'grade')).toMatchObject({ label: 'Gong Ting', covered: false, state: 'drafted', pageId: 'gong-ting' });
+    expect(find(needs, 'grade')).toMatchObject({ label: 'Gong Ting', covered: true, state: 'written', pageId: 'gong-ting' });
     expect(find(needs, 'style')).toMatchObject({ covered: true, pageId: 'shou' });
-    // Without the drafts (the shop's view) the grade is a record only, never covered.
-    expect(find(wisdomNeeds(palace, publicOnly), 'grade')).toMatchObject({ covered: false, state: 'record' });
+    // Published, so the shop's view sees it too.
+    expect(find(wisdomNeeds(palace, publicOnly), 'grade')).toMatchObject({ covered: true, pageId: 'gong-ting' });
+    // Its claims are for loose leaf only: a pressed "Gong Ting" cake gets no grade text.
+    const gongTing = GENERATED_CLAIMS.filter(claim => claim.pageId === 'gong-ting');
+    expect(gongTing.length).toBeGreaterThan(0);
+    expect(gongTing.every(claim => appliesTo(claim.appliesWhen, listingFacts({ type: 'Shou Puer', form: 'Loose', grade: 'gong-ting' })))).toBe(true);
+    expect(gongTing.some(claim => appliesTo(claim.appliesWhen, listingFacts({ type: 'Shou Puer', form: 'Cake', grade: 'gong-ting' })))).toBe(false);
   });
 
   it('Golden Bull Hengfengyuan: a mark and a producer held as records only', () => {

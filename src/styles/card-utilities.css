@@ -5656,6 +5656,8 @@ body.cart-panel-open .commerce-dock {
 
 .library-supplier-heading { grid-template-columns:minmax(0,1fr); }
 .library-supplier-edit { display:inline-flex; align-items:center; justify-content:center; min-width:var(--tap-min); min-height:var(--tap-min); padding:0; border:0; background:transparent; }
+.library-supplier-face { display:inline-flex; align-items:center; justify-content:center; min-width:var(--tap-min); min-height:var(--tap-min); }
+.library-supplier-face:focus-visible { outline:2px solid var(--tea-gold); outline-offset:2px; }
 
 /* Editable tea fields keep readable text when the browser selects their value. */
 .library-inline-value :is(input,textarea)::selection,
