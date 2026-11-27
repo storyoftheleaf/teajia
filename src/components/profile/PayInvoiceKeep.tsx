@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { ArrowRight, Bookmark, Check } from 'lucide-react';
+import { ArrowRight, Bookmark, Check, Copy } from 'lucide-react';
 import { useAppStore } from '../../lib/store';
 import { authPagePath } from '../../lib/authNavigation';
 import { keepPayInvoice } from '../../lib/payInvoiceKeepApi';
@@ -14,8 +14,43 @@ const KEEP_PARAM = 'keep';
  * in their saved teas. Signed out, it goes through sign-up and finishes by
  * itself on the way back. The words are option 1 of three put to Adrian;
  * swap them here when he chooses.
+ *
+ * The shop that sent the invoice never saves it: its owner sees it as theirs
+ * to send, with the link to copy (Adrian, 2026-11-27).
  */
-export function PayInvoiceKeep({ slug, token, productIds, signedIn, kept: keptAtLoad }: {
+export function PayInvoiceKeep({ slug, token, productIds, signedIn, kept: keptAtLoad, yoursToSend = false }: {
+  slug: string;
+  token: string | null;
+  productIds: string[];
+  signedIn: boolean;
+  kept: boolean;
+  yoursToSend?: boolean;
+}) {
+  if (yoursToSend) return <YoursToSend />;
+  return <KeepOffer slug={slug} token={token} productIds={productIds} signedIn={signedIn} kept={keptAtLoad} />;
+}
+
+function YoursToSend() {
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setCopied(true);
+    } catch { /* the address bar still has it */ }
+  };
+  return (
+    <section aria-label="Your invoice to send" className="mt-4 max-w-2xl rounded-md border border-tea-border bg-tea-elevated px-4 py-3 md:px-5" data-testid="pay-yours-to-send">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <span className="font-body text-ui-14 text-tea-text">This is your invoice to send.</span>
+        <button type="button" onClick={copy} className="btn-secondary tap-target shrink-0">
+          {copied ? <Check size={13} /> : <Copy size={13} />} {copied ? 'Link copied' : 'Copy the link'}
+        </button>
+      </div>
+    </section>
+  );
+}
+
+function KeepOffer({ slug, token, productIds, signedIn, kept: keptAtLoad }: {
   slug: string;
   token: string | null;
   productIds: string[];

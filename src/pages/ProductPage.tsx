@@ -32,6 +32,20 @@ interface ProductPageProps {
   onAddToCart?: (item: InventoryItem, qty: number, total: number) => void;
   onCartClick?: () => void;
   cartItemCount?: number;
+  /**
+   * This same page opened over a private link (a /c/ collection, an
+   * invoice's pay page; Adrian, 2026-11-27: "have it be the store, just add an
+   * extra bit on top of it"). The link names the tea instead of the address,
+   * brings the tea as it knows it for a private tea the shop does not list,
+   * its own bit on top, its own order footer (null for none), and Back.
+   */
+  link?: {
+    productKey: string;
+    fallbackItem: InventoryItem;
+    top?: React.ReactNode;
+    footer: React.ReactNode;
+    onBack: () => void;
+  };
 }
 
 /**
@@ -61,10 +75,11 @@ const PUBLISHED_CURRENCY = 'USD';
  * reading content on the right; below lg it is a single column with the
  * commerce bar fixed above the bottom nav.
  */
-export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartClick, cartItemCount = 0 }) => {
+export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartClick, cartItemCount = 0, link }) => {
   // Named :id for the route, but it now carries the readable address on new
   // links and a legacy UUID on old ones. The resolver accepts either.
-  const { id: routeKey } = useParams<{ id: string }>();
+  const { id: routeParam } = useParams<{ id: string }>();
+  const routeKey = link?.productKey ?? routeParam;
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const persistedStoreSlug = useAppStore(state => state.shopStoreSlug);
@@ -74,20 +89,22 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
   const { inventory, isLoading, isError: inventoryError, refetch: refetchInventory } = useInventory();
   const { isAdmin, isAuthenticated } = useAuth();
 
-  const scopedListing = Boolean(requestedStoreSlug && requestedStoreSlug !== DEFAULT_PUBLIC_STORE_SLUG);
+  const scopedListing = !link && Boolean(requestedStoreSlug && requestedStoreSlug !== DEFAULT_PUBLIC_STORE_SLUG);
   const browseItem = useMemo(() => scopedListing ? null : findProductByRouteParam(inventory, routeKey), [scopedListing, inventory, routeKey]);
   const activeStore = resolveInventoryStoreSlug(searchParams, persistedStoreSlug);
   const linkedProduct = useQuery({
     queryKey: ['storefront', 'product', activeStore, routeKey],
     queryFn: () => fetchStoreProduct(activeStore, routeKey!),
-    enabled: !!routeKey && (scopedListing || (!isLoading && !browseItem)),
+    enabled: !link && !!routeKey && (scopedListing || (!isLoading && !browseItem)),
     refetchOnMount: scopedListing ? 'always' : true,
     retry: false,
   });
   // A seller link must confirm the exact listing with that seller's product reader.
   // In particular an older list snapshot cannot reopen a withdrawn offer.
   const checkingSeller = scopedListing && !linkedProduct.isFetchedAfterMount && !linkedProduct.isError;
-  const item = browseItem ?? (checkingSeller || linkedProduct.isError ? null : linkedProduct.data);
+  const item = link
+    ? (browseItem ?? (isLoading ? null : link.fallbackItem))
+    : browseItem ?? (checkingSeller || linkedProduct.isError ? null : linkedProduct.data);
   const productStore = useQuery({
     queryKey: ['storefront', 'store', activeStore],
     queryFn: () => fetchStore(activeStore),
@@ -448,7 +465,8 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
   // crossfade, so the page itself simply exists.
   return (
     <div className="paper-ground w-full">
-      <Helmet>
+      {link?.top}
+      {!link && <Helmet>
         <title>{`${item.name} · Teajia`}</title>
         <meta name="description" content={metaDescription} />
         <meta property="og:title" content={`${item.name} · Teajia`} />
@@ -460,11 +478,12 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
         {smallestOfferPrice !== undefined && <meta property="product:price:amount" content={smallestOfferPrice} />}
         <meta property="product:price:currency" content={offerCurrency} />
         <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
-      </Helmet>
+      </Helmet>}
 
       <ProductDetailPageContext.Provider value={{
         shopHref: sellerStore ? `/store/${encodeURIComponent(sellerStore.slug)}` : shopHref,
         shopName: sellerStore?.name, crumbType: sellerStore ? null : crumbType, selectedBy, onCartClick, cartItemCount,
+        onBack: link?.onBack,
       }}>
         <ProductDetailContent
           key={item.id}
@@ -477,6 +496,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
           onOpenOrder={onCartClick}
           isAdmin={isAdmin}
           onEditProductTasting={isAdmin ? (editItem) => setAdminTastingItem(editItem) : undefined}
+          {...(link ? { linkFooter: link.footer } : {})}
         />
       </ProductDetailPageContext.Provider>
 

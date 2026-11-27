@@ -1,5 +1,5 @@
 import { casualSitPublicationRoutes } from './casualSitPublications';
-import { invoiceKeptBy, keepInvoiceForUser } from './payInvoiceKeep';
+import { invoiceKeptBy, keepInvoiceForUser, sendsInvoice } from './payInvoiceKeep';
 import { freightRateWriteRefusal } from './freightRateDoor';
 import { publicSitRoutes, publishedSitRecap } from './publicSitConnections';
 import { formalSessionCardsFor, publicSessionRoutes } from './publicSessions';
@@ -28630,7 +28630,7 @@ const handleGetPayAccess: Handler = async (request, env, params) => {
   const { decision, link, grant, refusal } = await resolvePayAccess(env, contributor, viewer, url.searchParams.get(PAY_LINK_PARAM));
   if (refusal) return json(refusal, 409);
 
-  let invoice: { invoice_number: string | null; outstanding_usd: number; lines: PayLinkTeaLine[]; kept: boolean } | null = null;
+  let invoice: { invoice_number: string | null; outstanding_usd: number; lines: PayLinkTeaLine[]; kept: boolean; yours_to_send: boolean } | null = null;
   if (link) {
     await env.DB.prepare(
       `UPDATE payment_share_links SET open_count = open_count + 1, last_opened_at = datetime('now') WHERE id = ?`
@@ -28658,7 +28658,11 @@ const handleGetPayAccess: Handler = async (request, env, params) => {
         // them. Only a holder of this invoice's own link reaches this line.
         const lines = await loadPayLinkTeaLines(env, ledgerInvoice.id, link.account_id);
         const kept = viewer ? await invoiceKeptBy(env, link.account_id, ledgerInvoice.id, viewer.userId) : false;
-        invoice = { invoice_number: ledgerInvoice.invoice_number, outstanding_usd: money.outstanding_usd, lines, kept };
+        // The shop that sent it sees it as theirs to send, never as one to save.
+        const yoursToSend = viewer
+          ? await sendsInvoice(env, link.account_id, ledgerInvoice.id, viewer.userId, contributor.user_id)
+          : false;
+        invoice = { invoice_number: ledgerInvoice.invoice_number, outstanding_usd: money.outstanding_usd, lines, kept, yours_to_send: yoursToSend };
       }
     }
   }
@@ -28713,12 +28717,12 @@ const handleKeepPayInvoice: Handler = async (request, env, params) => {
   const token = typeof body.token === 'string' ? body.token : null;
   const { link } = await resolvePayAccess(env, contributor, auth, token);
   if (!link?.invoice_id) return json({ error: 'This link has no invoice to keep' }, 404);
-  const kept = await keepInvoiceForUser(env, link.account_id, link.invoice_id, auth);
-  if (!kept.ok) return json({ error: kept.error }, kept.status);
+  const kept = await keepInvoiceForUser(env, link.account_id, link.invoice_id, auth, contributor.user_id);
+  if (!kept.ok) return json({ error: kept.error, ...(kept.code ? { code: kept.code } : {}) }, kept.status);
   if (!kept.already) {
     await ensureContactRelationship(env, link.account_id, kept.customerId, 'buyer', 'workflow', 'invoice', link.invoice_id);
     await logPlatformAction(env, 'pay_invoice.kept', auth.userId, auth.email, 'invoice', link.invoice_id,
-      { link_id: link.id, customer_id: kept.customerId }, link.account_id, null);
+      { link_id: link.id, customer_id: kept.customerId, linked: kept.linked }, link.account_id, null);
   }
   return json({ ok: true, invoice_id: link.invoice_id, already: kept.already });
 };

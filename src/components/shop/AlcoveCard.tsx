@@ -81,7 +81,6 @@ interface AlcoveCardProps {
    * under About. The shop never passes either.
    */
   linkFooter?: React.ReactNode;
-  linkAddition?: React.ReactNode;
 }
 
 /** Returns stock status info for display */
@@ -117,7 +116,7 @@ export function ProductDetailContent(props: AlcoveCardProps) {
   return <AlcoveCard {...props} layout="page" />;
 }
 
-export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClose, isAdmin, onEdit, formatPrice, onTermClick, onTaste, onEditProductTasting, publicHref, availabilityContact, onOpenOrder, layout = 'card', linkFooter, linkAddition }) => {
+export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClose, isAdmin, onEdit, formatPrice, onTermClick, onTaste, onEditProductTasting, publicHref, availabilityContact, onOpenOrder, layout = 'card', linkFooter }) => {
   const navigate = useNavigate();
   const { search } = useLocation();
   const { favoriteTeas, toggleFavoriteTea, activeAccountId } = useAppStore();
@@ -637,7 +636,6 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
         })}
         factsTitle="Provenance"
         history={<>
-          {linkAddition}
           {composed
             ? <AlcoveComposedEntry entry={composed} claims={entryClaims} journal={pageJournal} />
             : <AlcoveWisdomPassages listing={wisdomPassages} />}
@@ -671,7 +669,6 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
       <AlcoveGallery {...gallery} layout="card" onExpandImage={url => { setExpandedImageUrl(url); setImageExpanded(true); }} />
       {characterBand}
       <AlcoveAboutSection reading={reading} />
-      {linkAddition}
       {referenceSection}
       {tableSection}
 

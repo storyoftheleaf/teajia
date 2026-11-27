@@ -15,7 +15,6 @@ interface AlcoveModalProps {
   isAdmin?: boolean;
   /** A private link's own footer and writing for the focused tea (see AlcoveCard). */
   linkFooter?: (item: InventoryItem) => React.ReactNode;
-  linkAddition?: (item: InventoryItem) => React.ReactNode;
 }
 
 /**
@@ -37,7 +36,6 @@ export const AlcoveModal: React.FC<AlcoveModalProps> = ({
   onEditProductTasting,
   isAdmin,
   linkFooter,
-  linkAddition,
 }) => (
   <AlcoveCarouselShell
     item={item}
@@ -85,7 +83,6 @@ export const AlcoveModal: React.FC<AlcoveModalProps> = ({
             onEditProductTasting={onEditProductTasting}
             isAdmin={isAdmin}
             linkFooter={linkFooter ? linkFooter(focused) : undefined}
-            linkAddition={linkAddition?.(focused)}
           />
           <AlcoveCloseButton onClose={onClose} />
         </div>
