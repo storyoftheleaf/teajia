@@ -40,5 +40,8 @@ export function useMyTeaCredit(storeSlug?: string) {
     data: enabled ? query.data : undefined,
     isLoading: enabled && query.isLoading,
     isError: enabled && query.isError,
+    // For the credit page's closed and failed states (src/lib/closedPart.ts).
+    error: enabled ? query.error : null,
+    refetch: query.refetch,
   };
 }

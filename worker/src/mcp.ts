@@ -44,6 +44,7 @@ import { launch4ToolModule } from './mcpTools/launch4';
 import { fewHostsToolModule } from './mcpTools/fewHosts';
 import { launch3ToolModule } from './mcpTools/launch3';
 import { circlesToolModule } from './mcpTools/circles';
+import { pageActionsToolModule } from './mcpTools/pageActions';
 import { writingToolModule } from './mcpTools/writing';
 import { costCurrencyTools } from './mcpTools/costCurrency';
 import { curateIntakeTools, curateManagerAccess } from './mcpTools/curateIntake';
@@ -101,6 +102,7 @@ import {
   loadLedgerInvoice,
   reconcileLedgerWithColumn,
   recomputeInvoicePaymentStatus,
+  settledUsdSql,
 } from './invoiceDomain';
 import type {
   InvoiceLedgerTotals,
@@ -128,7 +130,7 @@ import { isTeaType, normalizeTeaType, TEA_TYPES } from '../../src/wisdom/vocabul
 import { reviewedDescription } from './wisdomWordingReview';
 import { mergeProductTasting, readStoredTasting, tastingHasTerms, tastingTermLabel } from './curateImportTasting';
 import { MCP_SERVER_ICONS, MCP_SERVER_WEBSITE } from './siteIcons';
-import { settleHostCredit } from './hostCreditLedger';
+import { hostCreditStaffFill, settleHostCredit } from './hostCreditLedger';
 import { hostTokenMayAct } from './hostTokens';
 import { HOST_SELF_SCOPE } from '../../src/lib/hostTokens';
 
@@ -145,6 +147,7 @@ type Env = {
   invoicePayLinks?: ToolEnv['invoicePayLinks'];
   hostSeats?: HostSeatService;
   launch3?: Launch3Services;
+  pageRoutes?: import('./mcpTools/registry').PageRouteService;
   /** The site's address, where the open Wisdom dataset is read from. */
   APP_URL?: string;
   JWT_SECRET: string;
@@ -428,8 +431,12 @@ export const HOST_SELF_TOOLS: ReadonlySet<string> = new Set([
   'release_guest_seat', 'same_table_again', 'set_session_tasting', 'report',
   // circles.ts (Launch 5, M4)
   'make_circle', 'put_table_in_circle', 'list_my_circles',
-  // launch4.ts: the person's own favourites, which hold their Tea Chest teas. Read only.
-  'list_my_favourites',
+  // launch4.ts: the person's own favourites, which hold their Tea Chest teas, and
+  // a host's recap on the Tea Table (each checks the page's rule, A11-6).
+  'list_my_favourites', 'set_my_favourite', 'set_my_recap_on_tea_table',
+  // pageActions.ts (A11-10): the rest of the host's page, each through its own route.
+  'change_my_table', 'mark_who_came', 'get_guest_thanks_link', 'review_guest_book', 'set_table_way',
+  'set_your_table', 'ask_guest_back', 'offer_article',
 ]);
 
 const MCP_SCOPES = [
@@ -4339,7 +4346,7 @@ async function commitFulfillInvoice(
     }
     throw error;
   }
-  await settleHostCredit(env, m.invoiceId);
+  await settleHostCredit(env, m.invoiceId, { staffFill: await hostCreditStaffFill(env.DB, m.accountId, m.actorUserId) });
 
   return {
     committed: true,
@@ -4502,7 +4509,7 @@ async function commitMarkInvoicePaid(env: Env, m: Extract<PendingMutation, { kin
         `UPDATE invoices SET status='Filled',fulfilled_at=COALESCE(fulfilled_at,datetime('now'))
          WHERE id=? AND account_id=? AND status='Pending' AND inventory_deducted=1
            AND fulfillment_claim_token IS NULL
-           AND COALESCE((SELECT SUM(amount_usd) FROM invoice_payments WHERE invoice_id=invoices.id AND status='confirmed'),0)
+           AND ${settledUsdSql('invoices')}
              >= COALESCE((SELECT SUM(quantity*price_at_sale) FROM invoice_line_items WHERE invoice_id=invoices.id),0)
                 + COALESCE(shipping_cost_usd,0) - 0.01`
       ).bind(m.invoiceId, m.accountId).run();
@@ -7276,6 +7283,7 @@ const TOOL_MODULES: ToolModule[] = [
   fewHostsToolModule,
   launch3ToolModule,
   circlesToolModule,
+  pageActionsToolModule,
   writingToolModule,
   costCurrencyTools,
   curateIntakeTools,

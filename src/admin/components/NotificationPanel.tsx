@@ -6,6 +6,7 @@ import { SeatNoticeList } from '../../components/host/SeatNoticeList';
 import { anyoneHostsOpen } from '../../lib/anyoneHosts';
 import { useToast } from './Toast';
 import { TeaEvent, EventNotification } from '../../types/events';
+import { sessionMoment } from '../../../shared/sessionEnd';
 
 type NotificationStatus = 'pending' | 'sent' | 'failed';
 
@@ -44,7 +45,13 @@ const InviteStatusBlock: React.FC<InviteStatusBlockProps> = ({
   );
 };
 
-export const NotificationPanel: React.FC<NotificationPanelProps> = ({ eventId }) => {
+export const NotificationPanel: React.FC<NotificationPanelProps> = ({ eventId, event }) => {
+  // A coming-up reminder is prepared only before tea; the worker refuses it
+  // from the start (review A9-7), so the action goes with its window.
+  const remindersOpen = sessionMoment({
+    event_date: event?.eventDate, event_end_date: event?.eventEndDate, timezone: event?.timezone,
+    lifecycle_status: event?.lifecycleStatus, status: event?.status,
+  }) === 'before';
   const { showToast } = useToast();
   const { data: notifications = [], refetch } = useEventNotifications(eventId);
   const { data: seatNotices = [] } = useEventSeatNotices(eventId);
@@ -129,14 +136,16 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({ eventId })
           >
             <Copy size={12} /> Copy All Pending
           </button>
-          <button
-            onClick={handleGenerate}
-            disabled={generating}
-            className="btn-primary tap-target"
-          >
-            {generating ? <Loader2 size={13} className="animate-spin" /> : <Bell size={13} />}
-            Generate Reminders
-          </button>
+          {remindersOpen && (
+            <button
+              onClick={handleGenerate}
+              disabled={generating}
+              className="btn-primary tap-target"
+            >
+              {generating ? <Loader2 size={13} className="animate-spin" /> : <Bell size={13} />}
+              Generate Reminders
+            </button>
+          )}
         </div>
       </div>
 
@@ -145,7 +154,7 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({ eventId })
         <div className="text-center py-8 text-tea-text-sec text-sm">
           <Bell className="mx-auto mb-2" size={20} />
           <p>No reminders yet</p>
-          <p className="text-xs mt-1">Generate check-in reminders for all confirmed attendees</p>
+          {remindersOpen && <p className="text-xs mt-1">Generate check-in reminders for all confirmed attendees</p>}
         </div>
       ) : (
         <div className="space-y-2">

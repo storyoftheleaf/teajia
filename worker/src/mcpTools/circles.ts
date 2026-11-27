@@ -36,7 +36,8 @@ const makeCircle: ToolHandler = async (env, auth, args) => {
   if (!host) return NOT_AVAILABLE;
   const confirm = text(args?.confirm);
   if (!confirm) {
-    const input = readSeriesInput({ name: args?.name, kind: args?.kind ?? 'circle' });
+    // The page's own reader, with no default: the page asks circle or series, so the tool does too (A11-12).
+    const input = readSeriesInput({ name: args?.name, kind: args?.kind });
     if ('refused' in input) return refusal(input.refused);
     if (host.stopped) return { error: 'hosting_stopped', message: 'New tables are paused on your account.' };
     const token = await issueTicket<CirclesMutation>(env, {
@@ -111,10 +112,10 @@ const defs: ToolDefinition[] = [
       type: 'object',
       properties: {
         name: { type: 'string', description: 'What to call it.' },
-        kind: { type: 'string', enum: ['circle', 'series'], description: 'circle (default) or series.' },
+        kind: { type: 'string', enum: ['circle', 'series'], description: 'circle or series. Required, as on the page.' },
         confirm: confirmArg,
       },
-      anyOf: [{ required: ['name'] }, { required: ['confirm'] }],
+      anyOf: [{ required: ['name', 'kind'] }, { required: ['confirm'] }],
     },
   },
   {

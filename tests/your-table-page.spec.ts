@@ -178,7 +178,6 @@ test.describe('Your Table as a page, open', () => {
       const step = page.getByRole('dialog', { name: 'Share this tasting' });
       await expect(step).toBeVisible();
       await step.getByRole('button', { name: 'On my page', exact: true }).click();
-      await step.getByRole('button', { name: 'Share', exact: true }).click();
       await expect(step.getByRole('status')).toHaveText('On your page.');
       expect(state.shareWrites).toEqual([{ productId: 'tea-quiet', share_state: 'page' }]);
       await step.getByRole('button', { name: 'Close' }).click();

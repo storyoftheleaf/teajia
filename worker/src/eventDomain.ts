@@ -1,4 +1,4 @@
-import { SEAT_OF_A_GUEST_STILL_COMING } from './hostTableGuests';
+import { OLDER_CONFIRMED_SEATS_SQL, SEAT_OF_A_GUEST_STILL_COMING } from './hostTableGuests';
 import { sessionHasEnded, type SessionTimes } from '../../shared/sessionEnd';
 export type EventLifecycle =
   | 'draft'
@@ -163,7 +163,7 @@ export type ReservePartySeatsInput = {
 
 export type ReservePartySeatsResult =
   | { ok: true }
-  | { ok: false; code: 'capacity_conflict' | 'event_not_reservable' | 'state_conflict' };
+  | { ok: false; code: 'capacity_conflict' | 'event_not_reservable' | 'state_conflict' | 'already_seated' };
 
 type SeatDatabase = Pick<D1Database, 'prepare' | 'batch'>;
 type SeatEnv = { DB: SeatDatabase };
@@ -206,6 +206,7 @@ function capacityGuard(
                AND offer.status = 'waitlist'
                AND offer.claim_expires_at IS NOT NULL
                AND datetime(offer.claim_expires_at) > datetime('now') ${offerExclusion})
+          + ${OLDER_CONFIRMED_SEATS_SQL('capacity_event')}
         ) <= capacity_event.total_capacity
     )`,
     values: [eventId, accountId, ...operationSeatIds, targetHeldSeats, ...consumedOfferParticipationIds],
@@ -246,6 +247,65 @@ function exactSeatGuard(input: ReservePartySeatsInput): { sql: string; values: u
       input.seats.length,
     ],
   };
+}
+
+/**
+ * One person holds at most one seat at a table (review A9-2), through every
+ * door that writes a seat here: the request and link doors, a circle's ask
+ * back, a companion's invitation, and the agent. A person is the same
+ * signed-in account, the same email (any case) or the same phone number. A
+ * row written before party seats existed is an event_attendees row like any
+ * other, so it counts too.
+ */
+const LIVE_SEAT_STATUSES = `('confirmed', 'requested', 'waitlist')`;
+
+function newPersonIdentity(operation: ReservePartySeatsInput) {
+  const create = operation.createParticipation;
+  if (!create) return null;
+  const value = (column: string) => {
+    const index = create.columns.indexOf(column);
+    const raw = index < 0 ? null : create.values[index];
+    return typeof raw === 'string' && raw.trim() ? raw.trim() : null;
+  };
+  const identity = { userId: value('user_id'), email: value('email'), phone: value('phone_number') };
+  return identity.userId || identity.email || identity.phone ? identity : null;
+}
+
+/** A new row for a person who already holds a live seat here is not written. */
+function onePersonGuard(accountId: string, eventId: string, operation: ReservePartySeatsInput): { sql: string; values: unknown[] } {
+  const identity = newPersonIdentity(operation);
+  if (!identity) return { sql: '1 = 1', values: [] };
+  return {
+    sql: `NOT EXISTS (SELECT 1 FROM event_attendees mine
+      WHERE mine.event_id = ? AND mine.account_id = ? AND mine.status IN ${LIVE_SEAT_STATUSES}
+        AND (mine.user_id = ? OR lower(mine.email) = lower(?) OR mine.phone_number = ?))`,
+    values: [eventId, accountId, identity.userId, identity.email, identity.phone],
+  };
+}
+
+/** A guest is confirmed only while no other row of the same person here is. */
+function confirmedOnceGuard(accountId: string, eventId: string, operation: ReservePartySeatsInput): { sql: string; values: unknown[] } {
+  if (operation.targetState !== 'confirmed') return { sql: '1 = 1', values: [] };
+  return {
+    sql: `NOT EXISTS (SELECT 1 FROM event_attendees me
+      JOIN event_attendees other ON other.event_id = me.event_id AND other.account_id = me.account_id
+        AND other.id <> me.id AND other.status = 'confirmed'
+        AND ((me.user_id IS NOT NULL AND other.user_id = me.user_id)
+          OR (NULLIF(me.email, '') IS NOT NULL AND lower(other.email) = lower(me.email))
+          OR (NULLIF(me.phone_number, '') IS NOT NULL AND other.phone_number = me.phone_number))
+      WHERE me.id = ? AND me.account_id = ? AND me.event_id = ?)`,
+    values: [operation.participationId, accountId, eventId],
+  };
+}
+
+async function holdsAnotherSeat(env: SeatEnv, accountId: string, eventId: string, operation: ReservePartySeatsInput) {
+  const guards = [onePersonGuard(accountId, eventId, operation), confirmedOnceGuard(accountId, eventId, operation)]
+    .filter(guard => guard.values.length > 0);
+  for (const guard of guards) {
+    const row = await env.DB.prepare(`SELECT 1 AS taken WHERE NOT (${guard.sql})`).bind(...guard.values).first();
+    if (row) return true;
+  }
+  return false;
 }
 
 /**
@@ -295,28 +355,38 @@ export async function reservePartySeats(
     .map((operation) => operation.participationId);
   const guard = capacityGuard(accountId, eventId, operationSeatIds, targetHeldSeats, consumedOffers);
 
+  // The same three parts as the guarded write and the host's count
+  // (hostTableGuests.ts seatsTakenSql): party seats, live offers, and a
+  // confirmed guest from before party seats existed (review A9-1).
   const availability = await env.DB.prepare(
     `SELECT
        (SELECT COUNT(*) FROM event_party_members pm
-        WHERE pm.event_id = ? AND pm.account_id = ? AND pm.seat_status IN ('held','confirmed')
+        WHERE pm.event_id = capacity_event.id AND pm.account_id = capacity_event.account_id AND pm.seat_status IN ('held','confirmed')
           AND ${SEAT_OF_A_GUEST_STILL_COMING('pm')}
           ${operationSeatIds.length ? `AND pm.id NOT IN (${sqlPlaceholders(operationSeatIds)})` : ''}) AS accepted,
        (SELECT COUNT(*) FROM event_attendees offer
-        WHERE offer.event_id = ? AND offer.account_id = ? AND offer.status = 'waitlist'
+        WHERE offer.event_id = capacity_event.id AND offer.account_id = capacity_event.account_id AND offer.status = 'waitlist'
           AND offer.claim_expires_at IS NOT NULL AND datetime(offer.claim_expires_at) > datetime('now')
-          ${consumedOffers.length ? `AND offer.id NOT IN (${sqlPlaceholders(consumedOffers)})` : ''}) AS offered`
-  ).bind(
-    eventId, accountId, ...operationSeatIds,
-    eventId, accountId, ...consumedOffers,
-  ).first<{ accepted: number; offered: number }>();
-  if (Number(availability?.accepted || 0) + targetHeldSeats + Number(availability?.offered || 0) > event.total_capacity) {
+          ${consumedOffers.length ? `AND offer.id NOT IN (${sqlPlaceholders(consumedOffers)})` : ''}) AS offered,
+       ${OLDER_CONFIRMED_SEATS_SQL('capacity_event')} AS older
+     FROM events capacity_event WHERE capacity_event.id = ? AND capacity_event.account_id = ?`
+  ).bind(...operationSeatIds, ...consumedOffers, eventId, accountId)
+    .first<{ accepted: number; offered: number; older: number }>();
+  if (Number(availability?.accepted || 0) + targetHeldSeats + Number(availability?.offered || 0)
+    + Number(availability?.older || 0) > event.total_capacity) {
     return { ok: false, code: 'capacity_conflict' };
+  }
+  // One person, one seat at a table (review A9-2): refused before the write
+  // when it can be seen, and again inside it.
+  for (const operation of operations) {
+    if (await holdsAnotherSeat(env, accountId, eventId, operation)) return { ok: false, code: 'already_seated' };
   }
 
   const statements: D1PreparedStatement[] = [];
   for (const operation of operations) {
     const pending = guestPendingGuard(operation);
     const liveOffer = offerGuard(operation);
+    const person = onePersonGuard(accountId, eventId, operation);
 
     if (operation.createParticipation) {
       const columns = operation.createParticipation.columns;
@@ -325,10 +395,10 @@ export async function reservePartySeats(
         `INSERT INTO event_attendees
           (id, account_id, event_id, ${columns.join(', ')}, status)
          SELECT ?, ?, ?, ${sqlPlaceholders(values)}, ?
-         WHERE ${guard.sql} AND ${pending.sql} AND ${liveOffer.sql}`
+         WHERE ${guard.sql} AND ${pending.sql} AND ${liveOffer.sql} AND ${person.sql}`
       ).bind(
         operation.participationId, accountId, eventId, ...values, operation.sourceState,
-        ...guard.values, ...pending.values, ...liveOffer.values,
+        ...guard.values, ...pending.values, ...liveOffer.values, ...person.values,
       ));
     }
 
@@ -398,6 +468,7 @@ export async function reservePartySeats(
       ));
     }
 
+    const confirmedOnce = confirmedOnceGuard(accountId, eventId, operation);
     const guestClaimed = operation.guestClaim
       ? `AND EXISTS (SELECT 1 FROM guest_invites gi
           WHERE gi.id = ? AND gi.account_id = ? AND gi.event_id = ?
@@ -407,7 +478,7 @@ export async function reservePartySeats(
       `UPDATE event_attendees
        SET status = ?${operation.offerExpiresAt ? ", claimed_at = datetime('now'), claim_expires_at = NULL" : ''}
        WHERE id = ? AND account_id = ? AND event_id = ? AND status = ?
-         AND ${exactSeats.sql} ${guestClaimed}`
+         AND ${exactSeats.sql} ${guestClaimed} AND ${confirmedOnce.sql}`
     ).bind(
       operation.targetState,
       operation.participationId,
@@ -418,6 +489,7 @@ export async function reservePartySeats(
       ...(operation.guestClaim
         ? [operation.guestClaim.invitationId, accountId, eventId, operation.participationId]
         : []),
+      ...confirmedOnce.values,
     ));
   }
 
@@ -472,10 +544,15 @@ export async function reservePartySeats(
            AND ${SEAT_OF_A_GUEST_STILL_COMING('pm')}) AS accepted,
         (SELECT COUNT(*) FROM event_attendees offer
          WHERE offer.event_id = ? AND offer.account_id = ? AND offer.status = 'waitlist'
-           AND offer.claim_expires_at IS NOT NULL AND datetime(offer.claim_expires_at) > datetime('now')) AS offered`
-    ).bind(eventId, accountId, eventId, accountId).first<{ accepted: number; offered: number }>();
-    if (Number(latest?.accepted || 0) + Number(latest?.offered || 0) + targetHeldSeats > event.total_capacity) {
+           AND offer.claim_expires_at IS NOT NULL AND datetime(offer.claim_expires_at) > datetime('now')) AS offered,
+        ${OLDER_CONFIRMED_SEATS_SQL('capacity_event')} AS older
+       FROM events capacity_event WHERE capacity_event.id = ? AND capacity_event.account_id = ?`
+    ).bind(eventId, accountId, eventId, accountId, eventId, accountId).first<{ accepted: number; offered: number; older: number }>();
+    if (Number(latest?.accepted || 0) + Number(latest?.offered || 0) + Number(latest?.older || 0) + targetHeldSeats > event.total_capacity) {
       return { ok: false, code: 'capacity_conflict' };
+    }
+    for (const operation of operations) {
+      if (await holdsAnotherSeat(env, accountId, eventId, operation)) return { ok: false, code: 'already_seated' };
     }
     const message = error instanceof Error ? error.message : String(error);
     if (message.includes('capacity_conflict') || message.includes('seat_status')) {

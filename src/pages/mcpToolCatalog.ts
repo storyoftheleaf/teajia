@@ -160,6 +160,11 @@ export const SHOP_TOOL_GROUPS: readonly ToolGroup[] = [
       'get_account_context', 'update_account_settings', 'update_exchange_rate',
     ],
   },
+  {
+    title: 'Hosts, reports and the Tea Table',
+    copy: 'For the platform owner: how widely a host may open their tables, reports to read and resolve, article offers from hosts, and what is on the Tea Table.',
+    tools: ['set_host_reach', 'list_reports', 'resolve_report', 'review_article_offer', 'list_tea_table'],
+  },
 ];
 
 /** Tools a host's own key reaches: their tables, guests and circles, nothing of the shop. */
@@ -170,6 +175,8 @@ export const HOST_TOOL_GROUP: ToolGroup = {
     'host_table', 'list_my_tables', 'get_table_guests', 'answer_guest', 'add_table_tea', 'set_guest_note',
     'get_guest_notes', 'release_guest_seat', 'same_table_again', 'set_session_tasting',
     'make_circle', 'put_table_in_circle', 'list_my_circles', 'list_my_favourites',
+    'change_my_table', 'mark_who_came', 'get_guest_thanks_link', 'review_guest_book', 'set_table_way',
+    'set_your_table', 'ask_guest_back', 'offer_article',
   ],
 };
 
@@ -177,7 +184,7 @@ export const HOST_TOOL_GROUP: ToolGroup = {
 export const PERSONAL_TOOL_GROUP: ToolGroup = {
   title: 'Anyone signed in',
   copy: 'Read your own orders, Tea Chest and journal, give back a seat, keep a favourite, put a recap on the Tea Table or take a tasting off it, report a problem.',
-  tools: ['list_my_orders', 'list_my_tea_chest', 'list_my_journal', 'release_my_seat', 'set_my_favourite', 'set_my_recap_on_tea_table', 'take_my_tasting_off_tea_table', 'report'],
+  tools: ['list_my_orders', 'list_my_tea_chest', 'list_my_journal', 'release_my_seat', 'set_my_favourite', 'set_my_recap_on_tea_table', 'take_my_tasting_off_tea_table', 'report', 'set_my_payment_details'],
 };
 
 /** The read-only connector for shoppers, at MCP_PUBLIC_URL. */

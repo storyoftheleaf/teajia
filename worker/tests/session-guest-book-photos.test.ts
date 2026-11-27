@@ -143,7 +143,7 @@ describe('formal attendee Guest Book photos', () => {
     expect((await include()).status).toBe(200);
     const attendeeNotes = (await (await book('viewer', viewer, 'read')).json()).entries;
     const attendeePhotos = (await (await gallery()).json()).gallery;
-    expect(attendeeNotes).toEqual([{ id: firstEntry.id, display_name: 'Photo Guest', note, entry_key: key }]);
+    expect(attendeeNotes).toEqual([{ id: firstEntry.id, display_name: 'Photo', note, entry_key: key }]);
     // The taker kept the photograph unnamed, so nothing ties it to their signed note (A3).
     expect(attendeePhotos).toEqual([{ id: grantId, display_name: null, alt_text: description }]);
     // Named by its taker, it sits with their note as before.

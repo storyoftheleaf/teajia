@@ -247,6 +247,8 @@ import { NetworkErrorNotice } from './components/shared/NetworkErrorNotice';
 import { PreloadIndicator } from './components/shared/PreloadIndicator';
 import { CartFlyAnimation } from './components/shared/CartFlyAnimation';
 import { CartToast, type CartToastTone } from './components/shared/CartToast';
+import { addOpensOrder } from './lib/orderVia';
+import { flyOrigin } from './lib/flyOrigin';
 import { WalkthroughDock } from './components/shared/WalkthroughDock';
 import { ScrollProgressBar, shouldShowGlobalScrollProgress } from './components/shared/ScrollProgressBar';
 import { AnimatedRoutes } from './components/shared/AnimatedRoutes';
@@ -610,30 +612,16 @@ const AppContent = () => {
       return;
     }
 
-    // Use the most recent click/tap position for fly origin, fall back to screen center
-    let originX = window.innerWidth / 2 - 24;
-    let originY = window.innerHeight / 2;
-    // Try the click event target first (works reliably on mobile tap)
-    const lastClick = (window as any).__teajia_last_click as { x: number; y: number } | undefined;
-    if (lastClick) {
-      originX = lastClick.x;
-      originY = lastClick.y;
-    } else {
-      const active = document.activeElement as HTMLElement;
-      if (active && active !== document.body) {
-        const rect = active.getBoundingClientRect();
-        originX = rect.left + rect.width / 2;
-        originY = rect.top + rect.height / 2;
-      }
-    }
-
-    setFlyAnimation({
-      x: originX,
-      y: originY,
-      image: item.image,
-    });
+    // The fly starts from the last tap, the focused control, or the screen centre.
+    setFlyAnimation({ ...flyOrigin(), image: item.image });
 
     addToPublicCart(cartItem);
+    // Came from a thank-you: she chose this tea there, so the order opens at once, not a toast to tap (U1-8).
+    if (addOpensOrder()) {
+      setCartToast(null);
+      setIsCartOpen(true);
+      return;
+    }
     // Show cart toast, read fresh count from store (Zustand updates synchronously)
     const freshCart = useAppStore.getState().publicCart;
     setCartToast({

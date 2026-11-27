@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { contactHref, wisdomPlaceLink, wisdomTypeLink } from './vendorLinks';
+import { contactHref, fullAddress, mapsHref, splitPlace, wisdomPlaceLink, wisdomTypeLink } from './vendorLinks';
 import { contactsPatch, vendorContacts, vendorSubtitle } from './VendorDetailsCard';
 import { summariseVendorSales } from './VendorSalesCard';
 
@@ -52,5 +52,21 @@ describe('where a vendor page links', () => {
     expect(wisdomTypeLink('Something else')).toBeNull();
     expect(wisdomPlaceLink('Guangxi, Southern China', 'China')?.href).toBe('/wisdom/region/guangxi');
     expect(wisdomPlaceLink(null, null)).toBeNull();
+  });
+});
+
+describe('a vendor address in one line', () => {
+  it('adds the city and country only when the address lacks them', () => {
+    expect(fullAddress({ address: '12 Fangcun Ave', city: 'Guangzhou', country: 'China' })).toBe('12 Fangcun Ave, Guangzhou, China');
+    expect(fullAddress({ address: '12 Fangcun Ave, Guangzhou, China', city: 'Guangzhou', country: 'China' })).toBe('12 Fangcun Ave, Guangzhou, China');
+    expect(fullAddress({ city: 'Guangzhou', country: 'China' })).toBe('Guangzhou, China');
+    expect(fullAddress({})).toBe('');
+  });
+  it('opens in Google Maps and splits a place at its last comma', () => {
+    expect(mapsHref('12 Fangcun Ave, Guangzhou')).toBe('https://www.google.com/maps/search/?api=1&query=12%20Fangcun%20Ave%2C%20Guangzhou');
+    expect(mapsHref(' ')).toBeNull();
+    expect(splitPlace('Guangzhou, Guangdong, China')).toEqual({ city: 'Guangzhou, Guangdong', country: 'China' });
+    expect(splitPlace('Kunming')).toEqual({ city: 'Kunming', country: null });
+    expect(splitPlace('')).toEqual({ city: null, country: null });
   });
 });

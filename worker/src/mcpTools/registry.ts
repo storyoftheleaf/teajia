@@ -10,6 +10,8 @@ export interface Launch3Services {
   releaseGuest: (table: OwnHostedTable, attendeeId: string, email: string, preview: boolean) => Promise<Response>;
   setHostingStopped: (auth: ToolAuth, userId: string, stopped: boolean) => Promise<Response>;
   limitReport: () => Promise<Response | null>;
+  /** A session's id from its public link, on the rule the report route reads it by (A11-9). */
+  sessionBySlug: (slug: string) => Promise<string | null>;
 }
 /**
  * Where MCP tools added from here on live.
@@ -78,6 +80,15 @@ export interface HostSeatService {
     approvedGuests: number) => Promise<ReservePartySeatsInput | null>;
 }
 
+/**
+ * A page route, called as the person the token belongs to (pageActions.ts).
+ * index.ts owns the route table and the sign-in, so it is handed in; the
+ * route then keeps its own switch, ownership and validation.
+ */
+export interface PageRouteService {
+  call: (auth: ToolAuth, step: import('./pageActions').PageStep) => Promise<Response>;
+}
+
 /** Wholesale steps: `transitionWholesaleOrder` in index.ts, the route's own function. */
 export interface WholesaleService {
   transition: (scope: { accountId: string; userId: string; email: string | null | undefined }, orderId: string, body: Record<string, unknown>) => Promise<Response>;
@@ -100,10 +111,14 @@ export interface ToolEnv {
   ANYONE_HOSTS_OPEN?: string;
   /** Launch 5 M4's switch (src/lib/circles.ts): circles and series, with FEW_HOSTS_OPEN. */
   CIRCLES_OPEN?: string;
+  /** Launch 4 K4's switch (src/lib/yourTablePlace.ts) and the host article offers' (src/lib/hostArticles.ts). */
+  YOUR_TABLE_PLACE_OPEN?: string;
+  HOST_ARTICLES_OPEN?: string;
   /** The site's address, for a table's link. */
   APP_URL?: string;
   hostSeats?: HostSeatService;
   launch3?: Launch3Services;
+  pageRoutes?: PageRouteService;
   DB: D1Database;
   MEDIA_BUCKET?: R2Bucket;
   ATLAS_BUCKET?: R2Bucket;

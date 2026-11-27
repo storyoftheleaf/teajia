@@ -1,4 +1,5 @@
 import React, { useState, lazy, Suspense, useEffect } from 'react';
+import { usableSeat } from '../../lib/mySeat';
 import { Link, useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { MapPin, ChevronDown, Users, BookOpen, Edit3, UserCheck } from 'lucide-react';
@@ -17,6 +18,7 @@ import EventCountdown from './EventCountdown';
 import { ReportLink } from '../shared/ReportLink';
 import { yourTableLine } from '../../lib/yourTablePlace';
 import { SessionSeriesLine } from './SessionSeriesLine';
+import { sessionClock } from '../../../shared/sessionClock';
 
 // ── Public Tea Menu Preview ───────────────────────────────────────────────
 interface PublicTeaMenuProps {
@@ -168,12 +170,10 @@ function mySeatWords(status: string): string {
   }
 }
 
-function formatEventDate(dateStr: string): { date: string; time: string; day: string } {
-  const d = new Date(dateStr);
-  const day = d.toLocaleDateString('en-US', { weekday: 'long' });
-  const date = d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-  const time = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-  return { date, time, day };
+/** The table's time in its own zone, with the zone named (shared/sessionClock.ts, review W1-2). */
+function formatEventDate(dateStr: string, timeZone?: string | null): { date: string; time: string; day: string } {
+  const clock = sessionClock(dateStr, timeZone);
+  return { date: clock?.date ?? '', time: clock?.time ?? '', day: clock?.day ?? '' };
 }
 
 const EventLanding: React.FC = () => {
@@ -253,7 +253,7 @@ const EventLanding: React.FC = () => {
 
     const evRaw = event as TeaEvent & Record<string, any>;
     const evDate: string = evRaw.eventDate ?? evRaw.event_date;
-    const { date } = formatEventDate(evDate);
+    const { date } = formatEventDate(evDate, evRaw.timezone);
     document.title = `${event.title} · Teajia`;
 
     const setMeta = (name: string, content: string, prop = false) => {
@@ -305,11 +305,10 @@ const EventLanding: React.FC = () => {
     if (!slug || !event) return;
     let live = true;
     const keep = (data: any) => {
-      const token = data?.magic_token || data?.magicToken;
-      const status = data?.status;
       if (!live) return true;
-      if (token && status && status !== 'cancelled' && status !== 'denied') {
-        setMyAttendee({ ...data, magic_token: token });
+      const seat = usableSeat(data);
+      if (seat) {
+        setMyAttendee(seat);
         return true;
       }
       return false;
@@ -330,7 +329,12 @@ const EventLanding: React.FC = () => {
     };
     if (hasToken()) {
       // Signed in, the account answers; no seat is an answer, not an error (magic_token null).
-      api.rsvp.findByAccount(slug).then(keep).catch(() => {});
+      // A seat asked for on this device before signing in has no account on
+      // it, so when the account has none the device's own token still finds
+      // it (review W1-1): she sees her request, not the form a second time.
+      api.rsvp.findByAccount(slug)
+        .then(data => { if (!keep(data) && live) fromThisDevice(); })
+        .catch(() => { if (live) fromThisDevice(); });
     } else {
       fromThisDevice();
     }
@@ -408,7 +412,7 @@ const EventLanding: React.FC = () => {
   // A person's own table rather than a shop's session (the public answer's private_host).
   const privateHost = ev.private_host === true;
 
-  const { date: formattedDate, time: formattedTime, day: formattedDay } = formatEventDate(eventDate);
+  const { date: formattedDate, time: formattedTime, day: formattedDay } = formatEventDate(eventDate, ev.timezone);
   const isCompleted = event.status === 'closed';
   const isCancelled = event.status === 'archived';
   const isFull = seatsRemaining === 0;
