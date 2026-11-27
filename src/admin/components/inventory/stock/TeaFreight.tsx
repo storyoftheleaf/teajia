@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { serviceHref, shipmentHref, SHIPMENT_STATE_WORD, shipmentIsComing, teaShipments } from '../logisticsLinks';
+import { serviceHref, shippingRatesHref, shopDefaultHref, shipmentHref, SHIPMENT_STATE_WORD, shipmentIsComing, teaShipments } from '../logisticsLinks';
 import { JourneyChip } from '../ServiceJourneyCard';
 import { Button } from '../../../../components/shared/Button';
 import { api } from '../../../../lib/api';
@@ -69,7 +69,7 @@ export function TeaFreight({ product, shopPerKgUsd, rates, costRateToUsd, onChoo
   // the shipment or the service, not on the tea.
   const perGram = shown == null ? null : shown / 1000;
   const coming = next?.shipment ?? onBoard.find(({ shipment }) => shipmentIsComing(shipment))?.shipment ?? null;
-  const target = coming ? shipmentHref(coming.id) : chosen ? serviceHref(chosen.id) : '/admin/purchase-orders';
+  const target = coming ? shipmentHref(coming.id) : chosen ? serviceHref(chosen.id) : ownRate ? shippingRatesHref : shopDefaultHref;
   const summary = [
     coming ? (due(coming) ? `Arrives ${due(coming)}` : SHIPMENT_STATE_WORD[coming.state]) : null,
     perGram == null ? 'shipping cost unknown' : `$${perGram === 0 ? 0 : Number(perGram.toPrecision(2))}/g shipping`,

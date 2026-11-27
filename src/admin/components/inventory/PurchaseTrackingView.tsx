@@ -23,6 +23,7 @@ import { StudioReferralReview } from './StudioReceiptReferral';
 import { purchaseJourneyGroups } from './purchaseJourneyGroups';
 import { logisticsPlaces } from './logisticsPlaces';
 import { TrackingTask } from './TrackingTask';
+import { ArrivalsOnTheWay, isCurateArrivalRow } from './ArrivalsOnTheWay';
 import { LogisticsTrackingUpdate } from './LogisticsTrackingUpdate';
 import { ParcelContents } from './LogisticsParcel';
 import { dueLabel, remainingOf, TRANSPORT_LABELS } from './incomingGroups';
@@ -237,7 +238,10 @@ export function PurchaseTrackingView({ NewForm, MatchForm, initialOpen }: { NewF
       else setMatch(purchase);
     });
   };
-  const attentionRows = shipmentsForPurchaseId ? [] : visible.filter(row => purchaseAttention(row).length > 0);
+  const needsAttention = shipmentsForPurchaseId ? [] : visible.filter(row => purchaseAttention(row).length > 0);
+  // Curate arrivals still on the way are not a problem to fix: one quiet list, by supplier.
+  const arrivalRows = needsAttention.filter(isCurateArrivalRow);
+  const attentionRows = needsAttention.filter(row => !isCurateArrivalRow(row));
   const studioReferrals = (logistics?.shipments ?? []).flatMap(shipment =>
     (shipment.studio_referrals ?? []).flatMap(referral => {
       const line = shipment.lines.find(line => line.id === referral.line_id);
@@ -431,6 +435,7 @@ export function PurchaseTrackingView({ NewForm, MatchForm, initialOpen }: { NewF
         <strong>{line.product_name}</strong><span>Studio referral · {shipment.tracking_number || shipment.logistics_company_name}</span>
       </Button>)}{attentionRows.map(row => renderPurchase(row))}</div>
     </section>}
+    <ArrivalsOnTheWay rows={arrivalRows}/>
     {referralReview && <TrackingTask open onClose={() => setReviewingReferral(null)} title="Studio receipt referral">
       <StudioReferralReview key={referralReview.referral.id} {...referralReview} canResolve={canResolveReferral} busy={busy} save={mutate}
         onReturnToReceipt={() => {
