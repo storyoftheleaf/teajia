@@ -32,7 +32,7 @@ Every step exists and works on its own. What is missing are the joins between st
 
 ## Around every step
 
-- **Money.** Shop price is cost x3 plus freight at cost, 85 yuan a kilo (Adrian, 2026-11-27; built, waiting on his go before it is live). The arithmetic lives only in `worker/src/shippingRate.ts` and `worker/src/markup.ts`. Nothing entered is NULL, a typed 0 is 0, every cost says its currency. Rules: [money.md](../claude/money.md).
+- **Money.** Shop price is cost x3 plus freight at cost, 85 yuan a kilo (Adrian, 2026-11-27; live since PR 588). The arithmetic lives only in `worker/src/shippingRate.ts` and `worker/src/markup.ts`. Nothing entered is NULL, a typed 0 is 0, every cost says its currency. Rules: [money.md](../claude/money.md).
 - **Suppliers.** One vendor record per supplier. The Library heading and the vendor page read the same record.
 - **Photos.** Every photo opens in the one photo editor first (`usePhotoEditor()`).
 - **Agents.** The Teajia connector (`/mcp`, preview then confirm on every write, tools in `worker/src/mcpTools/`), i64os on Adrian's Mac, AR Create's shared word library for voice, and the `/tea-wisdom` chain. Intake to stock: [CURATE-AGENTS.md](CURATE-AGENTS.md). Knowledge: [TEA-WISDOM-AGENTS.md](TEA-WISDOM-AGENTS.md).
@@ -47,10 +47,9 @@ Every step exists and works on its own. What is missing are the joins between st
 | 568 | Step 2: the vendor page opens every record and its contacts | Open, ready for review |
 | 579 | Step 4: freight rates live with each logistics company | Open |
 | 585 | Step 7: Palace Grade page, loose leaf only | Open |
-| 588 | Step 8: collections show the shelf price when no quote is typed | Open, checks running |
+| 588 | Step 8: collections show the shelf price when no quote is typed; freight passed on at cost | Live |
 | 583 | Steps 8 and 9: invoices link puer teas; payment details are one paste box | Live |
 | 577 | Steps 2 to 8: supplier face, Add to Stock wording, Write it up and Add to collection on the Library card | Live |
-| (no PR yet) | Step 6: freight at cost | Built in the price link thread, waiting on Adrian's go |
 
 ## Missing or not joined up
 
@@ -58,10 +57,11 @@ In the order recommended to fix them. Nothing here is built without Adrian's yes
 
 Closed: the tea's path used to stop at "Written up". PR 586 (commit c215452) carries it on through priced, main photo, public and Tea Wisdom entry, and adds "Public, no Tea Wisdom entry yet" to Waiting for you, which is the signal gap 3 below asked for. A place in a collection is not on the path yet.
 
+Closed: freight at cost went live with PR 588, with the money docs changed in the same piece of work.
+
 1. **Three doors skip the Library.** Stock Add tea, Bulk intake and the agent's `create_tea` make a Stock tea with no supplier, quote or tasting behind it. Already agreed: one Bring in sheet (intake plan step 2).
 2. **Two Taste doors, four approve doors, and Add to Stock arrives empty.** A new Stock tea starts with no counted amount and no price, and nothing asks. Already planned: intake plan step 4 (one Taste door with the grams; Add to Stock brings amount and cost from the arrival or quote).
 3. **Two write-ups.** The Story description is live the moment it is saved. The Tea Wisdom entry lives in `data/tea-reference/entries/` and is live only after a push. The signal between them is now built: "Public, no Tea Wisdom entry yet" in Waiting for you (PR 586, open). The chain still runs only on Adrian's word.
-4. **Freight at cost waits on Adrian's go.** When it goes live, `docs/claude/money.md`, the Money section of `CLAUDE.md`, the comments in `worker/src/shippingRate.ts` and "Not built yet" in `CURATE-AGENTS.md` change in the same commit, because all of them still say freight sits inside the x3.
-5. **The selling half has tools but no agent guide.** Collections, invoices, payment and dispatch tools exist (step 8 and 9 rows above) and only this table names them. Recommended: a short "Selling" section in `CURATE-AGENTS.md`.
-6. **i64os has its own tea sale and invoice tools** (`create_tea_sale`, `create_tea_invoice`, `mark_tea_sale_paid`, `purchase_tea_inventory`) beside the `teajia_*` ones and Teajia's own invoices. Nothing written says whether they make the same records. Recommended: check, then document or retire them, so one sale never sits in two ledgers.
-7. **Low stock does not lead back to the supplier.** `list_low_stock` and the Stock view show it; nothing opens the supplier's card to reorder. Later.
+4. **The selling half has tools but no agent guide.** Collections, invoices, payment and dispatch tools exist (step 8 and 9 rows above) and only this table names them. Recommended: a short "Selling" section in `CURATE-AGENTS.md`.
+5. **i64os has its own tea sale and invoice tools** (`create_tea_sale`, `create_tea_invoice`, `mark_tea_sale_paid`, `purchase_tea_inventory`) beside the `teajia_*` ones and Teajia's own invoices. Nothing written says whether they make the same records. Recommended: check, then document or retire them, so one sale never sits in two ledgers.
+6. **Low stock does not lead back to the supplier.** `list_low_stock` and the Stock view show it; nothing opens the supplier's card to reorder. Later.
