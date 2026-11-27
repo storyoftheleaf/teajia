@@ -124,9 +124,6 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   const room: SidebarRoom = hasManageRoom ? sidebarRoom : 'browse';
   const showPanel = hasManageRoom && room === 'manage';
 
-  // The aside is the rail alone (3.75rem) or the rail plus the open drawer
-  // (3.75 + 5.25 = 9rem). Full-screen panels read this to clear it
-  // (`.sidebar-inset`), and App.tsx reads it for the main column's margin.
   // Which of the three slim ideas is on (railIdea.ts). Every idea keeps the
   // aside at the rail's width; only today's rail has the drawer beside it.
   const idea = railIdea(location.search);
@@ -138,6 +135,9 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   useEffect(() => { setCardOpen(false); }, [currentPath]);
   const roomsProps = { today, items: manageItems, here };
   const turnedOver = idea === 'b' && managePlaced;
+  // The aside is the rail alone (3.75rem) or the rail plus the open drawer
+  // (3.75 + 5.25 = 9rem). Full-screen panels read this to clear it
+  // (`.sidebar-inset`), and App.tsx reads it for the main column's margin.
   useEffect(() => {
     const width = drawerOpen ? `${RAIL_WIDTH_REM + DRAWER_WIDTH_REM}rem` : `${RAIL_WIDTH_REM}rem`;
     document.documentElement.style.setProperty('--teajia-sidebar-w', width);
@@ -315,6 +315,8 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
               data-rail-manage-word
               onClick={() => {
                 if (idea === 'c') { setCardOpen(open => !open); return; }
+                // Idea B's word reads Site: it turns the rail back over.
+                if (turnedOver) { setSidebarRoom('browse'); return; }
                 if (room === 'manage' && isAdminRoute && !sidebarCollapsed) {
                   toggleSidebarCollapsed();
                   return;
