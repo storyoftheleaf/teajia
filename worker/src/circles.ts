@@ -238,6 +238,7 @@ export async function askBack(
   if (!reserved.ok) {
     if (reserved.code === 'capacity_conflict') return refuse(409, 'capacity_conflict', 'The table is full. Add a seat first.');
     if (reserved.code === 'event_not_reservable') return refuse(409, 'event_not_reservable', 'This table is not taking guests.');
+    if (reserved.code === 'already_seated') return refuse(409, 'already_seated', 'This guest already has a seat at this table.');
     return refuse(409, 'state_conflict', 'The table changed while you were looking. Open it again.');
   }
   await env.DB.prepare(

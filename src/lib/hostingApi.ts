@@ -43,6 +43,8 @@ export interface HostedTableSummary {
   slug: string;
   title: string;
   event_date: string;
+  /** When the table ends, when the host set it (the detail answer carries it). */
+  event_end_date?: string | null;
   timezone: string | null;
   /** NULL only on an older session; a hosted table always sets it. */
   door: HostedTableDoor | 'open' | null;

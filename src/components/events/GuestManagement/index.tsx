@@ -20,6 +20,7 @@ import CancelledView from './CancelledView';
 import PostEventView from './PostEventView';
 import ConfirmedView from './ConfirmedView';
 import { forgetWay, readKeptWay, sweepEndedWays, type KeptWay } from '../../../lib/keptWay';
+import { sessionCancelled, sessionMoment, type SessionMoment } from '../../../../shared/sessionEnd';
 
 const VenueGuide = lazy(() => import('../VenueGuide'));
 
@@ -94,11 +95,24 @@ const GuestManagement: React.FC = () => {
     prevStatusRef.current = next;
   }, [data?.attendee.status]);
 
+  // Where the table stands now (shared/sessionEnd.ts): the page asks the
+  // guest for nothing from the start on, and says plainly when the host
+  // cancelled (review A9-3, A9-5, A9-6). Read again on each answer.
+  const sessionTimes = data ? {
+    event_date: data.event.eventDate, event_end_date: data.event.eventEndDate, timezone: data.event.timezone,
+    lifecycle_status: data.event.lifecycleStatus, status: data.event.status,
+  } : null;
+  const moment: SessionMoment = sessionTimes ? sessionMoment(sessionTimes) : 'before';
+  const tableCancelled = sessionTimes ? sessionCancelled(sessionTimes) : false;
+
   // ---- STORY CARDS BRIEFING ----
-  // Show on first visit after confirmation if briefing cards exist.
+  // Show on first visit after confirmation if briefing cards exist, and only
+  // before tea: nothing opens over the page while people are sitting.
   const hasBriefing = Array.isArray(data?.briefingCards) && data.briefingCards.length > 0;
   const shouldShowBriefing =
     !!data &&
+    moment === 'before' &&
+    !tableCancelled &&
     data.attendee.status === 'confirmed' &&
     !data.attendee.firstVisitBriefed &&
     hasBriefing &&
@@ -193,10 +207,17 @@ const GuestManagement: React.FC = () => {
         cards={briefingCards}
         onComplete={handleBriefingComplete}
         eventTitle={event.title}
-        eventDay={formatDay(event.eventDate)}
+        eventDay={formatDay(event.eventDate, event.timezone)}
         flyerUrl={event.flyerImageUrl}
       />
     );
+  }
+
+  // ---- THE HOST CANCELLED THE TABLE ----
+  // Whatever the seat said, the table is not happening: no ticket, no
+  // calendar entry, nothing to claim (review A9-3).
+  if (tableCancelled) {
+    return <CancelledView attendee={attendee} event={event} tableCancelled />;
   }
 
   // ---- POST-EVENT ----
@@ -246,6 +267,7 @@ const GuestManagement: React.FC = () => {
       <WaitlistView
         attendee={attendee}
         event={event}
+        moment={moment}
         onClaimSeat={() => claimSeat.mutate()}
         claimPending={claimSeat.isPending}
         claimIsError={claimSeat.isError}
@@ -268,6 +290,7 @@ const GuestManagement: React.FC = () => {
   return (
     <ConfirmedView
       data={data}
+      moment={moment}
       statusBanner={statusBanner}
       guidelinesExpanded={guidelinesExpanded}
       onToggleGuidelines={() => setGuidelinesExpanded(!guidelinesExpanded)}

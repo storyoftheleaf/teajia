@@ -132,7 +132,7 @@ test.describe(`W1 the guest (site ${SITE_SET}, worker ${WORKER_SET})`, () => {
 
   // ── 1 ────────────────────────────────────────────────────────────────────
   test('1. an invite link to Ana\'s table, signed out: who hosts, the area, no address, and a seat is asked for (2)', async ({ page }, info) => {
-    test.fail(ALL, 'W1-2');
+    // W1-2 fixed (todo/review/fixes/seats.md): the time names the table's zone.
     test.setTimeout(240_000);
     const s = mine(info.project.name);
     const q = quiet(page);
@@ -197,7 +197,8 @@ test.describe(`W1 the guest (site ${SITE_SET}, worker ${WORKER_SET})`, () => {
 
   // ── 2 ────────────────────────────────────────────────────────────────────
   test('2. she signs in, Ana says yes, and Mei sees the address and the way to the house (1)', async ({ page }, info) => {
-    test.fail(ALL, 'W1-1 and W1-3');
+    // W1-1 fixed (todo/review/fixes/seats.md). W1-3, the sign-in return, held on the slot 9 rig
+    // without a change from that fix, so this step carries no mark.
     test.setTimeout(240_000);
     const s = mine(info.project.name);
     const q = quiet(page);

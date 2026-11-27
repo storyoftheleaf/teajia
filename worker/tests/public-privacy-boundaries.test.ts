@@ -18,8 +18,8 @@ function seedStore(db: SqliteD1, accountId = 'account-a', slug = 'shop-a') {
     VALUES (?, ?, 'Visible tea', 'Oolong', 'Active', 1, 1, 100)`)
     .run(`tea-${accountId}`, accountId);
   db.sqlite.prepare(`INSERT INTO events
-    (id, account_id, slug, title, event_date, status, public_visibility, network_discovery, address_text)
-    VALUES (?, ?, ?, 'Visible event', '2099-01-01', 'active', 'public', 1, 'Private venue address')`)
+    (id, account_id, slug, title, event_date, status, lifecycle_status, public_visibility, network_discovery, address_text)
+    VALUES (?, ?, ?, 'Visible event', '2099-01-01', 'active', 'published', 'public', 1, 'Private venue address')`)
     .run(`event-${accountId}`, accountId, `event-${slug}`);
 }
 

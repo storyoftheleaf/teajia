@@ -77,3 +77,25 @@ export function sessionHasEnded(session: SessionTimes, now = Date.now()): boolea
   const end = sessionEndsAt(session);
   return end !== null && now >= end;
 }
+
+/** Where a session stands at one instant: before its start, during it, or after its end. */
+export type SessionMoment = 'before' | 'during' | 'after';
+
+/**
+ * A session's "now" (review A9, A6-4). After: it has ended, by its state or
+ * by sessionEndsAt. During: from its start to its end, both read in the
+ * session's own time zone. Before: anything earlier, and a session whose
+ * date cannot be read. One rule for the worker and the guest's phone: the
+ * app asks a guest for nothing during, a table completes only after, and an
+ * upcoming list carries only what is before.
+ */
+export function sessionMoment(session: SessionTimes, now = Date.now()): SessionMoment {
+  if (sessionHasEnded(session, now)) return 'after';
+  const start = sessionInstant(session.event_date, session.timezone);
+  return start && start.at <= now ? 'during' : 'before';
+}
+
+/** Whether the session's host cancelled it. A cancelled table tells its guests so. */
+export function sessionCancelled(session: Pick<SessionTimes, 'lifecycle_status' | 'status'>): boolean {
+  return session.lifecycle_status === 'cancelled' || session.status === 'cancelled';
+}
