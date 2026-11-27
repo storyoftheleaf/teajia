@@ -106,6 +106,7 @@ const TeaCreditSectionOpen: React.FC = () => {
 
   const held = (data?.spend_requests ?? []).filter(request => request.status === 'held');
   const secondLook = data?.second_look ?? [];
+  const shortfalls = data?.shortfalls ?? [];
   const hosts = data?.hosts ?? [];
   const busy = decide.isPending || approveOrder.isPending;
   const chosen = openHost ? hosts.find(host => host.host_user_id === openHost) ?? null : null;
@@ -148,14 +149,15 @@ const TeaCreditSectionOpen: React.FC = () => {
           {secondLook.length > 0 && (
             <div>
               <Heading>Waiting on a second look</Heading>
-              <p className="text-ui-12 text-tea-text-sec mb-2">These orders earn more than the shop's limit for one order. Approve to let the credit through.</p>
+              <p className="text-ui-12 text-tea-text-sec mb-2">These orders earn more than the shop's limit for one order, or were marked Filled by someone other than you. Approve to let the credit through.</p>
               <ul className="flex flex-col gap-2.5">
                 {secondLook.map(order => (
                   <Row key={order.invoice_id} label={`Order ${order.invoice_number ?? ''} for ${hostName(order.host_name)}`}>
                     <div className="min-w-0 flex-1">
                       <span className="block font-serif text-base text-tea-text break-words">{hostName(order.host_name)}</span>
                       <span className="block text-ui-11 text-tea-text-sec mt-0.5">
-                        {[order.invoice_number ? `Order ${order.invoice_number}` : 'An order', order.event_title ? `from ${order.event_title}` : null].filter(Boolean).join(' · ')}
+                        {[order.invoice_number ? `Order ${order.invoice_number}` : 'An order', order.event_title ? `from ${order.event_title}` : null,
+                          order.reason === 'not_filled_by_owner' ? 'marked Filled by your team' : null].filter(Boolean).join(' · ')}
                       </span>
                       {notice?.id === order.invoice_id && <p role="alert" className="text-ui-12 text-tea-text mt-1.5">{notice.text}</p>}
                     </div>
@@ -163,6 +165,24 @@ const TeaCreditSectionOpen: React.FC = () => {
                       <span className="num text-sm text-tea-text font-medium">{formatCredit(order.credit_amount, order.currency)}</span>
                       <Button size="sm" disabled={busy} onClick={() => approveOrder.mutate(order.invoice_id)}>Approve</Button>
                     </div>
+                  </Row>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {shortfalls.length > 0 && (
+            <div>
+              <Heading>Absorbed by the shop</Heading>
+              <p className="text-ui-12 text-tea-text-sec mb-2">An order was voided after its host had already used the credit it earned. The shop keeps the difference; nobody was told.</p>
+              <ul className="flex flex-col gap-2.5">
+                {shortfalls.map(row => (
+                  <Row key={row.award_entry_id} label={`Absorbed on order ${row.invoice_number ?? ''} for ${hostName(row.host_name)}`}>
+                    <div className="min-w-0 flex-1">
+                      <span className="block font-serif text-base text-tea-text break-words">{hostName(row.host_name)}</span>
+                      <span className="block text-ui-11 text-tea-text-sec mt-0.5">{row.invoice_number ? `Order ${row.invoice_number}` : 'An order'}</span>
+                    </div>
+                    <span className="num text-sm text-tea-text font-medium shrink-0">{formatCredit(row.amount, row.currency)}</span>
                   </Row>
                 ))}
               </ul>

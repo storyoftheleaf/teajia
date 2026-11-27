@@ -40,7 +40,7 @@ import { yourTablePlaceOpen } from '../../src/lib/yourTablePlace';
 import { teaHousesOpen } from '../../src/lib/teaHouses';
 import { launch4RouteClosed, openRoutes } from './launch4Closed';
 import { readVia, recordOrderSessionSource } from './orderSessionSource';
-import { approveHostCreditSpend, declineHostCreditSpend, HOST_CREDIT_SETTING_KEYS, readHostCreditSetting, readOwnAvailableInShop, readOwnHostCredit, readShopHostCredit, settleHostCredit, useHostCreditOnOrder } from './hostCreditLedger';
+import { approveHostCreditSpend, declineHostCreditSpend, HOST_CREDIT_SETTING_KEYS, hostCreditStaffFill, readHostCreditSetting, readOwnAvailableInShop, readOwnHostCredit, readShopHostCredit, settleHostCredit, useHostCreditOnOrder } from './hostCreditLedger';
 import { hostCreditOpen } from '../../src/lib/hostCredit';
 import { tableCardOpen } from '../../src/lib/tableCard';
 import { serveOwnerSitPhotoPermission, servePublicRecapPhoto, serveRecapPhotoReview } from './revocableSitPhotos';
@@ -6518,7 +6518,10 @@ const handleUpdateInvoice: Handler = async (request, env, params, execution) => 
     if (current) payment = await recomputeInvoicePaymentStatus(env, current);
   }
   await ensureContactRelationship(env, accountId, body.customer_id, 'buyer', 'workflow', 'invoice', params.id);
-  await settleHostCredit(env, params.id);
+  // Only the owner's Fill lets the order earn tea credit (A8-6): this request
+  // counts as their word only when it is the one marking the order Filled.
+  await settleHostCredit(env, params.id, body.status === 'Filled'
+    ? { staffFill: await hostCreditStaffFill(env.DB, accountId, ctx.userId) } : {});
   if (quoteChanged || body.status === 'Pending') {
     const delivery = processPendingShippingQuoteNotifications(env.DB, env, { accountId, invoiceId: params.id, limit: 1 })
       .catch(() => console.error('Shipping payment notification processing failed'));
@@ -6746,7 +6749,7 @@ const handleFulfillInvoice: Handler = async (request, env) => {
     }
     return json({ error: 'Fulfillment failed — no changes were committed' }, 500);
   }
-  await settleHostCredit(env, invoice_id);
+  await settleHostCredit(env, invoice_id, { staffFill: await hostCreditStaffFill(env.DB, accountId, ctx.userId) });
 
   // Post-fulfillment: populate customer's compass tasting queue (non-blocking)
   const customerUserId = (invoice as any).customer_user_id as string | null;
@@ -7192,7 +7195,7 @@ const handleShipInvoice: Handler = async (request, env) => {
   const [changed]=await env.DB.batch([shipment,...trail]);
   if (!Number(changed.meta?.changes || 0)) return restError(409, 'Order changed before shipping', 'invoice_busy');
   await buildActivityLog(env, 'INVOICE_SHIPPED', `Order ${invoiceId} shipped`, ctx.email, 'invoice', invoiceId, ctx.accountId).run();
-  await settleHostCredit(env, invoiceId);
+  await settleHostCredit(env, invoiceId, { staffFill: await hostCreditStaffFill(env.DB, ctx.accountId, ctx.userId) });
   return json({ success: true, shipped_at: shippedAt, tracking_number: tracking });
 };
 
@@ -34048,6 +34051,57 @@ function limitSessionReport(request: Request, env: Env) {
   const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
   return enforceDurableLimit(env.PROVIDER_LIMITER, 'PROVIDER_LIMITER', `session-report:${ip}`);
 }
+// A session's id from its public link, on the same rule its public page is
+// served by (J13 finding 2). Null when the link names nothing shown.
+// A page route, called as the person an MCP token belongs to (review A11-10
+// and A11-11, worker/src/mcpTools/pageActions.ts). mcp.ts has already proved
+// the token, its scope and its tool list; this signs that same person in for
+// one minute, on their current session version, so the route applies every
+// rule of its own (switch, ownership, platform owner, a stopped host, limits)
+// exactly as for the page. Only the route the tool names is reached, and the
+// signed token never leaves this call.
+async function callPageRouteAs(
+  mcpRequest: Request, env: Env,
+  auth: { userId: string; accountId: string },
+  step: { method: string; path: string; body?: Record<string, unknown>; form?: Record<string, string | string[]> },
+): Promise<Response> {
+  const person = await env.DB.prepare('SELECT id, email, name, role, platform_role, session_version FROM users WHERE id = ?')
+    .bind(auth.userId).first<{ id: string; email: string | null; name: string | null; role: string | null; platform_role: PlatformRole | null; session_version: number | null }>();
+  if (!person) return restError(401, 'Unauthorized', 'auth_invalid');
+  const url = new URL(step.path, 'https://mcp.internal');
+  const match = matchRoute(step.method, url.pathname, routes);
+  if (!match) return json({ error: 'Not found' }, 404);
+  const jwt = await createToken(env.JWT_SECRET, {
+    sub: person.id, email: person.email ?? '', name: person.name ?? '', role: person.role ?? 'user',
+    ...(person.platform_role ? { platform_role: person.platform_role } : {}),
+    active_account_id: auth.accountId, session_version: Number(person.session_version || 0),
+  }, 60);
+  const headers = new Headers({ Authorization: `Bearer ${jwt}`, 'X-Teajia-Account': auth.accountId });
+  const ip = mcpRequest.headers.get('CF-Connecting-IP');
+  if (ip) headers.set('CF-Connecting-IP', ip);
+  let body: BodyInit | undefined;
+  if (step.form) {
+    const form = new FormData();
+    for (const [key, value] of Object.entries(step.form)) {
+      for (const item of Array.isArray(value) ? value : [value]) form.append(key, item);
+    }
+    body = form;
+  } else if (step.body !== undefined) {
+    headers.set('Content-Type', 'application/json');
+    body = JSON.stringify(step.body);
+  }
+  return match.handler(new Request(url, { method: step.method, headers, body }), env, match.params);
+}
+
+async function publicSessionIdBySlug(env: Env, slug: string): Promise<string | null> {
+  if (!slug.trim()) return null;
+  const session = await env.DB.prepare(
+    `SELECT e.id FROM events e JOIN accounts a ON a.id = e.account_id
+      WHERE e.slug = ? AND e.status = 'active' AND ${PUBLIC_EVENT_DIRECT} AND ${sessionLinkHostSql(env)}`
+  ).bind(slug.trim()).first<{ id: string }>();
+  return session?.id ?? null;
+}
+
 const handleFileSessionReport: Handler = async (request, env) => {
   if (!anyoneHostsOpen(env)) return sessionReportsClosed();
   const limited = await limitSessionReport(request, env);
@@ -34059,12 +34113,9 @@ const handleFileSessionReport: Handler = async (request, env) => {
   // same rule that page is served by, and the id is never sent back (J13 finding 2).
   let targetId = typeof body?.target_id === 'string' ? body.target_id : null;
   if (!targetId && body?.target_kind === 'session' && typeof body.target_slug === 'string' && body.target_slug.trim()) {
-    const session = await env.DB.prepare(
-      `SELECT e.id FROM events e JOIN accounts a ON a.id = e.account_id
-        WHERE e.slug = ? AND e.status = 'active' AND ${PUBLIC_EVENT_DIRECT} AND ${sessionLinkHostSql(env)}`
-    ).bind(body.target_slug.trim()).first<{ id: string }>();
-    if (!session) return json({ error: 'That is no longer on Teajia.', code: 'target_not_found' }, 404);
-    targetId = session.id;
+    const sessionId = await publicSessionIdBySlug(env, body.target_slug);
+    if (!sessionId) return json({ error: 'That is no longer on Teajia.', code: 'target_not_found' }, 404);
+    targetId = sessionId;
   }
   if (!body || !targetId || (body.target_kind !== 'session' && body.target_kind !== 'person')) {
     return json({ error: 'Say what you are reporting.', code: 'validation_failed' }, 400);
@@ -34439,7 +34490,9 @@ const requestHandler = {
           releaseGuest: (table, attendeeId, email, preview) => releaseHostedGuest(env, table, attendeeId, email, preview),
           setHostingStopped: (auth, userId, stopped) => changeHostingStopped(env, userId, stopped, auth.userId, auth.userEmail),
           limitReport: () => limitSessionReport(request, env),
+          sessionBySlug: slug => publicSessionIdBySlug(env, slug),
         },
+        pageRoutes: { call: (auth, step) => callPageRouteAs(request, env, auth, step) },
       });
       return cors(response, corsOrigin);
     }

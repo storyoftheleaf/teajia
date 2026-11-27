@@ -32,8 +32,8 @@ Worst first (severity, then open before fixed). "Fixed" means fixed on `build/re
 
 | id | severity | what | area | state | sort |
 |---|---|---|---|---|---|
-| A8-6 | S1 | A staff seller with permission to sell can award credit without the owner marking the order Filled. | credit | open | Adrian's |
-| A8-7 | S1 | Voiding the source of credit already spent takes the signed ledger below zero. | credit | open | Adrian's |
+| A8-6 | S1 | A staff seller with permission to sell can award credit without the owner marking the order Filled. | credit | built on the safe reading, waits on his word (todo/review/fixes/last.md) | Adrian's |
+| A8-7 | S1 | Voiding the source of credit already spent takes the signed ledger below zero. | credit | built on the safe reading, waits on his word (todo/review/fixes/last.md) | Adrian's |
 | A8-1 | S1 | Approving tea credit left the customer owing the full price. | credit | fixed, PR 569 | Fix now |
 | A8-2 | S1 | Saving the same tea line on a reopened order could award the whole order twice. | credit | fixed, PR 569 | Fix now |
 | A8-3 | S1 | A price cut after a request let the owner spend more credit than the tea cost. | credit | fixed, PR 569 | Fix now |
@@ -83,12 +83,12 @@ Worst first (severity, then open before fixed). "Fixed" means fixed on `build/re
 | A9-8 | S3 | Deleting a guest account silently leaves its future seat occupied. | seats and time | open | Adrian's |
 | A9-13 + W2-6 | S3 | Recording one absence, and reaching a guest thank-you link, each take four taps behind After and Mark who came. | forms and entering | open | Fix now |
 | A10-6 | S3 | A host key paused by a close works again on its own when the switch reopens, and the host is told neither time. | closed and failing states | open | Adrian's |
-| A11-4 | S3 | host_table refuses the open door the page gives a host with reach, and cannot take the area. | agent tools | open | Fix with its switch (ANYONE_HOSTS_OPEN) |
-| A11-5 | S3 | On a stopped host scoped token, answer_guest no, set_guest_note and add_table_tea say not available where the page allows them. | agent tools | open | Fix with its switch (FEW_HOSTS_OPEN) |
-| A11-7 | S3 | The Tea Table tools are narrower than the page: a host cannot hold their own recap, and nobody can let go of a hold or unhide by tool. | agent tools | open | Fix with its switch (TEA_TABLE_OPEN) |
-| A11-9 | S3 | The report tool needs a table id, which a public table never shows; the page reports by link. | agent tools | open | Fix with its switch (ANYONE_HOSTS_OPEN) |
-| A11-10 | S3 | Ten things on the host page have no tool on the host key. | agent tools | open | Fix with its switch (HOST_TOKENS_OPEN) |
-| A11-11 + W3-8 | S3 | Five of Adrian owner actions (reach, reports, article offers, Tea Table list, credit decisions) have no owner tool. | agent tools | open | Fix with its switch (FEW_HOSTS_OPEN and HOST_CREDIT_OPEN) |
+| A11-4 | S3 | host_table refuses the open door the page gives a host with reach, and cannot take the area. | agent tools | fixed, branch review/fix-last | Fix with its switch (ANYONE_HOSTS_OPEN) |
+| A11-5 | S3 | On a stopped host scoped token, answer_guest no, set_guest_note and add_table_tea say not available where the page allows them. | agent tools | fixed, branch review/fix-last | Fix with its switch (FEW_HOSTS_OPEN) |
+| A11-7 | S3 | The Tea Table tools are narrower than the page: a host cannot hold their own recap, and nobody can let go of a hold or unhide by tool. | agent tools | fixed, branch review/fix-last | Fix with its switch (TEA_TABLE_OPEN) |
+| A11-9 | S3 | The report tool needs a table id, which a public table never shows; the page reports by link. | agent tools | fixed, branch review/fix-last | Fix with its switch (ANYONE_HOSTS_OPEN) |
+| A11-10 | S3 | Ten things on the host page have no tool on the host key. | agent tools | fixed, branch review/fix-last | Fix with its switch (HOST_TOKENS_OPEN) |
+| A11-11 + W3-8 | S3 | Five of Adrian owner actions (reach, reports, article offers, Tea Table list, credit decisions) have no owner tool. | agent tools | A11-11 fixed, branch review/fix-last; the credit-decision tools (W3-8) still open | Fix with its switch (FEW_HOSTS_OPEN and HOST_CREDIT_OPEN) |
 | A11-13 + W6-3 + W2-2 + A11-2 | S3 | A host cannot make the same table again on the page, though the agent can; the draft copy that nobody could open (A11-2, S2) is fixed. | forms and entering | open (A11-2 part fixed, PR 570) | Fix now |
 | W1-5 | S3 | The thank-you lists teas with links but no prices. | reaching things and links | open | Adrian's |
 | W1-7 | S3 | The order form asks a signed-in guest for name and email, and the order takes four taps, not three. | forms and entering | open | Fix now |

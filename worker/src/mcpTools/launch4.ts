@@ -15,8 +15,8 @@ type Actions = {
   set_tea_table_keep: Piece & { kept: boolean };
   set_my_recap_on_tea_table: { id: string; on_table: boolean };
   take_my_tasting_off_tea_table: { id: string };
-  hold_tea_table_piece: Piece & { days: number };
-  hide_tea_table_piece: Piece;
+  hold_tea_table_piece: Piece & { days: number | null };
+  hide_tea_table_piece: Piece & { hidden: boolean };
 };
 type Action = keyof Actions;
 type Mutation<K extends Action> = { kind: K; accountId: string; userId: string; input: Actions[K] };
@@ -145,29 +145,66 @@ const takeMyTastingOff = write('take_my_tasting_off_tea_table', async (db, auth,
   return { input: { id }, title: tasting.title, effect };
 }, async (db, auth, { id }) => teaTableResult(await takeTastingOffTeaTable(db, auth.userId, id)));
 
-const holdPiece = write('hold_tea_table_piece', async (db, _auth, args) => {
+/**
+ * The hold route's rule (PUT and DELETE /api/tea-table/holds/:kind/:id, A11-7):
+ * the platform owner holds any piece; a host holds only their own session's
+ * recap. Read in the preview and again in the apply.
+ */
+async function mayHold(db: D1Database, auth: ToolAuth, kind: TeaTableKind, id: string) {
+  if (await isTeaTablePlatformOwner(db, auth.userId)) return true;
+  if (kind !== 'recap') return false;
+  const event = await db.prepare('SELECT account_id FROM events WHERE id = ?').bind(id).first<{ account_id: string }>();
+  return Boolean(event && event.account_id === auth.accountId
+    && await hostedTeaTableSession(db, id, event.account_id, auth.userId));
+}
+
+const holdPiece = write('hold_tea_table_piece', async (db, auth, args) => {
   const id = idOf(args);
   const { kind, days } = args ?? {};
-  if (!id || !isTeaTableKind(kind) || !isTeaTableHoldDays(days)) return invalid;
+  // release: true lets go of the hold, as the page's DELETE does.
+  const release = args?.release === true;
+  if (!id || !isTeaTableKind(kind) || (!release && !isTeaTableHoldDays(days))) return invalid;
+  if (!await mayHold(db, auth, kind, id)) return kind === 'recap' ? notHost : ownerOnly;
+  if (release) {
+    return { input: { kind, id, days: null }, title: await pieceTitle(db, { kind, id }), effect: 'Let go of this piece\'s hold. It takes its place by time again.' };
+  }
   const title = await pieceTitle(db, { kind, id });
   if (!title) return notOnTable;
-  return { input: { kind, id, days }, title, effect: `Hold this piece at the top for ${days} ${days === 1 ? 'day' : 'days'} from confirmation.` };
-}, async (db, auth, { kind, id, days }) =>
-  teaTableResult(await holdTeaTablePiece(db, auth.userId, kind, id, days)), true);
+  return { input: { kind, id, days: days as number }, title, effect: `Hold this piece at the top for ${days} ${days === 1 ? 'day' : 'days'} from confirmation.` };
+}, async (db, auth, { kind, id, days }) => {
+  if (!await mayHold(db, auth, kind, id)) return kind === 'recap' ? notHost : ownerOnly;
+  if (days === null) {
+    await db.prepare('DELETE FROM tea_table_holds WHERE item_kind = ? AND item_id = ?').bind(kind, id).run();
+    return { kind, id, held_until: null };
+  }
+  return teaTableResult(await holdTeaTablePiece(db, auth.userId, kind, id, days));
+});
+
+/** A piece put on the table at all, hidden or not: what the owner may hide or show again. */
+async function putOnTable(db: D1Database, kind: TeaTableKind, id: string) {
+  return kind === 'recap'
+    ? db.prepare('SELECT title FROM events WHERE id = ? AND tea_table_at IS NOT NULL').bind(id).first<{ title: string | null }>()
+    : db.prepare(`SELECT COALESCE(NULLIF(p.given_name, ''), p.product_name) AS title FROM member_tasting_shares s
+        LEFT JOIN products p ON p.id = s.product_id AND p.account_id = s.account_id
+        WHERE s.journal_entry_id = ? AND s.tea_table_at IS NOT NULL`).bind(id).first<{ title: string | null }>();
+}
 
 const hidePiece = write('hide_tea_table_piece', async (db, _auth, args) => {
   const id = idOf(args);
   const kind = args?.kind;
-  if (!id || !isTeaTableKind(kind)) return invalid;
-  const title = await pieceTitle(db, { kind, id });
-  if (!title) return notFound;
-  const effect = kind === 'tasting'
-    ? 'Hide this tasting on the Tea Table and wherever the family shows it.'
+  // hidden: false shows a hidden piece again, as the page's hide does (A11-7). It defaults to hiding.
+  const hidden = args?.hidden === undefined ? true : args.hidden;
+  if (!id || !isTeaTableKind(kind) || typeof hidden !== 'boolean') return invalid;
+  const piece = await putOnTable(db, kind, id);
+  if (!piece) return notFound;
+  const title = piece.title ?? undefined;
+  const effect = !hidden ? 'Show this piece on the Tea Table again.'
+    : kind === 'tasting' ? 'Hide this tasting on the Tea Table and wherever the family shows it.'
     : 'Hide this recap on the Tea Table.';
-  return { input: { kind, id }, title, effect };
-}, async (db, auth, { kind, id }) => {
-  if (!await teaTablePiece(db, kind, id)) return notFound;
-  return teaTableResult(await setTeaTableHidden(db, auth.userId, kind, id, true));
+  return { input: { kind, id, hidden }, title, effect };
+}, async (db, auth, { kind, id, hidden }) => {
+  if (!await putOnTable(db, kind, id)) return notFound;
+  return teaTableResult(await setTeaTableHidden(db, auth.userId, kind, id, hidden ?? true));
 }, true);
 
 const favouritesGate: ToolDefinition['unavailable'] = env => favouritesOpen(env) ? undefined : 'feature_closed';
@@ -225,19 +262,28 @@ const defs: ToolDefinition[] = [
   },
   {
     name: 'hold_tea_table_piece',
-    scope: 'admin:write',
-    unavailable: moderationGate,
-    description: 'Hold a Tea Table piece at the top for 1 to 14 days. Platform owner only. Preview first, then confirm.',
-    inputSchema: writeSchema({
-      kind, id, days: { type: 'integer', minimum: TEA_TABLE_HOLD_DAYS.least, maximum: TEA_TABLE_HOLD_DAYS.most },
-    }),
+    scope: 'catalog:write',
+    unavailable: tableGate,
+    description: 'Hold a Tea Table piece at the top for 1 to 14 days, or let go of a hold with release: true. The platform owner holds any piece; a host holds their own session\'s recap. Preview first, then confirm.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        kind, id, days: { type: 'integer', minimum: TEA_TABLE_HOLD_DAYS.least, maximum: TEA_TABLE_HOLD_DAYS.most },
+        release: { type: 'boolean', description: 'True to let go of the hold.' }, confirm,
+      },
+      anyOf: [{ required: ['kind', 'id'] }, { required: ['confirm'] }],
+    },
   },
   {
     name: 'hide_tea_table_piece',
     scope: 'admin:write',
     unavailable: moderationGate,
-    description: 'Hide a Tea Table piece. Platform owner only. Preview first, then confirm.',
-    inputSchema: writeSchema({ kind, id }),
+    description: 'Hide a Tea Table piece, or show it again with hidden false. Platform owner only. Preview first, then confirm.',
+    inputSchema: {
+      type: 'object',
+      properties: { kind, id, hidden: { type: 'boolean', description: 'False shows a hidden piece again. Defaults to true.' }, confirm },
+      anyOf: [{ required: ['kind', 'id'] }, { required: ['confirm'] }],
+    },
   },
 ];
 

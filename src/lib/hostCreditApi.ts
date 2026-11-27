@@ -106,6 +106,21 @@ export interface SecondLookOrder {
   credit_amount: number;
   currency: string;
   ceiling_usd: number | null;
+  /** Why it waits: over the shop's limit, or marked Filled by someone other than the owner (A8-6). */
+  reason?: 'over_ceiling' | 'not_filled_by_owner';
+}
+
+/** Credit a Void could not take back because the host had spent it; the shop absorbed it (A8-7). */
+export interface HostCreditShortfall {
+  award_entry_id: string;
+  host_user_id: string;
+  host_name: string | null;
+  invoice_id: string;
+  invoice_number: string | null;
+  amount: number;
+  currency: string;
+  reason: string;
+  created_at: string;
 }
 
 export interface ShopTeaCredit {
@@ -114,6 +129,7 @@ export interface ShopTeaCredit {
   lines: ShopCreditLine[];
   spend_requests: ShopSpendRequest[];
   second_look: SecondLookOrder[];
+  shortfalls?: HostCreditShortfall[];
 }
 
 /** The held request the worker wrote when the host asked to use credit. */

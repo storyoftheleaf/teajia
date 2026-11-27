@@ -36,6 +36,8 @@ import { reservePartySeats } from '../eventDomain';
 import { anyoneMayHost, hostDoorsFor, hostStanding, setHostApproval, type HostDoor } from '../hostApproval';
 import { GUEST_NOTE_MAX, guestNotesFor, saveGuestNote } from '../hostGuestNotes';
 import { createHostedTable } from '../hostTable';
+import { hostsAnyTable } from '../hostRecord';
+import { areaGivesAwayTheWay, isAreaRefusal, readTableArea } from '../hostTableArea';
 import { offerFreedSeats } from '../waitingList';
 import { anyoneHostsOpen } from '../../../src/lib/anyoneHosts';
 import {
@@ -53,6 +55,7 @@ type Base = { accountId: string; userId: string; userEmail: string };
 type FewHostsMutation =
   | (Base & {
       kind: 'host_table'; date: string; time: string; timezone: string; seats: number; door: HostDoor; name: string | null;
+      area?: string | null;
     })
   | (Base & { kind: 'answer_guest'; tableId: string; attendeeId: string; fullName: string; answer: 'yes' | 'no' })
   | (Base & {
@@ -74,12 +77,20 @@ const DEFAULT_SEATS = 6;
 const text = (value: unknown) => (typeof value === 'string' && value.trim() ? value.trim() : null);
 const appOrigin = (env: ToolEnv) => (env.APP_URL || 'https://www.teajia.com').replace(/\/$/, '');
 
-type Host = { userId: string; accountId: string; doors: HostDoor[] };
+type Host = { userId: string; accountId: string; doors: HostDoor[]; stopped: boolean };
+
+const HOSTING_STOPPED = {
+  error: 'hosting_stopped',
+  message: 'Teajia has stopped new tables and new seats for you for now. Your tables and guests stay as they are.',
+} as const;
 
 /**
  * The caller, as a host: Launch 2 is open, the token is on the caller's own
  * active personal account, and they may host (hostDoorsFor: Adrian approved
- * them, or Launch 3 lets anyone host by request; never once stopped). Null otherwise.
+ * them, or Launch 3 lets anyone host by request). A stopped host who still
+ * hosts a table is kept with no door, as the page keeps them
+ * (hostedTableAccess in index.ts): the writes that seat someone new or make a
+ * table refuse them with HOSTING_STOPPED. Null otherwise.
  * Run on every call, previews and confirms alike.
  */
 async function hostOf(env: ToolEnv, auth: ToolAuth): Promise<Host | null> {
@@ -89,8 +100,13 @@ async function hostOf(env: ToolEnv, auth: ToolAuth): Promise<Host | null> {
        AND status = 'active'`,
   ).bind(auth.accountId, auth.userId).first<{ id: string }>();
   if (!own) return null;
-  const doors = hostDoorsFor(await hostStanding(env.DB, auth.userId), anyoneMayHost(env));
-  return doors ? { userId: auth.userId, accountId: own.id, doors } : null;
+  const standing = await hostStanding(env.DB, auth.userId);
+  const doors = hostDoorsFor(standing, anyoneMayHost(env));
+  if (doors) return { userId: auth.userId, accountId: own.id, doors, stopped: false };
+  if (standing.stopped && await hostsAnyTable(env.DB, auth.userId)) {
+    return { userId: auth.userId, accountId: own.id, doors: [], stopped: true };
+  }
+  return null;
 }
 
 /** One of the host's own tables, in the token's account, or null. */
@@ -155,6 +171,7 @@ function spokenWhen(date: string, time: string, timezone: string) {
 const hostTable: ToolHandler = async (env, auth, args) => {
   const host = await hostOf(env, auth);
   if (!host) return NOT_AVAILABLE;
+  if (host.stopped) return HOSTING_STOPPED;
   const confirm = text(args?.confirm);
 
   if (!confirm) {
@@ -184,7 +201,8 @@ const hostTable: ToolHandler = async (env, auth, args) => {
       return { error: 'hosted_table_seats', message: 'Seats are a whole number from 1 to 40.' };
     }
     const door = args?.door ?? 'request';
-    if (door !== 'request' && door !== 'link') {
+    // 'open' (Launch 3, J10) only for a host hostDoorsFor offers it to, as readHostedTableInput.
+    if (door !== 'request' && door !== 'link' && !(door === 'open' && host.doors.includes('open'))) {
       return { error: 'hosted_table_door', message: 'A table opens by request or by link.' };
     }
     if (!host.doors.includes(door)) {
@@ -197,15 +215,24 @@ const hostTable: ToolHandler = async (env, auth, args) => {
     if (name && name.length > TABLE_NAME_MAX) {
       return { error: 'hosted_table_name', message: `Keep the table's name under ${TABLE_NAME_MAX} characters.` };
     }
+    // The area people are told: optional, never the address (the route's two checks).
+    const area = readTableArea(args ?? null);
+    if (isAreaRefusal(area)) return { error: area.refused.code, message: area.refused.error };
+    if (area) {
+      const givesAway = await areaGivesAwayTheWay(env.DB, host.accountId, null, area);
+      if (givesAway) return { error: givesAway.refused.code, message: givesAway.refused.error };
+    }
     const token = await issueTicket<FewHostsMutation>(env, {
       kind: 'host_table', accountId: auth.accountId, userId: auth.userId, userEmail: auth.userEmail,
-      date, time, timezone, seats, door, name,
+      date, time, timezone, seats, door, name, area: area ?? null,
     }, auth.tokenId);
     return previewEnvelope({
       action: 'host_table',
       when: spokenWhen(date, time, timezone),
       seats,
-      door: door === 'link' ? 'by link: a guest with the link takes a seat with a name' : 'by request: you say yes to each guest',
+      door: door === 'link' ? 'by link: a guest with the link takes a seat with a name'
+        : door === 'open' ? 'open: a guest takes a seat without asking' : 'by request: you say yes to each guest',
+      ...(area ? { area } : {}),
       name: name ?? 'named for the day and your first name',
       effect: 'Makes a new table and gives you its link. Nothing is sent to anyone.',
     }, token);
@@ -218,7 +245,7 @@ const hostTable: ToolHandler = async (env, auth, args) => {
   const table = await createHostedTable(env.DB, {
     accountId: host.accountId, hostUserId: host.userId, hostName: person?.name ?? '',
     date: pending.date, time: pending.time, timezone: pending.timezone,
-    seats: pending.seats, door: pending.door, name: pending.name, appOrigin: appOrigin(env),
+    seats: pending.seats, door: pending.door, name: pending.name, area: pending.area ?? null, appOrigin: appOrigin(env),
   });
   if ('refused' in table) return { error: table.refused.code, message: table.refused.error };
   return { committed: true, action: 'host_table', table_id: table.id, link: table.link };
@@ -275,6 +302,7 @@ const answerGuest: ToolHandler = async (env, auth, args) => {
   if (!confirm) {
     const answer = args?.answer;
     if (answer !== 'yes' && answer !== 'no') throw new Error('answer must be "yes" or "no"');
+    if (answer === 'yes' && host.stopped) return HOSTING_STOPPED;
     const table = await tableOf(env, host, args?.table_id);
     if (!table) return TABLE_NOT_FOUND;
     const found = await guestOf(env, table, args, ['requested', 'waitlist']);
@@ -327,6 +355,7 @@ const answerGuest: ToolHandler = async (env, auth, args) => {
     return { committed: true, action: 'answer_guest', attendee_id: attendee.id, status: 'denied' };
   }
 
+  if (host.stopped) return HOSTING_STOPPED;
   if (attendee.status !== 'requested') {
     return { error: 'state_conflict', message: 'This guest is no longer waiting for your yes. Nothing was written.' };
   }
@@ -598,7 +627,8 @@ const defs: ToolDefinition[] = [
         time: { type: 'string', description: 'The time, HH:MM on a 24 hour clock.' },
         timezone: { type: 'string', description: 'The IANA time zone the table is in, for example Asia/Taipei. Defaults to the zone of your last table.' },
         seats: { type: 'integer', minimum: 1, maximum: 40 },
-        door: { type: 'string', enum: ['request', 'link'], description: 'request: you say yes to each guest (default). link: a guest with the link takes a seat with a name.' },
+        door: { type: 'string', enum: ['request', 'link', 'open'], description: 'request: you say yes to each guest (default). link: a guest with the link takes a seat with a name. open: only when Teajia shows your tables more widely; a guest takes a seat without asking.' },
+        area: { type: 'string', maxLength: 80, description: 'Optional. The area people are told, such as "Ubud, near the market". Never the address or a link.' },
         name: { type: 'string', description: 'What to call the table. Defaults to the weekday and your first name.' },
         confirm: confirmArg,
       },
