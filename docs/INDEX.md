@@ -10,6 +10,7 @@
 |---|---|
 | [PILLAR.md](PILLAR.md) | What the site is and how it works, in one read; the file every session is pointed at first |
 | [STATE_OF_THE_SITE.md](STATE_OF_THE_SITE.md) | Snapshot verified 2026-08-10 (marked stale 2026-11-25; PILLAR is current) |
+| [agents/TEA-SYSTEM-MAP.md](agents/TEA-SYSTEM-MAP.md) | **The tea system, end to end (2026-11-27):** the ten steps from finding a tea to after the cup, where each is done, its agent tools, its owner doc, and what is missing between them. Has a whiteboard twin |
 | [SECTIONS.md](SECTIONS.md) | **Proposed section overhaul (2026-11-25):** the four words, the Tea Table, Your Table, Tea Houses, the route map, the rule change and the build order. A proposal until Adrian says yes |
 | [CONSOLIDATED_DIRECTION.md](CONSOLIDATED_DIRECTION.md) | The single directional list: every plan filed under its section, with status and next step, and what is still only on Adrian's Mac |
 | [VERIFIED_RELEASES.md](VERIFIED_RELEASES.md) | Worker-first background publishing and exact-revision live proof |

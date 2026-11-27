@@ -25,6 +25,7 @@
  * two indexed counts per person, so no page load pays for it but the list's own.
  */
 import { PHOTO_NOT_HIDDEN, TASTING_NOT_HIDDEN } from './familyPersonTastings';
+import { FAMILY_PHOTO_PUBLIC_SQL } from './familyMedia';
 
 /** How far back activity counts. Older than this and it has faded. */
 export const PEOPLE_LIST_WINDOW_DAYS = 90;
@@ -56,6 +57,8 @@ export const PEOPLE_LIST_POURS_COLUMN =
  * list_days_shared: the days in the window on which they shared a tasting, so
  * sharing five teas in one day counts once and posting more earns nothing extra.
  * list_shop_picks: their photographs the shop put on a tea page in the window.
+ * list_tasting_photo_key: only a photograph the media door would serve
+ * (FAMILY_PHOTO_PUBLIC_SQL), so a card never points at a refused image.
  */
 export const PEOPLE_LIST_COLUMNS =
   `c.founding_member, c.list_pinned_at,
@@ -66,8 +69,7 @@ export const PEOPLE_LIST_COLUMNS =
      WHERE p.author_user_id = c.user_id AND p.shop_use IN ('placed', 'lead')
        AND p.shop_decided_at >= ${WINDOW} AND ${PHOTO_NOT_HIDDEN}) AS list_shop_picks,
    (SELECT p.small_key FROM member_photographs p
-     WHERE p.author_user_id = c.user_id AND p.share_state IN ('page', 'offered')
-       AND p.removed_by_member_at IS NULL AND ${PHOTO_NOT_HIDDEN}
+     WHERE p.author_user_id = c.user_id AND ${FAMILY_PHOTO_PUBLIC_SQL}
      ORDER BY p.created_at DESC, p.id DESC LIMIT 1) AS list_tasting_photo_key,
    ${PEOPLE_LIST_POURS_COLUMN} AS list_pours`;
 

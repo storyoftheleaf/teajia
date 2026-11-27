@@ -439,7 +439,7 @@ export const PART: readonly DraftReferencePage[] = [
     "slug": "gong-ting",
     "kind": "leaf_grade",
     "label": "Gong Ting",
-    "visibility": "draft",
+    "visibility": "public",
     "nativeName": "宫廷",
     "parentId": "shou",
     "sourceIds": [],
@@ -930,6 +930,11 @@ export const PART: readonly DraftReferencePage[] = [
     ],
     "sections": [
       {
+        "key": "why-people-value-it",
+        "label": "Why people value Menghai",
+        "sourceIds": []
+      },
+      {
         "key": "scope",
         "label": "Western Xishuangbanna",
         "sourceIds": [
@@ -945,7 +950,7 @@ export const PART: readonly DraftReferencePage[] = [
       },
       {
         "key": "history",
-        "label": "Factory-era importance",
+        "label": "Why the name is so well known",
         "sourceIds": [
           "teadb-menghai-county"
         ]

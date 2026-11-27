@@ -15,7 +15,7 @@ Two things that belong together:
 1. **The offering.** What it means to build a tea house with Adrian, stage by stage, and what the client has at the end.
 2. **The section.** A place on the site, with its own word, that shows the offering, the houses already built, and the houses a traveller can visit, and that carries a finished house onto Teajia as an account of its own.
 
-Everything about the offering below is a draft made from what the site already says. Adrian's own facts replace it. The parts that need him are gathered under "What only Adrian can supply".
+The offering below is in Adrian's own words from 2026-11-26.
 
 ## Who it is for
 
@@ -23,38 +23,45 @@ Taken from the personas, the vision and the Advise copy already on the site:
 
 - **A founder opening a dedicated tea house.** Knows tea, has often never run a room. Wants to open faster and run better than they could alone.
 - **A hotel, retreat, studio, office or private home** making tea part of its daily welcome. A room inside a larger place. This is what `/for-your-space` speaks to today.
-- **A tea master who already has a room** and wants the tools, the sourcing and the company of the network, without anyone redesigning their house.
+- **A host who already has a room** and wants the tools, the sourcing and the company of the network, without anyone redesigning their house.
 - **A traveller or guest** who is not building anything and only wants to find a table. They use the Visit view.
 
 Someone making a corner at home is not a client of this offering. Craft's "Tea Spaces" and the "Guided Practice Setup" session serve them, and each should link to the other.
 
-## The offering, stage by stage (draft for Adrian to correct)
+## The offering, as Adrian runs it (Adrian, 2026-11-26)
 
-The Advise page describes the service today as "From concept through opening. Design, curation, tea selection, training, and operations," ending in "a coherent place to share tea, with the people and practical systems to keep it working after opening." The stages below spell that sentence out.
+Adrian: "The goal is to meet people where they're at, not to sell them what I want to sell them. It's to offer many things and make sure they're taken care of."
 
-| Stage | What happens | What the client has at the end | What on Teajia serves it |
-|---|---|---|---|
-| 1. The first conversation | The client says where they are: an idea, a planned space, or an existing room. Adrian listens and says honestly whether and how he can help | A clear next step, and useful starting advice even if they go no further | The guided inquiry that exists today (two questions, advice, contact last), landing in Sales, Waiting |
-| 2. The concept | Who the house is for and what welcome they should feel. The site's own advice already says: begin with the people, and the room, menu and training follow | A short written concept: the guests, the feeling, the kind of service, the size | A page of the concept shared privately with the client |
-| 3. The room | Layout from arrival to the tea table, atmosphere, light, where water is boiled, where tea and teaware are stored, how service moves | A plan of the room and a list of what to make or buy | Craft's Tea Spaces for vocabulary. Photographs of earlier houses from Work |
-| 4. Tea and teaware | A tea menu sourced for these guests and this staff, and the teaware to serve it | A first menu with a reason for every tea, and a teaware set for the room | Shop teaware. The network catalogue and wholesale orders (Curate, Network). Sourcing as Advise describes it for a space |
-| 5. The people | Training the team: brewing, service, how to talk about the tea, the daily rhythm | A team that can open the doors and pour with confidence | Craft's Six Foundations as the shared base. Brewing guides when written. Sessions for the training days |
-| 6. The opening | The first sessions, hosted together. The house's account on Teajia is made and its shelf, sessions and page are set up | An open house, a first calendar, and a working system from day one | Sessions and RSVP. The store launch playbook. The opening stock guide |
-| 7. Afterward | The house runs on Teajia's tools. Tea is restocked through the network. Adrian stays in reach for seasons, new staff and questions | A house that keeps working, and a place in the lineage | Manage for the house's own account. Visit, where it is listed. The Tea Table, where its sessions and people appear. Read, where its story can run |
+So the offering is a way of listening, not a fixed package. Every build starts the same way and then becomes whatever the client needs.
 
-A client may want all seven, or only some. A tea master with a room may want only stages 6 and 7. A hotel may want 2 to 5 and never open an account. The page should say so plainly.
+1. **Meet them.** Adrian meets the person and discovers what they want.
+2. **Find the purpose.** What is the house for? Many people coming in, something more social, or something more meditative. The purpose decides everything after it.
+3. **See what they already have.** Do they have assets they want to keep and use (a room, furniture, teaware, tea, staff), or is it a rebuild with an aesthetic Adrian picks and selects?
+4. **Choose what to provide.** From everything Adrian can offer, only what this house needs:
+   - the aesthetic: picking and selecting the look, the furniture and the teaware
+   - the tea: a menu sourced for these guests
+   - training the staff to brew and serve
+   - training the staff to train others, so the house can teach new people itself
+   - anything else the house turns out to need
+5. **Take care of them.** The client is looked after through the opening and afterward. A house can join Teajia's network and run on its tools when it wants to, and never has to.
 
-## What only Adrian can supply
+The order is the order of discovery. A client may need one part or all of them, and the page must make that plain: there is no single package to buy.
 
-Nothing below should be guessed or written for him.
+### How this changes the page
 
-1. **The stages as he really runs them.** Whether the seven above are right, their order, and how long a build tends to take.
-2. **What is included and what is not.** For example whether he draws plans or works beside an architect, and whether teaware and furniture are bought through him.
-3. **Price.** Whether the page shows a price, a starting figure, or says that price follows the first conversation. Recommendation: say it follows the conversation, the way the shop says every order is a conversation.
-4. **Where he will work.** Bali only, the region, or anywhere, and whether travel is charged apart.
-5. **The case studies.** The code holds ten entries in `src/data/adviseProjects.ts`: five spaces (Intaaya Resort, Private Tea Room, The Office, The Living Room, The Art Studio), two events, and three sourcing journeys. For each space: is it a real project, may it be named, and are there photographs he owns. The portfolio has stayed switched off waiting for exactly this.
-6. **How many builds at once.** If the honest answer is one or two a year, the page should say that too. Scarcity told plainly suits Teajia better than a sales funnel.
-7. **What carrying the Teajia name asks of a house.** The vision calls it a lineage and not a franchise. A sentence or two from him on what a house commits to, and what it never has to give up.
+- **Build** opens with the meeting, not a menu of services. Its first line says that every house starts with a conversation about who it is for.
+- The three purposes (many people, social, meditative) appear as plain examples of where a conversation can lead, never as tiers or packages.
+- "Keep what you have, or start fresh" is said plainly, so someone who already has a room and furniture knows they are welcome.
+- Training appears in two forms: training the team, and training the team to train.
+- The inquiry asks where the person is and what they hope for, and leaves the rest to the meeting. Price follows the conversation, as every order does in the shop.
+- Work, the portfolio, shows what Adrian contributed to each house (decided 2026-11-26), which shows the "many things" without turning them into a price list.
+
+### Settled, so not asked again
+
+- The stages: answered above.
+- What is included: whatever the house needs, decided together after the meeting.
+- Price: follows the first conversation. No figure on the page.
+- Which projects to show: through the portfolio, one house at a time, with Adrian's photographs.
 
 ## How it shows on the site
 
@@ -128,7 +135,7 @@ A house that was built with Adrian and a house that only joined are the same kin
 
 No new backend is needed for stages 1 to 3. They are pages, copy, photographs and forwards.
 
-1. **Adrian's facts.** The list under "What only Adrian can supply", gathered in one sitting. The page is written from his answers, in his words.
+1. **Adrian's facts.** Answered on 2026-11-26, see "The offering, as Adrian runs it". The page is written from his words.
 2. **Overview and Build.** `/tea-houses` and `/tea-houses/build`, in the immersive frame Advise uses, with the inquiry wired. `/for-your-space` forwards. Advise's design row points here. Reached from Advise and the home consult plate. No bar change.
 3. **Visit.** `/tea-houses/visit` from the existing network directory. `/spaces` and `/find-a-table` forward. The wording moves from table to house.
 4. **Work.** Opens when three case studies are ready. `/advise?v=projects` forwards.

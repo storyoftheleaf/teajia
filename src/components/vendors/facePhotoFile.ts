@@ -39,3 +39,25 @@ export async function prepareFacePhoto(file: File): Promise<File> {
   const jpeg = await heicTo({ blob: file, type: 'image/jpeg', quality: 0.9 });
   return new File([jpeg], file.name.replace(HEIC_NAME, '') + '.jpg', { type: 'image/jpeg', lastModified: file.lastModified });
 }
+
+let pasteSeq = 0;
+
+/**
+ * The photos on a paste. A copied picture arrives as "image.png" every time,
+ * so each one gets its own name; a copied file keeps its name.
+ */
+export function pastedPhotos(data: DataTransfer | null): File[] {
+  if (!data) return [];
+  const files = Array.from(data.files ?? []).filter(looksLikePhoto);
+  const picked = files.length > 0
+    ? files
+    : Array.from(data.items ?? [])
+      .filter(item => item.kind === 'file')
+      .map(item => item.getAsFile())
+      .filter((file): file is File => !!file && looksLikePhoto(file));
+  return picked.map(file => {
+    if (!/^image\.(png|jpe?g|gif|webp|tiff?)$/i.test(file.name) && file.name) return file;
+    const ext = (file.type.split('/')[1] || 'png').replace('jpeg', 'jpg');
+    return new File([file], `pasted-${Date.now()}-${++pasteSeq}.${ext}`, { type: file.type, lastModified: file.lastModified });
+  });
+}

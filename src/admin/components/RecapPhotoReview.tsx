@@ -7,6 +7,7 @@ import { useBlobObjectUrl } from '../../hooks/useBlobObjectUrl';
 import { ApiError } from '../../lib/api';
 import { recapPhotoPublicQuery, revocableSitPhotoApi, type SitPhotoReviewEntry } from '../../lib/revocableSitPhotoApi';
 import { useAppStore } from '../../lib/store';
+import { teaTableOpen } from '../../lib/teaTable';
 
 type Scope = { accountId: string; userId: string };
 
@@ -53,7 +54,10 @@ function ReviewPanel({ eventId, scope }: { eventId: string; scope: Scope }) {
               <li key={item.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
                 <p className="min-w-0 break-words text-ui-13 text-tea-text-sec">
                   {item.credit}{item.tea && <> · {item.tea.name}</>} · {item.status === 'placed' ? 'In the public recap' : 'Offered'}
-                  {item.canShowInBrewing && ' · Also offered for the Tea Table and the photo essay'}
+                  {/* Named for the Tea Table only once it is open; before, main's words. */}
+                  {item.canShowInBrewing && (teaTableOpen()
+                    ? ' · Also offered for the Tea Table and the photo essay'
+                    : ' · Also offered for Brewing experiences and the photo essay')}
                 </p>
                 <Button type="button" variant="secondary" size="sm" onClick={() => setSelected(item)}>
                   Preview<span className="sr-only"> photo by {item.credit}</span>
