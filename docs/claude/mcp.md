@@ -66,6 +66,26 @@ Connected, a session can do the admin work directly instead of describing it: se
 
 **What a session cannot reach from a cloud sandbox by default:** `api.teajia.com`, `api.cloudflare.com` and `registry.npmjs.org` are all off the allowlist, so no MCP, no `wrangler`, no `npm install`, which means no `npm run lint` and no `npm run test:worker` either. Deploys do not need any of it (CI holds the Cloudflare credentials and runs migrations then deploy on every push to `main` touching `worker/**`); diagnosis does. To give a cloud session Cloudflare directly, add `CLOUDFLARE_API_TOKEN` (Workers Scripts: Edit + D1: Edit) and `CLOUDFLARE_ACCOUNT_ID` to the environment and allow those hosts.
 
+### The page at teajia.com/mcp
+
+`www.teajia.com/mcp` is two things at one address. A person's browser (it asks for HTML) and a link-preview scraper (it names itself) get the page, `src/pages/McpPage.tsx`, with its own title, words and picture (`MCP_PAGE_META` and `isMcpPageRequest` in `functions/_middleware.ts`; the picture is `public/share/mcp.png`, drawn by `npm run share:mcp`). Anything else, a POST, an event stream, a request with a token, a bare `curl`, still goes to the worker. `/mcp` is in `public/_routes.json` for that; before 2026-11-27 it was not, so a pasted link previewed as the homepage.
+
+The address the page gives to clients is `https://api.teajia.com/mcp` (and `/mcp/public`), never the site's own origin: OAuth discovery lives on the API host. The page lists every tool from `src/pages/mcpToolCatalog.ts`, grouped by the ten steps of [the tea system map](../agents/TEA-SYSTEM-MAP.md). `worker/tests/mcp-page-catalog.test.ts` fails when the list names a tool the worker lacks or leaves one out, so a new tool needs a line there in the group a person would look in.
+
+### What an agent still cannot do (2026-11-27)
+
+Checked against the tea system map and the "How people use Teajia" board. Close a line by naming the PR that closed it.
+
+1. Site problems: nothing reads `/account/fixes` (`incident_ledger`) or marks one fixed.
+2. Requests from people: "find me a tea" inquiries, wholesale orders and tea house build requests cannot be listed or answered.
+3. Low stock to reorder: `list_low_stock` does not name the supplier or the last quote.
+4. Undo outside Curate: no history or undo for stock, prices or invoices, and no read of what agents changed.
+5. Tea Wisdom: no read of what a tea still needs from the Wisdom Base, and the public connector cannot answer from it.
+6. A person's own things (journal, Tea Chest, orders, favourites) have no agent of their own; only hosts get keys.
+7. Smaller: venues, contributors and teaware have no tools; the i64os sale tools sit beside Teajia's unchecked.
+
+The unfulfilled invoice and the private collection link are PR 593.
+
 **Implementation:** [worker/src/mcp.ts](../../worker/src/mcp.ts) (JSON-RPC handlers, tool defs, OAuth, public server), [src/admin/views/MCPTokensView.tsx](../../src/admin/views/MCPTokensView.tsx) (token management), [src/admin/views/OAuthConsentView.tsx](../../src/admin/views/OAuthConsentView.tsx) (OAuth consent).
 
 **Schema:** `mcp_tokens` in [0000_initial_schema.sql](../../worker/migrations/0000_initial_schema.sql) (tokens as SHA-256 hash; `last_used_at` bumped on auth), `mcp_confirmation_tickets` (same file) (durable confirm tickets), `oauth_clients`, `oauth_codes` and `oauth_authorize_requests` (same file) (OAuth + scoped grants + mobile-safe consent passing).
