@@ -16,7 +16,7 @@ import { useStepParam } from '../../hooks/useStepParam';
 import { useAdminBack } from '../hooks/useAdminBack';
 import { BottomSheet } from '../../components/shared/BottomSheet';
 import { Button } from '../../components/shared/Button';
-import { addKey, gramsOf, kindsOf, localDay, matchesTea, namedKindsFrom, sitForDay, type NamedKind, type PourSit, type PourTea } from './pourPage';
+import { addKey, byPrice, gramsOf, kindCounts, localDay, pricePerGram, matchesTea, namedKindsFrom, sitForDay, type NamedKind, type PourSit, type PourTea } from './pourPage';
 
 type Place = { id: string; name: string; space: boolean; sat: boolean };
 
@@ -31,7 +31,7 @@ export default function PourView() {
   const [day, setDay] = useStepParam('day', today);
   const [kind, setKind] = useStepParam('kind');
   const [query, setQuery] = useStepParam('q');
-  const [order, setOrder] = useStepParam('order', 'newest');
+  const [order, setOrder] = useStepParam('order', 'price');
   const [teaId, setTeaId] = useStepParam('tea');
   const [sheet, setSheet] = useStepParam('sit');
   const back = useAdminBack('/admin/pour');
@@ -77,10 +77,14 @@ export default function PourView() {
     try { await work(); } catch (reason) { setFailed(reason instanceof Error ? reason.message : 'That did not save. Try again.'); } finally { setBusy(false); }
   };
 
-  const kinds = useMemo(() => kindsOf(teas ?? [], named), [teas, named]);
+  const pouredTotal = Math.round((sit?.teas ?? []).reduce((sum, one) => sum + (one.grams ?? 0), 0) * 10) / 10;
+  const kinds = useMemo(() => kindCounts(teas ?? [], named), [teas, named]);
+  // The kinds are the first screen; a kind, or words in the search, opens the teas.
+  const inside = Boolean(kind) || Boolean(query.trim());
   const shown = useMemo(() => {
     const list = (teas ?? []).filter(tea => matchesTea(tea, kind, query, named));
-    return order === 'name' ? [...list].sort((a, b) => a.name.localeCompare(b.name)) : list;
+    if (order === 'name') return [...list].sort((a, b) => a.name.localeCompare(b.name));
+    return order === 'newest' ? list : byPrice(list);
   }, [teas, kind, query, order, named]);
   const tea = teaId === 'name' ? null : (teas ?? []).find(one => one.id === teaId) ?? null;
   const typedName = query.trim();
@@ -139,7 +143,11 @@ export default function PourView() {
             </Button>
           </div>
           {sit && sit.teas.length > 0 && (
-            <ol className="mt-3 flex flex-col divide-y divide-tea-border">
+            <details className="mt-2">
+              <summary className={`${TYPOGRAPHY_CLASSES.bodyLight} tap-target cursor-pointer text-tea-text-sec`}>
+                {sit.teas.length} {sit.teas.length === 1 ? 'tea' : 'teas'} poured{pouredTotal > 0 ? `, ${pouredTotal} g` : ''}
+              </summary>
+            <ol className="mt-1 flex flex-col divide-y divide-tea-border">
               {sit.teas.map((poured, index) => (
                 <li key={poured.id} className="flex flex-wrap items-center gap-2 py-2">
                   <span className={`${TYPOGRAPHY_CLASSES.bodyLight} w-5 shrink-0 text-tea-text-sec`}>{index + 1}</span>
@@ -152,6 +160,7 @@ export default function PourView() {
                 </li>
               ))}
             </ol>
+            </details>
           )}
         </section>
 
@@ -160,41 +169,56 @@ export default function PourView() {
         <div className="flex flex-col gap-2">
           <input type="search" value={query} placeholder="Find a tea" aria-label="Find a tea"
             className="btn-field w-full" onChange={event => setQuery(event.target.value, { refine: true })} />
-          <div className="flex flex-wrap gap-1" role="group" aria-label="Kind of tea">
-            <Button type="button" variant="chip" className="tap-target" aria-pressed={!kind} onClick={() => setKind(null, { refine: true })}>All</Button>
-            {kinds.map(one => (
-              <Button key={one} type="button" variant="chip" className="tap-target" aria-pressed={kind === one}
-                onClick={() => setKind(kind === one ? null : one, { refine: true })}>{one}</Button>
-            ))}
-          </div>
-          <div className="flex flex-wrap gap-1" role="group" aria-label="Order">
-            <Button type="button" variant="chip" className="tap-target" aria-pressed={order !== 'name'} onClick={() => setOrder('newest', { refine: true })}>Newest first</Button>
-            <Button type="button" variant="chip" className="tap-target" aria-pressed={order === 'name'} onClick={() => setOrder('name', { refine: true })}>A to Z</Button>
-          </div>
         </div>
 
         {teas === null && !failed && <p role="status" className={TYPOGRAPHY_CLASSES.bodyLight}>Reading the shelf…</p>}
-        <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-6">
-          {shown.map(one => (
-            <li key={one.id} className="min-w-0">
-              <Button type="button" variant="plain" onClick={() => setTeaId(one.id)}
-                className="flex h-full w-full flex-col overflow-hidden rounded-md border border-tea-border bg-tea-surface text-left transition-colors hover:border-tea-gold focus-visible:border-tea-gold active:bg-tea-elevated">
-                {one.image_url && (
-                  <img src={mediaUrl(one.image_url)} alt="" loading="lazy" className="aspect-square w-full object-cover" />
-                )}
-                <span className="flex flex-1 flex-col gap-0.5 p-2">
-                  <span className={`${TYPOGRAPHY_CLASSES.h3} line-clamp-3 break-words`}>{one.name}</span>
-                  {one.product_name && one.product_name !== one.name && (
-                    <span className="line-clamp-2 break-words text-ui-11 text-tea-text-sec">{one.product_name}</span>
-                  )}
-                  <span className="text-ui-11 text-tea-text-sec">
-                    {[one.year, one.sample ? 'sample' : null, `${one.stock_grams ?? 0} g`].filter(Boolean).join(' · ')}
-                  </span>
-                </span>
-              </Button>
-            </li>
-          ))}
-        </ul>
+        {!inside && (
+          <ul className="-mx-3 grid grid-cols-2 gap-px border-y border-tea-border bg-tea-border sm:mx-0 sm:grid-cols-3 sm:border-x" aria-label="Kind of tea">
+            {kinds.map(one => (
+              <li key={one.kind} className="min-w-0 bg-tea-bg">
+                <Button type="button" variant="plain" onClick={() => setKind(one.kind)}
+                  className="flex h-24 w-full flex-col justify-between p-3 text-left transition-colors active:bg-tea-elevated">
+                  <span className={`${TYPOGRAPHY_CLASSES.h2} break-words`}>{one.kind}</span>
+                  <span className="text-ui-12 text-tea-text-sec">{one.count} {one.count === 1 ? 'tea' : 'teas'}</span>
+                </Button>
+              </li>
+            ))}
+          </ul>
+        )}
+        {inside && (
+          <>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
+                <Button type="button" variant="quiet" size="sm" className="tap-target" onClick={() => (kind ? back() : setQuery('', { refine: true }))}>All kinds</Button>
+                {kind && <h2 className={TYPOGRAPHY_CLASSES.h2}>{kind}</h2>}
+              </div>
+              <div className="flex flex-wrap gap-1" role="group" aria-label="Order">
+                <Button type="button" variant="chip" className="tap-target" aria-pressed={order !== 'name' && order !== 'newest'} onClick={() => setOrder('price', { refine: true })}>Price, low to high</Button>
+                <Button type="button" variant="chip" className="tap-target" aria-pressed={order === 'newest'} onClick={() => setOrder('newest', { refine: true })}>Newest</Button>
+                <Button type="button" variant="chip" className="tap-target" aria-pressed={order === 'name'} onClick={() => setOrder('name', { refine: true })}>A to Z</Button>
+              </div>
+            </div>
+            <ul className="-mx-3 flex flex-col divide-y divide-tea-border border-y border-tea-border sm:mx-0">
+              {shown.map(one => (
+                <li key={one.id}>
+                  <Button type="button" variant="plain" onClick={() => setTeaId(one.id)}
+                    className="flex min-h-16 w-full items-center gap-3 px-3 py-2 text-left transition-colors active:bg-tea-elevated">
+                    {one.image_url && (
+                      <img src={mediaUrl(one.image_url)} alt="" loading="lazy" className="h-12 w-12 shrink-0 rounded-md object-cover" />
+                    )}
+                    <span className="flex min-w-0 flex-1 flex-col">
+                      <span className={`${TYPOGRAPHY_CLASSES.h3} line-clamp-2 break-words`}>{one.name}</span>
+                      <span className="text-ui-11 text-tea-text-sec">
+                        {[one.year, one.sample ? 'sample' : null, `${one.stock_grams ?? 0} g`].filter(Boolean).join(' · ')}
+                      </span>
+                    </span>
+                    <span className={`${TYPOGRAPHY_CLASSES.mono} shrink-0 text-tea-text`}>{pricePerGram(one)}</span>
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
         {teas !== null && typedName && (
           <div>
             <Button type="button" variant="secondary" className="tap-target" onClick={() => setTeaId('name')}>

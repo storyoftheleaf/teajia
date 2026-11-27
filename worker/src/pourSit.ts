@@ -18,6 +18,7 @@
 // refused for want of stock, because the tea is already in the pot: it takes
 // what the shelf holds and the row keeps both numbers.
 
+import { accountFreightDefaults, addPricingFields } from './productPricing';
 import { issueAfterSitLink } from './afterSitAccess';
 import { tableSlug } from './hostTable';
 import { servedTeasOf } from './publicSessions';
@@ -219,16 +220,31 @@ export function pourSitRoutes<E extends PourEnv>(deps: Deps<E>): [string, string
   const teas: Handler<E> = async (request, env) => {
     const host = await deps.requireHost(request, env);
     if ('error' in host) return host.error;
-    const { results } = await env.DB.prepare(
-      `SELECT id, COALESCE(NULLIF(trim(given_name), ''), product_name) AS name, product_name, chinese_name, type, classification,
-              year, COALESCE(NULLIF(trim(image_url), ''), NULLIF(trim(bag_photo_url), '')) AS image_url, stock_grams, status, created_at,
-              CASE WHEN is_sample = 1 OR inventory_purpose = 'sample' THEN 1 ELSE 0 END AS sample
-       FROM products
-       WHERE account_id = ? AND type NOT IN ('Teaware', 'Misc') AND COALESCE(status, 'Active') <> 'Archived'
-         AND personal_offer_source_id IS NULL
-       ORDER BY created_at DESC, id DESC LIMIT 800`,
-    ).bind(host.accountId).all();
-    return reply({ teas: results });
+    const [{ results }, rateRows] = await Promise.all([
+      env.DB.prepare(
+        `SELECT * FROM products
+         WHERE account_id = ? AND type NOT IN ('Teaware', 'Misc') AND COALESCE(status, 'Active') <> 'Archived'
+           AND personal_offer_source_id IS NULL
+         ORDER BY created_at DESC, id DESC LIMIT 800`,
+      ).bind(host.accountId).all<Record<string, unknown>>(),
+      env.DB.prepare('SELECT currency, rate_to_usd FROM exchange_rates').all<{ currency: string; rate_to_usd: number }>(),
+    ]);
+    // The shelf price of a gram, read now from cost and freight (worker/src/productPricing.ts); null prints a dash.
+    const rates = new Map(rateRows.results.map(row => [row.currency, row.rate_to_usd]));
+    const freight = await accountFreightDefaults(env, host.accountId, rates);
+    const text = (value: unknown) => (typeof value === 'string' && value.trim() ? value.trim() : null);
+    return reply({
+      teas: results.map(row => {
+        const price = addPricingFields(row, rates, freight).retail_price_per_gram_usd;
+        return {
+          id: row.id, name: text(row.given_name) ?? row.product_name, product_name: row.product_name, chinese_name: row.chinese_name,
+          type: row.type, classification: row.classification, year: row.year,
+          image_url: text(row.image_url) ?? text(row.bag_photo_url), stock_grams: row.stock_grams, status: row.status,
+          created_at: row.created_at, sample: Number(row.is_sample) === 1 || row.inventory_purpose === 'sample' ? 1 : 0,
+          price_per_gram: typeof price === 'number' && Number.isFinite(price) && price > 0 ? price : null,
+        };
+      }),
+    });
   };
 
   // GET /api/admin/pour/sits?date=YYYY-MM-DD: the sits a pour could belong to.

@@ -5,6 +5,8 @@ export type PourTea = {
   id: string; name: string; product_name: string | null; chinese_name: string | null; type: string | null; classification: string | null;
   year: number | null; image_url: string | null; stock_grams: number | null; status: string | null;
   created_at: string | null; sample: number;
+  /** What a gram sells for on the shelf, in US dollars; null where it is not known. */
+  price_per_gram?: number | null;
 };
 export type PouredTea = {
   id: string; product_id: string | null; name: string; grams: number | null; short: boolean;
@@ -98,6 +100,22 @@ export function matchesTea(tea: PourTea, kind: string, query: string, named: rea
   if (words.length === 0) return true;
   const text = fold([tea.name, tea.product_name, tea.chinese_name, tea.type, tea.classification, tea.year].filter(Boolean).join(' '));
   return words.every(word => text.includes(word));
+}
+
+/** How many teas each kind holds, in the order of kindsOf. */
+export function kindCounts(teas: PourTea[], named: readonly NamedKind[] = []): { kind: string; count: number }[] {
+  return kindsOf(teas, named).map(kind => ({ kind, count: teas.filter(tea => matchesTea(tea, kind, '', named)).length }));
+}
+
+/** Lowest price of a gram first; a tea with no price goes last, then by name. */
+export function byPrice(teas: PourTea[]): PourTea[] {
+  const price = (tea: PourTea) => (typeof tea.price_per_gram === 'number' ? tea.price_per_gram : Infinity);
+  return [...teas].sort((a, b) => price(a) - price(b) || a.name.localeCompare(b.name));
+}
+
+/** The price of a gram as the page prints it: a dash where it is not known. */
+export function pricePerGram(tea: PourTea): string {
+  return typeof tea.price_per_gram === 'number' ? '$' + tea.price_per_gram.toFixed(2) + '/g' : '–';
 }
 
 /** The sit a pour on this day joins: the one made here for that day, else a session of that day. */

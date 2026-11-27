@@ -76,6 +76,17 @@ describe('the pour page', () => {
     expect(body.teas.map((tea: { id: string }) => tea.id).sort()).toEqual(['draft', 'liubao', 'scrap']);
   });
 
+  it('says what a gram of each tea sells for, and nothing where the cost is unknown', async () => {
+    db.exec(`INSERT OR REPLACE INTO exchange_rates (currency, rate_to_usd) VALUES ('USD', 1), ('Yuan', 7.1);
+      UPDATE products SET cost_amount = 50, quantity_purchased = 100 WHERE id = 'liubao';
+      INSERT INTO products (id, account_id, type, product_name, stock_grams, status, cost_amount, cost_currency)
+        VALUES ('unpriced', 'shop-a', 'Oolong', 'No cost yet', 10, 'Active', NULL, NULL)`);
+    const { body } = await call('GET', '/api/admin/pour/teas', { host: 'shop-a' });
+    const price = (id: string) => body.teas.find((tea: { id: string }) => tea.id === id).price_per_gram;
+    expect(price('liubao')).toBeGreaterThanOrEqual(1.5); // 50 for 100 g, times three, plus freight
+    expect(price('unpriced')).toBeNull();
+  });
+
   it('makes the day\'s sit on the first pour and takes the grams out of stock', async () => {
     const first = await pour({ product_id: 'liubao', grams: 7.5 });
     expect(first.status).toBe(201);

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addKey, gramsOf, kindsOf, matchesTea, namedKindsFrom, sitForDay, type PourSit, type PourTea } from './pourPage';
+import { addKey, byPrice, gramsOf, kindCounts, kindsOf, pricePerGram, matchesTea, namedKindsFrom, sitForDay, type PourSit, type PourTea } from './pourPage';
 
 const tea = (over: Partial<PourTea>): PourTea => ({
   id: 'x', name: 'A tea', product_name: null, chinese_name: null, type: 'Dark', classification: null, year: null,
@@ -67,5 +67,24 @@ describe('the sit a pour joins', () => {
     expect(sitForDay(sits, '2026-11-27')?.id).toBe('casual');
     expect(sitForDay(sits.slice(0, 1), '2026-11-27')?.id).toBe('proper');
     expect(sitForDay(sits, '2026-11-26')).toBeNull();
+  });
+});
+
+describe('inside a kind', () => {
+  const shelf = [
+    tea({ id: 'a', name: 'Dear', type: 'Dark', price_per_gram: 2 }),
+    tea({ id: 'b', name: 'No price', type: 'Dark', price_per_gram: null }),
+    tea({ id: 'c', name: 'Cheap', type: 'Dark', price_per_gram: 0.4 }),
+    tea({ id: 'd', name: 'A white', type: 'White', price_per_gram: 1 }),
+  ];
+  it('counts the teas of each kind', () => {
+    expect(kindCounts(shelf)).toEqual([{ kind: 'Dark', count: 3 }, { kind: 'White', count: 1 }]);
+  });
+  it('puts the lowest price of a gram first and a tea with no price last', () => {
+    expect(byPrice(shelf).map(one => one.id)).toEqual(['c', 'd', 'a', 'b']);
+  });
+  it('prints a dash where the price is not known, never a zero', () => {
+    expect(pricePerGram(shelf[2])).toBe('$0.40/g');
+    expect(pricePerGram(shelf[1])).toBe('–');
   });
 });
