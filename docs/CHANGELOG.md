@@ -1,6 +1,20 @@
 ## 2026-11-27: Home's four doors (behind HOME_BAR_OPEN)
 
 Built on `build/home-four-doors`, approved by Adrian on 2026-11-27 ("4 yes"). With the new bar on, the four lines under Home's opener become four doors, each with a few plain words: Discover (stories, craft and tea wisdom), Deepen (sit at a table, taste, share what you found), Create (a tea house, or a table of your own) and Source (fine tea and teaware, found by hand). Each goes where its bar word goes (`tableDoor()` and `housesDoor()` in `src/components/navSections.ts`), so Create inherits open question 4.20: with `TEA_HOUSES_OPEN` off, `/tea-houses/visit` is not registered. "Come to a table" and "Host a table" follow, as before. Off, Home is exactly as it was. `HomeFourDoors` in `src/pages/home/HomeLaunchFour.tsx`; checks in its unit test and `tests/home-and-bar.spec.ts`.
+## 2026-11-27: Freight rates live in Logistics
+
+Every freight rate is typed in Logistics services on the Purchases page and nowhere else. No tea's price moves.
+
+- **Shop default** moved there from Store Settings (same account columns; `update_account_settings` still writes it).
+- **+ Logistics company** asks for two things, the name and the rate; air, per kg, the shop currency and the service name default behind More details. A new name becomes a contact on save.
+- **+ My suitcase** makes a free-by-the-kilo air service under a "My luggage" contact, picked on the tea page like any service.
+- **No per-tea typing**: the Add tea form, the phone Freight sheet and `create_tea` / `update_tea_pricing` set no rate. A tea that kept its own shows it read-only with Clear and the price it would move to.
+- **Shipping routes** keep addresses, packing and rounding; their rate is no longer read or written. The buying basket prices from the dearest active service of each mode, else the shop default for air.
+- **Imports** stamp no rate on a batch.
+- **One shipping line on the tea.** The Price part shows a single link: when it arrives, what shipping adds to a gram, and by what, opening the shipment (or the service). The detail lives in Logistics, and a tea is put on a service by hand with "+ Add tea" on that service's card.
+- **Journey track.** Each logistics service is a card with four stages, ordered, at the forwarder, on the way, arrived, each counting its orders or shipments and opening them as links; its teas sit below as tags. The tea page and shipment cards use the same tags. Separated by close tones, no lines.
+- **Everything is connected, every connection a link.** A service row lists its company's waiting orders, its shipments and the teas it prices (`?serviceId=` opens it). The tea page lists the shipments it is on and links its service. A shipment card links its service and each tea; an order links its company's service and its shipments. Once a shipment's bill is confirmed, every tea on it with no service yet travels by that service (`adoptShipmentService` in `worker/src/logistics.ts`), so its freight comes from that bill; a service picked by hand is kept.
+- **Product REST doors** refuse a typed rate (clearing allowed; an edit may only carry an existing rate across a cost-currency change).
 
 ## 2026-11-26: Launch 5 ready to ship (behind its flags)
 

@@ -1,5 +1,7 @@
 import React, { useId, useState } from 'react';
 import { ArrowUpRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { serviceHref, teaHref } from './logisticsLinks';
 import { TeaCard, TeaCardControlRow, TeaCardMeta, TeaCardMetric, TeaCardTitle } from '../../../components/tea/TeaCard';
 import { TeaPanelSummary } from '../../../components/tea/TeaPanelSummary';
 import { Button } from '../../../components/shared/Button';
@@ -316,7 +318,9 @@ export function LogisticsShipmentCard({ shipment, orders, addresses = [], busy, 
     className="logistics-shipment logistics-shipment-compact"
     aria-label={`${shipment.logistics_company_name} shipment`}>
     <div className="logistics-shipment-heading">
-      <div className="logistics-actions"><h2 className={T.h3}>{name}</h2>{shipment.service_quote?.name && <span className="text-tea-text-sec">{shipment.service_quote.name}</span>}<span className="logistics-state" data-state={state}>{status[state]}</span></div>
+      <div className="logistics-actions"><h2 className={T.h3}>{name}</h2>{shipment.service_id
+        ? <Link data-testid="shipment-service-link" className="journey-chip tap-target text-ui-13" to={serviceHref(shipment.service_id)}>{shipment.service_quote?.name || 'Its service'}{shipment.service_quote ? `, ${n(shipment.service_quote.rate)} ${shipment.service_quote.currency}${shipment.service_quote.basis === 'fixed' ? ' fixed' : shipment.service_quote.basis === 'm3' ? '/m³' : '/kg'}` : ''}</Link>
+        : <span className="text-tea-text-sec">No service named</span>}<span className="logistics-state" data-state={state}>{status[state]}</span></div>
       {!grouped && <span className="text-tea-text-sec">{shipment.logistics_company_name}</span>}
     </div>
     <div className="px-2 pb-2">
@@ -326,7 +330,7 @@ export function LogisticsShipmentCard({ shipment, orders, addresses = [], busy, 
           const expected = order?.lines.find(item => item.id === line.receipt_line_id)?.expected_quantity;
           const referral = displayed.studio_referrals?.find(item => item.line_id === line.id && !item.resolved_at);
           return <TeaCard key={line.id}
-            title={<TeaCardTitle>{line.product_name}</TeaCardTitle>}
+            title={<TeaCardTitle><Link className="underline-offset-2 hover:underline" to={teaHref(line.product_id)}>{line.product_name}</Link></TeaCardTitle>}
             trailing={<button type="button" className="tap-target purchase-place-link" aria-label={`Open purchase for ${line.product_name}`}
               title="Open purchase" onClick={() => openPurchase(line.purchase_id)}><ArrowUpRight size={14} aria-hidden="true"/></button>}
             meta={<TeaCardMeta primary={order?.vendor_name || 'Supplier'} trailing={referral ? 'With Adrian for review' : undefined}/>}

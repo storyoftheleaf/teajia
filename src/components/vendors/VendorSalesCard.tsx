@@ -22,6 +22,10 @@ export interface VendorOwnOrder {
   shipping_cost_usd?: number | null;
 }
 
+const linkClass = 'underline decoration-tea-border underline-offset-2 hover:text-tea-text';
+/** An invoice opens in Activity's orders list, the one place that already reaches a single order. */
+export const invoiceHref = (reference: string) => `/admin/activity?tab=orders&search=${encodeURIComponent(reference)}`;
+
 const usd = (n: number) => `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const day = (iso?: string | null) => iso
   ? new Date(iso.includes('T') ? iso : `${iso.replace(' ', 'T')}Z`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
@@ -76,12 +80,17 @@ export const VendorSalesCard: React.FC<{
             {list.map(sale => (
               <li key={sale.line_id} className="py-3 flex flex-wrap items-start gap-x-3 gap-y-0.5">
                 <div className="min-w-0 flex-1 basis-48">
-                  <p className="text-ui-14 text-tea-text break-words">{sale.product_name || 'A tea'}</p>
+                  <p className="text-ui-14 text-tea-text break-words">
+                    {sale.product_id
+                      ? <Link to={`/admin/stock?panel=${encodeURIComponent(sale.product_id)}`} state={{ panelOpenedHere: true }} className={linkClass}>{sale.product_name || 'A tea'}</Link>
+                      : (sale.product_name || 'A tea')}
+                  </p>
                   <p className="text-ui-12 text-tea-text-sec break-words">
                     {sale.customer_id
-                      ? <Link to={`/admin/people/${sale.customer_id}`} className="underline decoration-tea-border underline-offset-2 hover:text-tea-text">{sale.customer_name || 'Customer'}</Link>
+                      ? <Link to={`/admin/people/${sale.customer_id}`} className={linkClass}>{sale.customer_name || 'Customer'}</Link>
                       : (sale.customer_name || 'Walk-in')}
                     {sale.created_at ? ` · ${day(sale.created_at)}` : ''}
+                    {(sale.invoice_number || sale.invoice_id) && <>{' · '}<Link to={invoiceHref(sale.invoice_number || sale.invoice_id)} className={linkClass}>{sale.invoice_number ? `#${sale.invoice_number}` : 'Invoice'}</Link></>}
                   </p>
                 </div>
                 <div className="text-right font-mono text-ui-13 tabular-nums text-tea-text-sec">
@@ -106,7 +115,9 @@ export const VendorSalesCard: React.FC<{
                 return (
                   <li key={order.id} className="py-3 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
                     <div className="min-w-0">
-                      <p className="text-ui-14 text-tea-text">Invoice {order.invoice_number ? `#${order.invoice_number}` : ''}</p>
+                      <p className="text-ui-14 text-tea-text">
+                        <Link to={invoiceHref(order.invoice_number || order.id)} className={linkClass}>Invoice {order.invoice_number ? `#${order.invoice_number}` : ''}</Link>
+                      </p>
                       <p className="text-ui-12 text-tea-text-sec">{[day(order.created_at), order.status].filter(Boolean).join(' · ')}</p>
                     </div>
                     <span className="font-mono text-ui-13 tabular-nums text-tea-text">{usd(total)}</span>
