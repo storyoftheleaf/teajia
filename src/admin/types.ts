@@ -352,6 +352,8 @@ export interface Customer {
   /** A photo of the vendor's face (migration 0082), shown first wherever a
    *  vendor is picked, so a vendor remembered by face can be found by face. */
   face_photo?: string;
+  /** The whole photo the face was cut from, for reframing (migration 0153). */
+  face_photo_original?: string;
   latitude?: number;
   longitude?: number;
   createdAt: string;

@@ -169,7 +169,10 @@ async function toolSetSupplierPhoto(rawEnv: ToolEnv, auth: ToolAuth, args: any):
     // The address the app's own upload route returns, so every view that
     // already rewrites media addresses shows this one the same way.
     const url = `https://media.teajia.co/${key}?v=${Date.now()}`;
-    const after = { ...before, [column]: url, updated_at: new Date().toISOString() };
+    const after: Record<string, any> = { ...before, [column]: url, updated_at: new Date().toISOString() };
+    // A new face replaces the whole photo the old one was cut from
+    // (migration 0153), so reframing opens on this picture, not the old one.
+    if (t.slot === 'face' && 'face_photo_original' in before) after.face_photo_original = null;
     const write = prepareCurateRecordedWrite(env.DB, auth, {
       commandType: 'vendor:update', agent: t.agent,
       changes: [{ entityType: 'vendor', entityId: t.vendorId, before, after }],

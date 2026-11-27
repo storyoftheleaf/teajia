@@ -38,7 +38,7 @@ export const VendorFacePhotoButton: React.FC<{
     setSaving(true);
     setError('');
     try {
-      const url = await saveVendorFace(vendorId, framed, expectedAuth, { framed: true });
+      const { face: url } = await saveVendorFace(vendorId, framed, expectedAuth, { framed: true, original: file });
       refresh(vendorId);
       onSaved?.(url);
     } catch {
@@ -91,24 +91,29 @@ export const VendorFaceAdjustButton: React.FC<{
   vendorId: string;
   vendorName: string;
   photo: string;
+  /** The whole photo the face was cut from; the editor opens on it when kept. */
+  original?: string;
   onSaved?: (url: string) => void;
   /** `badge` is the small round button on a face tile; `inline` a quiet word. */
   look?: 'badge' | 'inline';
   expectedAuth?: ApiRequestInit['expectedAuth'];
   className?: string;
-}> = ({ vendorId, vendorName, photo, onSaved, look = 'badge', expectedAuth, className = '' }) => {
+}> = ({ vendorId, vendorName, photo, original, onSaved, look = 'badge', expectedAuth, className = '' }) => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const refresh = useRefreshVendorFaces();
   const { editPhoto, photoEditor } = usePhotoEditor({ outputSize: 800, title: `${vendorName}'s face`, confirmLabel: 'Save face' });
 
   const adjust = async () => {
-    const framed = await editPhoto(mediaUrl(photo));
+    // Open on the whole photo when it was kept, so zooming out always has
+    // somewhere to go; the whole photo stays kept for next time.
+    const whole = original ?? photo;
+    const framed = await editPhoto(mediaUrl(whole));
     if (!framed) return;
     setSaving(true);
     setError('');
     try {
-      const url = await saveVendorFace(vendorId, framed, expectedAuth, { framed: true });
+      const { face: url } = await saveVendorFace(vendorId, framed, expectedAuth, { framed: true, original: whole });
       refresh(vendorId);
       onSaved?.(url);
     } catch {

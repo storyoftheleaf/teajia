@@ -199,6 +199,7 @@ export const useCustomers = (options?: { enabled?: boolean }) => {
         source: c.source || undefined,
         // Vendor photos: the faces in the vendor gallery and pickers.
         face_photo: c.face_photo || undefined,
+        face_photo_original: c.face_photo_original || undefined,
         storefront_photo: c.storefront_photo || undefined,
         business_card_photo: c.business_card_photo || undefined,
         type: c.type || 'customer',

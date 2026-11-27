@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ImagePlus, Loader2, X } from 'lucide-react';
+import { ImagePlus, Loader2, Trash2, X } from 'lucide-react';
 import { Button } from '../shared/Button';
 import { VendorFace } from './VendorFace';
 import { VendorFaceAdjustButton, VendorFacePhotoButton } from './VendorFacePhotoButton';
 import {
   orderFaceVendors,
+  removeVendorFace,
   restoreVendorFace,
   saveVendorFace,
   suggestVendorForFile,
@@ -33,7 +34,8 @@ import { looksLikePhoto, pastedPhotos, prepareFacePhoto } from './facePhotoFile'
  * search box and "need info" filter work here too.
  */
 
-interface Placed { vendorId: string; vendorName: string; previous: string | null; face: LooseFace }
+/** The last change, for Undo: a face placed from the tray, or a face taken off. */
+interface Placed { vendorId: string; vendorName: string; previous: string | null; previousOriginal: string | null; face?: LooseFace }
 
 let faceKeySeq = 0;
 const FACE_DRAG_TYPE = 'application/x-teajia-face';
@@ -111,8 +113,8 @@ export const VendorFaceGallery: React.FC<{ vendors: FaceVendor[] }> = ({ vendors
     try {
       await saveVendorFace(vendor.id, face.file);
       // The tray keeps the preview alive until the undo window has passed.
-      if (last) URL.revokeObjectURL(last.face.preview);
-      setLast({ vendorId: vendor.id, vendorName: vendor.name, previous: vendor.hasFace ? vendor.photo ?? null : null, face });
+      if (last?.face) URL.revokeObjectURL(last.face.preview);
+      setLast({ vendorId: vendor.id, vendorName: vendor.name, previous: vendor.hasFace ? vendor.photo ?? null : null, previousOriginal: vendor.original ?? null, face });
       setLoose(prev => prev.filter(f => f.key !== faceKey));
       setHeld(null);
       refresh(vendor.id);
@@ -128,12 +130,31 @@ export const VendorFaceGallery: React.FC<{ vendors: FaceVendor[] }> = ({ vendors
     setSavingOn(last.vendorId);
     setError('');
     try {
-      await restoreVendorFace(last.vendorId, last.previous);
-      setLoose(prev => [last.face, ...prev]);
+      await restoreVendorFace(last.vendorId, last.previous, undefined, last.previousOriginal);
+      const back = last.face;
+      if (back) setLoose(prev => [back, ...prev]);
       setLast(null);
       refresh(last.vendorId);
     } catch {
-      setError(`The undo didn't save. ${last.vendorName} still has the new face.`);
+      setError(last.face ? `The undo didn't save. ${last.vendorName} still has the new face.` : `The undo didn't save. ${last.vendorName}'s face is still off.`);
+    } finally {
+      setSavingOn(null);
+    }
+  };
+
+  // Take a face off (Adrian, 2026-11-27: "how do we remove a image if we
+  // don't like it?"). Undo puts it back, original included.
+  const removeFace = async (vendor: FaceVendor) => {
+    if (!vendor.id || !vendor.hasFace || savingOn) return;
+    setSavingOn(vendor.id);
+    setError('');
+    try {
+      await removeVendorFace(vendor.id);
+      if (last?.face) URL.revokeObjectURL(last.face.preview);
+      setLast({ vendorId: vendor.id, vendorName: vendor.name, previous: vendor.photo ?? null, previousOriginal: vendor.original ?? null });
+      refresh(vendor.id);
+    } catch {
+      setError(`${vendor.name}'s face didn't come off. Check the connection and try again.`);
     } finally {
       setSavingOn(null);
     }
@@ -203,8 +224,20 @@ export const VendorFaceGallery: React.FC<{ vendors: FaceVendor[] }> = ({ vendors
       )}
       {v.id && !heldFace && (
         <span className="absolute top-3 right-3 flex gap-1.5">
-          {v.photo && <VendorFaceAdjustButton vendorId={v.id} vendorName={v.name} photo={v.photo} look="badge" />}
+          {v.photo && <VendorFaceAdjustButton vendorId={v.id} vendorName={v.name} photo={v.photo} original={v.original} look="badge" />}
           <VendorFacePhotoButton vendorId={v.id} vendorName={v.name} hasFace={v.hasFace} look="badge" />
+          {v.hasFace && (
+            <Button
+              type="button"
+              variant="icon"
+              onClick={() => void removeFace(v)}
+              disabled={!!savingOn}
+              aria-label={`Remove face photo: ${v.name}`}
+              title="Remove face photo"
+              className="rounded-full bg-tea-surface border-tea-border hover:border-tea-gold"
+              icon={<Trash2 size={15} strokeWidth={1.5} />}
+            />
+          )}
         </span>
       )}
     </li>
@@ -310,7 +343,7 @@ export const VendorFaceGallery: React.FC<{ vendors: FaceVendor[] }> = ({ vendors
         )}
         {last && (
           <p className="text-ui-13 text-tea-text-sec px-1.5 flex flex-wrap items-center gap-x-2">
-            <span>Saved as {last.vendorName}'s face.</span>
+            <span>{last.face ? `Saved as ${last.vendorName}'s face.` : `Removed ${last.vendorName}'s face.`}</span>
             <Button type="button" variant="quiet" size="sm" onClick={() => void undo()} disabled={!!savingOn}>Undo</Button>
           </p>
         )}
