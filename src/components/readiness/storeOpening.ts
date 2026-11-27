@@ -23,8 +23,8 @@ const FIXES: Record<string, { fix: string; route: string }> = {
   // Nobody to pay almost always means no Tea Master profile exists yet, not that
   // the shop lacks an owner: a shop cannot be created without one. The profile is
   // where a person becomes payable, so that is where this leads.
-  store_has_no_payment_recipient: { fix: 'Create your Tea Master profile', route: PROFILE_ROUTE },
-  store_recipient_profile_unpublished: { fix: 'Publish your Tea Master profile', route: PROFILE_ROUTE },
+  store_has_no_payment_recipient: { fix: 'Create your host profile', route: PROFILE_ROUTE },
+  store_recipient_profile_unpublished: { fix: 'Publish your host profile', route: PROFILE_ROUTE },
   // Payment methods hang off the person, not the store, because a tea master
   // can be paid while selling nothing.
   store_has_no_payment_method: { fix: 'Add a public payment method', route: PROFILE_ROUTE },

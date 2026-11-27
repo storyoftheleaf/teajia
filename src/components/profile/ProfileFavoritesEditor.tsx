@@ -111,7 +111,7 @@ export function ProfileFavoritesEditor({ favorites, availableTeas = [], onCreate
   };
 
   const remove = async (item: ProfileFavorite) => {
-    if (typeof window !== 'undefined' && !window.confirm(`Remove ${item.tea.name} from your Tea Master favorites?`)) return;
+    if (typeof window !== 'undefined' && !window.confirm(`Remove ${item.tea.name} from your host favorites?`)) return;
     setBusyId(item.tea_profile_id);
     setError(null);
     try {
@@ -127,7 +127,7 @@ export function ProfileFavoritesEditor({ favorites, availableTeas = [], onCreate
     <section aria-labelledby="favorites-editor-heading" className="space-y-6">
       <div>
         <h2 id="favorites-editor-heading" className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text`}>Public favorites</h2>
-        <p className="mt-1 max-w-[64ch] text-ui-12 text-tea-text-dim">This is your public Tea Master collection, separate from teas privately saved to your account. Entries begin private until you share them.</p>
+        <p className="mt-1 max-w-[64ch] text-ui-12 text-tea-text-dim">This is your public host collection, separate from teas privately saved to your account. Entries begin private until you share them.</p>
       </div>
 
       {onSaveCollection && (

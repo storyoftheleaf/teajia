@@ -36,7 +36,7 @@ const PATHS: Path[] = [
     route: '/for-your-space',
   },
   {
-    label: 'Tea Masters & Professionals',
+    label: 'Hosts & Professionals',
     desc: 'Professional tools for sourcing, stock, and events',
     route: '/admin',
   },
