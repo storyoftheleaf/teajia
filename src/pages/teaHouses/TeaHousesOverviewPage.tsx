@@ -38,7 +38,7 @@ export default function TeaHousesOverviewPage() {
 
   return (
     <div className="w-full max-w-3xl mx-auto pt-12 pb-16 pb-nav-gap" data-testid="tea-houses-overview">
-      <Helmet><title>{`${title} | Teajia`}</title></Helmet>
+      <Helmet><title>{`${title} · Teajia`}</title></Helmet>
       <header className="text-center mb-10">
         <h1 className={T.h1}>{title}</h1>
       </header>

@@ -19,6 +19,7 @@ import { ReportLink } from '../shared/ReportLink';
 import { yourTableLine } from '../../lib/yourTablePlace';
 import { SessionSeriesLine } from './SessionSeriesLine';
 import { sessionClock } from '../../../shared/sessionClock';
+import { sessionHasEnded } from '../../../shared/sessionEnd';
 
 // ── Public Tea Menu Preview ───────────────────────────────────────────────
 interface PublicTeaMenuProps {
@@ -413,7 +414,11 @@ const EventLanding: React.FC = () => {
   const privateHost = ev.private_host === true;
 
   const { date: formattedDate, time: formattedTime, day: formattedDay } = formatEventDate(eventDate, ev.timezone);
-  const isCompleted = event.status === 'closed';
+  // A session whose time has passed takes no more seats, even before anyone
+  // marks it closed: the worker already refuses the booking, so the page must
+  // not offer one. Only a closed session has a recap to link to.
+  const isClosed = event.status === 'closed';
+  const isCompleted = isClosed || sessionHasEnded({ event_date: ev.event_date ?? ev.eventDate, event_end_date: ev.event_end_date ?? ev.eventEndDate, timezone: ev.timezone });
   const isCancelled = event.status === 'archived';
   const isFull = seatsRemaining === 0;
   const canRSVP = !isCompleted && !isCancelled && !isFull;
@@ -494,7 +499,7 @@ const EventLanding: React.FC = () => {
 
         {/* Availability badge hanging below hero */}
         <div className="absolute bottom-0 left-1/2 -translate-x-1/2">
-          <AvailabilityBadge slug={slug!} />
+          {!isCompleted && !isCancelled && <AvailabilityBadge slug={slug!} />}
         </div>
       </div>
 
@@ -762,7 +767,7 @@ const EventLanding: React.FC = () => {
           {showInterestOnly && (
             <div className="max-w-xs mx-auto space-y-5">
               {/* Recap link, shown for completed events */}
-              {isCompleted && slug && (
+              {isClosed && slug && (
                 <button
                   onClick={() => navigate(`/event/${slug}/recap`)}
                   className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-md border border-tea-border text-tea-text-sec text-xs font-semibold hover:text-tea-text hover:bg-tea-accent-sub transition-colors group"

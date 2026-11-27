@@ -765,7 +765,8 @@ const AdminApp = ({ onAccountClick, onSearchClick, onCartClick }: AdminAppProps)
 /** The host's own connection page, for a person with no shop to approve for. */
 function HostConsentRedirect() {
   const { requestId = '' } = useParams<{ requestId: string }>();
-  return <Navigate to={`/connect/${encodeURIComponent(requestId)}`} replace />;
+  const location = useLocation();
+  return <Navigate to={carryQuery(`/connect/${encodeURIComponent(requestId)}`, location.search)} replace />;
 }
 
 export default AdminApp;

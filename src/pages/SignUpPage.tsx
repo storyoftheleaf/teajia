@@ -4,11 +4,13 @@ import { useAuth } from '../hooks/useAuth';
 import { authPagePath, authReturnTo } from '../lib/authNavigation';
 import { Icons } from '../components/Icons';
 import { API_URL, clearPendingSignup, restorePendingSignup, type PendingSignup } from '../lib/api';
+import { useHeldTitle } from '../hooks/useHeldTitle';
 
 const inputClass = "w-full bg-tea-surface border border-tea-border rounded-md px-3 py-2 text-ui-14 text-tea-text focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors placeholder-tea-text-dim";
 const labelClass = "block label-caps text-tea-text-sec mb-1.5";
 
 export default function SignUpPage() {
+  useHeldTitle('Create an account · Teajia');
   const navigate = useNavigate();
   const auth = useAuth();
   const [searchParams] = useSearchParams();

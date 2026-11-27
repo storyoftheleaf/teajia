@@ -163,6 +163,23 @@ describe('naming the selection (PUT /api/me/public-profile/collection)', () => {
     expect((await anonymous(db, '/api/public/c/kenji')).status).toBe(200);
   });
 
+  it('never takes a link the person sent to someone else as their page collection, and never rewrites its teas', async () => {
+    const db = database(); seedOwner(db);
+    // A link Kenji sent to a friend: a 'person' publication that names no page of his.
+    db.sqlite.exec(`
+      INSERT INTO collections (id, account_id, title, status, created_by_user_id, curator_user_id, created_at, updated_at)
+        VALUES ('col-sent', 'acc-one', 'Daniel''s samples', 'active', 'kenji-user', 'kenji-user', datetime('now'), datetime('now'));
+      INSERT INTO collection_items (id, collection_id, product_id, position) VALUES ('ci-sent', 'col-sent', 'prod-c', 0);
+      INSERT INTO collection_publications (id, collection_id, target_type, slug, published_at, created_by_user_id)
+        VALUES ('pub-sent', 'col-sent', 'person', 'daniels-samples', datetime('now'), 'kenji-user');
+    `);
+    const profile = await (await anonymous(db, '/api/people/kenji')).json() as any;
+    expect(profile.collection ?? null).toBeNull();
+    await as(db, 'kenji-user', '/api/me/profile/favorites/prof-c', { body: { is_public: true } });
+    const sent = db.sqlite.prepare(`SELECT product_id FROM collection_items WHERE collection_id = 'col-sent'`).all() as any[];
+    expect(sent).toEqual([{ product_id: 'prod-c' }]);
+  });
+
   it('follows the favorites afterwards: a new favorite joins, a removed one leaves, the order moves', async () => {
     const db = database(); seedOwner(db);
     await as(db, 'kenji-user', '/api/me/public-profile/collection', { body: { title: 'Saturday' } });

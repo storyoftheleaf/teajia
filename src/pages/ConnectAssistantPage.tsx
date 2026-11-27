@@ -65,7 +65,7 @@ export default function ConnectAssistantPage() {
 
   return (
     <div className="mx-auto w-full max-w-xl px-4 pt-12 pb-nav-gap" data-testid="connect-assistant">
-      <Helmet><title>Connect your assistant | Teajia</title></Helmet>
+      <Helmet><title>Connect your assistant · Teajia</title></Helmet>
       <h1 className={T.h1}>Connect {name}</h1>
       {request && (
         <p className={`${T.body} mt-4 text-tea-text-sec`}>
