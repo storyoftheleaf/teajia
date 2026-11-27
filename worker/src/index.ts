@@ -108,7 +108,7 @@ import { COMPASS_COLUMNS, decodeCompassWrite as decodeCompassWriteCodec, type Co
 import { compassFieldPatch, readCompassFieldHints } from './compassFieldPatch';
 import { receiptHoldingTeaId } from './curateMergeLink';
 import { resolveShopFreightDefault } from './shippingRate';
-import { addPricingFields, lookupRateToUsd, accountFreightDefaults, freightDefaultsByAccount } from './productPricing'; import { fillBlankQuotes, withShelfPrices } from './collectionShelf'; import { linkTeaDetail, linkTeaPhotos, loadPayLinkTeaLines, LINK_TEA_DETAIL_SQL, type PayLinkTeaLine } from './publicLinkTea';
+import { addPricingFields, lookupRateToUsd, accountFreightDefaults, freightDefaultsByAccount } from './productPricing'; import { fillBlankQuotes, withShelfPrices } from './collectionShelf'; import { collectionCartTeas, collectionLineTotal } from './collectionCart'; import { linkTeaDetail, linkTeaPhotos, loadPayLinkTeaLines, LINK_TEA_DETAIL_SQL, type PayLinkTeaLine } from './publicLinkTea';
 import { INWARD_BALI_LOT, INWARD_ORDERS_PAUSED_SQL, inwardOrdersPaused } from '../../shared/catalog/inwardOrders';
 import { checkNewProductPublication, checkProductPublication, openingStockKnownAt, publicationPatchFromColumns, writeProductPublication } from './productPublication';
 import { deductStockForPaidInvoice } from './orderLifecycle';
@@ -15853,12 +15853,17 @@ async function pausedInwardProductIds(env: Env, accountId: string, productIds: s
 
 async function pricedRequestLines(env: Env, accountId: string, items: Array<Record<string, any>>, sellerUserId: string | null) {
   const productIds = catalogProductIds(items);
+  // A tea added from a live collection link may be one the shop does not list,
+  // and carries the price the link quoted (collectionCart.ts).
+  const fromLinks = await collectionCartTeas(env.DB, accountId, items);
+  const linkIds = [...fromLinks.keys()];
+  const linkClause = linkIds.length ? ` OR (p.status = 'Active' AND p.id IN (${linkIds.map(() => '?').join(',')}))` : '';
   const [productRows, rateRows] = await Promise.all([
     productIds.length ? env.DB.prepare(
       `SELECT p.*, COALESCE(tp.form, p.form) AS form
          FROM products p LEFT JOIN tea_profiles tp ON tp.id='prof_' || p.id
-        WHERE p.account_id=? AND ${PUBLIC_REQUEST_PRODUCT} AND p.id IN (${productIds.map(() => '?').join(',')})`
-    ).bind(accountId, ...productIds).all() : Promise.resolve({ results: [] }),
+        WHERE p.account_id=? AND ((${PUBLIC_REQUEST_PRODUCT})${linkClause}) AND p.id IN (${productIds.map(() => '?').join(',')})`
+    ).bind(accountId, ...linkIds, ...productIds).all() : Promise.resolve({ results: [] }),
     env.DB.prepare('SELECT currency,rate_to_usd FROM exchange_rates').all(),
   ]);
   if ((productRows.results ?? []).length !== productIds.length) throw new Error('Store or items not found');
@@ -15887,12 +15892,15 @@ async function pricedRequestLines(env: Env, accountId: string, items: Array<Reco
       requestedOffers.add(product.id);
     }
     const name = String(product?.given_name || product?.product_name || item.name || 'Item');
+    const linkRate = product && typeof item.collectionSlug === 'string' ? fromLinks.get(String(product.id))?.pricePerGram ?? null : null;
     return {
       product_id: product ? String(product.id) : null,
       custom_name: `${name} (${inquiryPackingLabel({ ...item, category: product?.type === 'Teaware' ? 'ware' : item.category })})`,
       quantity,
       quantity_unit: product?.type === 'Teaware' ? 'unit' as const : 'g' as const,
-      price_at_sale: product ? quoteInquiryLine(item, product) / quantity : 0,
+      price_at_sale: !product ? 0
+        : linkRate != null ? collectionLineTotal(linkRate, quantity) / quantity
+        : quoteInquiryLine(item, product) / quantity,
     };
   });
 }
@@ -16630,6 +16638,9 @@ const handleConvertInquiry: Handler = async (request, env, params) => {
     products.set(row.id as string, priced);
   }
 
+  // A line added from a collection link keeps the link's price (collectionCart.ts).
+  const fromLinks = await collectionCartTeas(env.DB, accountId, items);
+  const linkRate = (item: Record<string, any>) => typeof item.collectionSlug === 'string' ? fromLinks.get(String(item.id || ''))?.pricePerGram ?? null : null;
   let lineItems: Array<{ product_id: string | null; custom_name: string | null; quantity: number; price_at_sale: number;quantity_unit:'g'|'unit' }>;
   try {
     lineItems = items.map(item => {
@@ -16643,7 +16654,9 @@ const handleConvertInquiry: Handler = async (request, env, params) => {
         product_id: linked ? String(product.id) : null,
         custom_name: `${name} (${inquiryPackingLabel({ ...item, category: product?.type === 'Teaware' ? 'ware' : item.category })})`,
         quantity,quantity_unit:product?.type==='Teaware'?'unit':'g',
-        price_at_sale: product ? quoteInquiryLine(item, product) / quantity : 0,
+        price_at_sale: !product ? 0
+          : linkRate(item) != null ? collectionLineTotal(linkRate(item)!, quantity) / quantity
+          : quoteInquiryLine(item, product) / quantity,
       };
     });
   } catch (error) {
@@ -30102,7 +30115,7 @@ const handleGetPublicCollection: Handler = async (_request, env, params) => {
             p.id AS product_id, p.type AS product_type,
             COALESCE(p.given_name, p.product_name) AS product_name,
             p.chinese_name, p.year, p.origin_country, p.origin_region,
-            p.image_url, p.additional_images, p.form, p.slug AS product_slug,
+            p.image_url, p.additional_images, p.form, p.slug AS product_slug, p.piece_weight_g,
             CASE WHEN p.is_public = 1 AND p.shown_in_shop = 1 THEN 1 ELSE 0 END AS in_shop,
             p.description, p.tasting_notes, ${LINK_TEA_DETAIL_SQL},
             p.status AS product_status, p.stock_grams, p.quantity_units

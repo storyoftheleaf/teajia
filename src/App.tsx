@@ -562,7 +562,9 @@ const AppContent = () => {
   const teaInventory = useMemo(() => inventory.filter(i => i.category === 'tea'), [inventory]);
   const teawareInventory = useMemo(() => inventory.filter(i => i.category === 'ware'), [inventory]);
 
-  const handleAddToCart = (item: InventoryItem, qty: number, total: number) => {
+  // `link` is set when the tea is added from a collection link: the line belongs
+  // to that link's store and carries the link, so the order keeps its price.
+  const handleAddToCart = (item: InventoryItem, qty: number, total: number, link?: { storeSlug: string; storeName: string; collectionSlug: string }) => {
     if (item.stock_g !== undefined && item.stock_g <= 0) {
       /* Reported, not confirmed. The band carries its own label per tone, so
          the name stays the name and the state stops being smuggled into it. */
@@ -573,7 +575,8 @@ const AppContent = () => {
     const pricePerGram = item.category === 'tea'
       ? parseFloat(item.price_per_gram || '0')
       : parseFloat(item.price_50g || '0');
-    const browsingStoreName = activeStore?.slug === browsingStoreSlug
+    const lineStoreSlug = link?.storeSlug ?? browsingStoreSlug;
+    const browsingStoreName = link ? link.storeName : activeStore?.slug === browsingStoreSlug
       ? activeStore.name
       : cart[0]?.storeSlug === browsingStoreSlug
         ? cart[0].storeName
@@ -583,8 +586,9 @@ const AppContent = () => {
       name: item.name,
       variant: item.variant,
       category: item.category,
-      storeSlug: browsingStoreSlug,
+      storeSlug: lineStoreSlug,
       storeName: browsingStoreName,
+      ...(link ? { collectionSlug: link.collectionSlug } : {}),
       quantityGrams: qty,
       /* One pack of this weight. The store adds a second pack rather than a
          heavier one when the same size is added again. */
@@ -1309,7 +1313,7 @@ const AppContent = () => {
                 <Route path="/invite/:token" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><GuestInviteClaimPage /></Suspense></ErrorBoundary>} />
                 <Route path="/s/:sampleId" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><SamplePage /></Suspense></ErrorBoundary>} />
                 <Route path="/share/:token" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><ShareCardPage /></Suspense></ErrorBoundary>} />
-                <Route path="/c/:slug" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><PublicCollectionPage /></Suspense></ErrorBoundary>} />
+                <Route path="/c/:slug" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><PublicCollectionPage onAddToCart={handleAddToCart} onOpenCart={handleOpenCart} /></Suspense></ErrorBoundary>} />
                 <Route path="/session/:id" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><SessionPage /></Suspense></ErrorBoundary>} />
                 <Route path="/join" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><JoinPage /></Suspense></ErrorBoundary>} />
                 <Route path="/join/:code" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><JoinPage /></Suspense></ErrorBoundary>} />

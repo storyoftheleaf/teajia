@@ -28,6 +28,9 @@ import { listenForOtherTabJournal } from './tastingJournalTabs';
  */
 function packTotal(item: PublicCartItem, packGrams: number): number {
   if (item.category !== 'tea') return item.pricePerGram * packGrams;
+  // A tea from a collection link keeps the link's quoted rate, to the cent,
+  // exactly as the order prices it (worker/src/collectionCart.ts).
+  if (item.collectionSlug) return Math.round(item.pricePerGram * packGrams * 100) / 100;
   return Math.ceil(quoteGrams(item.pricePerGram, packGrams, { wholePieceGrams: item.wholePieceGrams }).totalUsd);
 }
 

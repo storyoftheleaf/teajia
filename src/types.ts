@@ -706,7 +706,7 @@ export interface CartItem {
    * line without one simply goes untinted.
    */
   type?: string;
-  image?: string;
+  image?: string; collectionSlug?: string; // added from that collection link: its quoted price, no handling amount
 }
 
 // Unified Inventory Type
@@ -1567,7 +1567,7 @@ export interface PublicCollectionItem {
   year?: number | null;
   origin_country?: string | null;
   origin_region?: string | null;
-  image_url?: string | null; images?: string[]; form?: string | null; in_shop?: boolean; product_slug?: string | null; // photos main first; product_slug only for a shelf tea
+  image_url?: string | null; images?: string[]; form?: string | null; in_shop?: boolean; product_slug?: string | null; piece_weight_g?: number | null; // photos main first; product_slug only for a shelf tea
   description?: string | null;
   tasting_notes?: string[] | null;
   product_status?: string;
