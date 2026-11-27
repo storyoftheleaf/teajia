@@ -76,6 +76,100 @@ export const GENERATED_TEA_REFERENCE_REGISTRY = {
       ]
     },
     {
+      "id": "banzhang",
+      "slug": "banzhang",
+      "kind": "tea_area",
+      "label": "Banzhang",
+      "nativeName": "班章",
+      "parentId": "menghai-county",
+      "sourceIds": [],
+      "sections": [
+        {
+          "key": "where-it-is",
+          "label": "Where Banzhang is",
+          "text": "Banzhang is a group of tea villages inside Bulang Mountain, in the south of Menghai County in Xishuangbanna, Yunnan. The name covers more than one settlement. Lao Banzhang is the old village. Xin Banzhang is a separate village that grew out of it. Altitude is quoted differently from place to place, mostly between about 1,600 and 1,900 metres.",
+          "sourceIds": []
+        },
+        {
+          "key": "old-and-new",
+          "label": "Lao Banzhang and Xin Banzhang",
+          "text": "Xin Banzhang means New Banzhang. It was founded by people who moved out of the old village. The two are priced very differently, with Lao Banzhang far higher. Sellers say Xin Banzhang is less bitter, but too few places agree on that to treat it as settled.",
+          "sourceIds": []
+        },
+        {
+          "key": "known-for",
+          "label": "The tea Banzhang is known for",
+          "text": "Banzhang is known for raw pu’er from old trees. The trade describes it as strong and bitter at first, then quickly sweet, with a long aftertaste and a heavy body. It is one of the most expensive named villages in pu’er, and Lao Banzhang is often called the king of raw pu’er.",
+          "sourceIds": []
+        },
+        {
+          "key": "history",
+          "label": "A price that rose fast",
+          "text": "Prices for fresh leaf and finished tea rose steeply from the early 2000s, and the village became one of the best known names in pu’er.",
+          "sourceIds": []
+        },
+        {
+          "key": "on-a-label",
+          "label": "Banzhang on a label",
+          "text": "Banzhang on a label is a market name, and it is not proof that the leaf came from the village. The village makes a small amount of tea, and its name sells at a high price, so fakes and blends are widely reported. Some cakes sold under a Banzhang name blend in leaf from other Bulang villages. Lao Banzhang, Xin Banzhang and the wider Banzhang name are three different claims, and a label rarely says which one is meant.",
+          "sourceIds": []
+        },
+        {
+          "key": "in-ripe-pu-er",
+          "label": "Banzhang in ripe pu’er",
+          "text": "Most of what the trade writes about Banzhang describes raw tea. Ripe cakes with Banzhang in the name do exist, but they are less common than raw ones, and the name is seldom backed by a stated leaf source. Reading Banzhang on a ripe cake as the village itself is not safe. It more often points to a Bulang style of ripe tea, thicker in body and stronger than a plain Menghai blend.",
+          "sourceIds": []
+        }
+      ]
+    },
+    {
+      "id": "bulang-mountain",
+      "slug": "bulang-mountain",
+      "kind": "tea_area",
+      "label": "Bulang Mountain",
+      "nativeName": "布朗山",
+      "parentId": "menghai-county",
+      "sourceIds": [],
+      "sections": [
+        {
+          "key": "where-it-is",
+          "label": "Where Bulang Mountain is",
+          "text": "Bulang Mountain lies in the south of Menghai County in Xishuangbanna, Yunnan, next to the border with Myanmar. It covers roughly one thousand square kilometres and is one of the larger tea areas in the county. It is a mountain area with many villages, not a single village. Banzhang, Lao Man’e and Manxinlong are among its named tea villages.",
+          "sourceIds": []
+        },
+        {
+          "key": "people",
+          "label": "Who lives there",
+          "text": "The mountain takes its name from the Bulang people, who have grown and drunk tea here for a very long time. Lao Man’e is often described as one of their oldest villages, at about fourteen hundred years. Hani villages such as the Banzhang settlements sit in the same mountains.",
+          "sourceIds": []
+        },
+        {
+          "key": "known-for",
+          "label": "The tea it is known for",
+          "text": "Bulang Mountain is known for raw pu’er from old tea gardens. The trade describes the tea as forceful: a strong, bitter start that turns sweet, thick liquor and a strong feel in the throat. It is often set against the softer, sweeter style of Yiwu. Villages differ a good deal. Lao Man’e is known for bitterness, and some other villages make sweeter tea.",
+          "sourceIds": []
+        },
+        {
+          "key": "history",
+          "label": "A newer famous mountain",
+          "text": "Bulang is a pu’er area whose fame is recent. Its reputation grew with the rise of Banzhang, whose price pulled attention to the whole mountain.",
+          "sourceIds": []
+        },
+        {
+          "key": "on-a-label",
+          "label": "Bulang Mountain on a label",
+          "text": "Bulang Mountain on a label is a broad market name. Leaf from smaller or less famous villages is often sold in bulk, blended, and offered as Bulang tea. A cake called Bulang Mountain rarely names the village, and some makers do not state where the leaf came from. It points to a mountain style more than to one place.",
+          "sourceIds": []
+        },
+        {
+          "key": "in-ripe-pu-er",
+          "label": "Bulang in ripe pu’er",
+          "text": "Bulang leaf is also used for ripe pu’er, and ripe cakes and loose tea sold under the name Bulang Mountain are common. The raw tea is strong, so ripe tea made from it is described by sellers as thick and full. Sellers disagree on whether it stays bitter after piling, so ripe Bulang tea is better judged cup by cup than from the name.",
+          "sourceIds": []
+        }
+      ]
+    },
+    {
       "id": "dancong",
       "slug": "dancong",
       "kind": "tea_type",
@@ -489,6 +583,76 @@ export const GENERATED_TEA_REFERENCE_REGISTRY = {
       ]
     },
     {
+      "id": "jingmai",
+      "slug": "jingmai",
+      "kind": "tea_area",
+      "label": "Jingmai",
+      "nativeName": "景迈山",
+      "parentId": "yunnan",
+      "sourceIds": [],
+      "sections": [
+        {
+          "key": "where",
+          "label": "Where Jingmai is",
+          "text": "Jingmai is a tea mountain in Huimin Town, Lancang Lahu Autonomous County, in Pu’er City, Yunnan. Its old tea forests and villages were listed together as a UNESCO World Heritage cultural landscape in 2023. The listing names five tea forests, nine villages and three protective forests, around the villages of Jingmai and Mangjing. Places give the height of the tea as about 1,000 to 1,600 metres.",
+          "sourceIds": []
+        },
+        {
+          "key": "forest-tea",
+          "label": "Forest tea",
+          "text": "The tea grows under the shade of the forest, with little pruning, and the trees are tall. The trade values Jingmai for this forest setting and for its old trees. It is sold as Pu’er, both raw and ripe, under the mountain’s name.",
+          "sourceIds": []
+        },
+        {
+          "key": "history",
+          "label": "Who grew it and since when",
+          "text": "The Bulang and Dai peoples have grown tea on the mountain for a thousand years or more. The date most often given for the start is about the tenth century, though one local source says thirteen hundred years. An oral story names an ancestor of the Bulang as the first to tend the wild tea, but it is a story, not a record.",
+          "sourceIds": []
+        },
+        {
+          "key": "common-impressions",
+          "label": "What people often notice",
+          "text": "Sellers and drinkers most often name a strong flower or fruit fragrance and a sweetness that comes early and lasts. Some find the bitterness light and the astringency stronger. Spring tea is said to carry more fragrance than summer or autumn tea.",
+          "sourceIds": []
+        }
+      ]
+    },
+    {
+      "id": "kunlu-mountain",
+      "slug": "kunlu-mountain",
+      "kind": "tea_area",
+      "label": "Kunlu Mountain",
+      "nativeName": "困鹿山",
+      "parentId": "yunnan",
+      "sourceIds": [],
+      "sections": [
+        {
+          "key": "where",
+          "label": "Where Kunlu Mountain is",
+          "text": "Kunlu Mountain is a spur of the Wuliang Mountains in Ning’er Hani and Yi Autonomous County, Pu’er City, Yunnan. The name is also written with other characters in older writing. Its old tea trees cover a little over 10,000 mu, about 667 hectares, and places give its height as about 1,410 to 2,271 metres.",
+          "sourceIds": []
+        },
+        {
+          "key": "trees",
+          "label": "The trees",
+          "text": "The trees are tall and mostly unpruned. Wild, transitional and planted types grow together, with large, medium and small leaves mixed. The trade knows the mountain for these old trees.",
+          "sourceIds": []
+        },
+        {
+          "key": "tribute-history",
+          "label": "Tribute tea",
+          "text": "In the Qing period, tea from Kunlu was made as tribute tea and carried to Beijing by horse caravan, about two months along the Tea Horse Road. Making Pu’er tribute tea in Ning’er is now listed as national intangible cultural heritage. Many sellers call the mountain an imperial tea garden, but the date and the details of that role are not settled.",
+          "sourceIds": []
+        },
+        {
+          "key": "common-impressions",
+          "label": "What people often notice",
+          "text": "Sellers most often describe a light, graceful fragrance and a sweet aftertaste, with some bitterness and astringency that turn sweet.",
+          "sourceIds": []
+        }
+      ]
+    },
+    {
       "id": "lapsang",
       "slug": "lapsang",
       "kind": "tea_type",
@@ -843,7 +1007,7 @@ export const GENERATED_TEA_REFERENCE_REGISTRY = {
         },
         {
           "key": "history",
-          "label": "Factory-era importance",
+          "label": "Why the name is so well known",
           "text": "The establishment of Menghai Tea Factory and the post-1950 shift toward large-scale production made the county central to twentieth-century Pu’er. Regional leaf increasingly entered factory blends, connecting Menghai with many benchmark raw and ripe productions.",
           "sourceIds": [
             "teadb-menghai-county"
@@ -1431,6 +1595,41 @@ export const GENERATED_TEA_REFERENCE_REGISTRY = {
           "key": "notice-aged",
           "label": "What people often notice in aged Taiwan oolong",
           "text": "A smooth, mellow, thick cup with little astringency, often plum or prune, sometimes something like medicinal herbs or ginseng, and an amber to red-brown liquor.",
+          "sourceIds": []
+        }
+      ]
+    },
+    {
+      "id": "tea-heads",
+      "slug": "tea-heads",
+      "kind": "tea_type",
+      "label": "Tea heads",
+      "nativeName": "老茶头",
+      "parentId": "puer",
+      "sourceIds": [],
+      "sections": [
+        {
+          "key": "definition",
+          "label": "What tea heads are",
+          "text": "Tea heads are dense clumps of leaf that stick together while ripe pu’er is wet piled. They are sorted out after piling and sold on their own, loose or pressed, apart from the numbered grades of loose ripe tea.",
+          "sourceIds": []
+        },
+        {
+          "key": "formation",
+          "label": "How they form",
+          "text": "Pectin from the leaf, with heat and the weight of the pile, glues leaf into lumps, and microbes keep working inside them. After piling, workers pick the lumps out and try to loosen them. Lumps too tight to break without crushing the leaf are set aside as tea heads. They are about 0.8 to 1.5 percent of a batch.",
+          "sourceIds": []
+        },
+        {
+          "key": "old",
+          "label": "Why \"old\"",
+          "text": "The word old does not mean old raw leaf. Fresh tea heads smell strongly of the pile, so they are usually left some years before drinking, until that smell fades, and then they are called old tea heads.",
+          "sourceIds": []
+        },
+        {
+          "key": "common-impressions",
+          "label": "What people often notice",
+          "text": "Because of the pectin, tea heads give many infusions and a thick, smooth, sweet cup with little bitterness. Sellers name date and woody notes. They are brewed with a rinse first, and they often do not open fully.",
           "sourceIds": []
         }
       ]

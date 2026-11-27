@@ -1,0 +1,85 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-27T00:17:46.260Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "c2525628-57bc-40df-824f-05c225930f74",
+    "name": "Kunlu Mountain Imperial Tribute Sheng Cha",
+    "chineseName": "困鹿山皇家贡茶生茶",
+    "type": "Sheng Puer",
+    "form": "Loose",
+    "year": 2007,
+    "origin": "Kunlu Mountain, Yunnan, China",
+    "stockGrams": null,
+    "pricePerGramUsd": null,
+    "tags": []
+  },
+  "entry": {
+    "productId": "c2525628-57bc-40df-824f-05c225930f74",
+    "paragraphs": [
+      {
+        "layer": "place",
+        "text": "[Kunlu Mountain](kunlu-mountain:where) is a spur of the Wuliang range in Ning’er County, Pu’er City, with heights given at about 1,410 to 2,271 metres. Its [old tea trees](kunlu-mountain:trees) cover a little over 10,000 mu. They stand tall and mostly unpruned, with wild, transitional and planted types growing side by side, and the trade knows the mountain for them."
+      },
+      {
+        "layer": "type",
+        "text": "This is [raw pu’er](sheng:identity) from 2007. It was never given shou’s fast fermentation, so its character changes slowly over years. Raw pu’er is wok fired and then sun dried into [maocha](sheng:making), and this tea was left loose rather than pressed into a cake."
+      },
+      {
+        "layer": "age",
+        "text": "At nineteen years it has had almost two decades of [change in storage](sheng:aging), and it sits on the line the trade still argues over. Some call raw pu’er [aged](sheng:ageing) after ten years, and many wait for twenty or more."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Young raw pu’er takes water a little off the boil, about 85 to 95°C, because hotter water draws out more of its bitterness; an aged one takes 95°C to boiling. A common start is about 7 grams to 100 ml and a quick rinse of a few seconds, then a first steep of ten to fifteen seconds, adding a few seconds each round. A good raw tea gives eight to ten cups or more."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "aged Sheng Pu’er",
+      "text": "A smoother, thicker, sweeter cup with woody, herbal and camphor notes and something of dried dates or dark fruit."
+    },
+    "missing": [
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "kunlu-mountain:where",
+      "rev": 1
+    },
+    {
+      "claimId": "kunlu-mountain:trees",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:identity",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:making",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:aging",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:ageing",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:notice-aged",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-27T00:36:10.549Z"
+}

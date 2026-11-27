@@ -1,0 +1,70 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-27T00:14:47.568Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "55606539-3eef-4b33-a52b-df3c87e38523",
+    "name": "1990 Pre-Qingming Tea",
+    "chineseName": "1990年清明前茶",
+    "type": "Green",
+    "form": "Loose Leaf",
+    "year": 1990,
+    "origin": "China",
+    "stockGrams": null,
+    "pricePerGramUsd": null,
+    "tags": []
+  },
+  "entry": {
+    "productId": "55606539-3eef-4b33-a52b-df3c87e38523",
+    "paragraphs": [
+      {
+        "layer": "age",
+        "text": "A loose leaf [green tea](green:definition) from China, dated 1990. Green tea is meant to be drunk within a year or two of picking, and no tradition of [keeping it for age](green:ageing) is recorded, so a leaf thirty-six years old is outside what the type was made for. With a green tea this old, the type itself promises nothing. What counts is how it was kept."
+      },
+      {
+        "layer": "type",
+        "text": "Like every green tea, the leaf was [fixed](green:making) by heat soon after picking. The heat stops the leaf's own enzymes before they can turn it brown. The leaf was then rolled to give it shape and dried until little water was left, so it would keep."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Green tea takes water well below the boil, about 80°C, a little cooler for the youngest leaf and a little warmer for older, larger leaf. Boiling water draws out bitterness and dries the cup. A common start is about 2 grams of leaf to 100 ml, in a glass or a small gaiwan, with short steeps of half a minute to two minutes, and the same leaf can be brewed a few times."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "green tea",
+      "text": "A fresh, clean cup that many call crisp, with a sweet, soft finish, and a pale green to yellow-green liquor. The smell runs from fresh leaf to flowers, and steamed teas lean grassy or seaweed-like. Too much heat or too long a steep turns the cup bitter and drying."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "green:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "green:ageing",
+      "rev": 1
+    },
+    {
+      "claimId": "green:making",
+      "rev": 1
+    },
+    {
+      "claimId": "green:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "green:common-impressions",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-27T00:36:12.271Z"
+}

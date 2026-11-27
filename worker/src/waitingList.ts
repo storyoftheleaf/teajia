@@ -139,6 +139,8 @@ export type ReleaseSeatsInput = {
    * (offerNextAsMain). Queue cases 8, 12 (todo/review/fixes/queue-cases.md).
    */
   asMain?: boolean;
+  /** While Launch 3 is closed the guest's pending invitations stay as they were, as on main (launch-5 flags-off audit). */
+  keepInvitations?: boolean;
 };
 
 /**
@@ -183,10 +185,10 @@ export async function releaseSeats(db: Db, input: ReleaseSeatsInput): Promise<{ 
         WHERE participation_id = ? AND event_id = ? AND account_id = ?
           AND seat_status IN ('requested', 'held', 'confirmed') AND ${stillThere}`
     ).bind(...party, ...stillThereValues),
-    db.prepare(
+    ...(input.keepInvitations ? [] : [db.prepare(
       `UPDATE guest_invites SET status = 'expired'
         WHERE parent_attendee_id = ? AND event_id = ? AND status = 'pending' AND ${stillThere}`
-    ).bind(input.attendeeId, input.eventId, ...stillThereValues),
+    ).bind(input.attendeeId, input.eventId, ...stillThereValues)]),
     db.prepare(
       `UPDATE event_attendees SET status = 'cancelled', claim_expires_at = NULL${input.cancellationNote !== undefined ? ', cancellation_note = ?' : ''}
         WHERE id = ? AND event_id = ? AND account_id = ? AND status IN (${statuses})${ownerGuard}`

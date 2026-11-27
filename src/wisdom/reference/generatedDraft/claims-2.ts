@@ -5,6 +5,466 @@ import type { DraftClaim } from '../claims';
 
 export const PART: readonly DraftClaim[] = [
   {
+    "claimId": "dancong:common-impressions",
+    "pageId": "dancong",
+    "sectionKey": "common-impressions",
+    "label": "What people often notice",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "phoenix mountain"
+      ]
+    },
+    "terms": [
+      {
+        "original": "山韵",
+        "pinyin": "shān yùn",
+        "gloss": "mountain rhyme"
+      }
+    ],
+    "rev": 1,
+    "scope": "Phoenix Dancong style kit",
+    "text": "Flowers above all, a sweetness that comes back after swallowing, a high scent that lasts, honey, often ripe fruit such as peach, and what the trade calls mountain rhyme, shan yun; a liquor from golden to orange-red or amber.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Phoenix Dancong style kit",
+        "text": "Flowers above all, a sweetness that comes back after swallowing, a high scent that lasts, honey, often ripe fruit such as peach, and what the trade calls mountain rhyme, shan yun; a liquor from golden to orange-red or amber.",
+        "approvedAt": "2026-11-25",
+        "reason": "Adrian approved the Phoenix Dancong kit 2026-11-25",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "dancong:definition",
+    "pageId": "dancong",
+    "sectionKey": "definition",
+    "label": "What Phoenix Dancong is",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "phoenix mountain"
+      ]
+    },
+    "terms": [
+      {
+        "original": "凤凰单丛",
+        "pinyin": "fènghuáng dāncóng",
+        "gloss": "Phoenix single bush"
+      },
+      {
+        "original": "乌岽",
+        "pinyin": "wūdōng",
+        "gloss": "Wudong peak"
+      }
+    ],
+    "rev": 1,
+    "scope": "Phoenix Dancong style kit",
+    "text": "Phoenix Dancong is the oolong of Phoenix Mountain, Fenghuang Shan, in Chao'an, Chaozhou, in eastern Guangdong. Wudong is the peak named most often as its heart. The dry leaf is a long strip, twisted tight, dark and glossy, not rolled into a ball.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Phoenix Dancong style kit",
+        "text": "Phoenix Dancong is the oolong of Phoenix Mountain, Fenghuang Shan, in Chao'an, Chaozhou, in eastern Guangdong. Wudong is the peak named most often as its heart. The dry leaf is a long strip, twisted tight, dark and glossy, not rolled into a ball.",
+        "approvedAt": "2026-11-25",
+        "reason": "Adrian approved the Phoenix Dancong kit 2026-11-25",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "dancong:history",
+    "pageId": "dancong",
+    "sectionKey": "history",
+    "label": "The local tea",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "phoenix mountain"
+      ]
+    },
+    "terms": [
+      {
+        "original": "潮州工夫茶",
+        "pinyin": "cháozhōu gōngfu chá",
+        "gloss": "Chaozhou gongfu tea"
+      }
+    ],
+    "rev": 1,
+    "scope": "Phoenix Dancong style kit",
+    "text": "The old tea of the mountain was called bird-beak tea, and later Shuixian. Dancong is the everyday tea of Chaozhou, and gongfu brewing is tied to Chaozhou, where Chaozhou gongfu tea is still made with small vessels, set ways of pouring, and three cups.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Phoenix Dancong style kit",
+        "text": "The old tea of the mountain was called bird-beak tea, and later Shuixian. Dancong is the everyday tea of Chaozhou, and gongfu brewing is tied to Chaozhou, where Chaozhou gongfu tea is still made with small vessels, set ways of pouring, and three cups.",
+        "approvedAt": "2026-11-25",
+        "reason": "Adrian approved the Phoenix Dancong kit 2026-11-25",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "dancong:making",
+    "pageId": "dancong",
+    "sectionKey": "making",
+    "label": "How Dancong is made",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "phoenix mountain"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Phoenix Dancong style kit",
+    "text": "The leaf is withered in the sun and cooled indoors, then shaken and rested in rounds; this is the step that bruises the leaf edge and builds the scent. It is fixed fast at high heat in a hot pan or drum, rolled into strips, dried, and roasted again as it is refined, sometimes over more than one round. Charcoal is the traditional fire. The roast is a main difference between teas: a light roast keeps the floral scent bright, a heavier one gives a deeper, sweeter cup with caramel in it.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Phoenix Dancong style kit",
+        "text": "The leaf is withered in the sun and cooled indoors, then shaken and rested in rounds; this is the step that bruises the leaf edge and builds the scent. It is fixed fast at high heat in a hot pan or drum, rolled into strips, dried, and roasted again as it is refined, sometimes over more than one round. Charcoal is the traditional fire. The roast is a main difference between teas: a light roast keeps the floral scent bright, a heavier one gives a deeper, sweeter cup with caramel in it.",
+        "approvedAt": "2026-11-25",
+        "reason": "Adrian approved the Phoenix Dancong kit 2026-11-25",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "dancong:mi-lan-xiang",
+    "pageId": "dancong",
+    "sectionKey": "mi-lan-xiang",
+    "label": "Mi Lan Xiang",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "phoenix mountain"
+      ],
+      "name_includes": [
+        "mi",
+        "lan"
+      ]
+    },
+    "terms": [
+      {
+        "original": "蜜兰香",
+        "pinyin": "mìlán xiāng",
+        "gloss": "honey orchid aroma"
+      }
+    ],
+    "rev": 1,
+    "scope": "Phoenix Dancong style kit",
+    "text": "Mi Lan Xiang, honey orchid, is one of the traditional ten aroma types and one of the most widely made, often named as a good first Dancong. It is described as honey-sweet with an orchid scent, with a cooked sweet potato note, and a liquor from golden amber to orange-red, depending on the roast. The one name covers a range of teas.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Phoenix Dancong style kit",
+        "text": "Mi Lan Xiang, honey orchid, is one of the traditional ten aroma types and one of the most widely made, often named as a good first Dancong. It is described as honey-sweet with an orchid scent, with a cooked sweet potato note, and a liquor from golden amber to orange-red, depending on the roast. The one name covers a range of teas.",
+        "approvedAt": "2026-11-25",
+        "reason": "Adrian approved the Phoenix Dancong kit 2026-11-25",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "dancong:name",
+    "pageId": "dancong",
+    "sectionKey": "name",
+    "label": "Single bush",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "phoenix mountain"
+      ]
+    },
+    "terms": [
+      {
+        "original": "单丛",
+        "pinyin": "dāncóng",
+        "gloss": "single bush"
+      },
+      {
+        "original": "单枞",
+        "pinyin": "dāncōng",
+        "gloss": "single bush, other spelling"
+      }
+    ],
+    "rev": 1,
+    "scope": "Phoenix Dancong style kit",
+    "text": "Dancong means single bush: the leaf of one bush picked and made on its own, never mixed with others. The bushes are chosen from the old Phoenix Shuixian plants of the mountain. Today a named Dancong is mostly grown from cuttings or grafts of a chosen bush, so one name no longer means one tree, though some very old trees are still made on their own.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Phoenix Dancong style kit",
+        "text": "Dancong means single bush: the leaf of one bush picked and made on its own, never mixed with others. The bushes are chosen from the old Phoenix Shuixian plants of the mountain. Today a named Dancong is mostly grown from cuttings or grafts of a chosen bush, so one name no longer means one tree, though some very old trees are still made on their own.",
+        "approvedAt": "2026-11-25",
+        "reason": "Adrian approved the Phoenix Dancong kit 2026-11-25",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "dancong:old-bushes",
+    "pageId": "dancong",
+    "sectionKey": "old-bushes",
+    "label": "Old bushes and Song tea",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "phoenix mountain"
+      ]
+    },
+    "terms": [
+      {
+        "original": "老丛",
+        "pinyin": "lǎocóng",
+        "gloss": "old bush"
+      },
+      {
+        "original": "宋种",
+        "pinyin": "sòngzhǒng",
+        "gloss": "Song variety"
+      }
+    ],
+    "rev": 1,
+    "scope": "Phoenix Dancong style kit",
+    "text": "Old bushes, laocong, are prized for depth and a lasting sweetness, and give little leaf; no age is agreed for when a bush counts as old. Song variety, songzhong, is a market label for the oldest named lines, Huangzhi above all, not a proven age. A legend gives the old trees their name: the last Song emperor, fleeing as a boy, was given tea on the mountain by a phoenix.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Phoenix Dancong style kit",
+        "text": "Old bushes, laocong, are prized for depth and a lasting sweetness, and give little leaf; no age is agreed for when a bush counts as old. Song variety, songzhong, is a market label for the oldest named lines, Huangzhi above all, not a proven age. A legend gives the old trees their name: the last Song emperor, fleeing as a boy, was given tea on the mountain by a phoenix.",
+        "approvedAt": "2026-11-25",
+        "reason": "Adrian approved the Phoenix Dancong kit 2026-11-25",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "dancong:ya-shi-xiang",
+    "pageId": "dancong",
+    "sectionKey": "ya-shi-xiang",
+    "label": "Ya Shi Xiang",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "phoenix mountain"
+      ],
+      "name_any": [
+        "ya",
+        "duck"
+      ]
+    },
+    "terms": [
+      {
+        "original": "鸭屎香",
+        "pinyin": "yā shǐ xiāng",
+        "gloss": "duck dung aroma"
+      },
+      {
+        "original": "银花香",
+        "pinyin": "yínhuā xiāng",
+        "gloss": "silver flower aroma"
+      }
+    ],
+    "rev": 1,
+    "scope": "Phoenix Dancong style kit",
+    "text": "Ya Shi Xiang, duck dung aroma, is the market name for a very floral Dancong, and most lists of the ten leave it out even though it sells widely. It is also called Yinhua Xiang, silver flower or honeysuckle aroma, a name put forward in 2014 for a scent likened to the wild honeysuckle of the mountain; many sellers keep the old name. Its line is traced to Pingkengtou village. Three stories explain the name, all told as stories: that it was chosen to put thieves off the bush, that it comes from the yellow local soil called duck dung soil, and that duck droppings lay on the bush. The tea tastes nothing like its name: every account of the cup gives flowers, usually with milk or cream, honey or fruit.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Phoenix Dancong style kit",
+        "text": "Ya Shi Xiang, duck dung aroma, is the market name for a very floral Dancong, and most lists of the ten leave it out even though it sells widely. It is also called Yinhua Xiang, silver flower or honeysuckle aroma, a name put forward in 2014 for a scent likened to the wild honeysuckle of the mountain; many sellers keep the old name. Its line is traced to Pingkengtou village. Three stories explain the name, all told as stories: that it was chosen to put thieves off the bush, that it comes from the yellow local soil called duck dung soil, and that duck droppings lay on the bush. The tea tastes nothing like its name: every account of the cup gives flowers, usually with milk or cream, honey or fruit.",
+        "approvedAt": "2026-11-25",
+        "reason": "Adrian approved the Phoenix Dancong kit 2026-11-25",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "dark:ageing",
+    "pageId": "dark",
+    "sectionKey": "ageing",
+    "label": "Dark tea and age",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Dark"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Dark tea in general",
+    "text": "Dark tea is made to be kept, and the trade values it more with age. Over years it turns darker and redder in the cup and grows mellower and sweeter. How fast it changes depends on how it is stored, and the trade does not agree on one way: some keep it cool and dry for a slow, clean change, others warmer and more humid for a faster, deeper one. When a tea counts as young or aged differs from style to style, so each style sets its own measure.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Dark tea in general",
+        "text": "Dark tea is made to be kept, and the trade values it more with age. Over years it turns darker and redder in the cup and grows mellower and sweeter. How fast it changes depends on how it is stored, and the trade does not agree on one way: some keep it cool and dry for a slow, clean change, others warmer and more humid for a faster, deeper one. When a tea counts as young or aged differs from style to style, so each style sets its own measure.",
+        "approvedAt": "2026-11-24",
+        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "dark:brewing",
+    "pageId": "dark",
+    "sectionKey": "brewing",
+    "label": "Brewing dark tea",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Dark"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Dark tea in general",
+    "text": "Dark tea takes boiling water. Its leaf is mature and dense, so it gives up its flavour slowly and is hard to overbrew. Rinse it first with boiling water and pour that off within seconds: the rinse wakes the leaf and washes off dust and any stale smell from storage, and an old tea may take a second rinse. In a small pot use plenty of leaf, about 7 grams to 120 ml, then steep very briefly at first and a little longer each time; a good dark tea gives many cups.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Dark tea in general",
+        "text": "Dark tea takes boiling water. Its leaf is mature and dense, so it gives up its flavour slowly and is hard to overbrew. Rinse it first with boiling water and pour that off within seconds: the rinse wakes the leaf and washes off dust and any stale smell from storage, and an old tea may take a second rinse. In a small pot use plenty of leaf, about 7 grams to 120 ml, then steep very briefly at first and a little longer each time; a good dark tea gives many cups.",
+        "approvedAt": "2026-11-24",
+        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "dark:brewing-pressed",
+    "pageId": "dark",
+    "sectionKey": "brewing-pressed",
+    "label": "Breaking a pressed dark tea",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Dark"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Dark tea in general",
+    "text": "From a brick, cake or basket, ease the leaf off along the edge or from the top with a pick rather than snapping it. Whole pieces give up their flavour steadily; crumbs release it all at once and cloud the cup.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Dark tea in general",
+        "text": "From a brick, cake or basket, ease the leaf off along the edge or from the top with a pick rather than snapping it. Whole pieces give up their flavour steadily; crumbs release it all at once and cloud the cup.",
+        "approvedAt": "2026-11-24",
+        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "dark:brewing-simmer",
+    "pageId": "dark",
+    "sectionKey": "brewing-simmer",
+    "label": "Simmering older dark tea",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Dark"
+    },
+    "terms": [
+      {
+        "original": "煮",
+        "pinyin": "zhǔ",
+        "gloss": "simmering"
+      }
+    ],
+    "rev": 1,
+    "scope": "Dark tea in general",
+    "text": "Older or coarse dark tea is often simmered rather than steeped: the leaf goes into a pot of water, comes to a gentle boil and simmers for a few minutes. Thick leaf and long-aged tea release their flavour slowly, and the steady heat gives a fuller, smoother cup than short steeps do.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Dark tea in general",
+        "text": "Older or coarse dark tea is often simmered rather than steeped: the leaf goes into a pot of water, comes to a gentle boil and simmers for a few minutes. Thick leaf and long-aged tea release their flavour slowly, and the steady heat gives a fuller, smoother cup than short steeps do.",
+        "approvedAt": "2026-11-24",
+        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
     "claimId": "dark:common-impressions",
     "pageId": "dark",
     "sectionKey": "common-impressions",
@@ -499,471 +959,6 @@ export const PART: readonly DraftClaim[] = [
         "text": "The trade says white tea is tea in its first year, medicine at three years and a treasure at seven; it is a saying, not a tested claim, and no agreed number of years makes a tea aged. With age it moves from fresh and sweet toward jujube, dried fruit, honey, wood and herbs, with a deeper, redder liquor and a rounder body. Keep it dry, clean and aired, away from strong smells and sunlight.",
         "approvedAt": "2026-11-25",
         "reason": "Adrian approved the Fujian white kit 2026-11-25",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "fujian-white:brewing",
-    "pageId": "fujian-white",
-    "sectionKey": "brewing",
-    "label": "Brewing Fujian white",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "White",
-      "origin_includes": [
-        "fujian"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Fujian white style kit",
-    "text": "Gongfu style, use about 1 gram of leaf to 15 to 25 ml of water, for example 5 grams in a 100 to 110 ml gaiwan; weigh it, since the leaf is light and bulky. Silver Needle and young, delicate tea take water below the boil, about 75 to 90°C; older, leafier or aged tea takes water at or near the boil. Start with a steep of 10 to 45 seconds and add a few seconds each round. An aged cake is often rinsed quickly first, and older pressed tea can be simmered on the stove, about 5 grams to 500 ml for 3 to 10 minutes; young, delicate tea is not.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Fujian white style kit",
-        "text": "Gongfu style, use about 1 gram of leaf to 15 to 25 ml of water, for example 5 grams in a 100 to 110 ml gaiwan; weigh it, since the leaf is light and bulky. Silver Needle and young, delicate tea take water below the boil, about 75 to 90°C; older, leafier or aged tea takes water at or near the boil. Start with a steep of 10 to 45 seconds and add a few seconds each round. An aged cake is often rinsed quickly first, and older pressed tea can be simmered on the stove, about 5 grams to 500 ml for 3 to 10 minutes; young, delicate tea is not.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the Fujian white kit 2026-11-25",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "fujian-white:cakes",
-    "pageId": "fujian-white",
-    "sectionKey": "cakes",
-    "label": "White tea cakes",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "White",
-      "origin_includes": [
-        "fujian"
-      ]
-    },
-    "terms": [
-      {
-        "original": "白茶饼",
-        "pinyin": "báichá bǐng",
-        "gloss": "white tea cake"
-      }
-    ],
-    "rev": 1,
-    "scope": "Fujian white style kit",
-    "text": "Pressed white tea is new. Cakes began in the 2000s and spread around 2010, because a cake is smaller and easier to keep and carry than loose leaf. A cake is made from one of several grades, White Peony, Gong Mei or Shou Mei, so its grade has to be read from its own description. Some cakes are pressed from leaf already aged loose for a few years, so the year on a cake can be the year it was pressed rather than picked.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Fujian white style kit",
-        "text": "Pressed white tea is new. Cakes began in the 2000s and spread around 2010, because a cake is smaller and easier to keep and carry than loose leaf. A cake is made from one of several grades, White Peony, Gong Mei or Shou Mei, so its grade has to be read from its own description. Some cakes are pressed from leaf already aged loose for a few years, so the year on a cake can be the year it was pressed rather than picked.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the Fujian white kit 2026-11-25",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "fujian-white:common-impressions",
-    "pageId": "fujian-white",
-    "sectionKey": "common-impressions",
-    "label": "What people often notice",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "White",
-      "origin_includes": [
-        "fujian"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Fujian white style kit",
-    "text": "In young Fuding tea: a sweet cup, floral, fresh and brisk, with the scent of the down. Zhenghe tea is most often called thick and full.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Fujian white style kit",
-        "text": "In young Fuding tea: a sweet cup, floral, fresh and brisk, with the scent of the down. Zhenghe tea is most often called thick and full.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the Fujian white kit 2026-11-25",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "fujian-white:cultivars",
-    "pageId": "fujian-white",
-    "sectionKey": "cultivars",
-    "label": "The bushes",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "White",
-      "origin_includes": [
-        "fujian"
-      ]
-    },
-    "terms": [
-      {
-        "original": "福鼎大白",
-        "pinyin": "fúdǐng dàbái",
-        "gloss": "Fuding Da Bai"
-      },
-      {
-        "original": "福鼎大毫",
-        "pinyin": "fúdǐng dàháo",
-        "gloss": "Fuding Da Hao"
-      },
-      {
-        "original": "政和大白",
-        "pinyin": "zhènghé dàbái",
-        "gloss": "Zhenghe Da Bai"
-      },
-      {
-        "original": "菜茶",
-        "pinyin": "càichá",
-        "gloss": "Cai Cha"
-      }
-    ],
-    "rev": 1,
-    "scope": "Fujian white style kit",
-    "text": "Fuding grows two named cultivars, Fuding Da Bai and Fuding Da Hao, and Fuding Silver Needle is made from their buds; Fuding Da Bai comes from Bailiu village in Diantou and has plump buds heavy with white down. Zhenghe has its own, Zhenghe Da Bai, used for its Silver Needle and White Peony. Both replaced, mostly from the late 1800s on, the older small-leaf local plants grown from seed, called Cai Cha.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Fujian white style kit",
-        "text": "Fuding grows two named cultivars, Fuding Da Bai and Fuding Da Hao, and Fuding Silver Needle is made from their buds; Fuding Da Bai comes from Bailiu village in Diantou and has plump buds heavy with white down. Zhenghe has its own, Zhenghe Da Bai, used for its Silver Needle and White Peony. Both replaced, mostly from the late 1800s on, the older small-leaf local plants grown from seed, called Cai Cha.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the Fujian white kit 2026-11-25",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "fujian-white:definition",
-    "pageId": "fujian-white",
-    "sectionKey": "definition",
-    "label": "What Fujian white is",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "White",
-      "origin_includes": [
-        "fujian"
-      ]
-    },
-    "terms": [
-      {
-        "original": "福鼎白茶",
-        "pinyin": "fúdǐng báichá",
-        "gloss": "Fuding white tea"
-      },
-      {
-        "original": "政和白茶",
-        "pinyin": "zhènghé báichá",
-        "gloss": "Zhenghe white tea"
-      },
-      {
-        "original": "太姥山",
-        "pinyin": "tàimǔ shān",
-        "gloss": "Taimu Mountain"
-      }
-    ],
-    "rev": 1,
-    "scope": "Fujian white style kit",
-    "text": "Fujian is the home of white tea. Fuding and Zhenghe are its two leading counties, and Jianyang and Songxi make white tea too. Fuding is a coastal city in the north-east of the province, by the Zhejiang border, hilly over most of its land; its white tea is tied to Taimu Mountain, where the first mother tree and the first famous bud tea are placed. Fuding white tea is a protected origin name in China. Zhenghe is an inland mountain county further west.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Fujian white style kit",
-        "text": "Fujian is the home of white tea. Fuding and Zhenghe are its two leading counties, and Jianyang and Songxi make white tea too. Fuding is a coastal city in the north-east of the province, by the Zhejiang border, hilly over most of its land; its white tea is tied to Taimu Mountain, where the first mother tree and the first famous bud tea are placed. Fuding white tea is a protected origin name in China. Zhenghe is an inland mountain county further west.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the Fujian white kit 2026-11-25",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "fujian-white:fuding-and-zhenghe",
-    "pageId": "fujian-white",
-    "sectionKey": "fuding-and-zhenghe",
-    "label": "Fuding and Zhenghe",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "White",
-      "origin_includes": [
-        "fujian"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Fujian white style kit",
-    "text": "Fuding buds are plumper and downier than Zhenghe's. In the cup, Fuding is most often called the lighter, fresher, more floral style, and Zhenghe the fuller, thicker, mellower one. That is the trade's comparison of the two places, not a rule for every tea.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Fujian white style kit",
-        "text": "Fuding buds are plumper and downier than Zhenghe's. In the cup, Fuding is most often called the lighter, fresher, more floral style, and Zhenghe the fuller, thicker, mellower one. That is the trade's comparison of the two places, not a rule for every tea.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the Fujian white kit 2026-11-25",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "fujian-white:grades",
-    "pageId": "fujian-white",
-    "sectionKey": "grades",
-    "label": "Grades",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "White",
-      "origin_includes": [
-        "fujian"
-      ]
-    },
-    "terms": [
-      {
-        "original": "白毫银针",
-        "pinyin": "báiháo yínzhēn",
-        "gloss": "Silver Needle"
-      },
-      {
-        "original": "白牡丹",
-        "pinyin": "bái mǔdān",
-        "gloss": "White Peony"
-      },
-      {
-        "original": "贡眉",
-        "pinyin": "gòngméi",
-        "gloss": "Gong Mei"
-      },
-      {
-        "original": "寿眉",
-        "pinyin": "shòuméi",
-        "gloss": "Shou Mei"
-      },
-      {
-        "original": "新工艺白茶",
-        "pinyin": "xīn gōngyì báichá",
-        "gloss": "new-craft white tea"
-      }
-    ],
-    "rev": 1,
-    "scope": "Fujian white style kit",
-    "text": "The trade sorts Fujian white tea by how the leaf was picked. Silver Needle is buds alone. White Peony is a bud with one or two young leaves. Gong Mei has more leaf than bud, and Shou Mei is the mature-leaf grade, with large leaves and few or no buds, often from later picks. Fuding also makes a separate new-craft white tea, xin gongyi, which is lightly rolled after withering and is darker in the cup.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Fujian white style kit",
-        "text": "The trade sorts Fujian white tea by how the leaf was picked. Silver Needle is buds alone. White Peony is a bud with one or two young leaves. Gong Mei has more leaf than bud, and Shou Mei is the mature-leaf grade, with large leaves and few or no buds, often from later picks. Fuding also makes a separate new-craft white tea, xin gongyi, which is lightly rolled after withering and is darker in the cup.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the Fujian white kit 2026-11-25",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "fujian-white:history",
-    "pageId": "fujian-white",
-    "sectionKey": "history",
-    "label": "How Fujian white began",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "White",
-      "origin_includes": [
-        "fujian"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Fujian white style kit",
-    "text": "White tea in its present form is a Qing dynasty tea of the 1700s and 1800s, first from Fuding or Jianyang and from Zhenghe later in the 1800s. Fuding Silver Needle was first sold abroad around 1890. The stories of Taimu and older uses of the name white tea are legend, kept apart from this record.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Fujian white style kit",
-        "text": "White tea in its present form is a Qing dynasty tea of the 1700s and 1800s, first from Fuding or Jianyang and from Zhenghe later in the 1800s. Fuding Silver Needle was first sold abroad around 1890. The stories of Taimu and older uses of the name white tea are legend, kept apart from this record.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the Fujian white kit 2026-11-25",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "fujian-white:making",
-    "pageId": "fujian-white",
-    "sectionKey": "making",
-    "label": "How Fujian white is made",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "White",
-      "origin_includes": [
-        "fujian"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Fujian white style kit",
-    "text": "Two steps make it: withering, then drying at low heat, with no fixing and no rolling for the classic grades. The leaf is withered in the sun, indoors in moving air, indoors with gentle warmth, or by a mix of these, as the weather and the leaf allow, usually for two to three days. It is then dried at low heat, over charcoal or by machine, until it keeps.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Fujian white style kit",
-        "text": "Two steps make it: withering, then drying at low heat, with no fixing and no rolling for the classic grades. The leaf is withered in the sun, indoors in moving air, indoors with gentle warmth, or by a mix of these, as the weather and the leaf allow, usually for two to three days. It is then dried at low heat, over charcoal or by machine, until it keeps.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the Fujian white kit 2026-11-25",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "fujian-white:notice-aged",
-    "pageId": "fujian-white",
-    "sectionKey": "notice-aged",
-    "label": "What people often notice in aged Fujian white",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "White",
-      "origin_includes": [
-        "fujian"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Fujian white style kit",
-    "text": "Jujube or dried dates, herbs and medicine, wood, honey and dried fruit, a deeper, redder liquor, a thicker, rounder body, and less lift in the scent than a young tea.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Fujian white style kit",
-        "text": "Jujube or dried dates, herbs and medicine, wood, honey and dried fruit, a deeper, redder liquor, a thicker, rounder body, and less lift in the scent than a young tea.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the Fujian white kit 2026-11-25",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "gaba:brewing",
-    "pageId": "gaba",
-    "sectionKey": "brewing",
-    "label": "Brewing GABA oolong",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "process_in_name": [
-        "gaba"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "GABA oolong process kit",
-    "text": "In a cup or pot, steep it for about two to five minutes. It is forgiving of small changes in water temperature and steeping time. It can also be cold-brewed, steeped for some hours in the fridge.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "GABA oolong process kit",
-        "text": "In a cup or pot, steep it for about two to five minutes. It is forgiving of small changes in water temperature and steeping time. It can also be cold-brewed, steeped for some hours in the fridge.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the GABA oolong kit 2026-11-25",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "gaba:common-impressions",
-    "pageId": "gaba",
-    "sectionKey": "common-impressions",
-    "label": "What people often notice",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "process_in_name": [
-        "gaba"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "GABA oolong process kit",
-    "text": "Ripe, dried or stewed fruit such as apricot, honeyed sweetness, a smooth, round body, and little bitterness or astringency; often brown sugar or roasted grain, sometimes wood or spice, and a light fruity sourness.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "GABA oolong process kit",
-        "text": "Ripe, dried or stewed fruit such as apricot, honeyed sweetness, a smooth, round body, and little bitterness or astringency; often brown sugar or roasted grain, sometimes wood or spice, and a light fruity sourness.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the GABA oolong kit 2026-11-25",
         "evidenceIds": []
       }
     ],

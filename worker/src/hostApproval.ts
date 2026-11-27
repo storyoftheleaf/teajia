@@ -222,12 +222,17 @@ export function reachListedSessionSql(account: string, event: string, reaches: r
 /**
  * False for a host's first session: the earliest made of the sessions that
  * name them as host. Every list a hosted session could appear in adds this
- * (A3 item 4), whatever reach says. A session with no host_user_id (a shop's
- * own session) is unaffected. Needs the events alias.
+ * (A3 item 4), whatever reach says. A shop's session is unaffected, whether
+ * or not it names a host. Needs the events alias.
  */
 export function listableHostedSessionSql(event: string): string {
-  return `(${event}.host_user_id IS NULL OR EXISTS (SELECT 1 FROM events earlier_table
-    WHERE earlier_table.host_user_id = ${event}.host_user_id
+  // Only a person's own table can be their first: a session of a shop that
+  // names someone as host is listed as it always was.
+  return `(${event}.host_user_id IS NULL
+    OR NOT EXISTS (SELECT 1 FROM accounts first_table_account
+      WHERE first_table_account.id = ${event}.account_id AND ${personalAccountSql('first_table_account')})
+    OR EXISTS (SELECT 1 FROM events earlier_table
+    WHERE earlier_table.host_user_id = ${event}.host_user_id AND earlier_table.account_id = ${event}.account_id
       AND (earlier_table.created_at < ${event}.created_at
         OR (earlier_table.created_at = ${event}.created_at AND earlier_table.id < ${event}.id))))`;
 }

@@ -35,8 +35,12 @@ const MAX_PHOTO_BYTES = 3 * 1024 * 1024;
 const MAX_REQUEST_BYTES = MAX_PHOTOS * MAX_PHOTO_BYTES + 256 * 1024;
 const UUID = /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i;
 
-export function isHostArticleId(id: string): boolean {
-  return id.startsWith(ARTICLE_ID_PREFIX);
+/**
+ * A host's article, which only the platform owner edits or publishes. While
+ * host articles are closed the prefix means nothing, as before Launch 4.
+ */
+export function isHostArticleId(id: string, env: { HOST_ARTICLES_OPEN?: string } | null | undefined): boolean {
+  return hostArticlesOpen(env) && id.startsWith(ARTICLE_ID_PREFIX);
 }
 
 function response(data: unknown, status = 200) {

@@ -45,8 +45,8 @@ const guestVisiblePhoto = `g.id, ${takerFirstName} AS display_name, g.alt_text, 
  * their signed note, so without it a photograph the taker kept unnamed is
  * shown on its own and never beside their name (A3).
  */
-async function guestVisibleEntries(rows: { user_id: string; show_name: number }[], accountId: string, eventId: string) {
-  const named = await guestBookEntryKeys(rows.filter(row => Number(row.show_name) === 1), accountId, eventId);
+async function guestVisibleEntries(rows: { user_id: string; show_name: number }[], accountId: string, eventId: string, groupAll = false) {
+  const named = await guestBookEntryKeys(groupAll ? rows : rows.filter(row => Number(row.show_name) === 1), accountId, eventId);
   const keys = new Map(named.map(row => [String((row as { id?: unknown }).id), row.entry_key]));
   return rows.map(({ user_id: _user, show_name: _shown, ...row }) => {
     const key = keys.get(String((row as { id?: unknown }).id));
@@ -87,9 +87,15 @@ async function serveBytes(request: Request, bucket: R2Bucket | undefined, source
   return bytes && await source() ? sitPhotoRenditionResponse(request, bytes) : missing();
 }
 
+/**
+ * `launch3Open` is ANYONE_HOSTS_OPEN. Either way a photograph's taker is named
+ * only by first name and only when they allowed it. Closed, every photograph
+ * keeps the entry key that groups it with its taker's signed note, as before
+ * PR 560 (launch-5 flags-off audit); open, only a named one does (A3).
+ */
 export async function serveGuestBookPhotos(
   request: Request, db: D1Database, bucket: R2Bucket | undefined, scope: Scope, credentialHash: string,
-  input: GuestBookPhotoInput,
+  input: GuestBookPhotoInput, launch3Open = true,
 ) {
   const { action, photoId, grantId, description } = input;
   const binds = [credentialHash, scope.accountId, scope.userId, scope.userId];
@@ -114,7 +120,7 @@ export async function serveGuestBookPhotos(
         WHERE ${ownSource}
         ORDER BY p.created_at DESC, p.id`).bind(...event, scope.userId).all(),
     ]);
-    const entries = await guestVisibleEntries(gallery.results, seat.account_id, seat.event_id);
+    const entries = await guestVisibleEntries(gallery.results, seat.account_id, seat.event_id, !launch3Open);
     return await guestSeat(db, binds) ? json({ gallery: entries, own: own.results }) : ineligible();
   }
   if (action === 'photo-bytes' || action === 'private-photo-preview') {

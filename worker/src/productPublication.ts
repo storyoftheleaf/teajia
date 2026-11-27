@@ -1,6 +1,6 @@
 import { needsPublicationReview, publicationRefusal, type PublicationRefusal, type PublicationState } from '../../src/lib/productPublication';
 import { inwardOrdersPaused, type InwardCountColumns } from '../../shared/catalog/inwardOrders';
-import { addPricingFields, shopFreightPerKgUsd } from './productPricing';
+import { addPricingFields, accountFreightDefaults } from './productPricing';
 
 type ProductColumns = Record<string, unknown> & InwardCountColumns;
 type PublicationEnv = { DB: D1Database };
@@ -48,8 +48,8 @@ async function checkCandidate(env: PublicationEnv, accountId: string, product: P
     const { results } = await env.DB.prepare('SELECT currency, rate_to_usd FROM exchange_rates')
       .all<{ currency: string; rate_to_usd: number }>();
     const rates = new Map(results.map(row => [row.currency, row.rate_to_usd]));
-    const shopDefaultPerKgUsd = await shopFreightPerKgUsd(env, accountId, rates);
-    price = addPricingFields(product, rates, shopDefaultPerKgUsd).retail_price_per_gram_usd;
+    const freightDefaults = await accountFreightDefaults(env, accountId, rates);
+    price = addPricingFields(product, rates, freightDefaults).retail_price_per_gram_usd;
   }
   return publicationRefusal({
     givenName: product.given_name,

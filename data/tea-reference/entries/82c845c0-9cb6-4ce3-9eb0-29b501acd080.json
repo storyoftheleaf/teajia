@@ -1,0 +1,70 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-27T00:17:55.069Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "82c845c0-9cb6-4ce3-9eb0-29b501acd080",
+    "name": "Yiwu Mahei Old Tree Shou Cha",
+    "chineseName": "易武麻黑古茶熟茶",
+    "type": "Shou Puer",
+    "form": "Loose",
+    "year": 2006,
+    "origin": "Yiwu, Yunnan, China",
+    "stockGrams": null,
+    "pricePerGramUsd": null,
+    "tags": []
+  },
+  "entry": {
+    "productId": "82c845c0-9cb6-4ce3-9eb0-29b501acd080",
+    "paragraphs": [
+      {
+        "layer": "type",
+        "text": "Leaf from Yiwu, in Yunnan, made into [ripe pu’er](shou:definition) in 2006 and left loose rather than pressed into a cake. That puts it in the style’s fourth decade: Yunnan’s factories brought the [wet-pile method](shou:wet-piling) into production in 1973, after a joint team studied faster piling in Guangdong."
+      },
+      {
+        "layer": "age",
+        "text": "At twenty years it sits well inside what the trade counts as [aged ripe pu’er](shou:age-aged). The leaf is still changing slowly with the air and moisture around it, so the way it has been kept matters as much as the years."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Ripe pu’er takes boiling water: fermented, tightly packed leaf needs full heat to open, and it does not scald the way green tea can. A common start is about 7 grams to 100 ml and one quick rinse, which wakes the leaf and carries off dust and any pile smell. Then short steeps that lengthen as the leaf opens, so the cup stays clear rather than heavy; it gives eight or more good cups."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "aged ripe pu’er",
+      "text": "A smooth, deep cup with woody, date-like or medicinal notes, which the trade calls aged aroma."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "shou:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:wet-piling",
+      "rev": 2
+    },
+    {
+      "claimId": "shou:age-aged",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:notice-aged",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-27T00:36:11.432Z"
+}
