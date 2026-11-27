@@ -1,11 +1,7 @@
 import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowUpRight } from 'lucide-react';
-import { TeaPlaceholder } from './TeaPlaceholder';
 import { splitOrigin } from './TeaLedger';
-import { getTeaLedgerTones } from '../../designTokens';
-import { useTheme } from '../../context/ThemeContext';
 import { wisdomRelationsApi } from '../../admin/components/wisdom/relationsApi';
 import { listingFacts } from '../../wisdom/reference/listingFacts';
 import { EMPTY_LISTING_PASSAGES, resolveListingPassages } from '../../wisdom/reference/listingPassages';
@@ -14,6 +10,7 @@ import { GENERATED_ENTRIES } from '../../wisdom/reference/generatedEntries';
 import { GENERATED_TEA_REFERENCE_REGISTRY } from '../../wisdom/reference/generatedPages';
 import { entryClaimUses, entryLinkFor, entrySegments, type ComposedEntry } from '../../wisdom/reference/composedEntry';
 import type { ListingPassages } from '../../wisdom/reference/claims';
+import type { InventoryItem } from '../../types';
 
 /**
  * A tea on a private link (a /c/ collection, an invoice's pay page), drawn the
@@ -114,59 +111,82 @@ export function linkTeaMetaLine(source: LinkTeaSource & { year?: number | string
   return [source.type, source.year, origin.near, origin.mid].filter(Boolean).join(' · ');
 }
 
-/** A tea's photo, or the shop's illustration for its type on the type's own tone. */
+/** A tea's photo. A tea with no photo shows none (Adrian, 2026-11-27): the words take the width. */
 export const LinkTeaPhoto: React.FC<{
   src?: string | null;
-  type?: string | null;
   className?: string;
   dim?: boolean;
   eager?: boolean;
-}> = ({ src, type, className = '', dim, eager }) => {
-  const { theme } = useTheme();
-  const tones = getTeaLedgerTones(type || '', theme);
+}> = ({ src, className = '', dim, eager }) => {
+  if (!src) return null;
   return (
-    <div
-      className={`relative overflow-hidden ${className}`}
-      style={{ background: src ? undefined : tones.markBg }}
-    >
-      {src ? (
-        <img
-          src={src}
-          alt=""
-          loading={eager ? 'eager' : 'lazy'}
-          className={`absolute inset-0 h-full w-full object-cover ${dim ? 'opacity-[0.72]' : ''}`}
-        />
-      ) : (
-        <TeaPlaceholder type={type || ''} className="absolute inset-0 m-auto h-3/5 w-3/5" />
-      )}
+    <div className={`relative overflow-hidden ${className}`}>
+      <img
+        src={src}
+        alt=""
+        loading={eager ? 'eager' : 'lazy'}
+        className={`absolute inset-0 h-full w-full object-cover ${dim ? 'opacity-[0.72]' : ''}`}
+      />
     </div>
   );
 };
 
-/** Where to read more: the Wisdom Base pages this tea's writing comes from. */
-export const LinkTeaWisdomLinks: React.FC<{ pages: readonly WisdomPageLink[]; className?: string; label?: string }> = ({
-  pages, className = '', label = 'Read more in Tea Wisdom',
-}) => {
-  if (pages.length === 0) return null;
-  return (
-    <div className={className} data-testid="link-tea-wisdom">
-      <p className="label-caps text-tea-text-dim mb-2">{label}</p>
-      <ul className="flex flex-wrap gap-2">
-        {pages.map(page => (
-          <li key={page.pageId}>
-            <Link
-              to={page.href}
-              className="tap-target inline-flex min-h-9 items-center gap-1 rounded-md bg-tea-accent-sub px-3 font-body text-ui-13 text-tea-text transition-colors hover:text-tea-gold"
-            >
-              {page.label}
-              <ArrowUpRight size={12} aria-hidden="true" className="text-tea-text-dim" />
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-};
+/** The shop card's written fields, as a link's worker route sends them (publicLinkTea.ts). */
+export interface LinkTeaDetailFields {
+  description?: string | null;
+  images?: string[];
+  lore?: string | null;
+  terroir?: string | null;
+  processing_notes?: string | null;
+  mood?: string | null;
+  experience?: string | null;
+  cultivar?: string | null;
+  /** JSON, scores already removed by the worker. */
+  tasting?: string | null;
+  variant_name?: string | null;
+}
+
+/**
+ * The tea as the shop's own card reads it, so a link opens the shop's card
+ * (AlcoveCard) and not a second drawing of the same tea.
+ */
+export function linkTeaInventoryItem(source: LinkTeaSource & LinkTeaDetailFields & {
+  chineseName?: string | null;
+  year?: number | string | null;
+  image?: string | null;
+  pricePerGramUsd?: number | null;
+  soldOut?: boolean;
+}): InventoryItem {
+  const images = source.images?.length ? source.images : source.image ? [source.image] : [];
+  let tasting: InventoryItem['tasting'];
+  try { tasting = source.tasting ? JSON.parse(source.tasting) : undefined; } catch { tasting = undefined; }
+  const isWare = source.type === 'Teaware';
+  return {
+    id: source.productId ?? '',
+    category: isWare ? 'ware' : 'tea',
+    type: source.type ?? '',
+    form: source.form ?? undefined,
+    name: source.name ?? 'Tea',
+    variant: source.variant_name ?? source.name ?? '',
+    year: source.year != null ? String(source.year) : '',
+    origin: [source.originRegion, source.originCountry].filter(Boolean).join(', '),
+    stock_g: source.soldOut ? 0 : 1000,
+    cost_price: '',
+    price_per_gram: source.pricePerGramUsd != null ? String(source.pricePerGramUsd) : undefined,
+    description: source.description ?? '',
+    tags: [],
+    image: images[0] ?? '',
+    additionalImages: images.slice(1),
+    chineseName: source.chineseName ?? undefined,
+    cultivar: source.cultivar ?? null,
+    lore: source.lore ?? undefined,
+    terroir: source.terroir ?? undefined,
+    processingNotes: source.processing_notes ?? undefined,
+    mood: source.mood ?? undefined,
+    experience: source.experience ?? undefined,
+    tasting,
+  } as InventoryItem;
+}
 
 function EntryProse({ text, className = '' }: { text: string; className?: string }) {
   return (

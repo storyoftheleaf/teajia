@@ -217,9 +217,6 @@ export default function ProfilePaymentPage() {
       <div className="mt-6">
         <PaymentChooser contributorName={data.contributor.display_name} methods={data.methods} destination={destination} context={context} local={normalizeLocalAmount(data.context?.local)} accountName={data.account?.name} resolution={data.resolution} summary={summary} />
       </div>
-      <p className="mt-3.5 font-sans text-ui-11 leading-[1.5] text-tea-text-dim">
-        I keep these up to date myself.{access.via === 'link' ? ' You opened this from my link.' : access.via === 'approved' ? ' Your account is approved to see them.' : ''}
-      </p>
       {/* The same quiet offer the collection link makes: an account is never
           needed to read or pay, and joining brings them back to this page. */}
       {!access.viewer.signed_in && (

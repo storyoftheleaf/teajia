@@ -107,7 +107,7 @@ import { COMPASS_COLUMNS, decodeCompassWrite as decodeCompassWriteCodec, type Co
 import { compassFieldPatch, readCompassFieldHints } from './compassFieldPatch';
 import { receiptHoldingTeaId } from './curateMergeLink';
 import { resolveShopFreightDefault } from './shippingRate';
-import { addPricingFields, lookupRateToUsd, accountFreightDefaults, freightDefaultsByAccount } from './productPricing'; import { fillBlankQuotes, withShelfPrices } from './collectionShelf'; import { linkTeaPhotos, loadPayLinkTeaLines, type PayLinkTeaLine } from './publicLinkTea';
+import { addPricingFields, lookupRateToUsd, accountFreightDefaults, freightDefaultsByAccount } from './productPricing'; import { fillBlankQuotes, withShelfPrices } from './collectionShelf'; import { linkTeaDetail, linkTeaPhotos, loadPayLinkTeaLines, LINK_TEA_DETAIL_SQL, type PayLinkTeaLine } from './publicLinkTea';
 import { INWARD_BALI_LOT, INWARD_ORDERS_PAUSED_SQL, inwardOrdersPaused } from '../../shared/catalog/inwardOrders';
 import { checkNewProductPublication, checkProductPublication, openingStockKnownAt, publicationPatchFromColumns, writeProductPublication } from './productPublication';
 import { deductStockForPaidInvoice } from './orderLifecycle';
@@ -29878,7 +29878,7 @@ const handleGetPublicCollection: Handler = async (_request, env, params) => {
             p.chinese_name, p.year, p.origin_country, p.origin_region,
             p.image_url, p.additional_images, p.form, p.slug AS product_slug,
             CASE WHEN p.is_public = 1 AND p.shown_in_shop = 1 THEN 1 ELSE 0 END AS in_shop,
-            p.description, p.tasting_notes,
+            p.description, p.tasting_notes, ${LINK_TEA_DETAIL_SQL},
             p.status AS product_status, p.stock_grams, p.quantity_units
        FROM collection_items ci
        JOIN products p ON p.id = ci.product_id
@@ -29902,9 +29902,10 @@ const handleGetPublicCollection: Handler = async (_request, env, params) => {
       // The shop's photos ride along so the link looks like the shop. A tea's
       // shop address is given only when the tea is on the shop's shelf; a
       // private tea stays private.
-      const { additional_images, product_slug, in_shop, ...rest } = i;
+      const { additional_images, product_slug, in_shop, lore, terroir, processing_notes, mood, experience, cultivar, tasting, variant_name, ...rest } = i;
       return {
         ...rest,
+        ...linkTeaDetail({ lore, terroir, processing_notes, mood, experience, cultivar, tasting, variant_name }),
         images: linkTeaPhotos(i.image_url, additional_images),
         in_shop: in_shop === 1,
         product_slug: in_shop === 1 ? (product_slug ?? null) : null,

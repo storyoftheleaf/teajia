@@ -6,10 +6,12 @@ import { api } from '../lib/api';
 import { buildWhatsAppUrl, buildCollectionBasketMessage } from '../lib/whatsapp';
 import type { PublicCollectionResponse, PublicCollectionItem } from '../types';
 import { authPagePath } from '../lib/authNavigation';
-import { buildPublicProductHref } from '../lib/publicProductNavigation';
 import {
-  LinkTeaEntry, LinkTeaPhoto, LinkTeaWisdomLinks, linkTeaMetaLine, useLinkTeaWriting, type LinkTeaSource,
+  LinkTeaEntry, LinkTeaPhoto, linkTeaInventoryItem, linkTeaMetaLine, useLinkTeaWriting,
+  type LinkTeaDetailFields, type LinkTeaSource,
 } from '../components/shop/linkTea';
+import { AlcoveModal } from '../components/shop/AlcoveModal';
+import type { InventoryItem } from '../types';
 
 // ── Picker mode ──────────────────────────────────────────────────────────────
 
@@ -39,40 +41,6 @@ const fmtUsd = (n: number) => {
   const cents = Math.round(n * 100);
   return cents % 100 === 0 ? `$${cents / 100}` : `$${(cents / 100).toFixed(2)}`;
 };
-
-// ── Brewing guidance ─────────────────────────────────────────────────────────
-// A modest steep guide keyed off product_type. Generic-but-correct starting
-// points, not per-tea precision, upgrades cleanly if per-tea brew data is added
-// to the payload later. Returns null for types we shouldn't advise on (teaware).
-
-interface BrewGuide { temp: string; time: string; ratio: string }
-
-function getBrewGuide(item: PublicCollectionItem): BrewGuide | null {
-  const t = (item.product_type || '').toLowerCase();
-  switch (t) {
-    case 'green':
-      return { temp: '75–80°C', time: '1–2 min', ratio: '3g · 150ml' };
-    case 'white':
-      return { temp: '85–90°C', time: '2–3 min', ratio: '4g · 150ml' };
-    case 'yellow':
-      return { temp: '80–85°C', time: '2 min', ratio: '3g · 150ml' };
-    case 'oolong':
-      return { temp: '90–95°C', time: '20–40 sec', ratio: '5g · 100ml' };
-    case 'red':
-    case 'black':
-      return { temp: '90–95°C', time: '30–45 sec', ratio: '5g · 120ml' };
-    case 'sheng':
-      return { temp: '90–95°C', time: '10–20 sec', ratio: '6g · 100ml' };
-    case 'shou':
-    case 'dark':
-      return { temp: '95–100°C', time: '10–20 sec', ratio: '7g · 100ml' };
-    case 'herbal':
-    case 'tisane':
-      return { temp: '95–100°C', time: '4–6 min', ratio: '3g · 200ml' };
-    default:
-      return null;
-  }
-}
 
 // ── Scroll reveal ────────────────────────────────────────────────────────────
 // Fades + lifts an element in once when it scrolls into view. Honors
@@ -452,9 +420,6 @@ const CollectionCatalog: React.FC<{ data: PublicCollectionResponse }> = ({ data 
           {/* Contact step: revealed after first "Confirm" click */}
           {confirmState === 'contact' || confirmState === 'sending' ? (
             <div className="max-w-3xl mx-auto flex flex-col gap-2.5">
-              <p className="font-sans text-ui-11 text-tea-text-dim">
-                Your name lets {curatorName || account?.name || 'the curator'} know who to reach out to.
-              </p>
               <div className="flex flex-wrap items-center gap-2">
                 <div className="flex flex-col gap-1 min-w-0 flex-1 basis-[140px]">
                   <input
@@ -536,22 +501,37 @@ const CollectionCatalog: React.FC<{ data: PublicCollectionResponse }> = ({ data 
         </div>
       )}
 
-      {/* Cycling tea card, one instance, driven by the open item id. */}
+      {/* The open tea is the shop's own card (AlcoveModal), so it reads exactly
+          as the shop does. Its footer is this link's: choosing adds to these
+          picks, never to the shop's cart. The tea's Wisdom entry sits under
+          About, the one thing this link adds. */}
       {detailId && (() => {
-        const di = visible.findIndex(it => it.id === detailId);
-        if (di === -1) return null;
+        const focused = visible.find(it => it.id === detailId);
+        if (!focused) return null;
+        const byProduct = new Map(visible.map(it => [it.product_id, it]));
+        const cards = visible.map(collectionTeaItem);
         return (
-          <TeaCard
-            items={visible}
-            activeIndex={di}
-            basket={basket}
-            setBasket={setBasket}
-            curatorFirstName={curatorFirstName}
-            selectedCount={selectedCount}
-            onNavigate={(next) => setDetailId(visible[next].id)}
+          <AlcoveModal
+            item={cards.find(card => card.id === focused.product_id) ?? null}
+            items={cards}
             onClose={() => setDetailId(null)}
-            onReview={() => { setDetailId(null); setReviewOpen(true); }}
-            shopStoreSlug={account?.slug ?? null}
+            onItemChange={next => { const it = byProduct.get(next.id); if (it) setDetailId(it.id); }}
+            linkFooter={card => {
+              const it = byProduct.get(card.id);
+              return it ? (
+                <PickFooter
+                  item={it}
+                  basket={basket}
+                  setBasket={setBasket}
+                  selectedCount={selectedCount}
+                  onReview={() => { setDetailId(null); setReviewOpen(true); }}
+                />
+              ) : null;
+            }}
+            linkAddition={card => {
+              const it = byProduct.get(card.id);
+              return it ? <PickWriting item={it} curatorFirstName={curatorFirstName} /> : null;
+            }}
           />
         );
       })()}
@@ -862,22 +842,24 @@ const CatalogEntry: React.FC<{
       }`}
     >
       <article className="flex h-full flex-col">
-        <button
-          type="button"
-          onClick={onOpenDetail}
-          aria-haspopup="dialog"
-          aria-label={`Open ${name}`}
-          className="group block w-full overflow-hidden rounded-md"
-        >
-          <LinkTeaPhoto
-            src={photo}
-            type={item.product_type}
-            dim={oos}
-            className={`${photo ? 'aspect-square' : 'aspect-[16/9] sm:aspect-square'} w-full rounded-md transition-transform duration-500 group-hover:scale-[1.02]`}
-          />
-        </button>
+        {/* A tea with no photo shows no picture: the words take the width. */}
+        {photo && (
+          <button
+            type="button"
+            onClick={onOpenDetail}
+            aria-haspopup="dialog"
+            aria-label={`Open ${name}`}
+            className="group mb-3 block w-full overflow-hidden rounded-md"
+          >
+            <LinkTeaPhoto
+              src={photo}
+              dim={oos}
+              className="aspect-square w-full rounded-md transition-transform duration-500 group-hover:scale-[1.02]"
+            />
+          </button>
+        )}
 
-        <div className="mt-3 flex min-w-0 flex-1 flex-col">
+        <div className="flex min-w-0 flex-1 flex-col">
           <h2 className="font-display text-ui-20 font-medium leading-tight text-tea-text">
             <button type="button" onClick={onOpenDetail} aria-haspopup="dialog" className="text-left transition-colors hover:text-tea-gold">
               {name}
@@ -912,7 +894,7 @@ const CatalogEntry: React.FC<{
             aria-haspopup="dialog"
             className="tap-target mt-2 inline-flex items-center gap-1 self-start font-sans text-ui-12 text-tea-text-sec transition-colors hover:text-tea-gold"
           >
-            {writing.entry || writing.passages.passages.length ? 'Read about this tea' : 'More about this tea'} <ArrowRight size={11} />
+            Open the tea <ArrowRight size={11} />
           </button>
         </div>
 
@@ -952,245 +934,71 @@ function teaSourceOf(item: PublicCollectionItem): LinkTeaSource {
   };
 }
 
-// ── Detail panel ─────────────────────────────────────────────────────────────
-// Centered popup card that cycles through the collection's teas (prev/next
-// arrows + ←/→ keys). Image, name, a short blurb of what the tea is, the
-// recommended amount + cost, a quantity control, and an explicit accept/decline.
-// No tasting notes. The decision zone is fenced off by a top border (the
-// barrier between reading and choosing).
+// ── The open tea: the shop's card plus this link's footer and writing ─────────
 
-const TeaCard: React.FC<{
-  items: PublicCollectionItem[];
-  activeIndex: number;
+type CollectionTea = PublicCollectionItem & LinkTeaDetailFields;
+
+/** The collection tea as the shop's card reads it. The quoted price sets the per-gram price. */
+function collectionTeaItem(item: PublicCollectionItem): InventoryItem {
+  const tea = item as CollectionTea;
+  const qty = Number(item.recommended_quantity);
+  const price = item.recommended_price_usd != null ? Number(item.recommended_price_usd) : null;
+  return linkTeaInventoryItem({
+    ...teaSourceOf(item),
+    ...tea,
+    chineseName: item.chinese_name,
+    year: item.year,
+    image: item.image_url,
+    images: item.images,
+    pricePerGramUsd: price != null && Number.isFinite(qty) && qty > 0 && getPickerMode(item) === 'loose-leaf' ? price / qty : null,
+    soldOut: item.out_of_stock,
+  });
+}
+
+/** Under About on the shop's card: the curator's note, then the tea's Wisdom entry. */
+const PickWriting: React.FC<{ item: PublicCollectionItem; curatorFirstName: string }> = ({ item, curatorFirstName }) => {
+  const writing = useLinkTeaWriting(teaSourceOf(item));
+  const note = item.item_note?.trim();
+  if (!note && !writing.entry && writing.passages.passages.length === 0) return null;
+  return (
+    <div className="alcove-body-section mt-7 flex flex-col gap-5" data-testid="collection-tea-writing">
+      {note && (
+        <p className="font-body text-ui-15 leading-[1.7] text-tea-text italic">
+          “{note}”
+          <span className="not-italic text-tea-text-dim text-ui-12">, {curatorFirstName}</span>
+        </p>
+      )}
+      <LinkTeaEntry writing={writing} className="border-t border-tea-border pt-5" />
+    </div>
+  );
+};
+
+/** The card's footer on a link: amount, price, Add to these picks. */
+const PickFooter: React.FC<{
+  item: PublicCollectionItem;
   basket: BasketState;
   setBasket: React.Dispatch<React.SetStateAction<BasketState>>;
-  curatorFirstName: string;
   selectedCount: number;
-  onNavigate: (nextIndex: number) => void;
-  onClose: () => void;
   onReview: () => void;
-  shopStoreSlug?: string | null;
-}> = ({ items, activeIndex, basket, setBasket, curatorFirstName, selectedCount, onNavigate, onClose, onReview, shopStoreSlug }) => {
-  const item = items[activeIndex];
+}> = ({ item, basket, setBasket, selectedCount, onReview }) => {
   const ctl = useItemControls(item, basket, setBasket);
-  const { oos, description } = ctl;
-  const writing = useLinkTeaWriting(teaSourceOf(item));
-  const meta = linkTeaMetaLine({ ...teaSourceOf(item), year: item.year });
-  const photos = item.images?.length ? item.images : item.image_url ? [item.image_url] : [];
-  // A type-wide steep table only where the Wisdom Base has no brewing for
-  // this tea: a number about every oolong is not about this oolong.
-  const brew = writing.entry?.brewing ? null : getBrewGuide(item);
-  const shopHref = item.in_shop && (item.product_slug || item.product_id)
-    ? buildPublicProductHref({ slug: item.product_slug, id: item.product_id }, shopStoreSlug)
-    : null;
-  const closeRef = useRef<HTMLButtonElement | null>(null);
-  const touchStartX = useRef<number | null>(null);
-
-  const hasPrev = activeIndex > 0;
-  const hasNext = activeIndex < items.length - 1;
-
-  // ESC to close, ←/→ to cycle, lock body scroll, focus the close button.
-  useEffect(() => {
-    closeRef.current?.focus();
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-      else if (e.key === 'ArrowLeft' && hasPrev) onNavigate(activeIndex - 1);
-      else if (e.key === 'ArrowRight' && hasNext) onNavigate(activeIndex + 1);
-    };
-    document.addEventListener('keydown', onKey);
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.removeEventListener('keydown', onKey);
-      document.body.style.overflow = prevOverflow;
-    };
-  }, [onClose, onNavigate, activeIndex, hasPrev, hasNext]);
-
-  // Preload the neighbours' images so cycling is instant (no flash on arrival).
-  useEffect(() => {
-    [activeIndex - 1, activeIndex + 1].forEach(i => {
-      const url = items[i]?.image_url;
-      if (url) { const img = new Image(); img.src = url; }
-    });
-  }, [activeIndex, items]);
-
-  // Swipe to cycle on touch devices.
-  function onTouchStart(e: React.TouchEvent) { touchStartX.current = e.touches[0].clientX; }
-  function onTouchEnd(e: React.TouchEvent) {
-    if (touchStartX.current === null) return;
-    const dx = e.changedTouches[0].clientX - touchStartX.current;
-    touchStartX.current = null;
-    if (Math.abs(dx) < 50) return;
-    if (dx < 0 && hasNext) onNavigate(activeIndex + 1);
-    else if (dx > 0 && hasPrev) onNavigate(activeIndex - 1);
-  }
-
   return (
-    <div className="fixed inset-0 z-panel-modal flex items-center justify-center p-0 sm:p-6" role="dialog" aria-modal="true" aria-label={item.product_name || 'Tea details'}>
-      {/* Scrim */}
-      <button
-        aria-label="Close"
-        onClick={onClose}
-        className="absolute inset-0 z-panel-backdrop bg-tea-bg/80 backdrop-blur-[2px] animate-[fadeIn_180ms_ease-out]"
-      />
-
-      {/* Card */}
-      <div
-        className="relative z-panel-modal w-full sm:max-w-[460px] h-full sm:h-auto sm:max-h-[88vh] bg-tea-surface border-tea-border flex flex-col overflow-hidden sm:rounded-xl sm:border animate-[panelInUp_240ms_cubic-bezier(0.22,1,0.36,1)]"
-        onTouchStart={onTouchStart}
-        onTouchEnd={onTouchEnd}
-      >
-
-        {/* Header: close X top-left, dots + position + cycle arrows right */}
-        <div className="shrink-0 flex items-center justify-between gap-3 px-4 py-3 border-b border-tea-border">
+    <div className="shrink-0 border-t border-tea-border bg-tea-surface px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]" data-testid="collection-pick-footer">
+      <ItemControls ctl={ctl} />
+      {selectedCount > 0 && (
+        <div className="mt-4 pt-3 border-t border-tea-border flex items-center justify-between gap-3">
+          <span className="font-sans text-ui-12 text-tea-text-sec">
+            <span className="text-tea-gold font-medium">{selectedCount}</span>{' '}
+            {selectedCount === 1 ? 'tea in your picks' : 'teas in your picks'}
+          </span>
           <button
-            ref={closeRef}
-            onClick={onClose}
-            className="tap-target text-tea-text-sec hover:text-tea-text transition-colors"
-            aria-label="Close"
+            onClick={onReview}
+            className="tap-target inline-flex items-center gap-1 font-sans text-ui-12 font-medium text-tea-gold hover:text-tea-gold-lt transition-colors"
           >
-            <X size={18} />
+            Review picks <ArrowRight size={12} />
           </button>
-          <div className="flex items-center gap-3">
-            {/* Position dots, fast read of where you are in the flight */}
-            {items.length > 1 && items.length <= 8 && (
-              <div className="flex items-center gap-1.5" aria-hidden>
-                {items.map((it, i) => (
-                  <span
-                    key={it.id}
-                    className={`block rounded-full transition-all ${
-                      i === activeIndex ? 'w-1.5 h-1.5 bg-tea-gold' : 'w-1 h-1 bg-tea-border'
-                    }`}
-                  />
-                ))}
-              </div>
-            )}
-            <span className="label-caps text-tea-text-dim tabular-nums">
-              {activeIndex + 1} / {items.length}
-            </span>
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={() => hasPrev && onNavigate(activeIndex - 1)}
-                disabled={!hasPrev}
-                aria-label="Previous tea"
-                className="tap-target w-8 h-8 flex items-center justify-center rounded-full border border-tea-border text-tea-text-sec hover:text-tea-text hover:border-tea-gold/[0.4] disabled:opacity-25 disabled:cursor-not-allowed transition-colors"
-              >
-                <ChevronLeft size={15} />
-              </button>
-              <button
-                onClick={() => hasNext && onNavigate(activeIndex + 1)}
-                disabled={!hasNext}
-                aria-label="Next tea"
-                className="tap-target w-8 h-8 flex items-center justify-center rounded-full border border-tea-border text-tea-text-sec hover:text-tea-text hover:border-tea-gold/[0.4] disabled:opacity-25 disabled:cursor-not-allowed transition-colors"
-              >
-                <ChevronRight size={15} />
-              </button>
-            </div>
-          </div>
         </div>
-
-        {/* Scrollable body, re-keyed per item so a quick fade plays on cycle */}
-        <div key={item.id} className="flex-1 overflow-y-auto animate-[fadeIn_220ms_ease-out]">
-          {/* The shop's photos for this tea, or its type's illustration. A
-              second photo and more scroll sideways inside the frame only. */}
-          {photos.length > 1 ? (
-            <div className="flex snap-x snap-mandatory overflow-x-auto" aria-label="Photos">
-              {photos.map((src, i) => (
-                <LinkTeaPhoto key={src} src={src} type={item.product_type} dim={oos} eager={i === 0} className="aspect-[4/3] w-full shrink-0 snap-center" />
-              ))}
-            </div>
-          ) : (
-            <LinkTeaPhoto src={photos[0]} type={item.product_type} dim={oos} eager className="aspect-[4/3] w-full" />
-          )}
-
-          <div className="px-5 py-5 flex flex-col gap-5">
-            <div>
-              <h2 className="h2 text-tea-text">
-                {item.product_name || <span className="text-tea-text-sec italic font-body">Untitled tea</span>}
-                {item.chinese_name && (
-                  <span className="block font-body italic text-ui-15 text-tea-text-sec mt-1" style={{ fontWeight: 300 }}>
-                    {item.chinese_name}
-                  </span>
-                )}
-              </h2>
-              {meta && (
-                <p className="mt-2 font-sans text-ui-12 uppercase tracking-[0.04em] text-tea-text-sec">{meta}</p>
-              )}
-              {oos && (
-                <p className="label-caps text-tea-text-sec mt-2 inline-flex items-center gap-1.5">
-                  <AlertCircle size={10} /> currently unavailable
-                </p>
-              )}
-            </div>
-
-            {item.item_note?.trim() && (
-              <p className="font-body text-ui-15 leading-[1.7] text-tea-text italic">
-                “{item.item_note.trim()}”
-                <span className="not-italic text-tea-text-dim text-ui-12">, {curatorFirstName}</span>
-              </p>
-            )}
-
-            {/* The tea's own writing from the Wisdom Base, the same entry its
-                shop page reads. The shop's description stands in only when
-                the Wisdom Base has nothing for this tea yet. */}
-            <LinkTeaEntry writing={writing} className="border-t border-tea-border pt-5" />
-            {!writing.entry && writing.passages.passages.length === 0 && description && (
-              <p className="font-body text-ui-15 leading-[1.8] text-tea-text whitespace-pre-line">
-                {description}
-              </p>
-            )}
-
-            {brew && (
-              <div className="border-t border-tea-border pt-4">
-                <p className="label-caps text-tea-text-dim mb-2.5">How to brew</p>
-                <dl className="grid grid-cols-3 gap-3">
-                  {[['Water', brew.temp], ['Steep', brew.time], ['Leaf', brew.ratio]].map(([k, v]) => (
-                    <div key={k}>
-                      <dt className="label-caps text-tea-text-dim mb-1">{k}</dt>
-                      <dd className="font-body text-ui-14 text-tea-text">{v}</dd>
-                    </div>
-                  ))}
-                </dl>
-                <p className="font-sans text-ui-11 text-tea-text-dim italic mt-2.5">
-                  A starting point. Adjust to taste.
-                </p>
-              </div>
-            )}
-
-            <LinkTeaWisdomLinks pages={writing.pages} className="border-t border-tea-border pt-4" />
-
-            {shopHref && (
-              <Link to={shopHref} className="tap-target inline-flex items-center gap-1 self-start font-sans text-ui-12 text-tea-text-sec hover:text-tea-gold transition-colors">
-                Its page in the shop <ArrowRight size={11} />
-              </Link>
-            )}
-          </div>
-        </div>
-
-        {/* Decision zone, fenced off from the read above by a top border. The
-            barrier: amount + cost, a quantity control, the accept/decline, and a
-            running basket count so the recipient can pick the whole flight without
-            closing the card. */}
-        <div className="shrink-0 border-t border-tea-border bg-tea-elevated/40 px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-          <ItemControls ctl={ctl} onAddAndNext={hasNext ? () => onNavigate(activeIndex + 1) : undefined} />
-
-          {/* Running picks summary, completes the loop inside the card */}
-          {selectedCount > 0 && (
-            <div className="mt-4 pt-3 border-t border-tea-border flex items-center justify-between gap-3">
-              <span className="font-sans text-ui-12 text-tea-text-sec">
-                <span className="text-tea-gold font-medium">{selectedCount}</span>{' '}
-                {selectedCount === 1 ? 'tea in your picks' : 'teas in your picks'}
-              </span>
-              <button
-                onClick={onReview}
-                className="tap-target inline-flex items-center gap-1 font-sans text-ui-12 font-medium text-tea-gold hover:text-tea-gold-lt transition-colors"
-              >
-                Review picks <ArrowRight size={12} />
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
+      )}
     </div>
   );
 };

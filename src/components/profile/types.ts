@@ -1,3 +1,4 @@
+import type { LinkTeaDetailFields } from '../shop/linkTea';
 export type ProfilePublicationState = 'draft' | 'awaiting_approval' | 'published' | 'unpublished';
 export type ProfileApprovalState = 'pending' | 'approved' | 'changes_requested';
 
@@ -250,7 +251,7 @@ export interface PayAccessResponse {
 }
 
 /** One tea on an invoice, as its pay page shows it. */
-export interface PayLinkTeaLine {
+export interface PayLinkTeaLine extends LinkTeaDetailFields {
   product_id: string | null;
   name: string;
   type: string | null;

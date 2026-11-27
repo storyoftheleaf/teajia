@@ -74,6 +74,14 @@ interface AlcoveCardProps {
    * Both layouts share the exact same state, handlers, and section blocks.
    */
   layout?: 'card' | 'page';
+  /**
+   * A private link (a /c/ collection, an invoice's pay page) opens this same
+   * card. It brings its own footer, so choosing happens on the link and never
+   * in the shop's cart (null shows no footer), and a little writing of its own
+   * under About. The shop never passes either.
+   */
+  linkFooter?: React.ReactNode;
+  linkAddition?: React.ReactNode;
 }
 
 /** Returns stock status info for display */
@@ -109,7 +117,7 @@ export function ProductDetailContent(props: AlcoveCardProps) {
   return <AlcoveCard {...props} layout="page" />;
 }
 
-export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClose, isAdmin, onEdit, formatPrice, onTermClick, onTaste, onEditProductTasting, publicHref, availabilityContact, onOpenOrder, layout = 'card' }) => {
+export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClose, isAdmin, onEdit, formatPrice, onTermClick, onTaste, onEditProductTasting, publicHref, availabilityContact, onOpenOrder, layout = 'card', linkFooter, linkAddition }) => {
   const navigate = useNavigate();
   const { search } = useLocation();
   const { favoriteTeas, toggleFavoriteTea, activeAccountId } = useAppStore();
@@ -652,7 +660,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
       warmthRGB={warmthRGB}
       scrollRef={scrollRef}
       showFade={showFade}
-      commerceFooter={commerceFooter('pinned')}
+      commerceFooter={linkFooter !== undefined ? linkFooter : commerceFooter('pinned')}
       modals={modals}
     >
       {identityHeader}
@@ -660,6 +668,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
       <AlcoveGallery {...gallery} layout="card" onExpandImage={url => { setExpandedImageUrl(url); setImageExpanded(true); }} />
       {characterBand}
       <AlcoveAboutSection reading={reading} />
+      {linkAddition}
       {referenceSection}
       {tableSection}
 

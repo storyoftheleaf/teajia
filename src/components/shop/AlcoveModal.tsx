@@ -13,6 +13,9 @@ interface AlcoveModalProps {
   onTaste?: (item: InventoryItem) => void;
   onEditProductTasting?: (item: InventoryItem) => void;
   isAdmin?: boolean;
+  /** A private link's own footer and writing for the focused tea (see AlcoveCard). */
+  linkFooter?: (item: InventoryItem) => React.ReactNode;
+  linkAddition?: (item: InventoryItem) => React.ReactNode;
 }
 
 /**
@@ -33,6 +36,8 @@ export const AlcoveModal: React.FC<AlcoveModalProps> = ({
   onTaste,
   onEditProductTasting,
   isAdmin,
+  linkFooter,
+  linkAddition,
 }) => (
   <AlcoveCarouselShell
     item={item}
@@ -41,7 +46,7 @@ export const AlcoveModal: React.FC<AlcoveModalProps> = ({
     onItemChange={onItemChange}
     ariaLabelledBy={item ? `alcove-title-${item.id}` : undefined}
     slotStyle={{ width: '100%', height: '100%' }}
-    renderPeek={(peeked) => <AlcoveCard item={peeked} onClose={() => {}} />}
+    renderPeek={(peeked) => <AlcoveCard item={peeked} onClose={() => {}} linkFooter={linkFooter ? null : undefined} />}
     renderCard={(focused) => (
       <>
         {/* On desktop, constrain size. On mobile (<lg), leave just enough
@@ -79,6 +84,8 @@ export const AlcoveModal: React.FC<AlcoveModalProps> = ({
             onTaste={onTaste}
             onEditProductTasting={onEditProductTasting}
             isAdmin={isAdmin}
+            linkFooter={linkFooter ? linkFooter(focused) : undefined}
+            linkAddition={linkAddition?.(focused)}
           />
           <AlcoveCloseButton onClose={onClose} />
         </div>

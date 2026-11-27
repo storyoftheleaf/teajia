@@ -650,7 +650,7 @@ test.describe('Tea Master profile routes — mobile', () => {
     await expect(page.getByRole('heading', { name: 'Bank transfer' })).toBeVisible();
     await expect(page.getByText('123 456 789')).toBeVisible();
     await expect(page.getByText('IDR 180000')).toBeVisible();
-    await expect(page.getByText('This page does not verify or record payment.')).toBeVisible();
+    await expect(page.getByText('This page does not verify or record payment.')).toHaveCount(0);
     await shot(page, 'profile_public_payment');
     await assertPageHealthy(page, 'Public Tea Master payment chooser', []);
   });
