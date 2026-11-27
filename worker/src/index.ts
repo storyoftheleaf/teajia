@@ -15,6 +15,7 @@ import { boughtLineChestState, boughtLineQuantityUnit, keepBoughtLine, type Boug
 import { firstTableOpen } from '../../src/lib/firstTable';
 import { createHostArticleHandlers, isHostArticleId } from './hostArticleOffers';
 import { favouritesRoutes } from './favourites';
+import { practiceColumnsRemoved, practiceLinesRoutes } from './practiceLines';
 import { favouritesOpen } from '../../src/lib/favouritesOpen';
 import { teaTableRoutes } from './teaTable';
 import { knowThisTeaRoutes } from './knowThisTea';
@@ -359,6 +360,8 @@ interface Env extends WorkerReleaseEnv, PayPalSandboxEnv, PayPalLiveEnv, Shippin
   HOST_ARTICLES_OPEN?: string;
   /** "true" or "false" opens or closes favourites (Launch 4); see src/lib/favouritesOpen.ts. */
   FAVOURITES_OPEN?: string;
+  /** "true" or "false" opens or closes the practice lines on a person's page; see src/lib/practiceLines.ts. */
+  PRACTICE_LINES_OPEN?: string;
   TOP_TEAS_OPEN?: string;
   /** "true" or "false" opens or closes Your Table as a page (Launch 4); see src/lib/yourTablePage.ts. */
   YOUR_TABLE_PAGE_OPEN?: string;
@@ -8692,7 +8695,8 @@ function parseContributorWrite(body: Record<string, unknown>) {
 function adminContributor(row: Record<string, any>) {
   let links: unknown[] = [];
   try { links = JSON.parse(row.links || '[]'); } catch { links = []; }
-  return { ...row, links };
+  // The practice lines are served only by their own route (worker/src/practiceLines.ts).
+  return { ...practiceColumnsRemoved(row), links };
 }
 
 // Gallery images (contributor_gallery_images): a row-per-photo collection,
@@ -9994,7 +9998,7 @@ const handleListMyPaymentMethods: Handler = async (request, env) => {
 const handleCreateMyPaymentMethod: Handler = async (request, env) => {
   const owned = await requireOwnContributor(request, env);
   if ('error' in owned) return owned.error;
-  if (!familyPageAllowsPay(familyPageTierOf(owned.contributor.page_tier))) return restError(403, 'Pay is for tea masters.', 'pay_not_for_this_page');
+  if (!familyPageAllowsPay(familyPageTierOf(owned.contributor.page_tier))) return restError(403, 'Pay is for hosts.', 'pay_not_for_this_page');
   const bodyResult = await contributorJson(request);
   if (bodyResult instanceof Response) return bodyResult;
   const parsed = parsePaymentMethodWrite(bodyResult);
@@ -22559,11 +22563,11 @@ async function personalSellerPayabilityGap(env: Env, accountId: string, userId: 
 
 const STORE_PAYABILITY_REFUSALS: Record<StorePayabilityGap, { message: string; code: string }> = {
   no_recipient: {
-    message: 'No Tea Master profile is linked to this store, so there is nobody for a customer to pay. Create yours before opening the shop.',
+    message: 'No host profile is linked to this store, so there is nobody for a customer to pay. Create yours before opening the shop.',
     code: 'store_has_no_payment_recipient',
   },
   profile_not_published: {
-    message: 'Publish your Tea Master profile before opening the shop, so customers have somewhere to pay.',
+    message: 'Publish your host profile before opening the shop, so customers have somewhere to pay.',
     code: 'store_recipient_profile_unpublished',
   },
   no_payment_method: {
@@ -24599,7 +24603,7 @@ const handlePlatformInviteTeaMaster: Handler = async (request, env) => {
     emailSent = await sendEmail(
       env,
       email,
-      `You've been invited as a Tea Master on Teajia`,
+      `You've been invited as a host on Teajia`,
       inviteEmailHtml(inviteUrl, displayName || 'Teajia')
     );
   }
@@ -24627,7 +24631,7 @@ const handlePlatformUpgradeToLocation: Handler = async (request, env, params) =>
     .bind(params.id).first();
   if (!account) return json({ error: 'Account not found' }, 404);
   if ((account as any).kind !== 'master') {
-    return json({ error: 'Only Tea Master accounts can be upgraded to Location' }, 400);
+    return json({ error: 'Only host accounts can be upgraded to Location' }, 400);
   }
 
   const body = await request.json() as {
@@ -33507,6 +33511,7 @@ const routes: [string, string, Handler][] = [
   ['DELETE', '/api/me/private-sits/:id/photos/:photoId', handleMemberPrivateSitPhotos],
   ['PUT', '/api/me/private-sits/:id/photos/:photoId/share', handleMemberPrivateSitPhotos],
   ...favouritesRoutes<Env>({ requireUser: requireAuthenticatedUser }),
+  ...practiceLinesRoutes<Env>({ optionalUser: optionalAuthenticatedUser, requireUser: requireAuthenticatedUser }),
   ...teaTableRoutes<Env>({ requireAuthenticatedUser, requireBundle }),
   ...knowThisTeaRoutes<Env>({ requireAuthenticatedUser }),
   ...teaHousesRoutes<Env>({ requireAuthenticatedUser }),

@@ -5,7 +5,7 @@ import { curateIntakeTools } from '../src/mcpTools/curateIntake';
 /*
  * Adrian (2026-11-27): every vendor has a code like V1 and every tea or sample
  * a number within its vendor, so he can say "V1T12" instead of typing names.
- * The database hands the numbers out (migration 0149) whichever door adds the
+ * The database hands the numbers out (migration 0155) whichever door adds the
  * tea, and never hands the same number out twice.
  */
 

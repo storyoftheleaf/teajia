@@ -14,7 +14,7 @@ import { curateSnapshotForViewer, curateSnapshotJsonForViewer } from './compassS
 import { isShopOwner } from './publicScores';
 
 // Columns the database fills in itself after a recorded write (migration
-// 0149's tea numbers). The recorded snapshot cannot know them, so a later
+// 0155's tea numbers). The recorded snapshot cannot know them, so a later
 // difference there is not newer work.
 export const SERVER_STAMPED_COLUMNS: ReadonlySet<string> = new Set(['vendor_tea_number']);
 

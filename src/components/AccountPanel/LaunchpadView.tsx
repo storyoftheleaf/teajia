@@ -575,7 +575,7 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
           the person who can be paid, and the shop that sells. Present only
           while something is left, and gone the moment it is finished. */}
       {setupNext && readiness && (
-        <section className="mb-10" aria-label="Setting up as a Tea Master">
+        <section className="mb-10" aria-label="Setting up as a host">
           <div className="font-sans text-ui-11 text-tea-text-dim uppercase tracking-[0.18em] mb-2">
             Setting up
           </div>

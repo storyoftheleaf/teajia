@@ -4258,7 +4258,7 @@ CREATE TABLE IF NOT EXISTS tea_table_question_notes (
   UNIQUE (question_id, writer_user_id)
 );
 
--- Short codes (migration 0149): tea numbers within a vendor, V codes.
+-- Short codes (migration 0155): tea numbers within a vendor, V codes.
 ALTER TABLE tea_compass_entries ADD COLUMN vendor_tea_number INTEGER;
 
 CREATE TABLE IF NOT EXISTS curate_code_counters (
@@ -4358,3 +4358,8 @@ BEGIN
   VALUES (NEW.id, NEW.account_id,
           'V' || (SELECT last_number FROM curate_code_counters WHERE account_id = NEW.account_id AND scope = 'vendor'));
 END;
+
+-- 0150_practice_lines.sql
+ALTER TABLE contributors ADD COLUMN practice_since INTEGER CHECK (practice_since IS NULL OR practice_since BETWEEN 1930 AND 2200);
+ALTER TABLE contributors ADD COLUMN practice_drawn TEXT CHECK (practice_drawn IS NULL OR length(practice_drawn) BETWEEN 1 AND 140);
+ALTER TABLE contributors ADD COLUMN practice_doings TEXT CHECK (practice_doings IS NULL OR length(practice_doings) BETWEEN 1 AND 200);

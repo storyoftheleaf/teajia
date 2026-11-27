@@ -33,7 +33,7 @@ CREATE INDEX IF NOT EXISTS idx_compass_vendor_tea_number
 
 -- Backfill 1: vendors in the order they were added. A vendor is a contact
 -- tagged vendor, a supplier contact, or one any Library tea names.
-CREATE TABLE short_code_vendors_0149 AS
+CREATE TABLE short_code_vendors_0155 AS
 SELECT c.id AS vendor_id, c.account_id AS account_id,
        ROW_NUMBER() OVER (PARTITION BY c.account_id ORDER BY c.created_at, c.id) AS n
   FROM customers c
@@ -48,17 +48,17 @@ SELECT c.id AS vendor_id, c.account_id AS account_id,
    );
 
 INSERT INTO curate_vendor_short_codes (vendor_id, account_id, code)
-SELECT vendor_id, account_id, 'V' || n FROM short_code_vendors_0149;
+SELECT vendor_id, account_id, 'V' || n FROM short_code_vendors_0155;
 
 INSERT INTO curate_code_counters (account_id, scope, last_number)
-SELECT account_id, 'vendor', MAX(n) FROM short_code_vendors_0149 GROUP BY account_id;
+SELECT account_id, 'vendor', MAX(n) FROM short_code_vendors_0155 GROUP BY account_id;
 
-DROP TABLE short_code_vendors_0149;
+DROP TABLE short_code_vendors_0155;
 
 -- Backfill 2: each vendor's teas and samples in the order they were added,
 -- archived and deleted ones included so a number is never handed out twice.
-CREATE TABLE short_code_teas_0149 (id TEXT PRIMARY KEY, n INTEGER NOT NULL);
-INSERT INTO short_code_teas_0149 (id, n)
+CREATE TABLE short_code_teas_0155 (id TEXT PRIMARY KEY, n INTEGER NOT NULL);
+INSERT INTO short_code_teas_0155 (id, n)
 SELECT e.id,
        ROW_NUMBER() OVER (
          PARTITION BY e.account_id, COALESCE(NULLIF(e.linked_customer_id, ''), NULLIF(e.vendor_id, ''))
@@ -68,10 +68,10 @@ SELECT e.id,
    AND COALESCE(NULLIF(e.linked_customer_id, ''), NULLIF(e.vendor_id, '')) IS NOT NULL;
 
 UPDATE tea_compass_entries
-   SET vendor_tea_number = (SELECT t.n FROM short_code_teas_0149 t WHERE t.id = tea_compass_entries.id)
- WHERE id IN (SELECT id FROM short_code_teas_0149);
+   SET vendor_tea_number = (SELECT t.n FROM short_code_teas_0155 t WHERE t.id = tea_compass_entries.id)
+ WHERE id IN (SELECT id FROM short_code_teas_0155);
 
-DROP TABLE short_code_teas_0149;
+DROP TABLE short_code_teas_0155;
 
 INSERT INTO curate_code_counters (account_id, scope, last_number)
 SELECT account_id, 'tea:' || COALESCE(NULLIF(linked_customer_id, ''), NULLIF(vendor_id, '')), MAX(vendor_tea_number)

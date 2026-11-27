@@ -6750,6 +6750,13 @@ body.cart-panel-open .commerce-dock {
 .purchase-review-queue .purchase-tracking-status>.logistics-state,.purchase-review-queue .purchase-tracking-summary,.purchase-review-queue .purchase-tracking-contents,.purchase-review-queue .purchase-parcel-tracking { display:none; }
 .purchase-review-queue .purchase-tracking-attention { padding:6px 10px 8px; background:transparent; border:0; }
 .purchase-review-queue .purchase-tracking-meta { margin-top:2px; gap:4px 8px; color:var(--tea-text-dim); }
+.arrivals-on-the-way>header p { margin:0; }
+.arrivals-supplier { padding:var(--space-1) var(--space-3); }
+.arrivals-supplier+.arrivals-supplier { border-top:1px solid var(--tea-border); }
+.arrivals-supplier h3 { margin:0; font:inherit; font-weight:500; }
+.arrivals-supplier ul { margin:0; padding:0; list-style:none; }
+.arrivals-supplier li { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; column-gap:var(--space-3); min-width:0; }
+.arrivals-supplier .arrivals-tea { display:inline-flex; align-items:center; min-width:0; overflow-wrap:anywhere; }
 .purchase-journey-leg>h3 { margin:0 0 8px; padding:8px; background:var(--tea-elevated); border:1px solid var(--tea-border); border-radius:4px; color:var(--tea-text); }
 .purchase-journey-leg>h3>span { margin-left:auto; }
 .logistics-state { display:inline-flex; align-items:center; padding:3px 6px; border:1px solid var(--tea-border); border-radius:3px; background:var(--tea-bg); color:var(--tea-text-sec); white-space:nowrap; }

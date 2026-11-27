@@ -105,7 +105,7 @@ try {
       ...(process.env.ANYONE_HOSTS_OPEN === 'true' ? ['--var', 'ANYONE_HOSTS_OPEN:true'] : []),
       ...(process.env.FAVOURITES_OPEN === 'true' ? ['--var', 'FAVOURITES_OPEN:true'] : []),
       // Launch 4's other switches, the same way (tests/launch-4.spec.ts).
-      ...['TEA_TABLE_OPEN', 'YOUR_TABLE_PAGE_OPEN', 'HOST_ARTICLES_OPEN', 'TOP_TEAS_OPEN', 'TEA_HOUSES_OPEN', 'YOUR_TABLE_PLACE_OPEN']
+      ...['TEA_TABLE_OPEN', 'YOUR_TABLE_PAGE_OPEN', 'HOST_ARTICLES_OPEN', 'TOP_TEAS_OPEN', 'TEA_HOUSES_OPEN', 'YOUR_TABLE_PLACE_OPEN', 'PRACTICE_LINES_OPEN']
         .flatMap(name => (process.env[name] === 'true' ? ['--var', `${name}:true`] : [])),
       ...['CIRCLES_OPEN', 'HOST_TOKENS_OPEN', 'HOST_CREDIT_OPEN', 'KNOW_THIS_TEA_OPEN', 'TABLE_CARD_OPEN']
         .flatMap(flag => (process.env[flag] === 'true' ? ['--var', `${flag}:true`] : [])),

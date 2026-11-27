@@ -29,10 +29,10 @@ describe('the Manage rooms', () => {
     expect(settings.children).toBeUndefined();
   });
 
-  it('show Tea Masters under Publish only to an owner', () => {
+  it('show Hosts under Publish only to an owner', () => {
     const labels = (f: typeof OWNER) => buildManageItems(f).find(r => r.id === 'publish')!.children!.map(c => c.label);
-    expect(labels(OWNER)).toContain('Tea Masters');
-    expect(labels({ ...OWNER, isOwnerTier: false })).not.toContain('Tea Masters');
+    expect(labels(OWNER)).toContain('Hosts');
+    expect(labels({ ...OWNER, isOwnerTier: false })).not.toContain('Hosts');
   });
 });
 

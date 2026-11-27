@@ -251,7 +251,7 @@ describe('the owner\'s word for a person', () => {
     expect(list.contributors.find((item: any) => item.id === 'mei-lin').role).toBe('Tea creator');
 
     await call(env, OWNER, '/api/admin/family/pages/mei-lin/tier', { method: 'PUT', body: { tier: 'master' } });
-    expect((await (await publicPage(env, 'mei-lin')).json() as any).role).toBe('Tea master');
+    expect((await (await publicPage(env, 'mei-lin')).json() as any).role).toBe('Host');
     await call(env, OWNER, '/api/admin/family/pages/mei-lin/tier', { method: 'PUT', body: { tier: 'family' } });
     expect((await (await publicPage(env, 'mei-lin')).json() as any).role).toBe('Teajia family');
     expect(written(pageOf(db, 'member-one')!)).toEqual(before);

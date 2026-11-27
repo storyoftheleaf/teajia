@@ -1,7 +1,7 @@
 // Short codes (Adrian, 2026-11-27): every vendor has a code such as V1 (the
 // vendor page's Vendor code), and every tea or sample a number within its
 // vendor, so "V1T12" is vendor V1's twelfth tea. The numbers are handed out
-// by the database (migration 0149) and never reused. This file only reads
+// by the database (migration 0155) and never reused. This file only reads
 // and writes the text form, the same on the site and for the agent.
 
 export interface ShortCode {

@@ -6,7 +6,7 @@ export async function readPurchaseTracking(env: { DB:D1Database }, accountId:str
     env.DB.prepare(`SELECT l.*,COALESCE(p.given_name,p.product_name,'Unnamed item') product_name,CASE WHEN l.unit='g' THEN COALESCE(p.stock_grams,0) ELSE COALESCE(p.quantity_units,0) END current_on_hand FROM inventory_receipt_lines l JOIN products p ON p.id=l.product_id AND p.account_id=l.account_id WHERE l.account_id=? ORDER BY l.created_at,l.id`).bind(accountId).all<Record<string,any>>(),
     env.DB.prepare(`SELECT s.id,l.id line_id,s.product_id,s.delta quantity,l.unit unit,s.balance_after,s.created_at recorded_at,s.user_email recorded_by,s.note,l.receipt_id FROM stock_ledger s JOIN inventory_receipt_lines l ON (l.id=s.inventory_receipt_line_id OR l.source_movement_id=s.id) AND l.account_id=s.account_id WHERE s.account_id=? ORDER BY s.created_at DESC,s.id DESC`).bind(accountId).all<Record<string,any>>(),
     env.DB.prepare(`SELECT r.inventory_receipt_id receipt_id,b.id import_id,b.title FROM curate_import_receipts r JOIN curate_import_batches b ON b.id=r.batch_id AND b.account_id=r.account_id WHERE r.account_id=?`).bind(accountId).all<Record<string,any>>(),
-    env.DB.prepare("SELECT r.*,COALESCE(c.name,e.vendor_name) vendor_name FROM curate_receipt_proposals r LEFT JOIN tea_compass_entries e ON e.id=r.compass_entry_id AND e.account_id=r.account_id LEFT JOIN customers c ON c.id=e.vendor_id AND c.account_id=e.account_id WHERE r.account_id=? AND r.status='pending' ORDER BY r.created_at DESC").bind(accountId).all<Record<string,any>>(),
+    env.DB.prepare("SELECT r.*,COALESCE(c.name,e.vendor_name) vendor_name,COALESCE(NULLIF(r.product_name,''),e.given_name,e.name,e.chinese_name) tea_name FROM curate_receipt_proposals r LEFT JOIN tea_compass_entries e ON e.id=r.compass_entry_id AND e.account_id=r.account_id LEFT JOIN customers c ON c.id=e.vendor_id AND c.account_id=e.account_id WHERE r.account_id=? AND r.status='pending' ORDER BY r.created_at DESC").bind(accountId).all<Record<string,any>>(),
     env.DB.prepare("SELECT b.id,b.title,b.created_at,b.analysis_state,b.review_state,(SELECT COUNT(*) FROM curate_import_items i WHERE i.batch_id=b.id AND i.account_id=b.account_id AND i.review_state<>'abandoned') item_count FROM curate_import_batches b WHERE b.account_id=? AND b.review_state NOT IN ('completed','abandoned') ORDER BY b.created_at DESC").bind(accountId).all<Record<string,any>>(),
   ]);
   const lines=new Map<string,any[]>(),history=new Map<string,any[]>();
@@ -27,7 +27,7 @@ export async function readPurchaseTracking(env: { DB:D1Database }, accountId:str
     const orderId=/^order:([^:]+):/.exec(String(proposal.idempotency_key??''))?.[1];
     const linked=orderId?rows.find(row=>row.purchase?.id===orderId):null;
     if(linked){if(!linked.receipt)linked.arrival_proposal=proposal;continue;}
-    rows.push({id:`proposal:${proposal.id}`,purchase:null,receipt:null,arrival_proposal:proposal,invoice_draft:null,attention:[{code:'legacy_arrival',message:'Arrival is waiting for agent review.'}],history:[],source_document:null});
+    rows.push({id:`proposal:${proposal.id}`,purchase:null,receipt:null,arrival_proposal:proposal,invoice_draft:null,attention:[{code:'legacy_arrival',message:proposal.acquisition_state==='in_transit'?'On the way. Approve it into stock when it reaches you.':'Ordered. Approve it into stock when it reaches you.'}],history:[],source_document:null});
   }
   for(const draft of draftResult.results??[]){
     const attention={code:'invoice_review',message:'Invoice needs review before items can be tracked.'};

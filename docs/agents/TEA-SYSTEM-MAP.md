@@ -47,7 +47,8 @@ Every step exists and works on its own. What is missing are the joins between st
 |---|---|---|
 | 586 | Step 2: each card says where the tea is, now past the write-up (priced, main photo, public, Tea Wisdom entry); one Waiting for you list (arrivals, samples to taste, chosen not in Stock, amount, cost, write-up, public with no Tea Wisdom entry yet) | Open |
 | 568 | Step 2: the vendor page opens every record and its contacts | Open, ready for review |
-| 579 | Step 4: freight rates live with each logistics company | Open |
+| 579 | Step 4: freight rates live with each logistics company | Live |
+| this thread | Step 4: "shop default" on a tea opens Shipping rates (`?serviceId=shop`) with its form ready; Curate arrivals on the way are one list by supplier; agents get `list_freight_rates` and `set_tea_freight_service` | Open |
 | 585 | Step 7: Palace Grade page, loose leaf only | Open |
 | 588 | Step 8: collections show the shelf price when no quote is typed; freight passed on at cost | Live |
 | 583 | Steps 8 and 9: invoices link puer teas; payment details are one paste box | Live |

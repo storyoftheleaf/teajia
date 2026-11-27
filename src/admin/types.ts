@@ -353,7 +353,7 @@ export interface Customer {
    *  vendor is picked, so a vendor remembered by face can be found by face. */
   /** The code shown by the vendor's name: typed on the vendor page, else V1. */
   vendorCode?: string;
-  /** The vendor's automatic V code (migration 0149); finds the vendor too. */
+  /** The vendor's automatic V code (migration 0155); finds the vendor too. */
   vendorShortCode?: string;
   face_photo?: string;
   latitude?: number;
