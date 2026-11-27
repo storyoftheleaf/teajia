@@ -32,6 +32,7 @@ Subagents are dispatched with these models named explicitly (`model: "sonnet"` /
 
 - **Run:** `node scripts/tea-wisdom-compose/needs.mjs --products <file> --ids <id,…>`, where the file is the public product list (`curl -s https://www.teajia.com/api/products/public > $TMPDIR/products.json`). The same check shows on the tea in Curate as its "Wisdom Base" list. With no `--ids` it checks every public tea and ends with the missing pages most teas need.
 - **It prints** one line per need: state (`covered`, `drafted`, `record`, `missing`), kind (`style`, `place`, `grade`, `process`, `producer`, `named`), label and page id.
+- **A missing kit is a need like any other.** When the tea's type or style has no approved kit, the check prints `missing style … No style kit for <type>`. That is "kit missing": step 2 drafts the kit, and the tea's entry waits until Adrian approves it. A drafted kit reads `drafted`.
 - **Hand on:** each `missing` or `record` line becomes one research job for step 2, addressed by the table below. `drafted` means a page is written and waiting for step 3. When everything is `covered`, go straight to step 4.
 - The check's rules are the table in [TEA_WISDOM_BASE.md](../TEA_WISDOM_BASE.md#when-a-new-tea-is-posted-what-the-wisdom-base-needs) and the composer's own matching, so what it calls covered is what step 4 will find.
 
@@ -49,6 +50,8 @@ Subagents are dispatched with these models named explicitly (`model: "sonnet"` /
 A page's id is always the id of its record. If the record row does not exist (state `missing`), add it to the right CSV in `data/tea-wisdom-source/` with that id and every fact you can support, then run `node scripts/build-wisdom.mjs`. Never delete a row. A place page shows publicly only once a public tea links it.
 
 ## Step 2. Research and draft each missing page (Sonnet, one agent per page)
+
+**Kits come only through this chain (Adrian, 2026-11-27).** A type or style kit is drafted here, by `/tea-wisdom`, when the check reports it missing, and it stops at Adrian's review like any page. No separate session, folder or batch writes kits. The 15 approved kits on main are the models; the sections every kit has are in [the kit template](../../todo/plans/tea-wisdom-all-teas.md#the-kit-template).
 
 **Read first:** this file; [WISDOM_PAGE_STYLE.md](../WISDOM_PAGE_STYLE.md), the rules for how every page reads, which grow from Adrian's review notes; one approved page of the same kind (`shou.md` for a style, `banzhang.md` for a place, `y562.md` for a named tea); [the claims contract](../_notes/tea-wisdom-claims.md).
 
