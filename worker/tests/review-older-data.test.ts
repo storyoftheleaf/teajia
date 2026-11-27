@@ -35,7 +35,7 @@ it('preserves every original row and cell at every migration boundary and leaves
   // 0137 and 0142 have no SQL file in the migration ledger; 0150 came from main
   // (practice lines) and 0151 is taken on another branch.
   expect(versions).toEqual(['0127', '0128', '0129', '0130', '0131', '0132', '0133', '0134',
-    '0135', '0136', '0138', '0139', '0140', '0141', '0143', '0144', '0145', '0146', '0147', '0148', '0149', '0150', '0152', '0153']);
+    '0135', '0136', '0138', '0139', '0140', '0141', '0143', '0144', '0145', '0146', '0147', '0148', '0149', '0150', '0152', '0153', '0156']);
 });
 
 describe.each([false, true])('older Tea Chest, switches open = %s', open => {

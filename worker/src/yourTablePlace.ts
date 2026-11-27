@@ -35,8 +35,9 @@ export async function readYourTable(db: D1Database, accountId: string): Promise<
 }
 
 /**
- * Name one saved place as the host's table, with the area the public is told.
- * Any other place of theirs stops being the table in the same write.
+ * Mark one saved place as a tea space of the host's, with the area the public
+ * is told. A host may have several (tea spaces, step 2, 2026-11-27); the
+ * others are left as they are.
  */
 export async function chooseYourTable(db: D1Database, accountId: string, body: Record<string, unknown> | null):
   Promise<{ places: YourTablePlace[] } | Refused> {
@@ -60,19 +61,44 @@ export async function chooseYourTable(db: D1Database, accountId: string, body: R
     }
   }
   if (/https?:\/\//i.test(area)) return refuse('your_table_area_address', 'Write only the area, not a link.');
-  await db.batch([
-    db.prepare(`UPDATE saved_locations SET is_host_table = 0, updated_at = datetime('now')
-                 WHERE account_id = ? AND is_host_table = 1 AND id <> ?`).bind(accountId, placeId),
-    db.prepare(`UPDATE saved_locations SET is_host_table = 1, area_hint = ?, updated_at = datetime('now')
-                 WHERE id = ? AND account_id = ?`).bind(area, placeId, accountId),
-  ]);
+  await db.prepare(`UPDATE saved_locations SET is_host_table = 1, area_hint = ?, updated_at = datetime('now')
+               WHERE id = ? AND account_id = ?`).bind(area, placeId, accountId).run();
   return readYourTable(db, accountId);
 }
 
-/** Undo: none of the host's places is their table. The places themselves stay. */
-export async function undoYourTable(db: D1Database, accountId: string): Promise<{ places: YourTablePlace[] }> {
-  await db.prepare(`UPDATE saved_locations SET is_host_table = 0, updated_at = datetime('now')
-                     WHERE account_id = ? AND is_host_table = 1`).bind(accountId).run();
+export const TEA_SPACE_NAME_MAX = 80;
+
+/**
+ * Add a new tea space: a name and the area, nothing more (tea spaces, step 2).
+ * It is kept as one of the host's saved places with no address yet; the way in
+ * is added from a table's page as before.
+ */
+export async function addTeaSpace(db: D1Database, accountId: string, body: Record<string, unknown> | null):
+  Promise<{ places: YourTablePlace[] } | Refused> {
+  const name = typeof body?.name === 'string' ? body.name.trim().replace(/\s+/g, ' ') : '';
+  if (!name) return refuse('tea_space_name', 'Give your tea space a name.');
+  if (name.length > TEA_SPACE_NAME_MAX) return refuse('tea_space_name', `Keep the name under ${TEA_SPACE_NAME_MAX} characters.`);
+  const area = typeof body?.area_hint === 'string' ? body.area_hint.trim() : '';
+  if (!area) return refuse('your_table_area', 'Write the area your tea space is in.');
+  if (area.length > TABLE_AREA_MAX) return refuse('your_table_area', `Keep the area under ${TABLE_AREA_MAX} characters.`);
+  if (/https?:\/\//i.test(area)) return refuse('your_table_area_address', 'Write only the area, not a link.');
+  await db.prepare(`INSERT INTO saved_locations (name, address, account_id, is_host_table, area_hint)
+                    VALUES (?, '', ?, 1, ?)`).bind(name, accountId, area).run();
+  return readYourTable(db, accountId);
+}
+
+/**
+ * Undo: the place named (or, with none named, every place) stops being a tea
+ * space. The places themselves stay.
+ */
+export async function undoYourTable(db: D1Database, accountId: string, placeId?: string | null): Promise<{ places: YourTablePlace[] }> {
+  if (placeId) {
+    await db.prepare(`UPDATE saved_locations SET is_host_table = 0, updated_at = datetime('now')
+                       WHERE account_id = ? AND id = ? AND is_host_table = 1`).bind(accountId, placeId).run();
+  } else {
+    await db.prepare(`UPDATE saved_locations SET is_host_table = 0, updated_at = datetime('now')
+                       WHERE account_id = ? AND is_host_table = 1`).bind(accountId).run();
+  }
   return readYourTable(db, accountId);
 }
 

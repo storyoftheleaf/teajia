@@ -157,7 +157,11 @@ export function createHostingApi({ apiUrl, authedFetch }: HostingApiDependencies
     yourTable: (): Promise<YourTableAnswer> => authedFetch(`${apiUrl}/api/me/your-table`),
     chooseYourTable: (choice: { place_id: string; area_hint: string }): Promise<YourTableAnswer> =>
       authedFetch(`${apiUrl}/api/me/your-table`, { method: 'PUT', body: JSON.stringify(choice) }),
-    undoYourTable: (): Promise<YourTableAnswer> => authedFetch(`${apiUrl}/api/me/your-table`, { method: 'DELETE' }),
+    undoYourTable: (placeId?: string): Promise<YourTableAnswer> =>
+      authedFetch(`${apiUrl}/api/me/your-table${placeId ? `?place_id=${encodeURIComponent(placeId)}` : ''}`, { method: 'DELETE' }),
+    // Tea spaces, step 2: a new tea space by name and area.
+    addTeaSpace: (space: { name: string; area_hint: string }): Promise<YourTableAnswer> =>
+      authedFetch(`${apiUrl}/api/me/your-table`, { method: 'POST', body: JSON.stringify(space) }),
   };
 }
 

@@ -329,7 +329,7 @@ for (const size of SIZES) {
         await expect(ana.page).toHaveURL(/[?&]your-table=choose/);
         const form = ana.page.getByTestId('your-table-choose');
         await form.getByRole('textbox', { name: 'The area people see' }).fill('Ubud, near the river');
-        await form.getByRole('button', { name: 'Make this my table' }).click();
+        await form.getByRole('button', { name: 'Make this my tea space' }).click();
         await expect(section.getByTestId('your-table-chosen')).toContainText('is your tea space');
         await expect(section).toContainText('Ubud, near the river');
         await expect(section).not.toContainText('Jalan Courtyard');
