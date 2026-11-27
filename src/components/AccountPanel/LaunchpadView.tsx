@@ -42,6 +42,11 @@ interface LaunchpadViewProps {
   hasManageRoom: boolean;
   /** The first Manage room this person may open; where the door leads. */
   manageEntryPath: string;
+  /**
+   * The Manage rooms this table grants, by their own words, shown as one line
+   * under the tiles so any room is two taps from Home on a phone (W4-2).
+   */
+  manageRooms?: ReadonlyArray<{ id: string; label: string; path: string }>;
   /** Platform staff only: the walk-throughs and the docs library. */
   isPlatformOwner: boolean;
   /** Open site problems seen in the last two weeks. Platform owner only; 0 for everyone else. */
@@ -298,6 +303,7 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
   locationLabel,
   hasManageRoom,
   manageEntryPath,
+  manageRooms = [],
   isPlatformOwner,
   siteProblemCount = 0,
   canReadAtlas = false,
@@ -662,6 +668,24 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-2.5 lg:gap-3">
           {tiles.map(tile => <Tile key={tile.id} {...tile} />)}
         </div>
+      )}
+
+      {/* ── Manage rooms: one line of the rooms' own words, so a room is
+          the second tap from Home, not the third. ─────────────────────── */}
+      {hasManageRoom && manageRooms.length > 0 && (
+        <nav aria-label="Manage rooms" data-testid="table-manage-rooms" className="mt-6 flex flex-wrap justify-center gap-x-5 gap-y-1">
+          {manageRooms.map(room => (
+            <button
+              key={room.id}
+              type="button"
+              onClick={() => { onClose(); navigate(room.path); }}
+              className="tap-target font-sans text-ui-13 lowercase tracking-[0.06em] text-tea-text-sec hover:text-tea-text transition-colors"
+              style={{ WebkitTapHighlightColor: 'transparent' }}
+            >
+              {room.label}
+            </button>
+          ))}
+        </nav>
       )}
 
       {/* ── Footer: sign out (only thing not a tile, it's an exit) ───────── */}

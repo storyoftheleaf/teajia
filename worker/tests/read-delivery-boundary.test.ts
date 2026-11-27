@@ -43,6 +43,12 @@ describe('Read delivery, verified at the API', () => {
     privateResponse(response);
   });
 
+  it("serves the Lessons shelf's saved words (slug craft) to a visitor, not as the draft /read/craft piece", async () => {
+    const db = database();
+    const response = await request(db, '/api/story-content/craft');
+    expect(response.status).toBe(200);
+  });
+
   it('allows public paths, refuses unknown paths and unpublished paths', async () => {
     const db = database();
     for (const [path, status] of [['/read/ritual', 204], ['/read/rock-remembers', 404], ['/read/unknown', 404]] as const) {

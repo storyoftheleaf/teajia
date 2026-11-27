@@ -999,6 +999,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, initialView
                 locationLabel={activeLocationStr || null}
                 hasManageRoom={isTokenScopedToAccount(activeAccountId) && manageNav.hasTableRoom}
                 manageEntryPath={manageNav.today?.path ?? manageNav.tableItems[0]?.path ?? '/admin/collections'}
+                manageRooms={manageNav.tableItems.filter(item => item.id !== 'settings')}
                 isPlatformOwner={auth.isAdmin}
                 siteProblemCount={siteProblemCount}
                 canReadAtlas={canReadAtlas}
