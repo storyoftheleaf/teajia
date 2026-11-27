@@ -73,7 +73,7 @@ Read `docs/COLOR_RULES.md` before writing any component styles. Full detail: [do
 
 ## Money — detail in [docs/claude/money.md](docs/claude/money.md)
 Read that file before touching pricing, cost, currency, freight or any product INSERT. The gotchas:
-- **Freight:** 85 Yuan/kg is the shop rate, a setting on the account (`accounts.default_shipping_rate_per_kg`), inside the ×3. Arithmetic lives only in `worker/src/shippingRate.ts`. NULL = follow the level above; a number (zero included) is obeyed. Teaware is the one true zero.
+- **Freight:** 85 Yuan/kg is the shop rate, a setting on the account (`accounts.default_shipping_rate_per_kg`), passed on at cost: price = leaf cost ×3 + freight (Adrian, 2026-11-27). Arithmetic lives only in `worker/src/shippingRate.ts`. NULL = follow the level above; a number (zero included) is obeyed. Teaware is the one true zero.
 - **Exchange rates:** `exchange_rates` in D1 is the only table, refreshed daily, retried hourly, never emptied. A missing rate is never 1 — decline and show a dash. Currency aliases (CNY = `Yuan`, TWD = `NT`) live once in `src/lib/currency.ts`; canonicalise, never uppercase.
 - **Markup:** `SHOP_MARKUP_MULTIPLIER` in `worker/src/markup.ts` = 3. A default is read at use time, never copied into rows. No bare `2.5` in `worker/src` outside `markup.ts`.
 - Every product INSERT names the money columns (or goes through `nameProductColumns`) — the table defaults are wrong.

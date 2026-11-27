@@ -1,10 +1,10 @@
 /**
  * Freight, and the one place that decides what it costs.
  *
- * Every tea carries freight into its cost basis, and the markup multiplies it
- * along with everything else, because it is money out. A shop that recovers
- * postage at 1x while the rest of the shelf runs at 3x is selling its own
- * shipping at cost.
+ * Every tea carries freight into its cost basis, because it is money out, and
+ * the shelf price passes it on at cost: the leaf is multiplied by the markup,
+ * the freight is added after (Adrian, 2026-11-27: "I don't need to triple
+ * shipping costs"). It used to sit inside the x3.
  *
  * The shop used to hold four answers for one number. Products defaulted to 0,
  * the intake batch to 10, the Add Product form filled in 13, and the agent

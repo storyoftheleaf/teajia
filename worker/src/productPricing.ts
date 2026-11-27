@@ -122,15 +122,14 @@ export function addPricingFields(product: any, rates: Map<string, number>, freig
   let retailPricePerUnitUSD = 0;
 
   if (qty > 0) {
-    const costPerUnit = product.cost_amount / qty;
-    /* Freight belongs in the basis the markup multiplies, and the rate itself
-       is decided in one place. See worker/src/shippingRate.ts for both, and
-       for why a NULL rate is not the same as a rate of zero. */
-    costPerUnitUSD = costPerUnit / rate + freight;
-  }
-
-  if (qty > 0) {
-    retailPricePerUnitUSD = costPerUnitUSD * SHOP_MARKUP_MULTIPLIER;
+    const goodsPerUnitUSD = (product.cost_amount / qty) / rate;
+    /* What a gram cost us is the leaf plus its freight. What it sells for is
+       the leaf times the markup, plus the freight at cost: freight is passed
+       on, not marked up (Adrian, 2026-11-27). The rate itself is decided in
+       one place, worker/src/shippingRate.ts, which also says why a NULL rate
+       is not the same as a rate of zero. */
+    costPerUnitUSD = goodsPerUnitUSD + freight;
+    retailPricePerUnitUSD = goodsPerUnitUSD * SHOP_MARKUP_MULTIPLIER + freight;
   }
 
   return {
