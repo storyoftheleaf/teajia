@@ -64,6 +64,8 @@ heading when there are none. Correct the body if the review changed the door.
 Mark the PR ready for review, turn on auto-merge (squash), and subscribe to
 its activity. Then start the next piece of work: GitHub merges it when the
 checks pass, and a failure arrives as an event. Do not wait on checks.
+If the repository refuses auto-merge, merge when the subscription reports
+the checks green, for a two-way door you were asked to build.
 
 A one-way door stays red at `merge-danger` until Adrian adds the
 `owner-approved` label, so auto-merge holds it for him. Never add that label

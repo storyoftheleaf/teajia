@@ -39,6 +39,11 @@ move on: the merge happens when the required checks pass, a failure comes
 back as an event, and the thread never sits on a check. A one-way door is
 held at `merge-danger` until Adrian's `owner-approved` label.
 
+Auto-merge needs "Allow auto-merge" in the repository's settings and the
+three check names (`checks`, `mobile`, `e2e-changed`, plus `merge-danger`)
+required on main. Until both are on, the subscription's green event is the
+signal: merge then, never by watching the checks.
+
 After the merge, check the change live (the deploy is about a minute for a
 proven worker tree, a couple for the site) and report it.
 
