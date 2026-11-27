@@ -7,6 +7,8 @@ import { teaTableApi } from '../../../lib/teaTableApi';
 import { TEA_TABLE_HOLD_DAYS, type TeaTableManageItem } from '../../../lib/teaTableContract';
 import { Chip, SectionHeading, TextAction, dayLabel, errorSentence } from './parts';
 import { KnowThisTeaManage } from './KnowThisTeaManage';
+import { PART_QUERY, partView } from '../../../lib/closedPart';
+import { LoadFailed } from '../../../components/shared/LoadFailed';
 
 /**
  * The Tea Table in Manage, for the platform owner alone (K2). Every piece put
@@ -59,7 +61,10 @@ function ManageRow({ item }: { item: TeaTableManageItem }) {
 }
 
 function OwnerManage() {
-  const query = useQuery({ queryKey: MANAGE_KEY, queryFn: () => teaTableApi.manage.list(), staleTime: 0 });
+  const query = useQuery({ queryKey: MANAGE_KEY, queryFn: () => teaTableApi.manage.list(), staleTime: 0, ...PART_QUERY });
+  const view = partView(query);
+  // Open on the site, not yet on the worker: the section is not shown (A10-3).
+  if (view.state === 'closed') return null;
   return (
     <section aria-labelledby="tea-table-manage-heading" className="mt-8" data-testid="tea-table-manage">
       <SectionHeading aside={<Link to="/tea-table" className="tap-target text-ui-12 text-tea-gold hover:text-tea-gold-lt">Open the Tea Table</Link>}>
@@ -67,7 +72,7 @@ function OwnerManage() {
       </SectionHeading>
       <p className="mt-1 text-ui-12 text-tea-text-sec">Only you see how many people kept a piece.</p>
       {query.isPending && <p role="status" className="py-4 text-ui-13 text-tea-text-sec">Opening the Tea Table…</p>}
-      {query.isError && <p role="alert" className="py-4 text-ui-13 text-tea-text-sec">Could not open the Tea Table.</p>}
+      {view.state === 'failed' && <LoadFailed className="py-4" sentence="Could not open the Tea Table." onRetry={view.retry} />}
       {query.isSuccess && (query.data.items.length
         ? <ul>{query.data.items.map(item => <ManageRow key={`${item.kind}:${item.id}`} item={item} />)}</ul>
         : <p className="py-4 text-ui-13 text-tea-text-sec">Nothing has been put on the Tea Table yet.</p>)}

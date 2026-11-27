@@ -1,4 +1,4 @@
-import { afterEach, expect, it } from 'vitest';
+import { afterAll, expect, it } from 'vitest';
 import {
   INWARD_BALI_LOT, REOPEN_ORDERING_NEEDS_PRICE_AND_SIZES, inwardOrdersPaused, inwardOrdersPausedSql,
 } from '../../shared/catalog/inwardOrders';
@@ -38,12 +38,14 @@ it('leaves every other lot and a row without price columns alone', () => {
   expect(inwardOrdersPaused(accountId, counted, true)).toBe(false);
 });
 
-const opened: SqliteD1[] = [];
-afterEach(() => opened.splice(0).forEach(db => db.close()));
+// One database replayed from the migrations, reused row by row: replaying the
+// whole ledger takes seconds, and ten replays ran past the test's time limit.
+let shared: SqliteD1 | null = null;
+afterAll(() => { shared?.close(); shared = null; });
 
 function pausedInSql(sqlText: string, row: Record<string, unknown>) {
-  const db = new SqliteD1('migrations');
-  opened.push(db);
+  const db = shared ??= new SqliteD1('migrations');
+  db.sqlite.prepare('DELETE FROM products WHERE id = ?').run(id);
   db.sqlite.prepare(`INSERT INTO products (id, account_id, slug, type, product_name, given_name, stock_grams,
       stock_known_at, stock_verified_at, fixed_retail_price_usd, sold_in_whole_units, piece_weight_g, status)
     VALUES (?, ?, 'inward', 'Liu Bao', 'Inward', 'Inward', ?, ?, ?, ?, ?, ?, 'Active')`).run(

@@ -105,10 +105,12 @@ it('R4 keeps the balance nonnegative when a redeemed earning is voided', async (
   expect((await approve(requestId)).status).toBe(200);
   expect((await readOwnHostCredit(env().DB, 'host')).balances[0]).toMatchObject({ available: 0, spent: 10, held: 0 });
   db.sqlite.exec("UPDATE invoices SET status = 'Void' WHERE id = 'sale'");
-  expect((await settleHostCredit(env(), 'sale')).reversed).toBe(1);
+  // A8-7 (todo/review/fixes/last.md): nothing unspent is left to reverse, so the
+  // shop absorbs the 10 and keeps it where the owner sees it; the ledger stays at zero.
+  expect((await settleHostCredit(env(), 'sale')).reversed).toBe(0);
   const balance = (await readOwnHostCredit(env().DB, 'host')).balances[0];
-  expect(balance).toMatchObject({ earned: 10, spent: 10, reversed: 10, held: 0 });
-  expect(balance.available).toBeGreaterThanOrEqual(0);
+  expect(balance).toMatchObject({ earned: 10, spent: 10, reversed: 0, held: 0, debt: 0, available: 0 });
+  expect(db.sqlite.prepare('SELECT amount, reason FROM host_credit_shortfalls').all()).toEqual([{ amount: 10, reason: 'void' }]);
 });
 
 it('R4 protects posted rows against update and delete in the migrated database', async () => {
@@ -117,7 +119,10 @@ it('R4 protects posted rows against update and delete in the migrated database',
   expect.soft(() => db.sqlite.exec("DELETE FROM host_credit_entries WHERE kind = 'earned'")).toThrow();
 });
 
-it('repays debt from later earnings before making credit available to spend', async () => {
+// A8-7 (todo/review/fixes/last.md) replaced "later earnings repay the debt":
+// a Void after the host spent the credit leaves no debt, so later earnings are
+// theirs to spend at once.
+it('leaves no debt after a spent earning is voided, so later earnings can be spent at once', async () => {
   const requestId = await reserve();
   expect((await approve(requestId)).status).toBe(200);
   db.sqlite.exec(`
@@ -142,13 +147,12 @@ it('repays debt from later earnings before making credit available to spend', as
   const hold = (amount: number) => holdHostCreditSpend(env(), {
     accountId: 'shop', hostUserId: 'host', invoiceId: 'redemption-2', amount,
   });
-  expect(await balance()).toMatchObject({ debt: 10, available: 0 });
+  expect(await balance()).toMatchObject({ debt: 0, available: 0 });
   await settleHostCredit(env(), 'partial');
-  expect(await balance()).toMatchObject({ debt: 4, available: 0 });
-  expect(await hold(1)).toEqual({ error: 'not_covered' });
+  expect(await balance()).toMatchObject({ debt: 0, available: 6 });
   await settleHostCredit(env(), 'surplus');
   await settleHostCredit(env(), 'sale');
-  expect(await balance()).toMatchObject({ debt: 0, available: 3 });
-  expect(await hold(4)).toEqual({ error: 'not_covered' });
-  expect(await hold(3)).toHaveProperty('id');
+  expect(await balance()).toMatchObject({ debt: 0, available: 13 });
+  expect(await hold(14)).toEqual({ error: 'not_covered' });
+  expect(await hold(10)).toHaveProperty('id');
 });

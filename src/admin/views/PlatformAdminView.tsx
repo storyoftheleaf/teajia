@@ -14,6 +14,7 @@ import type { PlatformRole } from '../../types';
 import { useStepParam } from '../../hooks/useStepParam';
 import { fewHostsOpen } from '../../lib/fewHosts';
 import { anyoneHostsOpen } from '../../lib/anyoneHosts';
+import { hostingRowActions } from '../hostingRowActions';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -417,6 +418,25 @@ const UsersPanel: React.FC<{ isPlatformOwner: boolean }> = ({ isPlatformOwner })
                   May sell on Teajia{!user.has_tea_chest && <span className="text-ui-11 text-tea-text-dim">· no Tea Chest yet</span>}
                 </label>
               )}
+              {hostingOpen && hostingRowActions(user, { stoppingOpen }).map(action => action === 'let-host' ? (
+                <Button key={action} type="button" size="sm" className="tap-target" loading={busy === `host-${user.id}`}
+                  onClick={() => void handleSetMayHost(user, true)} data-testid="host-approve-row">
+                  Let host by link
+                </Button>
+              ) : action === 'let-again' ? (
+                <Button key={action} type="button" size="sm" variant="secondary" className="tap-target" loading={busy === `stop-${user.id}`}
+                  onClick={() => void handleSetHostingStopped(user, false)} data-testid="host-again-row">
+                  Let host again
+                </Button>
+              ) : (
+                <ConfirmButton key={action}
+                  onConfirm={() => void handleSetHostingStopped(user, true)}
+                  busy={busy === `stop-${user.id}`}
+                  idleLabel={<>Stop all hosting</>}
+                  confirmLabel={<>Stop? No new tables or seats</>}
+                  title="No new table and no new seat; guests already confirmed keep theirs, and nobody is told why"
+                />
+              ))}
               {hostingOpen && (
                 <button type="button" onClick={() => stepHost(user.id)} data-testid="hosting-open"
                   className={`${user.may_host ? 'pill pill-active' : 'pill'} flex items-center gap-1`}

@@ -53,3 +53,24 @@ export function contactHref(channel: string, handle: string): string | null {
     default: return null;
   }
 }
+
+/** The whole address in one line, adding the city and country when the address doesn't already say them. */
+export function fullAddress(v: { address?: string | null; city?: string | null; country?: string | null }): string {
+  const address = (v.address ?? '').trim();
+  const has = (part?: string | null) => !!part && address.toLocaleLowerCase().includes(part.trim().toLocaleLowerCase());
+  return [address, ...[v.city, v.country].filter(p => p && p.trim() && !has(p)).map(p => p!.trim())].filter(Boolean).join(', ');
+}
+
+/** Opens the address in Google Maps (a search, so any address Google can read works). */
+export function mapsHref(address: string): string | null {
+  const text = address.trim();
+  return text ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(text)}` : null;
+}
+
+/** "Guangzhou, Guangdong, China" → city "Guangzhou, Guangdong", country "China". One word alone is the city. */
+export function splitPlace(text: string): { city: string | null; country: string | null } {
+  const value = text.trim();
+  const cut = value.lastIndexOf(',');
+  if (cut < 0) return { city: value || null, country: null };
+  return { city: value.slice(0, cut).trim() || null, country: value.slice(cut + 1).trim() || null };
+}

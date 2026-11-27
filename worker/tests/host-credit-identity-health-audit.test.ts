@@ -88,7 +88,10 @@ describe('host credit identity and incident audit', () => {
     expect(openIncidents()).toEqual([]);
   });
 
-  it('closed, reads nothing and files nothing, even with the credit tables missing', async () => {
+  // Closed now records only the order's own Void and first Fill, in one batch
+  // (A10-1, A8-5, A8-9; todo/review/fixes/credit.md). It still reads no source,
+  // earns nothing and files nothing, even with the credit tables missing.
+  it('closed, reads no source and files nothing, even with the credit tables missing', async () => {
     db.sqlite.exec('DROP TABLE host_credit_spend_requests; DROP TABLE host_credit_entries;');
     const seen: string[] = [];
     const watched = new Proxy(db as unknown as D1Database, {
@@ -101,7 +104,9 @@ describe('host credit identity and incident audit', () => {
     for (const closed of [{ DB: watched, HOST_CREDIT_OPEN: 'false' }]) {
       expect(await settleHostCredit(closed, 'sale')).toEqual({ pending: 0, earned: 0, reversed: 0, awaiting_approval: false });
     }
-    expect(seen).toEqual([]);
+    const closedRecord = (sql: string) => /i\.status = 'Void'|release_reason = 'order_void'|UPDATE host_credit_fills SET credit_open/.test(sql);
+    expect(seen.every(closedRecord)).toBe(true);
+    expect(seen.filter(sql => /order_session_sources|incident/.test(sql))).toEqual([]);
 
     // Through a live invoice path: the guest claims their order with credit closed.
     const token = await signedToken(secret, {
@@ -111,7 +116,7 @@ describe('host credit identity and incident audit', () => {
       method: 'POST', headers: { Authorization: `Bearer ${token}` },
     }), { DB: watched, JWT_SECRET: secret, HOST_CREDIT_OPEN: 'false' } as Parameters<typeof worker.fetch>[1], { waitUntil() {} } as never);
     expect(response.status, await response.text()).toBe(200);
-    expect(seen.filter(sql => /host_credit|order_session_sources/.test(sql))).toEqual([]);
+    expect(seen.filter(sql => /host_credit|order_session_sources/.test(sql) && !closedRecord(sql))).toEqual([]);
     expect(seen.filter(sql => /SELECT id FROM invoices WHERE account_id = \? AND \(id = \? OR source_inquiry_id = \?\)/.test(sql))).toEqual([]);
     expect(openIncidents()).toEqual([]);
   });

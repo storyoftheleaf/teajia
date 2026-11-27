@@ -4,7 +4,6 @@ export const SECTION_TO_PATH: Record<Section, string> = {
   HOME: '/',
   // The historical MAGAZINE section now resolves to the unified Read experience.
   MAGAZINE: '/read',
-  LEARN: '/craft',
   SHOP: '/shop',
   OFFERINGS: '/advise',
   EVENTS: '/events',

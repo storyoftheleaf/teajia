@@ -2,6 +2,8 @@ import { useRef, useState, type FormEvent } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { ArrowLeft, ImagePlus } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { PART_QUERY, partView } from '../../lib/closedPart';
+import { LoadFailed } from '../shared/LoadFailed';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import { useAuth } from '../../hooks/useAuth';
 import { authPagePath } from '../../lib/authNavigation';
@@ -323,7 +325,8 @@ function NoteRow({ item, note, onUse }: { item: TeaTableQuestion; note: KnowThis
 /** The asker's side of their own question: what people told them, naming it, and the thanks. */
 function AskerPanel({ item }: { item: TeaTableQuestion }) {
   const client = useQueryClient();
-  const asked = useQuery({ queryKey: [...questionKey, item.id, 'asked'], queryFn: () => knowThisTeaApi.asked(item.id), staleTime: 0, retry: false });
+  const asked = useQuery({ queryKey: [...questionKey, item.id, 'asked'], queryFn: () => knowThisTeaApi.asked(item.id), staleTime: 0, ...PART_QUERY });
+  const askedView = partView(asked);
   const [teaName, setTeaName] = useState('');
   const [tea, setTea] = useState('');
   const [error, setError] = useState('');
@@ -344,7 +347,7 @@ function AskerPanel({ item }: { item: TeaTableQuestion }) {
         <h2 className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text`}>What people told you</h2>
         <p className="mt-1 text-ui-13 text-tea-text-sec">Only you see this.</p>
         {asked.isPending && <p role="status" className="mt-3 text-ui-14 text-tea-text-sec">Opening…</p>}
-        {asked.isError && <p role="alert" className="mt-3 text-ui-14 text-tea-text-sec">Could not open what people told you.</p>}
+        {askedView.state === 'failed' && <LoadFailed className="mt-3" sentence="Could not open what people told you." onRetry={askedView.retry} />}
         {asked.isSuccess && (notes.length
           ? <ul className="mt-2">{notes.map(note => <NoteRow key={note.id} item={item} note={note}
             onUse={chosen => { setTea(chosen.tea?.path ?? ''); setTeaName(chosen.tea?.name ?? ''); }} />)}</ul>
@@ -392,8 +395,9 @@ export function QuestionPage({ id, onBack }: { id: string; onBack: () => void })
     queryKey: [...questionKey, id],
     queryFn: ({ signal }) => knowThisTeaApi.one(id, signal),
     staleTime: 0,
-    retry: false,
+    ...PART_QUERY,
   });
+  const view = partView(question);
   const mineQuery = useTeaTableMine();
   const item = question.data?.question;
   const mine = Boolean(item && mineQuery.data?.mine.includes(`question:${item.id}`));
@@ -403,7 +407,8 @@ export function QuestionPage({ id, onBack }: { id: string; onBack: () => void })
         The Tea Table
       </Button>
       {question.isPending && <p role="status" className="mt-8 text-ui-14 text-tea-text-sec">Opening the question…</p>}
-      {question.isError && (
+      {view.state === 'failed' && <LoadFailed className="mt-8" sentence="Could not open the question just now." onRetry={view.retry} />}
+      {view.state === 'closed' && (
         <p className={`${TYPOGRAPHY_CLASSES.body} mt-8 text-tea-text-sec`} data-testid="know-this-tea-gone">This question is no longer on the table.</p>
       )}
       {item && (

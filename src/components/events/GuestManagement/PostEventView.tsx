@@ -37,7 +37,7 @@ const PostEventView: React.FC<PostEventViewProps> = ({
         <div className="max-w-xl mx-auto px-4 pt-5 pb-nav-gap-lg">
           <div className="mb-4">
             <p className={`mb-1 ${TYPOGRAPHY_CLASSES.accountMeta}`}>
-              {formatEventDate(event.eventDate)}
+              {formatEventDate(event.eventDate, event.timezone)}
             </p>
             <h1 className={TYPOGRAPHY_CLASSES.h2}>{event.title}</h1>
           </div>
@@ -78,7 +78,7 @@ const PostEventView: React.FC<PostEventViewProps> = ({
       <div className="max-w-xl mx-auto px-6 py-10">
         <div className="text-center mb-10">
           <p className="text-ui-10 uppercase tracking-[0.3em] text-tea-text-sec mb-4">
-            {formatEventDate(event.eventDate)}
+            {formatEventDate(event.eventDate, event.timezone)}
           </p>
           <h1 className="font-serif text-3xl text-tea-text mb-2">{event.title}</h1>
           <p className="text-sm text-tea-text-sec">Session Complete</p>

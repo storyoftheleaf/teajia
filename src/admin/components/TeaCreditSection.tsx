@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Leaf, Loader2 } from 'lucide-react';
 import { ApiError } from '../../lib/api';
 import { hostCreditOpen } from '../../lib/hostCredit';
-import { formatCredit, hostCreditApi, type ShopHostRow, type ShopTeaCredit } from '../../lib/hostCreditApi';
+import { formatCredit, hostCreditApi, type ShopHostRow, type ShopSpendRequest, type ShopTeaCredit } from '../../lib/hostCreditApi';
 import { selectIsOwnerTier, useAppStore } from '../../lib/store';
 import { useStepParam } from '../../hooks/useStepParam';
 import { Button } from '../../components/shared/Button';
@@ -36,6 +36,31 @@ const Row: React.FC<{ children: React.ReactNode; label: string }> = ({ children,
   </li>
 );
 
+/** What the owner last heard back about one request or order; `confirm` turns Approve into Approve anyway. */
+export type DecisionNotice = { id: string; text: string; confirm?: boolean } | null;
+export type SpendChoice = { id: string; approve: boolean; confirm?: boolean };
+
+/**
+ * Decline and Approve for one waiting use of credit, the same in the list and
+ * in a host's detail (A8-10). Over the shop's ceiling the worker answers
+ * over_ceiling, and the same button becomes Approve anyway: two clicks, with
+ * the confirmation kept.
+ */
+export const SpendDecisionControls: React.FC<{
+  request: ShopSpendRequest; notice: DecisionNotice; busy: boolean; onDecide: (choice: SpendChoice) => void;
+}> = ({ request, notice, busy, onDecide }) => {
+  const confirm = notice?.id === request.id && Boolean(notice.confirm);
+  return (
+    <div className="flex flex-wrap items-center gap-2 shrink-0">
+      <span className="num text-sm text-tea-text font-medium">{formatCredit(request.amount, request.currency)}</span>
+      <Button variant="secondary" size="sm" disabled={busy} onClick={() => onDecide({ id: request.id, approve: false })}>Decline</Button>
+      <Button size="sm" disabled={busy} onClick={() => onDecide({ id: request.id, approve: true, confirm })}>
+        {confirm ? 'Approve anyway' : 'Approve'}
+      </Button>
+    </div>
+  );
+};
+
 // Closed, nothing below is reached: no store read, no request.
 export const TeaCreditSection: React.FC = () => (hostCreditOpen() ? <OwnerOnly /> : null);
 
@@ -58,11 +83,11 @@ const TeaCreditSectionOpen: React.FC = () => {
   // One host's lines open as a step in the address, so back closes them.
   const [openHost, setOpenHost] = useStepParam('credit');
   const back = useAdminBack('/admin/activity?tab=waiting');
-  const [notice, setNotice] = useState<{ id: string; text: string; confirm?: boolean } | null>(null);
+  const [notice, setNotice] = useState<DecisionNotice>(null);
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ['host-credit'] });
   const decide = useMutation({
-    mutationFn: (v: { id: string; approve: boolean; confirm?: boolean }): Promise<{ ok: true; status: 'approved' | 'declined' }> =>
+    mutationFn: (v: SpendChoice): Promise<{ ok: true; status: 'approved' | 'declined' }> =>
       v.approve ? hostCreditApi.approveSpend(v.id, v.confirm) : hostCreditApi.declineSpend(v.id),
     onSuccess: () => { setNotice(null); void refresh(); },
     onError: (err, v) => {
@@ -81,6 +106,7 @@ const TeaCreditSectionOpen: React.FC = () => {
 
   const held = (data?.spend_requests ?? []).filter(request => request.status === 'held');
   const secondLook = data?.second_look ?? [];
+  const shortfalls = data?.shortfalls ?? [];
   const hosts = data?.hosts ?? [];
   const busy = decide.isPending || approveOrder.isPending;
   const chosen = openHost ? hosts.find(host => host.host_user_id === openHost) ?? null : null;
@@ -97,7 +123,7 @@ const TeaCreditSectionOpen: React.FC = () => {
       ) : isError || !data ? (
         <p className="text-sm text-tea-text-sec py-4">Tea credit could not be read just now.</p>
       ) : chosen ? (
-        <HostLines data={data} host={chosen} onBack={back} />
+        <HostLines data={data} host={chosen} onBack={back} notice={notice} busy={busy} onDecide={choice => decide.mutate(choice)} />
       ) : (
         <div className="flex flex-col gap-6">
           <div>
@@ -113,13 +139,7 @@ const TeaCreditSectionOpen: React.FC = () => {
                       </span>
                       {notice?.id === request.id && <p role="alert" className="text-ui-12 text-tea-text mt-1.5">{notice.text}</p>}
                     </div>
-                    <div className="flex flex-wrap items-center gap-2 shrink-0">
-                      <span className="num text-sm text-tea-text font-medium">{formatCredit(request.amount, request.currency)}</span>
-                      <Button variant="secondary" size="sm" disabled={busy} onClick={() => decide.mutate({ id: request.id, approve: false })}>Decline</Button>
-                      <Button size="sm" disabled={busy} onClick={() => decide.mutate({ id: request.id, approve: true, confirm: notice?.id === request.id && notice.confirm })}>
-                        {notice?.id === request.id && notice.confirm ? 'Approve anyway' : 'Approve'}
-                      </Button>
-                    </div>
+                    <SpendDecisionControls request={request} notice={notice} busy={busy} onDecide={choice => decide.mutate(choice)} />
                   </Row>
                 ))}
               </ul>
@@ -129,14 +149,15 @@ const TeaCreditSectionOpen: React.FC = () => {
           {secondLook.length > 0 && (
             <div>
               <Heading>Waiting on a second look</Heading>
-              <p className="text-ui-12 text-tea-text-sec mb-2">These orders earn more than the shop's limit for one order. Approve to let the credit through.</p>
+              <p className="text-ui-12 text-tea-text-sec mb-2">These orders earn more than the shop's limit for one order, or were marked Filled by someone other than you. Approve to let the credit through.</p>
               <ul className="flex flex-col gap-2.5">
                 {secondLook.map(order => (
                   <Row key={order.invoice_id} label={`Order ${order.invoice_number ?? ''} for ${hostName(order.host_name)}`}>
                     <div className="min-w-0 flex-1">
                       <span className="block font-serif text-base text-tea-text break-words">{hostName(order.host_name)}</span>
                       <span className="block text-ui-11 text-tea-text-sec mt-0.5">
-                        {[order.invoice_number ? `Order ${order.invoice_number}` : 'An order', order.event_title ? `from ${order.event_title}` : null].filter(Boolean).join(' · ')}
+                        {[order.invoice_number ? `Order ${order.invoice_number}` : 'An order', order.event_title ? `from ${order.event_title}` : null,
+                          order.reason === 'not_filled_by_owner' ? 'marked Filled by your team' : null].filter(Boolean).join(' · ')}
                       </span>
                       {notice?.id === order.invoice_id && <p role="alert" className="text-ui-12 text-tea-text mt-1.5">{notice.text}</p>}
                     </div>
@@ -144,6 +165,24 @@ const TeaCreditSectionOpen: React.FC = () => {
                       <span className="num text-sm text-tea-text font-medium">{formatCredit(order.credit_amount, order.currency)}</span>
                       <Button size="sm" disabled={busy} onClick={() => approveOrder.mutate(order.invoice_id)}>Approve</Button>
                     </div>
+                  </Row>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {shortfalls.length > 0 && (
+            <div>
+              <Heading>Absorbed by the shop</Heading>
+              <p className="text-ui-12 text-tea-text-sec mb-2">An order was voided after its host had already used the credit it earned. The shop keeps the difference; nobody was told.</p>
+              <ul className="flex flex-col gap-2.5">
+                {shortfalls.map(row => (
+                  <Row key={row.award_entry_id} label={`Absorbed on order ${row.invoice_number ?? ''} for ${hostName(row.host_name)}`}>
+                    <div className="min-w-0 flex-1">
+                      <span className="block font-serif text-base text-tea-text break-words">{hostName(row.host_name)}</span>
+                      <span className="block text-ui-11 text-tea-text-sec mt-0.5">{row.invoice_number ? `Order ${row.invoice_number}` : 'An order'}</span>
+                    </div>
+                    <span className="num text-sm text-tea-text font-medium shrink-0">{formatCredit(row.amount, row.currency)}</span>
                   </Row>
                 ))}
               </ul>
@@ -181,7 +220,10 @@ const HostFigures: React.FC<{ host: ShopHostRow }> = ({ host }) => (
   </span>
 );
 
-const HostLines: React.FC<{ data: ShopTeaCredit; host: ShopHostRow; onBack: () => void }> = ({ data, host, onBack }) => {
+export const HostLines: React.FC<{
+  data: ShopTeaCredit; host: ShopHostRow; onBack: () => void;
+  notice: DecisionNotice; busy: boolean; onDecide: (choice: SpendChoice) => void;
+}> = ({ data, host, onBack, notice, busy, onDecide }) => {
   const lines = data.lines.filter(line => line.host_user_id === host.host_user_id);
   const asks = data.spend_requests.filter(request => request.host_user_id === host.host_user_id);
   return (
@@ -197,9 +239,14 @@ const HostLines: React.FC<{ data: ShopTeaCredit; host: ShopHostRow; onBack: () =
           <ul className="flex flex-col gap-2">
             {asks.map(request => (
               <Row key={request.id} label={`Use of credit on ${request.invoice_number ?? 'an order'}`}>
-                <span className="min-w-0 flex-1 text-ui-12 text-tea-text-sec">{[request.invoice_number ? `Order ${request.invoice_number}` : 'An order', formatDay(request.requested_at)].filter(Boolean).join(' · ')}</span>
+                <div className="min-w-0 flex-1">
+                  <span className="block text-ui-12 text-tea-text-sec">{[request.invoice_number ? `Order ${request.invoice_number}` : 'An order', formatDay(request.requested_at)].filter(Boolean).join(' · ')}</span>
+                  {notice?.id === request.id && <p role="alert" className="text-ui-12 text-tea-text mt-1.5">{notice.text}</p>}
+                </div>
                 <span className="text-ui-12 text-tea-text-sec">{request.status === 'held' ? 'Waiting' : request.status === 'approved' ? 'Approved' : 'Declined'}</span>
-                <span className="num text-sm text-tea-text">{formatCredit(request.amount, request.currency)}</span>
+                {request.status === 'held'
+                  ? <SpendDecisionControls request={request} notice={notice} busy={busy} onDecide={onDecide} />
+                  : <span className="num text-sm text-tea-text">{formatCredit(request.amount, request.currency)}</span>}
               </Row>
             ))}
           </ul>

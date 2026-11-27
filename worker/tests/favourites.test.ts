@@ -74,7 +74,8 @@ describe('favourites', () => {
     expect(mine.articles.map(a => a.id)).toEqual(['art-open']);
     expect(mine.articles[0].path).toBe('/article/water-and-stone');
     expect(mine.shop_teas.map(t => t.id)).toEqual(['tea-shown']);
-    expect(mine.shop_teas[0].path).toBe('/shop/product/old-tree-red');
+    // The link names the tea's own shop, whichever shop was visited last (A6-2).
+    expect(mine.shop_teas[0].path).toBe('/shop/product/old-tree-red?store=shop');
     expect(mine.chest_teas.map(t => t.id)).toEqual(['chest-mine']);
     const keys = JSON.stringify(mine).match(/"[a-z_]+":/g) ?? [];
     expect(keys.filter(key => /count|total|number|keeps/i.test(key))).toEqual([]);
@@ -117,6 +118,39 @@ describe('favourites', () => {
     expect((await call('PUT', '/api/me/cellar/chest-mine/favourite', 'reader', { favourite: false })).status).toBe(200);
     expect((await favourites('reader')).chest_teas).toHaveLength(0);
     expect((await call('PUT', '/api/me/cellar/chest-mine/favourite', 'reader', { favourite: 1 })).status).toBe(400);
+  });
+
+  it('links an old account-less heart with its source shop, and a slugless tea by its id', async () => {
+    // The older heart wrote rows without account_id; write that shape first.
+    seedIdentity(database, { userId: 'seller', accountId: 'other-house' });
+    database.exec(`
+      INSERT INTO products (id, account_id, product_name, slug, type, status, is_public, shown_in_shop) VALUES
+        ('tea-away', 'other-house', 'Far Oolong', NULL, 'Oolong', 'Active', 1, 1);
+      INSERT INTO user_favorites (user_id, account_id, item_id) VALUES ('reader', NULL, 'tea-away');
+    `);
+    const teas = (await favourites('reader')).shop_teas;
+    expect(teas.find(tea => tea.id === 'tea-away')?.path).toBe('/shop/product/tea-away?store=other-house');
+  });
+
+  it('hides a saved offer while its seller has no approval, keeps the heart, and shows it again on approval (A6-1)', async () => {
+    seedIdentity(database, { userId: 'maker', accountId: 'maker-home' });
+    database.exec(`
+      UPDATE accounts SET personal_inventory_user_id = 'maker', owner_user_id = 'maker',
+        personal_seller_approved_at = '2026-11-01T00:00:00Z' WHERE id = 'maker-home';
+      INSERT INTO products (id, account_id, product_name, slug, type, status, is_public, shown_in_shop) VALUES
+        ('tea-maker', 'maker-home', 'Maker Pack', 'maker-pack', 'Puer', 'Active', 1, 1);
+      INSERT INTO user_favorites (user_id, account_id, item_id) VALUES ('reader', 'maker-home', 'tea-maker');
+    `);
+    expect((await favourites('reader')).shop_teas.map(t => t.id)).toContain('tea-maker');
+    database.exec(`UPDATE accounts SET personal_seller_approved_at = NULL WHERE id = 'maker-home';
+      UPDATE products SET product_name = 'Changed after withdrawal' WHERE id = 'tea-maker';`);
+    const hidden = await favourites('reader');
+    expect(hidden.shop_teas.map(t => t.id)).not.toContain('tea-maker');
+    expect(JSON.stringify(hidden)).not.toContain('Changed after withdrawal');
+    // The saved heart itself stays.
+    expect(database.sqlite.prepare(`SELECT COUNT(*) AS n FROM user_favorites WHERE item_id = 'tea-maker'`).get()).toEqual({ n: 1 });
+    database.exec(`UPDATE accounts SET personal_seller_approved_at = '2026-11-20T00:00:00Z' WHERE id = 'maker-home'`);
+    expect((await favourites('reader')).shop_teas.find(t => t.id === 'tea-maker')?.path).toBe('/shop/product/maker-pack?store=maker-home');
   });
 
   it('asks a signed-out caller to sign in', async () => {

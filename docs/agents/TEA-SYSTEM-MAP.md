@@ -47,7 +47,8 @@ Every step exists and works on its own. What is missing are the joins between st
 |---|---|---|
 | 586 | Step 2: each card says where the tea is, now past the write-up (priced, main photo, public, Tea Wisdom entry); one Waiting for you list (arrivals, samples to taste, chosen not in Stock, amount, cost, write-up, public with no Tea Wisdom entry yet) | Open |
 | 568 | Step 2: the vendor page opens every record and its contacts | Open, ready for review |
-| 579 | Step 4: freight rates live with each logistics company | Open |
+| 579 | Step 4: freight rates live with each logistics company | Live |
+| this thread | Step 4: "shop default" on a tea opens Shipping rates (`?serviceId=shop`) with its form ready; Curate arrivals on the way are one list by supplier; agents get `list_freight_rates` and `set_tea_freight_service` | Open |
 | 585 | Step 7: Palace Grade page, loose leaf only | Open |
 | 588 | Step 8: collections show the shelf price when no quote is typed; freight passed on at cost | Live |
 | 583 | Steps 8 and 9: invoices link puer teas; payment details are one paste box | Live |
@@ -66,4 +67,4 @@ Closed: freight at cost went live with PR 588, with the money docs changed in th
 3. **Two write-ups.** The Story description is live the moment it is saved. The Tea Wisdom entry lives in `data/tea-reference/entries/` and is live only after a push. The signal between them is now built: "Public, no Tea Wisdom entry yet" in Waiting for you (PR 586, open). The chain still runs only on Adrian's word.
 4. **The selling half has tools but no agent guide.** Collections, invoices, payment and dispatch tools exist (step 8 and 9 rows above) and only this table names them. Recommended: a short "Selling" section in `CURATE-AGENTS.md`.
 5. **i64os has its own tea sale and invoice tools** (`create_tea_sale`, `create_tea_invoice`, `mark_tea_sale_paid`, `purchase_tea_inventory`) beside the `teajia_*` ones and Teajia's own invoices. Nothing written says whether they make the same records. Recommended: check, then document or retire them, so one sale never sits in two ledgers.
-6. **Low stock does not lead back to the supplier.** `list_low_stock` and the Stock view show it; nothing opens the supplier's card to reorder. Later.
+6. **Low stock does not lead back to the supplier in the Stock view.** For agents this is closed: `list_low_stock` names the Library tea, supplier and last quote (PR 595). The Stock view still has no way to open the supplier's card.

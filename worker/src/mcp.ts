@@ -44,6 +44,7 @@ import { launch4ToolModule } from './mcpTools/launch4';
 import { fewHostsToolModule } from './mcpTools/fewHosts';
 import { launch3ToolModule } from './mcpTools/launch3';
 import { circlesToolModule } from './mcpTools/circles';
+import { pageActionsToolModule } from './mcpTools/pageActions';
 import { writingToolModule } from './mcpTools/writing';
 import { costCurrencyTools } from './mcpTools/costCurrency';
 import { curateIntakeTools, curateManagerAccess } from './mcpTools/curateIntake';
@@ -55,6 +56,7 @@ import { curatePhotoTools } from './mcpTools/curatePhotos';
 import { curateArrivalTools } from './mcpTools/curateArrivals';
 import { orderTrackingTools } from './mcpTools/orderTracking';
 import { priceLinkTools } from './mcpTools/priceLinks';
+import { paymentDetailsTools } from './mcpTools/paymentDetails';
 import { purchaseArrivalTools } from './mcpTools/purchaseArrivals';
 import { curateAttachmentTools } from './mcpTools/curateAttachments';
 import { curateManageModule } from './mcpTools/curateManage';
@@ -66,7 +68,14 @@ import { stockCountTools } from './mcpTools/stockCount';
 import { supplierPhotoTools } from './mcpTools/supplierPhoto';
 import { curateDisplayNameTools } from './mcpTools/curateDisplayNames';
 import { teaPageContentTools } from './mcpTools/teaPageContent';
-import type { CurateReceiptService, HostSeatService, InventoryReceiptService, Launch3Services, StockMovementService, ToolEnv } from './mcpTools/registry';
+import { siteProblemTools } from './mcpTools/siteProblems';
+import { peopleRequestTools } from './mcpTools/peopleRequests';
+import { agentChangeTools, UNDO_COLUMNS, UNDO_TRACKED_TOOLS } from './mcpTools/agentChanges';
+import { getWisdomEntry, searchWisdom, WISDOM_PUBLIC_DEFS, wisdomRecordTools } from './mcpTools/wisdomRecords';
+import { personalTools } from './mcpTools/personal';
+import { shopRecordTools } from './mcpTools/shopRecords';
+import type { CurateReceiptService, HostSeatService, InventoryReceiptService, Launch3Services, PersonalService, StockMovementService, ToolEnv, WholesaleService } from './mcpTools/registry';
+import { freightRateTools } from './mcpTools/freightRates';
 import { freightFor, shippingPerGramUsd } from './shippingRate';
 import { accountFreightDefaults } from './productPricing';
 import { isShopOwner, tastingWithoutScores } from './publicScores';
@@ -93,6 +102,7 @@ import {
   loadLedgerInvoice,
   reconcileLedgerWithColumn,
   recomputeInvoicePaymentStatus,
+  settledUsdSql,
 } from './invoiceDomain';
 import type {
   InvoiceLedgerTotals,
@@ -120,7 +130,7 @@ import { isTeaType, normalizeTeaType, TEA_TYPES } from '../../src/wisdom/vocabul
 import { reviewedDescription } from './wisdomWordingReview';
 import { mergeProductTasting, readStoredTasting, tastingHasTerms, tastingTermLabel } from './curateImportTasting';
 import { MCP_SERVER_ICONS, MCP_SERVER_WEBSITE } from './siteIcons';
-import { settleHostCredit } from './hostCreditLedger';
+import { hostCreditStaffFill, settleHostCredit } from './hostCreditLedger';
 import { hostTokenMayAct } from './hostTokens';
 import { HOST_SELF_SCOPE } from '../../src/lib/hostTokens';
 
@@ -132,9 +142,14 @@ type Env = {
   curateReceipts?: CurateReceiptService;
   inventoryReceipts?: InventoryReceiptService;
   stockMovements?: StockMovementService;
+  wholesale?: WholesaleService;
+  personal?: PersonalService;
   invoicePayLinks?: ToolEnv['invoicePayLinks'];
   hostSeats?: HostSeatService;
   launch3?: Launch3Services;
+  pageRoutes?: import('./mcpTools/registry').PageRouteService;
+  /** The site's address, where the open Wisdom dataset is read from. */
+  APP_URL?: string;
   JWT_SECRET: string;
   FAVOURITES_OPEN?: string;
   TEA_TABLE_OPEN?: string;
@@ -416,8 +431,12 @@ export const HOST_SELF_TOOLS: ReadonlySet<string> = new Set([
   'release_guest_seat', 'same_table_again', 'set_session_tasting', 'report',
   // circles.ts (Launch 5, M4)
   'make_circle', 'put_table_in_circle', 'list_my_circles',
-  // launch4.ts: the person's own favourites, which hold their Tea Chest teas. Read only.
-  'list_my_favourites',
+  // launch4.ts: the person's own favourites, which hold their Tea Chest teas, and
+  // a host's recap on the Tea Table (each checks the page's rule, A11-6).
+  'list_my_favourites', 'set_my_favourite', 'set_my_recap_on_tea_table',
+  // pageActions.ts (A11-10): the rest of the host's page, each through its own route.
+  'change_my_table', 'mark_who_came', 'get_guest_thanks_link', 'review_guest_book', 'set_table_way',
+  'set_your_table', 'ask_guest_back', 'offer_article',
 ]);
 
 const MCP_SCOPES = [
@@ -1369,7 +1388,7 @@ async function toolListLowStock(env: Env, auth: McpAuth, args: any) {
   const { results } = await env.DB.prepare(
     `SELECT id, given_name, product_name, chinese_name, type, form, year,
             origin_country, origin_region, vendor, stock_grams, quantity_units,
-            low_stock_threshold, fixed_retail_price_usd, status
+            low_stock_threshold, fixed_retail_price_usd, status, source_compass_entry_id
        FROM products
       WHERE account_id = ?
         AND status != 'Archived'
@@ -1382,9 +1401,11 @@ async function toolListLowStock(env: Env, auth: McpAuth, args: any) {
   const samples = args?.include_samples
     ? (await readCurateHoldings(env.DB, accountId, { viewerUserId: auth.userId })).filter(holding => holding.samples.length > 0)
     : [];
+  const suppliers = await lowStockSuppliers(env, accountId, results as Array<Record<string, any>>);
   return {
-    items: (results as unknown as ProductRow[]).map(p => productSummary(p)),
+    items: (results as unknown as ProductRow[]).map(p => ({ ...productSummary(p), reorder: suppliers.get(String((p as any).id)) ?? null })),
     count: results.length,
+    reorder_note: 'reorder names the supplier card and the last quoted price when the tea came in through Curate. Use curate_get_vendor and curate_order with them.',
     ...(args?.include_samples ? {
       sample_threshold_grams: args.sample_threshold_grams,
       samples: samples.filter(holding => holding.sample_grams !== null && holding.sample_grams <= args.sample_threshold_grams).map(holding => curateHoldingSummary(holding)),
@@ -1392,6 +1413,39 @@ async function toolListLowStock(env: Env, auth: McpAuth, args: any) {
       sample_note: 'Sample balances at or below the requested threshold. Unknown balances are separate; sample grams are never sale stock.',
     } : {}),
   };
+}
+
+/**
+ * Where a low tea came from, so running low leads back to the supplier
+ * (tea system map, gap 6): the Curate card it was promoted from, that card's
+ * supplier, and the newest quoted price for it. One query for the whole list.
+ */
+async function lowStockSuppliers(env: Env, accountId: string, rows: Array<Record<string, any>>) {
+  const out = new Map<string, Record<string, unknown>>();
+  const entries = rows.filter(r => r.source_compass_entry_id);
+  if (!entries.length) return out;
+  const ids = entries.map(r => String(r.source_compass_entry_id));
+  const marks = ids.map(() => '?').join(', ');
+  const { results } = await env.DB.prepare(
+    `SELECT e.id AS compass_entry_id, e.vendor_id, c.name AS vendor_name,
+            (SELECT json_object('quote_id', q.id, 'price_amount', l.price_amount, 'price_currency', l.price_currency,
+                                'price_per_unit_grams', l.price_per_unit_grams, 'quoted_at', q.updated_at)
+               FROM curate_quote_lines l JOIN curate_quotes q ON q.id = l.quote_id AND q.account_id = l.account_id
+              WHERE l.compass_entry_id = e.id AND l.account_id = e.account_id AND l.archived_at IS NULL AND q.archived_at IS NULL
+              ORDER BY q.updated_at DESC LIMIT 1) AS last_quote
+       FROM tea_compass_entries e
+       LEFT JOIN customers c ON c.id = e.vendor_id AND c.account_id = e.account_id
+      WHERE e.account_id = ? AND e.id IN (${marks})`,
+  ).bind(accountId, ...ids).all<Record<string, any>>().catch(() => ({ results: [] as Array<Record<string, any>> }));
+  const byEntry = new Map((results ?? []).map(r => [String(r.compass_entry_id), r]));
+  for (const row of entries) {
+    const hit = byEntry.get(String(row.source_compass_entry_id));
+    if (!hit) continue;
+    let lastQuote: unknown = null;
+    try { lastQuote = hit.last_quote ? JSON.parse(String(hit.last_quote)) : null; } catch { lastQuote = null; }
+    out.set(String(row.id), { curate_tea_id: hit.compass_entry_id, vendor_id: hit.vendor_id ?? null, vendor_name: hit.vendor_name ?? null, last_quote: lastQuote });
+  }
+  return out;
 }
 
 // ── tool: find_customer ──
@@ -4285,7 +4339,7 @@ async function commitFulfillInvoice(
     }
     throw error;
   }
-  await settleHostCredit(env, m.invoiceId);
+  await settleHostCredit(env, m.invoiceId, { staffFill: await hostCreditStaffFill(env.DB, m.accountId, m.actorUserId) });
 
   return {
     committed: true,
@@ -4448,7 +4502,7 @@ async function commitMarkInvoicePaid(env: Env, m: Extract<PendingMutation, { kin
         `UPDATE invoices SET status='Filled',fulfilled_at=COALESCE(fulfilled_at,datetime('now'))
          WHERE id=? AND account_id=? AND status='Pending' AND inventory_deducted=1
            AND fulfillment_claim_token IS NULL
-           AND COALESCE((SELECT SUM(amount_usd) FROM invoice_payments WHERE invoice_id=invoices.id AND status='confirmed'),0)
+           AND ${settledUsdSql('invoices')}
              >= COALESCE((SELECT SUM(quantity*price_at_sale) FROM invoice_line_items WHERE invoice_id=invoices.id),0)
                 + COALESCE(shipping_cost_usd,0) - 0.01`
       ).bind(m.invoiceId, m.accountId).run();
@@ -6812,7 +6866,7 @@ const TOOL_DEFS: ToolDefinition[] = [
         default_currency: { type: 'string', description: '3-letter ISO currency code, e.g. AUD.' },
         contact_email: { type: 'string', description: 'Primary contact email for the account.' },
         contact_phone: { type: 'string', description: 'WhatsApp / primary phone number for the account.' },
-        default_shipping_rate_per_kg: { type: 'number', description: 'Shop freight per kg, applied to every tea that has no rate of its own. Quoted in default_shipping_rate_currency and converted to USD live. Folded into the COST basis, so the markup multiplies it. Shop default is 85 Yuan/kg.' },
+        default_shipping_rate_per_kg: { type: 'number', description: 'Shop freight per kg, applied to every tea that has no rate of its own. Quoted in default_shipping_rate_currency and converted to USD live. Passed on at cost: added after the x3, never multiplied. Shop default is 85 Yuan/kg. list_freight_rates shows every rate.' },
         default_shipping_rate_currency: { type: 'string', description: 'Currency the freight rate is quoted in: Yuan, USD, HKD. Must exist in the exchange rate table.' },
         confirm: { type: 'string', description: 'Confirmation token from preview response.' },
       },
@@ -7222,6 +7276,7 @@ const TOOL_MODULES: ToolModule[] = [
   fewHostsToolModule,
   launch3ToolModule,
   circlesToolModule,
+  pageActionsToolModule,
   writingToolModule,
   costCurrencyTools,
   curateIntakeTools,
@@ -7230,6 +7285,7 @@ const TOOL_MODULES: ToolModule[] = [
   curateArrivalTools,
   orderTrackingTools,
   priceLinkTools,
+  paymentDetailsTools,
   purchaseArrivalTools,
   logisticsTools,
   logisticsTrackingTools,
@@ -7243,6 +7299,13 @@ const TOOL_MODULES: ToolModule[] = [
   supplierPhotoTools,
   curateDisplayNameTools,
   teaPageContentTools,
+  siteProblemTools,
+  peopleRequestTools,
+  agentChangeTools,
+  wisdomRecordTools,
+  personalTools,
+  shopRecordTools,
+  freightRateTools,
 ];
 
 const { defs: MODULE_TOOL_DEFS, handlers: MODULE_TOOL_HANDLERS } = combineToolModules(TOOL_MODULES);
@@ -7266,6 +7329,8 @@ function visibleToolDefs(env: Env, auth: McpAuth) {
       if (auth.hostSelf) return hostSelfMayUse(env, auth, tool);
       if (tool.available && !tool.available(env, auth)) return false;
       if (scope !== 'signed-in' && !hasMcpScope(auth, scope)) return false;
+      // A token that holds no scope at all reaches nothing, signed-in tools included.
+      if (scope === 'signed-in' && auth.scopes.length === 0) return false;
       // Owner-tier scoped tools are invisible without current owner authority.
       if (scope !== 'signed-in' && OWNER_TIER_SCOPES.has(scope) && !OWNER_TIERS.has(auth.creatorTier)) return false;
       return !('unavailable' in tool && tool.unavailable?.(env, auth));
@@ -7312,7 +7377,53 @@ const MODULE_AUDITED_TOOLS = new Set(
   MODULE_TOOL_DEFS.filter(def => !annotationsFor(def).readOnlyHint).map(def => def.name),
 );
 
-async function logMcpToolCall(env: Env, auth: McpAuth, toolName: string, args: any, result: unknown) {
+/**
+ * What a confirmed change did to a tea, kept on its audit line so an agent can
+ * read back what agents changed and undo it (list_agent_changes and
+ * undo_agent_change in mcpTools/agentChanges.ts). The product is named by the
+ * ticket being confirmed, read without spending it, because a confirm call
+ * carries only the token.
+ */
+type ProductSnapshot = { productId: string; before: Record<string, unknown> };
+
+async function productSnapshotForConfirm(env: Env, auth: McpAuth, toolName: string, args: any): Promise<ProductSnapshot | null> {
+  if (!UNDO_TRACKED_TOOLS.has(toolName) || typeof args?.confirm !== 'string') return null;
+  try {
+    const ticket = await env.DB.prepare(
+      'SELECT payload_json FROM mcp_confirmation_tickets WHERE token_hash = ? AND account_id = ? AND consumed_at IS NULL',
+    ).bind(await sha256Hex(args.confirm), auth.accountId).first<{ payload_json: string }>();
+    const productId = ticket ? String(JSON.parse(ticket.payload_json)?.productId || '') : '';
+    if (!productId) return null;
+    const before = await readUndoColumns(env, auth, productId);
+    return before ? { productId, before } : null;
+  } catch {
+    return null; // the audit line is kept either way; only its undo is lost
+  }
+}
+
+/** The tracked columns this shop's products table has (not every column exists on every deployment's history). */
+async function readUndoColumns(env: Env, auth: McpAuth, productId: string): Promise<Record<string, unknown> | null> {
+  const row = await env.DB.prepare('SELECT * FROM products WHERE id = ? AND account_id = ?').bind(productId, auth.accountId).first<Record<string, unknown>>();
+  if (!row) return null;
+  return Object.fromEntries(UNDO_COLUMNS.filter(c => c in row).map(c => [c, row[c] ?? null]));
+}
+
+async function productChangeForAudit(env: Env, auth: McpAuth, snap: ProductSnapshot | null) {
+  if (!snap) return {};
+  const after = await readUndoColumns(env, auth, snap.productId).catch(() => null);
+  if (!after) return { product_id: snap.productId };
+  const before: Record<string, unknown> = {};
+  const changed: Record<string, unknown> = {};
+  for (const col of Object.keys(snap.before)) {
+    if ((snap.before[col] ?? null) !== (after[col] ?? null)) {
+      before[col] = snap.before[col] ?? null;
+      changed[col] = after[col] ?? null;
+    }
+  }
+  return Object.keys(changed).length ? { product_id: snap.productId, before, after: changed } : { product_id: snap.productId };
+}
+
+async function logMcpToolCall(env: Env, auth: McpAuth, toolName: string, args: any, result: unknown, snap: ProductSnapshot | null = null) {
   const shouldAudit = (AUDITED_TOOLS.has(toolName) || MODULE_AUDITED_TOOLS.has(toolName)) && (
     toolName === 'record_sale' ||
     typeof args?.confirm === 'string'
@@ -7324,7 +7435,7 @@ async function logMcpToolCall(env: Env, auth: McpAuth, toolName: string, args: a
      VALUES (?, 'MCP_TOOL_CALL', ?, ?, 'mcp_token', ?, ?)`
   ).bind(
     crypto.randomUUID(),
-    JSON.stringify({ tool: toolName, token_id: auth.tokenId, confirmed: Boolean(args?.confirm), failed }),
+    JSON.stringify({ tool: toolName, token_id: auth.tokenId, confirmed: Boolean(args?.confirm), failed, ...(await productChangeForAudit(env, auth, snap)) }),
     auth.userEmail,
     auth.tokenId,
     auth.accountId,
@@ -7347,7 +7458,7 @@ async function dispatchTool(env: Env, auth: McpAuth, name: string, args: any) {
 
   // Scope check. A host key holds no shop scope: HOST_SELF_TOOLS is its whole
   // authority, and each of those tools answers only for the host's own tables.
-  if (!auth.hostSelf && scope !== 'signed-in' && !hasMcpScope(auth, scope)) {
+  if (!auth.hostSelf && (scope === 'signed-in' ? auth.scopes.length === 0 : !hasMcpScope(auth, scope))) {
     return mcpContent({
       error: 'insufficient_mcp_scope',
       required_scope: scope,
@@ -7368,6 +7479,7 @@ async function dispatchTool(env: Env, auth: McpAuth, name: string, args: any) {
   const unavailable = 'unavailable' in tool && tool.unavailable?.(env, auth);
   if (unavailable) return mcpContent({ error: unavailable });
 
+  const undoSnapshot = await productSnapshotForConfirm(env, auth, name, args);
   let result;
   switch (name) {
     case 'search_tea': result = mcpContent(await toolSearchTea(env, auth, args)); break;
@@ -7434,7 +7546,7 @@ async function dispatchTool(env: Env, auth: McpAuth, name: string, args: any) {
       break;
     }
   }
-  await logMcpToolCall(env, auth, name, args, result);
+  await logMcpToolCall(env, auth, name, args, result, undoSnapshot);
   return result;
 }
 
@@ -8512,6 +8624,7 @@ const PUBLIC_TOOL_DEFS = [
       required: ['items'],
     },
   },
+  ...WISDOM_PUBLIC_DEFS,
 ] as const;
 
 const PUBLIC_SERVER_INFO = {
@@ -8582,6 +8695,11 @@ async function publicPrepareOrderRateCheck(env: Env, ip: string): Promise<Public
 // so it no longer gets the blanket read-only/idempotent annotation the other
 // three public tools share — an MCP client that inspects annotations should
 // see this one truthfully.
+/** Every tool /mcp/public offers. For the /mcp page's catalogue test. */
+export function publicMcpToolNames(): string[] {
+  return PUBLIC_TOOL_DEFS.map(t => t.name);
+}
+
 function publicToolDefs() {
   return PUBLIC_TOOL_DEFS.map(t => ({
     ...t,
@@ -8601,7 +8719,7 @@ async function publicMcpFetchInner(request: Request, env: Env): Promise<Response
       server: PUBLIC_SERVER_INFO,
       protocol: PROTOCOL_VERSION,
       shop: account ? { name: account.name, slug: account.slug } : null,
-      hint: 'POST a JSON-RPC 2.0 request. No auth required. Tools: search_tea, get_tea, browse_catalog, prepare_order.',
+      hint: 'POST a JSON-RPC 2.0 request. No auth required. Tools: search_tea, get_tea, browse_catalog, prepare_order, search_wisdom, get_wisdom_entry.',
     });
   }
   if (request.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
@@ -8633,6 +8751,8 @@ async function publicMcpFetchInner(request: Request, env: Env): Promise<Response
           case 'search_tea': payload = await publicSearchTea(env, account.id, args); break;
           case 'get_tea': payload = await publicGetTea(env, account.id, args); break;
           case 'browse_catalog': payload = await publicBrowseCatalog(env, account.id, args); break;
+          case 'search_wisdom': payload = await searchWisdom(env, args); break;
+          case 'get_wisdom_entry': payload = await getWisdomEntry(env, args); break;
           case 'prepare_order': {
             const rateResult = await publicPrepareOrderRateCheck(env, ip);
             if (rateResult === 'unavailable') {

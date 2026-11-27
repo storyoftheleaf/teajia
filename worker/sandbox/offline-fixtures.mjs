@@ -11,6 +11,7 @@ import { firstTableStatements } from './first-table-fixture.mjs';
 import { fewHostsStatements } from './few-hosts-fixture.mjs';
 import { launch5Statements } from './launch-5-fixture.mjs';
 import { launch4Statements } from './launch-4-fixture.mjs';
+import { reviewStatements } from './review-fixture.mjs';
 
 const worker = fileURLToPath(new URL('../', import.meta.url));
 const config = join(worker, 'wrangler.offline-fixtures.toml');
@@ -80,6 +81,8 @@ async function prepare() {
       ...launch4Statements,
       // Launch 5's journey: a host's credit, her own order to use it on, a session for the card.
       ...launch5Statements,
+      // The review run's table on now, only for the review rig (scripts/review-rig.mjs).
+      ...(process.env.TEAJIA_REVIEW_FIXTURES === 'true' ? reviewStatements : []),
     ];
     const dump = join(temporary, 'fixtures.sql');
     writeFileSync(dump, schema.replace(/COMMIT;\s*$/, `${fixtures.join(';\n')};\nCOMMIT;\n`));

@@ -15,6 +15,9 @@ import {
   type TeaTableItem, type TeaTableRecap, type TeaTableShow, type TeaTableStreamItem, type TeaTableTasting,
 } from '../lib/teaTableContract';
 import { knowThisTeaOpen } from '../lib/knowThisTea';
+import { PART_QUERY, partView } from '../lib/closedPart';
+import { SiteNotFound } from '../components/SiteNotFound';
+import { LoadFailed } from '../components/shared/LoadFailed';
 import { Button } from '../components/shared/Button';
 import { PhotographThumb, PhotographZoom, type ZoomPhotograph } from '../components/shared/Photographs';
 import { SessionPhoto } from '../components/sessions/SessionPhoto';
@@ -239,14 +242,19 @@ export default function TeaTablePage() {
     queryFn: ({ signal }) => teaTableApi.page(show, before || null, signal),
     staleTime: 0,
     gcTime: 0,
-    retry: false,
+    ...PART_QUERY,
     refetchOnWindowFocus: 'always',
   });
+  const view = partView(page);
   const mineQuery = useTeaTableMine();
   const kept = useMemo(() => new Set((mineQuery.data?.kept ?? []).map(teaTableKey)), [mineQuery.data]);
   const mine = useMemo(() => new Set(mineQuery.data?.mine ?? []), [mineQuery.data]);
   const data = page.data;
   const empty = !!data && data.held.length === 0 && data.items.length === 0;
+
+  // Open on the site, not yet on the worker: the address is what it was before
+  // the Tea Table, the site's not-found page (A10-3).
+  if (view.state === 'closed') return <SiteNotFound />;
 
   return (
     <main className="min-h-screen bg-tea-bg pb-nav-gap" data-testid="tea-table-page">
@@ -276,12 +284,7 @@ export default function TeaTablePage() {
         {questions && <div className="mt-3 flex flex-wrap items-center gap-2"><AskAboutATea onAsk={() => setAsking('1')} /></div>}
 
         {page.isPending && <p role="status" className="mt-8 text-ui-14 text-tea-text-sec">Opening the table…</p>}
-        {page.isError && (
-          <div className="mt-8 flex flex-wrap items-center gap-2">
-            <p role="alert" className="text-ui-14 text-tea-text-sec">Could not open the Tea Table.</p>
-            <Button variant="secondary" size="sm" type="button" onClick={() => void page.refetch()}>Try again</Button>
-          </div>
-        )}
+        {view.state === 'failed' && <LoadFailed className="mt-8" sentence="Could not open the Tea Table." onRetry={view.retry} />}
         {empty && (
           <p className={`${TYPOGRAPHY_CLASSES.body} mt-8 text-tea-text-sec`} data-testid="tea-table-empty">
             {before ? 'Nothing earlier on the table.' : 'Nothing is on the table yet.'} Meet <Link to="/people" className={quietLink}>the people</Link>, or find <Link to="/events" className={quietLink}>a session</Link>.

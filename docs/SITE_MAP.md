@@ -6,7 +6,7 @@
 
 **Launch 4 routes updated:** 2026-11-26, from the build branch. See [SECTIONS.md](SECTIONS.md) for the separate navigation proposal.
 
-**The new bar (K7, K10), built behind `HOME_BAR_OPEN`, off.** `VITE_HOME_BAR_OPEN=true` changes the four words on the phone bar and the desktop rail to the ones in `src/components/navSections.ts` (`BAR_WORDS`), keys 1 to 5 to follow them, the phone menu and the rail foot to their short form, Home's opening lines, its "Come to a table" door and its two strips, and adds a row of three shelf names to `/read`, `/craft` and `/wisdom`. No route is added or removed. "Tea table" opens `/tea-table` when `TEA_TABLE_OPEN` is on and `/events` otherwise; "Tea house" opens `/tea-houses` when `TEA_HOUSES_OPEN` is on and `/tea-houses/visit` otherwise.
+**The new bar (K7, K10), built behind `HOME_BAR_OPEN`, off.** `VITE_HOME_BAR_OPEN=true` changes the four words on the phone bar and the desktop rail to the ones in `src/components/navSections.ts` (`BAR_WORDS`), keys 1 to 5 to follow them, the phone menu and the rail foot to their short form, Home's opening lines, its "Come to a table" door and its two strips, (Read's row of three shelf names, Stories, Lessons and Wisdom on `/read`, `/read/lessons` and `/wisdom`, now shows with the bar off too, since Craft left the bar on 2026-11-27). No route is added or removed. "Tea table" opens `/tea-table` when `TEA_TABLE_OPEN` is on and `/events` otherwise; "Tea house" opens `/tea-houses` when `TEA_HOUSES_OPEN` is on and `/tea-houses/visit` otherwise.
 
 ---
 
@@ -58,8 +58,10 @@ The phone's admin bar carries four of these words per role (`src/components/admi
 | `/read/ritual` | RitualSevenSteeps |  |
 | `/read/tasting` | TastingVocabularyOfTaste |  |
 | `/read/tea-house` | TeaHouseQuietHours |  |
-| `/craft` | LearnHub |  |
-| `/learn` |  | redirect to `/craft` |
+| `/read/lessons` | LessonsHub | Read's Lessons shelf (was Craft); lessons at `?v=course`, `journeys`, `reading`, and unlisted `spaces`, `wisdom` |
+| `/wisdom/glossary` | GlossaryPage | the glossary, moved from Craft |
+| `/craft`, `/craft?v=...`, `/craft/*` | CraftMoved | redirect: glossary to `/wisdom/glossary`, any other view to `/read/lessons?v=` the same, landing to `/read/lessons` |
+| `/learn` |  | redirect to `/read/lessons` |
 | `/shop` | Shop |  |
 | `/shop/product/:id` | ProductPage |  |
 | `/advise` | AdvisePage |  |
@@ -220,8 +222,8 @@ The phone's admin bar carries four of these words per role (`src/components/admi
   - `/article/:slug`: the editor's articles, full-screen reader
 - **Status:** WIRED
 
-### /craft (Learn Hub)
-- Story browse, watch tracking, guided curricula (Beginner, Brewing Mastery, Community & Culture)
+### /read/lessons (Lessons, once Craft)
+- Read's second shelf. Begin, Practise and Go further groups; guided curricula (Six Foundations), Three Journeys, Reading and Listening
 - Module completion tracking (future: localStorage progress)
 - **Status:** WIRED (future: contextual content surfacing from knowledge graph)
 
@@ -288,7 +290,7 @@ The phone's admin bar carries four of these words per role (`src/components/admi
 
 - `/for-your-space`: B2B marketing page (private events, ongoing supply, team experiences) with WhatsApp inquiry CTA
 - `/spaces`: Network location showcase pulling from API with hardcoded fallback
-- `/start`: "Start Here" path picker routing to /craft, /shop, /advise, /admin, /read
+- `/start`: "Start Here" path picker routing to /read/lessons, /shop, /advise, /admin, /read
 
 **Status:** WIRED. PREVIEW_MODE flag was removed 2026-04-27 (was permanently `false`).
 

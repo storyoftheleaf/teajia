@@ -1,5 +1,7 @@
 import { INWARD_ORDERS_PAUSED_SQL } from '../../shared/catalog/inwardOrders';
 import { favouritesOpen } from '../../src/lib/favouritesOpen';
+import { buildPublicProductHref } from '../../src/lib/publicProductNavigation';
+import { personalSellerApprovedSql } from './personalSellerApproval';
 
 // Launch 4, favourites in three kinds (todo/plans/guests-and-tea-masters-launch-4-run.md, K3).
 //
@@ -25,7 +27,10 @@ const notFound = () => privateJson({ error: 'Not found' }, 404);
 
 const SHOP_FAVOURITE_VISIBLE = `p.is_public = 1 AND p.shown_in_shop = 1 AND p.status IN ('Active', 'Sold Out')
   AND NOT ${INWARD_ORDERS_PAUSED_SQL}`;
-const OPEN_SHOP = "a.status = 'active' AND a.public_enabled = 1";
+// A favourite shows only what its seller may still show in public: the
+// storefront's own seller approval check (A6-1). The saved heart stays, so a
+// restored approval brings the tea back.
+const OPEN_SHOP = `a.status = 'active' AND a.public_enabled = 1 AND ${personalSellerApprovedSql('a')}`;
 
 /** Every kind a person has marked, in one answer. */
 export async function listFavourites(db: D1Database, userId: string) {
@@ -38,8 +43,7 @@ export async function listFavourites(db: D1Database, userId: string) {
         ORDER BY f.created_at DESC, a.id`
     ).bind(userId).all(),
     db.prepare(
-      `SELECT p.id, p.product_name AS name, p.type, p.image_url,
-              '/shop/product/' || COALESCE(p.slug, p.id) AS path,
+      `SELECT p.id, p.product_name AS name, p.type, p.image_url, p.slug, a.slug AS account_slug,
               MIN(uf.created_at) AS kept_at
          FROM user_favorites uf
          JOIN products p ON p.id = uf.item_id AND (uf.account_id IS NULL OR uf.account_id = p.account_id)
@@ -71,7 +75,8 @@ export async function listFavourites(db: D1Database, userId: string) {
       name: row.name,
       type: row.type ?? null,
       image_url: row.image_url ?? null,
-      path: row.path,
+      // Opens in the tea's own shop, whichever shop was visited last (A6-2).
+      path: buildPublicProductHref({ id: row.id, slug: row.slug, account_slug: row.account_slug }),
     })),
     chest_teas: (chestTeas.results as any[]).map(row => ({
       id: row.id,

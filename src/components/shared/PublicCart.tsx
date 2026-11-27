@@ -93,6 +93,7 @@ function requestIdentity(payloadKey: string) {
 export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, cart, onRemoveItem, onUpdateQuantity, onUpdatePacks, onAddItem, isOpen, whatsappNumber, contactEmail, canBePaid, checkoutState = 'ready', onRetryStore, onClose }) => {
   const isBaliStore = storeSlug === 'teajia-bali';
   const [details, setDetails] = useState(() => readCheckoutDetails(isBaliStore));
+  const account = useAppStore(state => state.authUser);
   const [whatsappConsent, setWhatsappConsent] = useState(WHATSAPP_UPDATES_DEFAULT);
   const [updateEmail, setUpdateEmail] = useState('');
   const [replyChoice, setReplyChoice] = useState<'whatsapp' | 'website' | null>(() => (readCheckoutDetails(isBaliStore).contact.includes('@') ? 'website' : null));
@@ -131,6 +132,18 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
   const creditAvailable = teaCredit.data?.store_available ?? 0;
   const offerCredit = creditAvailable > 0 && cart.some(item => item.category === 'tea');
   const [useCredit, setUseCredit] = useState(false);
+
+  // A signed-in guest is not asked what the account already knows: her name, and the way to reach her
+  // (email for a reply on the website, her saved number for WhatsApp). Both stay editable.
+  const accountContact = replyMode === 'website' ? account?.email ?? '' : account?.phone ?? '';
+  useEffect(() => {
+    if (!account) return;
+    setDetails(previous => (previous.name.trim() && previous.contact.trim() ? previous : {
+      ...previous,
+      name: previous.name.trim() ? previous.name : account.name ?? '',
+      contact: previous.contact.trim() ? previous.contact : accountContact,
+    }));
+  }, [account, accountContact]);
 
   useEffect(() => {
     if (isOpen) setRecentRequests(readRecentOrderRequests(storeSlug));
@@ -224,7 +237,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
       let creditMissed = false;
       if (offerCredit && useCredit && result.invoice_id && !result.idempotent) {
         try {
-          const used = await hostCreditApi.useOnOrder(result.invoice_id);
+          const used = await hostCreditApi.useOnOrder(result.invoice_id, `checkout-${result.invoice_id}`);
           creditAsked = formatCredit(used.request.amount, used.request.currency);
         } catch { creditMissed = true; }
       }
@@ -364,7 +377,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
               <legend className={`${T.h3} text-tea-text mb-3`}>How we reply</legend>
               <div className={`grid gap-1 ${channels.whatsapp ? 'grid-cols-2' : 'grid-cols-1'}`}>
                 {REPLY_TILES.filter(([value]) => channels.whatsapp || value === 'website').map(([value, main, sub]) => <label key={value} className={checkoutTile(replyMode === value)}>
-                  <input type="radio" name="reply-channel" value={value} aria-label={main} checked={replyMode === value} onChange={() => { if (value !== replyMode) updateDetail('contact', ''); setReplyChoice(value); setWhatsappConsent(WHATSAPP_UPDATES_DEFAULT); setErrors({}); }} className="absolute inset-0 m-0 w-full h-full opacity-0 cursor-pointer" />
+                  <input type="radio" name="reply-channel" value={value} aria-label={main} checked={replyMode === value} onChange={() => { if (value !== replyMode) updateDetail('contact', value === 'website' ? account?.email ?? '' : account?.phone ?? ''); setReplyChoice(value); setWhatsappConsent(WHATSAPP_UPDATES_DEFAULT); setErrors({}); }} className="absolute inset-0 m-0 w-full h-full opacity-0 cursor-pointer" />
                   <span className="font-body text-ui-15 leading-tight">{main}</span>{' '}<span className="font-body text-ui-12 leading-tight text-tea-text-sec">{sub}</span>
                 </label>)}
               </div>

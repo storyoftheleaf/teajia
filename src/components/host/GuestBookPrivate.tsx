@@ -6,6 +6,8 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import { api } from '../../lib/api';
+import { PART_QUERY, partView } from '../../lib/closedPart';
+import { LoadFailed } from '../shared/LoadFailed';
 import type { HostedTableGuest } from '../../lib/hostingApi';
 import { hostSmallText, hostText, type HostTablePartProps } from './hostTableParts';
 
@@ -16,8 +18,9 @@ export function GuestBookPrivate({ tableId, detail }: HostTablePartProps) {
   const notes = useQuery({
     queryKey: ['host-table-notes', tableId],
     queryFn: () => api.tables.notes(tableId),
-    retry: false,
+    ...PART_QUERY,
   });
+  const notesView = partView(notes);
   const teas = detail.teas.map(tea => tea.name).filter((name): name is string => Boolean(name));
 
   return (
@@ -28,7 +31,7 @@ export function GuestBookPrivate({ tableId, detail }: HostTablePartProps) {
         <p className={hostSmallText} data-host-poured>Poured: {teas.join(', ')}</p>
       )}
       {came.length === 0 && <p className={hostSmallText}>Once you mark who came, each guest has a line here.</p>}
-      {notes.isError && <p className={hostSmallText} role="alert">Could not open your notes. Reload to try again.</p>}
+      {notesView.state === 'failed' && <LoadFailed sentence="Could not open your notes just now." onRetry={notesView.retry} />}
       {notes.isSuccess && came.length > 0 && (
         <ul className="space-y-3">
           {came.map(guest => (

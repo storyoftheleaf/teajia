@@ -17,7 +17,8 @@ export default defineConfig({
   // `playwright.practice.config.ts` starts. Run here they got the application
   // shell where they asked for JSON, and found no database file. The pattern
   // is the one that config selects, so the two can never both claim a spec.
-  testIgnore: ['tea-reference-preview.spec.ts', 'tea-reference-revision-workflow.spec.ts', /(practice-.*|teajia-family-walk)\.spec\.ts/],
+  // The review walks need the review rig (tests/review/README.md) and have their own config.
+  testIgnore: ['tea-reference-preview.spec.ts', 'tea-reference-revision-workflow.spec.ts', /(practice-.*|teajia-family-walk)\.spec\.ts/, /review\//],
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,

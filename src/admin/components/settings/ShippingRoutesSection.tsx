@@ -82,7 +82,7 @@ export const ShippingRoutesSection: React.FC<{ canEdit: boolean }> = ({ canEdit 
   return (
     <section aria-labelledby="shipping-routes-heading" className="mt-6 bg-tea-surface rounded-xl border border-tea-border p-5">
       <h2 id="shipping-routes-heading" className="label-caps text-tea-text-dim">Shipping routes</h2>
-      <p className="mt-1 text-ui-12 text-tea-text-sec">Set once. The buying basket uses these for packing, rounding and where tea arrives. Freight rates are set in <Link to="/admin/purchase-orders" className="text-tea-gold-lt hover:text-tea-gold">Logistics</Link>.</p>
+      <p className="mt-1 text-ui-12 text-tea-text-sec">Set once. The buying basket uses these for packing, rounding and where tea arrives. Freight rates are set in <Link to="/admin/purchase-orders?rates=open" className="text-tea-gold-lt hover:text-tea-gold">Shipping rates</Link>.</p>
       {isLoading ? <p className="py-3 text-ui-13 text-tea-text-sec">Loading…</p>
         : isError ? <p role="alert" className="py-3 text-ui-13 text-tea-error">Could not load the routes.</p>
         : routes.length === 0 ? <p className="py-3 text-ui-13 text-tea-text-sec">No routes yet. The basket still estimates from the services in Logistics.</p>

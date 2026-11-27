@@ -5,8 +5,9 @@
 // One switch for all of it: Home's new opening lines, its "Come to a table"
 // door and its two strips; the four words on the phone bar and the desktop
 // rail (src/components/navSections.ts holds them, on one line); the phone
-// menu and the rail's foot in their shorter form; keys 1 to 5; and the row of
-// three shelf names on /read, /craft and /wisdom. Adrian answered the bar
+// menu and the rail's foot in their shorter form; and keys 1 to 5. (Read's row
+// of three shelf names on /read, /read/lessons and /wisdom used to wait for
+// this switch too; since Craft left the bar on 2026-11-27 it always shows.) Adrian answered the bar
 // question on 2026-11-26 and then said he doubts "tea table" and "tea house"
 // as words, so this ships off. Closed, every one of those renders exactly as
 // before. No address is added or taken away by this switch.
