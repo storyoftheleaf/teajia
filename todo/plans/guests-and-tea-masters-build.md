@@ -96,7 +96,7 @@ His words: taking the title "is a bit cringe in the west" though in the east it 
 - **Still there:** what they have done on Teajia (tables hosted, articles, teas chosen) and what others gave them (guests' words, "poured with").
 - **Simple by rule:** no form page. The three things are asked one at a time where the page shows them, can each be skipped, and are changed in place.
 - **Go-ahead, later the same day:** "Okay, let's do these, but we will have to refine them." The three things are built as a first version. Their wording and the list of things-you-do are provisional and kept in one place so they can be changed without a rebuild; he sees them in the sandbox before the launch gate.
-- **Open:** whether the Manage room and older pages that say "Tea Masters" are renamed. No navigation or label changes without his explicit yes.
+- **Labels, decided 2026-11-27 on a card:** "Rename to Hosts". The Manage room and the pages that say "Tea Masters" say "Hosts". Addresses and old links keep working; only the words change. One change by one builder, with the phone menu and the rail checked together.
 
 ## How the build is run
 
