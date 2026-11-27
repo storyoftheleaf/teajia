@@ -9,8 +9,8 @@ import { mediaUrl } from '../../lib/mediaUrl';
 import { Button } from '../shared/Button';
 
 const MAX_FILM_BYTES = 25 * 1024 * 1024;
-/** The largest film taken in to be made smaller: a minute from a phone. */
-const MAX_RAW_FILM_BYTES = 300 * 1024 * 1024;
+/** The largest film taken in to be made smaller: a minute and a half from a phone. */
+const MAX_RAW_FILM_BYTES = 600 * 1024 * 1024;
 const TOO_LARGE = 'Keep a film under 25 MB: about ten seconds from a phone.';
 
 export function WayStepFilm({ step, filmUrl, upload, onChange }: {

@@ -10,8 +10,8 @@
 
 export const FILM_LONG_SIDE = 720;
 export const FILM_BITS_PER_SECOND = 1_200_000;
-/** The longest film taken in, in seconds: a step of the way in, not a tour. */
-export const FILM_MAX_SECONDS = 60;
+/** The longest film taken in, in seconds. Showing the way to a house can take a minute (Adrian, 2026-11-27), so a minute and a half is let in; at this size that is about 14 MB. */
+export const FILM_MAX_SECONDS = 90;
 
 const MP4_TYPES = ['video/mp4;codecs=avc1.42E01E', 'video/mp4;codecs=avc1', 'video/mp4'];
 
@@ -30,13 +30,13 @@ export function recordableMp4(): string | null {
 }
 
 export class FilmTooLong extends Error {
-  constructor() { super('Keep a film under a minute.'); }
+  constructor() { super('Keep a film under a minute and a half.'); }
 }
 
 /**
  * The film, smaller. Answers the file it was given when this browser cannot
  * make it smaller or the smaller one came out no smaller. Throws FilmTooLong
- * for a film over a minute, and nothing else.
+ * for a film over a minute and a half, and nothing else.
  */
 export async function compressFilm(file: File, onProgress?: (done: number) => void): Promise<File> {
   const type = recordableMp4();
