@@ -21,7 +21,7 @@ import { BottomSheet, SheetOption } from '../shared/BottomSheet';
 import { isUntriaged, entryDisplayTitle, entryIsSample, entryHasBeenTasted, entryNeedsTasting } from './types';
 import type { TeaCompassEntry, BrowseFilter, BrowseSort } from './types';
 import { LibraryFilterSheet } from './LibraryFilterSheet';
-import { LibraryWaiting } from '../curate/LibraryWaiting';
+import { libraryWaiting } from '../curate/teaPath';
 import { mapAdminProduct } from '../../admin/productAdapter';
 import { ActiveFilterSummary, activeLibraryFilterCount } from './ActiveFilterSummary';
 import { api } from '../../lib/api';
@@ -218,6 +218,16 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
   const activeTasting = entries.find(entry => entry.id === activeTastingId);
   const scopedEntries = useMemo(() => resolvedEntries.filter(entry => !showTransferred || libraryEntryTransferred(entry, entryPossession)), [resolvedEntries, entryPossession, showTransferred]);
   const visibleScopeEntries = useMemo(() => scopedEntries.filter(entry => !libraryEntryRejected(entry)), [scopedEntries]);
+  // Waiting for you (Adrian, 2026-11-27): the teas whose next step is his,
+  // each once under that step. A Library tab like the others, never a list
+  // above them. Until Stock has been read, nothing is counted as waiting.
+  const waitingGroups = useMemo(() => possessionLoading || possessionError ? [] : libraryWaiting({
+    entries: visibleScopeEntries,
+    products: waitingProducts,
+    proposals: purchases.receiptProposals ?? [],
+    purchaseStatusFor: (entry, productId) => purchases.stateFor({ entryId: entry.id, productId: productId ?? entry.draftProductId, chosen: entry.decision === 'selected' }).status,
+  }), [visibleScopeEntries, waitingProducts, purchases, possessionLoading, possessionError]);
+  const waitingIds = useMemo(() => new Set(waitingGroups.flatMap(group => group.entries.map(entry => entry.id))), [waitingGroups]);
   const rejectedEntries = useMemo(() => scopedEntries.filter(libraryEntryRejected), [scopedEntries]);
   const isChosen = React.useCallback((entry: TeaCompassEntry) => libraryEntryChosen(entry, purchases.stateFor({ entryId: entry.id, productId: entry.draftProductId, chosen: entry.decision === 'selected' }).status), [purchases]);
 
@@ -248,7 +258,7 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
 
   // Guard malformed values that predate the versioned persisted migration.
   React.useEffect(() => {
-    const valid: BrowseFilter[] = ['all', 'to_taste', 'selected'];
+    const valid: BrowseFilter[] = ['all', 'to_taste', 'selected', 'waiting'];
     if (!valid.includes(browseFilter as BrowseFilter)) setBrowseFilter('all');
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -289,8 +299,9 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
       all:   visibleScopeEntries.length,
       to_taste: toTasteCount,
       selected: visibleScopeEntries.filter(isChosen).length,
+      waiting: waitingIds.size,
     };
-  }, [visibleScopeEntries, isChosen]);
+  }, [visibleScopeEntries, isChosen, waitingIds]);
 
   // Tasted teas still waiting for a verdict, the batch-review working set.
   const untriaged = useMemo(() => visibleScopeEntries.filter(isUntriaged), [visibleScopeEntries]);
@@ -311,6 +322,7 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
     { value: 'all',   label: 'All',   count: counts.all },
     { value: 'to_taste', label: 'To taste', count: counts.to_taste },
     { value: 'selected', label: 'Chosen', count: counts.selected },
+    { value: 'waiting', label: 'Waiting', count: counts.waiting },
   ];
 
   // ─── Render helpers ───────────────────────────────────────────────────────
@@ -364,8 +376,32 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
     if (result.length === 0) {
       const message = showRejected ? 'No rejected teas match this view.' : browseFilter === 'selected' ? 'Nothing chosen yet.'
         : browseFilter === 'to_taste' ? 'No teas waiting to be tasted.'
+        : browseFilter === 'waiting' ? 'Nothing is waiting on you.'
         : showTransferred ? 'No transferred records match this view.' : 'No active encounters match this view.';
       return <p className="py-8 text-center text-ui-12 text-tea-text-sec">{message}</p>;
+    }
+    if (!showRejected && browseFilter === 'waiting') {
+      // Under the step each tea needs, in the path's order, not by supplier.
+      const shown = new Set(result.map(entry => entry.id));
+      return (
+        <div className="library-supplier-groups" data-testid="library-waiting">
+          {waitingGroups.map((group, index) => {
+            const list = sortEntries(group.entries.filter(entry => shown.has(entry.id)));
+            if (list.length === 0) return null;
+            return (
+              <section key={group.id} aria-label={group.title} className="library-supplier-group" data-tone={index % 2} data-testid={`library-waiting-${group.id}`}>
+                <div className="library-supplier-header">
+                  <span className="library-supplier-heading">
+                    <span className="library-supplier-name">{group.title}</span>
+                    <span className="library-supplier-count">{list.length} {list.length === 1 ? 'tea' : 'teas'}</span>
+                  </span>
+                </div>
+                <div className="library-supplier-content">{renderEntries(list)}</div>
+              </section>
+            );
+          })}
+        </div>
+      );
     }
     const groups = librarySupplierGroups(sortEntries(result));
     const supplierId = (group: (typeof groups)[number]) => group.entries[0].linkedCustomerId || group.entries[0].vendorId || null;
@@ -484,10 +520,12 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
         return baseEntries.filter(entryNeedsTasting);
       case 'selected':
         return baseEntries.filter(isChosen);
+      case 'waiting':
+        return baseEntries.filter(entry => waitingIds.has(entry.id));
       default:
         return baseEntries;
     }
-  }, [baseEntries, browseFilter, showRejected, isChosen]);
+  }, [baseEntries, browseFilter, showRejected, isChosen, waitingIds]);
 
   // ─── Empty state ──────────────────────────────────────────────────────────
 
@@ -564,9 +602,6 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
             2. view controls (how to view it: sort + photo grid)
           "New" was removed here, it duplicated the header "+ NEW" and the
           empty-pane "+ New Entry". Text-only labels per the chrome rule. */}
-      {/* What is waiting on Adrian, above the whole Library, so one list
-          replaces looking in Stock, Orders and each tea (2026-11-27). */}
-      {!searchQuery && !showRejected && <LibraryWaiting entries={visibleScopeEntries} products={waitingProducts} productsLoading={possessionLoading} productsFailed={possessionError} onOpen={(id) => (onOpenDetail ?? onSelectEntry ?? onEditEntry)(id)} />}
       <div data-testid="library-controls" className="library-controls">
         <div className="library-segments">
         {/* Group 1: status filters */}
