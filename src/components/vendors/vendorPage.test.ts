@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { contactHref, fullAddress, mapsHref, splitPlace, wisdomPlaceLink, wisdomTypeLink } from './vendorLinks';
+import { contactHref, fullAddress, mapsHref, placeFromAddress, wisdomPlaceLink, wisdomTypeLink } from './vendorLinks';
 import { contactsPatch, vendorContacts, vendorSubtitle } from './VendorDetailsCard';
 import { summariseVendorSales } from './VendorSalesCard';
 
@@ -65,8 +65,9 @@ describe('a vendor address in one line', () => {
   it('opens in Google Maps and splits a place at its last comma', () => {
     expect(mapsHref('12 Fangcun Ave, Guangzhou')).toBe('https://www.google.com/maps/search/?api=1&query=12%20Fangcun%20Ave%2C%20Guangzhou');
     expect(mapsHref(' ')).toBeNull();
-    expect(splitPlace('Guangzhou, Guangdong, China')).toEqual({ city: 'Guangzhou, Guangdong', country: 'China' });
-    expect(splitPlace('Kunming')).toEqual({ city: 'Kunming', country: null });
-    expect(splitPlace('')).toEqual({ city: null, country: null });
+    expect(placeFromAddress('Building 3, Fangcun Tea Market, Liwan District, Guangzhou 510000, China')).toEqual({ city: 'Guangzhou', country: 'China' });
+    expect(placeFromAddress('Sheung Wan, Hong Kong')).toEqual({ city: 'Sheung Wan', country: 'Hong Kong' });
+    expect(placeFromAddress('芳村茶叶市场，广州，中国')).toEqual({ city: '广州', country: '中国' });
+    expect(placeFromAddress('Fangcun Tea Market')).toBeNull();
   });
 });

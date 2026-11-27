@@ -67,10 +67,16 @@ export function mapsHref(address: string): string | null {
   return text ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(text)}` : null;
 }
 
-/** "Guangzhou, Guangdong, China" → city "Guangzhou, Guangdong", country "China". One word alone is the city. */
-export function splitPlace(text: string): { city: string | null; country: string | null } {
-  const value = text.trim();
-  const cut = value.lastIndexOf(',');
-  if (cut < 0) return { city: value || null, country: null };
-  return { city: value.slice(0, cut).trim() || null, country: value.slice(cut + 1).trim() || null };
+/**
+ * The city and country, read from the end of a pasted address: the last part is the
+ * country and the one before it the city ("..., Liwan District, Guangzhou 510000, China"
+ * gives Guangzhou and China). Postcodes are left out. An address with no commas says
+ * nothing about either, so it gives null and the card keeps what it had.
+ */
+export function placeFromAddress(text: string): { city: string; country: string } | null {
+  const parts = text.split(/[,，]/)
+    .map(part => part.replace(/\b\d[\d -]*\d\b|\b\d\b/g, '').replace(/\s+/g, ' ').trim())
+    .filter(Boolean);
+  if (parts.length < 2) return null;
+  return { city: parts[parts.length - 2], country: parts[parts.length - 1] };
 }

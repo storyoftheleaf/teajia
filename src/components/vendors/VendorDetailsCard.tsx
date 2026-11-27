@@ -8,7 +8,7 @@ import { VendorFace } from './VendorFace';
 import { VendorFaceAdjustButton, VendorFacePhotoButton } from './VendorFacePhotoButton';
 import { vendorFacePhoto } from './vendorFaces';
 import { useVendorSave } from './useVendorSave';
-import { contactHref, fullAddress, mapsHref, splitPlace } from './vendorLinks';
+import { contactHref, fullAddress, mapsHref, placeFromAddress } from './vendorLinks';
 import type { ContactChannel, ContactEntry, Customer } from '../../admin/types';
 
 /**
@@ -139,8 +139,9 @@ export const VendorDetailsCard: React.FC<{ vendor: VendorRecord; vendorId: strin
           <div>
             {/* One line: paste the whole address as Google Maps or the vendor writes it. It gets the full width;
                 the map and copy taps sit underneath, under the address itself. */}
-            <InlineField label="Address" value={vendor.address} placeholder="Paste the whole address"
-              display={address} onSave={v => save({ address: v || null })} />
+            {/* The city and country come from the address itself, so there is one thing to keep right. */}
+            <InlineField label="Address" value={address} placeholder="Paste the whole address"
+              onSave={v => save(v ? { address: v, ...(placeFromAddress(v) ?? {}) } : { address: null, city: null, country: null })} />
             {address && <div className="-mt-1 pb-2 ml-[6.75rem] flex flex-wrap gap-2">
               <a href={mapsHref(address)!} target="_blank" rel="noreferrer" aria-label={`Open ${address} in Google Maps`}
                 className="btn-quiet btn-sm inline-flex items-center gap-1.5">
@@ -153,8 +154,6 @@ export const VendorDetailsCard: React.FC<{ vendor: VendorRecord; vendorId: strin
               </Button>
             </div>}
           </div>
-          <InlineField label="City, country" value={[vendor.city, vendor.country].filter(Boolean).join(', ')}
-            onSave={v => save(splitPlace(v))} />
         </div>
       </div>
 
