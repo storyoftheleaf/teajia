@@ -28641,7 +28641,7 @@ const handleGetPayAccess: Handler = async (request, env, params) => {
   const { decision, link, grant, refusal } = await resolvePayAccess(env, contributor, viewer, url.searchParams.get(PAY_LINK_PARAM));
   if (refusal) return json(refusal, 409);
 
-  let invoice: { invoice_number: string | null; outstanding_usd: number; lines: PayLinkTeaLine[]; kept: boolean; yours_to_send: boolean } | null = null;
+  let invoice: { invoice_number: string | null; outstanding_usd: number; lines: PayLinkTeaLine[]; kept: boolean; yours_to_send: boolean; collection: { title: string; path: string } | null } | null = null;
   if (link) {
     await env.DB.prepare(
       `UPDATE payment_share_links SET open_count = open_count + 1, last_opened_at = datetime('now') WHERE id = ?`
@@ -28673,7 +28673,17 @@ const handleGetPayAccess: Handler = async (request, env, params) => {
         const yoursToSend = viewer
           ? await sendsInvoice(env, link.account_id, ledgerInvoice.id, viewer.userId, contributor.user_id)
           : false;
-        invoice = { invoice_number: ledgerInvoice.invoice_number, outstanding_usd: money.outstanding_usd, lines, kept, yours_to_send: yoursToSend };
+        // The collection these teas were chosen from, while its link is live.
+        const collection = await env.DB.prepare(
+          `SELECT c.title, cp.slug FROM invoices i
+             JOIN collection_publications cp ON cp.id = i.source_publication_id AND cp.unpublished_at IS NULL
+             JOIN collections c ON c.id = cp.collection_id AND c.account_id = i.account_id
+            WHERE i.id = ? AND i.account_id = ?`
+        ).bind(ledgerInvoice.id, link.account_id).first<{ title: string; slug: string }>();
+        invoice = {
+          invoice_number: ledgerInvoice.invoice_number, outstanding_usd: money.outstanding_usd, lines, kept, yours_to_send: yoursToSend,
+          collection: collection ? { title: collection.title, path: `/c/${collection.slug}` } : null,
+        };
       }
     }
   }

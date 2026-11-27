@@ -247,7 +247,7 @@ export interface PayAccessResponse {
   contributor: { id: string; display_name: string; business_name: string | null; portrait_url: string | null };
   viewer: { signed_in: boolean; is_owner: boolean; request_status: 'pending' | 'approved' | null };
   /** Set when the link came from an invoice: the sheet names the order. */
-  invoice: { invoice_number: string | null; outstanding_usd: number; lines?: PayLinkTeaLine[]; kept?: boolean; yours_to_send?: boolean } | null;
+  invoice: { invoice_number: string | null; outstanding_usd: number; lines?: PayLinkTeaLine[]; kept?: boolean; yours_to_send?: boolean; collection?: { title: string; path: string } | null } | null;
 }
 
 /** One tea on an invoice, as its pay page shows it. */

@@ -18,7 +18,11 @@ import type { PayLinkTeaLine } from './types';
  * sell carries none. Shown only to a
  * holder of the invoice's own link; the worker decides that before it sends a line.
  */
-export function PayInvoiceTeas({ lines, invoiceNumber = null }: { lines: readonly PayLinkTeaLine[]; invoiceNumber?: string | null }) {
+export function PayInvoiceTeas({ lines, invoiceNumber = null, onAddToCart }: {
+  lines: readonly PayLinkTeaLine[];
+  invoiceNumber?: string | null;
+  onAddToCart?: (item: InventoryItem, grams: number, totalUsd: number) => void;
+}) {
   const { openId, open: setOpenId, close: closeTea } = useOpenLinkTea();
   const shopPrice = useShopPrice();
   const favoriteTeas = useAppStore(s => s.favoriteTeas);
@@ -84,6 +88,7 @@ export function PayInvoiceTeas({ lines, invoiceNumber = null }: { lines: readonl
         <LinkTeaPage
           item={openRow.product}
           onClose={closeTea}
+          onAddToCart={onAddToCart}
           top={<LinkTeaTop line={[invoiceNumber ? `On your invoice ${invoiceNumber}` : 'On your invoice', openRow.amount.label ?? `${openRow.amount.grams}g`].join(' · ')} />}
         />
       )}
