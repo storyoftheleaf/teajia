@@ -1,4 +1,4 @@
-import { Gift } from 'lucide-react';
+import { Leaf } from 'lucide-react';
 import { useExactUsd } from './useExactUsd';
 
 /**
@@ -16,7 +16,7 @@ export function PayInvoiceGift({ from, discount }: {
   const saved = exact(discount.amount_usd);
   return (
     <div className="mt-3 flex items-center gap-3 rounded-md border border-tea-border bg-tea-accent-sub px-3 py-2.5 md:px-4" data-testid="pay-invoice-gift">
-      <Gift size={20} strokeWidth={1.5} className="shrink-0 text-tea-gold" aria-hidden="true" />
+      <Leaf size={20} strokeWidth={1.5} className="shrink-0 text-tea-gold" aria-hidden="true" />
       <p className="min-w-0 font-body text-ui-15 leading-[1.4] text-tea-text">
         <span className="font-display text-ui-18 text-tea-gold">{discount.percent}% off</span>
         {from ? <>, a gift from {from}.</> : ', a gift.'}{' '}

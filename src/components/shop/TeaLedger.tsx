@@ -239,6 +239,7 @@ export function TeaLedgerRow({ item, showType, saved, onToggleSave, onOpen, tast
           savedColor={rowTones.savedBg}
           onToggle={onToggleSave}
           mark={mark}
+          type={item.type}
         />
 
         <div className="tea-ledger-identity min-w-0 flex-1">

@@ -59,10 +59,21 @@ describe('TeaLedger year favorite control', () => {
     expect(html).toContain('aria-pressed="false"');
     expect(html).toContain('title="Save tea"');
     expect(html).toContain('>Save</span>');
-    expect(html).toContain('>—</span>');
+    expect(html).toContain('>Oolong</span>');
     expect(html).toContain('A Very Long Tea Name That Must Wrap Without Being Cut Off');
     expect(html).not.toContain('line-clamp-2');
     expect(html).not.toContain('Unsave A Very Long');
+  });
+
+  it('shows the kind of tea in the tile when the tea has no date', () => {
+    const word = (type: string | null) => renderLedger(item({ type: type as string })).match(/tea-save-tile-word">([^<]*)</)?.[1];
+    expect(word('Shou Puer')).toBe('Shou');
+    expect(word('Dark Tea')).toBe('Dark');
+    expect(word('Sheng Pu-erh')).toBe('Sheng');
+    expect(word('Oolong')).toBe('Oolong');
+    expect(word('Tea')).toBeUndefined();
+    expect(word(null)).toBeUndefined();
+    expect(renderLedger(item({ type: 'Oolong', year: '1998' }))).not.toContain('tea-save-tile-word');
   });
 
   it('keeps the year visible when saved, with no owner Edit on the list (it lives on the tea page)', () => {
