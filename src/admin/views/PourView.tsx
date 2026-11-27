@@ -300,9 +300,6 @@ function SitSheet({ open, sit, busy, onClose, onChange }: {
                 onClick={() => onChange({ place_id: place.id })}>{place.name}</Button>
             ))}
           </div>
-          {sit.place && !sit.way_open && (
-            <p className={TYPOGRAPHY_CLASSES.bodyLight}>The day is over, so the link no longer shows it.</p>
-          )}
         </div>
 
         <label className="flex flex-col gap-1">

@@ -408,7 +408,9 @@ export function pourSitRoutes<E extends PourEnv>(deps: Deps<E>): [string, string
 
   const limited = async (request: Request, env: E, code: string) => {
     const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
-    return await deps.limit(request, env, `sit-ip:${ip}`) ?? await deps.limit(request, env, `sit:${code}`);
+    // A malformed code is limited by address alone: it never becomes a limiter key.
+    return await deps.limit(request, env, `sit-ip:${ip}`)
+      ?? (SIT_CODE_FORMAT.test(code) ? await deps.limit(request, env, `sit:${code}`) : null);
   };
 
   // GET /api/sit/:code: what anyone holding the link sees.
