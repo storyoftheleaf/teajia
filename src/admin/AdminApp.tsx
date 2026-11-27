@@ -766,7 +766,8 @@ const AdminApp = ({ onAccountClick, onSearchClick, onCartClick }: AdminAppProps)
 function HostConsentRedirect() {
   const { requestId = '' } = useParams<{ requestId: string }>();
   const location = useLocation();
-  return <Navigate to={carryQuery(`/connect/${encodeURIComponent(requestId)}`, location.search)} replace />;
+  const target = `/connect/${encodeURIComponent(requestId)}`;
+  return <Navigate to={carryQuery(target, location.search)} replace />;
 }
 
 export default AdminApp;
