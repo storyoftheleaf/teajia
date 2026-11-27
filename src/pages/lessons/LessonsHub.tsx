@@ -1,23 +1,29 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { Story } from '../types';
-import { LearnCurriculum } from './LearnCurriculum';
-import CraftIndex from '../pages/craft/CraftIndex';
-import { PageHeader } from './shared/PageHeader';
-import type { LibrarySubView } from '../types/library';
-import { Glossary } from './library/Glossary';
-import { LearnReadingLists } from './LearnReadingLists';
-import { JourneysView } from './learn/JourneysView';
-import { CommunityWisdomView } from './learn/CommunityWisdomView';
-import { TeaSpacesView } from './learn/TeaSpacesView';
-import { useSubViewNavigation } from '../hooks/useSubViewNavigation';
-import { useScrollRestoration } from '../hooks/useScrollRestoration';
-import { Breadcrumb } from './shared/Breadcrumb';
+import { Navigate } from 'react-router-dom';
+import { Story } from '../../types';
+import { LearnCurriculum } from '../../components/LearnCurriculum';
+import LessonsIndex from './LessonsIndex';
+import { PageHeader } from '../../components/shared/PageHeader';
+import type { LibrarySubView } from '../../types/library';
+import { LearnReadingLists } from '../../components/LearnReadingLists';
+import { JourneysView } from '../../components/learn/JourneysView';
+import { CommunityWisdomView } from '../../components/learn/CommunityWisdomView';
+import { TeaSpacesView } from '../../components/learn/TeaSpacesView';
+import { useSubViewNavigation } from '../../hooks/useSubViewNavigation';
+import { useScrollRestoration } from '../../hooks/useScrollRestoration';
+import { Breadcrumb } from '../../components/shared/Breadcrumb';
 
-// Playlists, Videos and Visual Guides were retired with the Craft redesign
-// (no destination in the new index); 'overview' is kept as the sub-view
-// navigation's default key even though the landing is CraftIndex now, since
-// useSubViewNavigation treats it as "no ?v= param" and nothing reads the
-// string past that.
+/**
+ * Read's Lessons shelf at /read/lessons: the index (LessonsIndex) and the
+ * lessons themselves as ?v= sub-views. This was Craft's hub (LearnHub) until
+ * Craft left the bar on 2026-11-27; the sub-views and their addresses moved
+ * from /craft?v= to /read/lessons?v= unchanged.
+ *
+ * Tea Spaces (?v=spaces) and Shared Wisdom (?v=wisdom) are Room pieces bound
+ * for Tea house and Tea table. They stay here, unlisted, until those pages
+ * take them, so nothing is lost on the way. The glossary moved to the Wisdom
+ * Base, so ?v=glossary forwards to /wisdom/glossary.
+ */
 type LearnView = 'overview' | 'course' | 'glossary' | 'reading' | 'journeys' | 'wisdom' | 'spaces';
 
 const VIEW_LABELS: Record<LearnView, string> = {
@@ -45,7 +51,7 @@ interface LearnHubProps {
   onNavigateToAdvise?: () => void;
 }
 
-export const LearnHub: React.FC<LearnHubProps> = ({
+export const LessonsHub: React.FC<LearnHubProps> = ({
   onStoryClick,
   watchedStories,
   onCartClick,
@@ -92,7 +98,7 @@ export const LearnHub: React.FC<LearnHubProps> = ({
 
   const breadcrumbSegments = isKnownSubView
     ? [
-        { label: 'Craft', onClick: navigateBack },
+        { label: 'Lessons', onClick: navigateBack },
         { label: VIEW_LABELS[currentView] || currentView },
       ]
     : [];
@@ -106,7 +112,7 @@ export const LearnHub: React.FC<LearnHubProps> = ({
           </div>
         );
       case 'glossary':
-        return <Glossary onBack={navigateBack} />;
+        return <Navigate to="/wisdom/glossary" replace />;
       case 'reading':
         return <LearnReadingLists onBack={navigateBack} />;
       case 'journeys':
@@ -122,10 +128,10 @@ export const LearnHub: React.FC<LearnHubProps> = ({
 
   return (
     <div className="w-full animate-[fadeIn_0.5s_ease-out]">
-      {/* CraftIndex carries its own <Helmet>, title/description included, so
+      {/* LessonsIndex carries its own <Helmet>, title/description included, so
           the landing never renders two competing head blocks. */}
       {isKnownSubView && (
-        <PageHeader title="Craft" onCartClick={onCartClick} onAccountClick={onAccountClick} cartItemCount={cartItemCount} />
+        <PageHeader title="Lessons" onCartClick={onCartClick} onAccountClick={onAccountClick} cartItemCount={cartItemCount} />
       )}
 
       {/* Breadcrumb height is reserved on sub-views only. The index has no
@@ -144,9 +150,11 @@ export const LearnHub: React.FC<LearnHubProps> = ({
             {renderSubView()}
           </>
         ) : (
-          <CraftIndex />
+          <LessonsIndex />
         )}
       </div>
     </div>
   );
 };
+
+export default LessonsHub;

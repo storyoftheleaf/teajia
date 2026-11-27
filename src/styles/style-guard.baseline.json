@@ -336,11 +336,6 @@
       "sizes": 1,
       "fonts": 0
     },
-    "src/components/LearnHub.tsx": {
-      "colors": 0,
-      "sizes": 1,
-      "fonts": 0
-    },
     "src/components/LeftSidebar.tsx": {
       "colors": 2,
       "sizes": 13,
@@ -906,7 +901,12 @@
       "sizes": 17,
       "fonts": 27
     },
-    "src/pages/craft/CraftIndex.tsx": {
+    "src/pages/lessons/LessonsHub.tsx": {
+      "colors": 0,
+      "sizes": 1,
+      "fonts": 0
+    },
+    "src/pages/lessons/LessonsIndex.tsx": {
       "colors": 0,
       "sizes": 10,
       "fonts": 16
