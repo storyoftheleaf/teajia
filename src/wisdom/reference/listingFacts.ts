@@ -6,9 +6,10 @@ import { normalizedWords } from './catalogue';
 import { normalizeTeaForm, normalizeTeaType } from '../vocabulary';
 
 /**
- * The only product fields a listing may match on. `grade` exists only on
- * fixtures today: no product row carries a grade, and a grade is never read
- * from a name or description.
+ * The only product fields a listing may match on. No product row carries a
+ * grade, and the shop listing never reads one from a name or description.
+ * The composer alone passes a grade, read from a grade word in the name that
+ * has a grade page (teaMatching.ts `gradeIdFor`).
  */
 export interface ListingFactsSource {
   id?: string | null;
@@ -18,7 +19,7 @@ export interface ListingFactsSource {
   originRegion?: string | null;
   /** The product's own name. Corroborates a recorded place, never supplies one. */
   name?: string | null;
-  /** Explicit leaf_grade page id. Fixtures only. */
+  /** Explicit leaf_grade page id. Fixtures and the composer only. */
   grade?: string | null;
 }
 

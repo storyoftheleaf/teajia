@@ -40,7 +40,8 @@ import { addTeaToDraftOrder } from '../../components/CurateV2/orderBuy';
 import { buildProductUpdatePayload } from '../productUpdatePayload';
 import { shopRateInCurrency, shippingRateUsdFor } from '../../lib/shippingRate';
 import { isoCurrencyCode, rateToUsd } from '../../lib/currency';
-import { useShopFreightDefault } from '../hooks/useAdminData';
+import { useShopFreightDefault, teaFallbackFreightUsd } from '../hooks/useAdminData';
+import { TeaFreight } from './inventory/stock/TeaFreight';
 import { getThemeColor } from '../themeUtils';
 import { INVENTORY_TEA_TYPES } from '../../wisdom';
 import { effectivePurpose, getTeaReadiness } from './inventory/domain';
@@ -53,6 +54,9 @@ import {
   TASTING_CATEGORY_ORDER,
   SECTION_ICONS,
 } from '../../data/tastingTaxonomy';
+
+// The Wisdom pages are heavy; the tea's Wisdom Base list loads them on its own.
+const WisdomNeedsList = React.lazy(() => import('./inventory/stock/WisdomNeedsList'));
 
 /* ------------------------------------------------------------------ */
 /* Shared inline-edit sub-components                                   */
@@ -1087,6 +1091,8 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
      the hook rather than passed down, because it is one cached row and every
      surface that shows this field needs the same answer. */
   const shopFreight = useShopFreightDefault();
+  // The tea's fallback rate: what the server priced from its logistics service, else the shop's.
+  const freightFallbackUsd = product ? teaFallbackFreightUsd(product, shopFreight.perKgUsd) : shopFreight.perKgUsd;
 
   // Stock spine step 2: only the location owner curates what shows in the shop.
   const isOwnerTier = useAppStore(selectIsOwnerTier);
@@ -1339,7 +1345,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
   const pricingCalc = useMemo(() => {
     if (!product) return null;
     const freight = product.type === 'Teaware' ? 0
-      : product.shippingRatePerKg ?? shopRateInCurrency(shopFreight.perKgUsd, costRateToUsd);
+      : product.shippingRatePerKg ?? shopRateInCurrency(freightFallbackUsd, costRateToUsd);
     if (freight === null) return null;
     return calculatePricing(
       product.costAmount,
@@ -1360,7 +1366,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
     product?.costCurrency,
     product?.type,
     rates,
-    shopFreight.perKgUsd,
+    freightFallbackUsd,
     costRateToUsd,
   ]);
 
@@ -1403,11 +1409,6 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
               {filterLabel && (
                 <span className="text-ui-10 text-admin-text-dim uppercase tracking-[0.06em] leading-none mt-1">
                   {filterLabel}
-                </span>
-              )}
-              {onNavigate && nextProduct && (
-                <span data-testid="tea-page-next-at" className="text-ui-11 text-tea-gold leading-none mt-1">
-                  Next opens at {section ? sectionLabel(section) : 'the top'}
                 </span>
               )}
             </div>
@@ -1552,28 +1553,10 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                   <GhostInput ariaLabel="Batch grams" align="right" value={product.quantityPurchased || 0} onSave={(val) => persistField(product.id, 'quantityPurchased', val)} type="number" className="tabular-nums" />
                   <span className="text-ui-12 text-admin-text-dim">g</span>
                 </TeaLine>
-                <TeaLine label="Freight">
-                  {/* Entered in USD a kilo, stored in the tea's own cost currency.
-                      Cleared hands the tea back to the shop rate; a typed 0 means
-                      free. Disabled when there is no exchange rate to store it in. */}
-                  <GhostInput
-                    ariaLabel="Freight, dollars a kilo"
-                    align="right"
-                    value={shippingRateUsdFor(product.shippingRatePerKg, costRateToUsd, shopFreight.perKgUsd) ?? ''}
-                    disabled={costRateToUsd === null}
-                    onSave={(val) => {
-                      if (costRateToUsd === null) return;
-                      handleUpdate(product.id, 'shippingRatePerKg', String(val).trim() === '' ? null : (Number(val) || 0) * costRateToUsd);
-                    }}
-                    type="number"
-                    className="tabular-nums"
-                  />
-                  <span className="text-ui-12 text-admin-text-dim">$ / kg</span>
-                </TeaLine>
-                <div className="tea-page-note">
-                  {product.shippingRatePerKg != null ? 'This tea has its own freight rate. Clear it to follow the shop rate.' : 'Following the shop rate.'}
-                  {' '}<button type="button" className="tap-target text-tea-gold" onClick={() => navigate('/admin/settings')}>Shipping routes</button>
-                </div>
+                <TeaFreight product={product} shopPerKgUsd={shopFreight.perKgUsd} rates={rates} costRateToUsd={costRateToUsd}
+                  onChoose={(serviceId) => persistField(product.id, 'freightServiceId', serviceId)}
+                  onClearOwnRate={() => persistField(product.id, 'shippingRatePerKg', null)}
+                  onOpenLogistics={() => navigate('/admin/purchase-orders')} />
                 {(() => {
                   const calc = pricingCalc && pricingCalc.suggestedRetailUSD > 0 ? pricingCalc : null;
                   const hasOverride = product.fixedRetailPriceUSD != null;
@@ -1751,6 +1734,12 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                 </div>
               </div>
             </CollapsibleSection>
+
+            {inventoryCategory !== 'teaware' && (
+              <CollapsibleSection title="Wisdom Base" description="What its entry can draw on, and what still needs writing." defaultOpen={false}>
+                <React.Suspense fallback={null}><WisdomNeedsList product={product} /></React.Suspense>
+              </CollapsibleSection>
+            )}
 
             <div id="tea-section-placement" />
             <CollapsibleSection title="Links" description="Where this tea came from, its orders and its story page." defaultOpen={false}>

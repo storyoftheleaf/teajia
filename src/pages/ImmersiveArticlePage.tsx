@@ -8,6 +8,8 @@ import type { DbArticle } from '../types';
 import { ReadingProgress } from '../components/immersive/ReadingProgress';
 import { renderBlock } from '../components/immersive/sections';
 import { SharePanel } from '../components/article/SharePanel';
+import { KeepArticle } from '../components/article/KeepArticle';
+import { favouritesOpen } from '../lib/favouritesOpen';
 import { GlossaryScope, TermStyle, storyTermLinker } from '../components/reader/GlossaryTerms';
 import { ArticleWisdomLinks } from './wisdom/ArticleWisdomLinks';
 import '../styles/reader-animations.css';
@@ -53,6 +55,12 @@ export default function ImmersiveArticlePage() {
         <span aria-hidden="true" className="text-ui-15 leading-none">&#8592;</span>
         <span className="text-ui-12 tracking-wide">Back</span>
       </button>
+      {favouritesOpen() && <div
+        className="fixed right-3 z-popover rounded-full bg-tea-bg/70 px-3 backdrop-blur-sm"
+        style={{ top: 'calc(env(safe-area-inset-top, 0px) + 0.75rem)' }}
+      >
+        <KeepArticle articleId={article.id} />
+      </div>}
       <GlossaryScope>
         <TermStyle />
         <article className="pb-nav-gap">

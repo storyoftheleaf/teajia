@@ -1,0 +1,77 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-27T03:58:07.478Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "ba5a1e02-ac6f-4c5c-81bd-aed428034809",
+    "name": "Yiwu Wild White Tea",
+    "chineseName": "易武野生白茶",
+    "type": "White",
+    "form": "Loose",
+    "year": 2015,
+    "origin": "Yiwu, Yunnan, China",
+    "stockGrams": null,
+    "pricePerGramUsd": null,
+    "tags": []
+  },
+  "entry": {
+    "productId": "ba5a1e02-ac6f-4c5c-81bd-aed428034809",
+    "paragraphs": [
+      {
+        "layer": "place",
+        "text": "This loose leaf comes from [Yiwu](greater-yiwu:where-it-is), in the north of Mengla County in Xishuangbanna, on the east side of the Lancang River. Yiwu is one of the old Six Famous Tea Mountains, and its town has long been where the tea of the surrounding villages is gathered and processed."
+      },
+      {
+        "layer": "type",
+        "text": "It is [Yunnan white](yunnan-white:definition), made from the province's large-leaf tea plants rather than the bush cultivars of Fujian. The leaf was only [withered and dried](yunnan-white:making). It was withered indoors or in shade and then dried by air. It was never heated to stop its change, never rolled, and never given the low final bake that Fujian white usually gets."
+      },
+      {
+        "layer": "age",
+        "text": "Made in 2015, it has now been kept for eleven years. There is no settled view of how long Yunnan white should be kept. Some keep it for years, others prefer to drink it within a few, and nobody agrees on how it compares with [aged Fujian white](yunnan-white:ageing)."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Yunnan white is brewed gently, as a white tea is, in a gaiwan or small pot, and it gives many infusions; the leaf holds up well."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "aged white tea",
+      "text": "Honey, dried fruit or jujube, something herbal and woody, a rounder, thicker body and a darker, redder liquor, with less lift in the aroma than a young tea."
+    },
+    "missing": [
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "greater-yiwu:where-it-is",
+      "rev": 1
+    },
+    {
+      "claimId": "yunnan-white:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "yunnan-white:making",
+      "rev": 1
+    },
+    {
+      "claimId": "yunnan-white:ageing",
+      "rev": 1
+    },
+    {
+      "claimId": "yunnan-white:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "white:notice-aged",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-27T04:17:08.383Z"
+}

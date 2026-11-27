@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { Bell, Copy, Check, Loader2, CheckCircle, AlertCircle, Clock, Mail } from 'lucide-react';
 import { api } from '../../lib/api';
-import { useEventNotifications } from '../hooks/useEventData';
+import { useEventNotifications, useEventSeatNotices } from '../hooks/useEventData';
+import { SeatNoticeList } from '../../components/host/SeatNoticeList';
+import { anyoneHostsOpen } from '../../lib/anyoneHosts';
 import { useToast } from './Toast';
 import { TeaEvent, EventNotification } from '../../types/events';
 
@@ -45,6 +47,7 @@ const InviteStatusBlock: React.FC<InviteStatusBlockProps> = ({
 export const NotificationPanel: React.FC<NotificationPanelProps> = ({ eventId }) => {
   const { showToast } = useToast();
   const { data: notifications = [], refetch } = useEventNotifications(eventId);
+  const { data: seatNotices = [] } = useEventSeatNotices(eventId);
   const [generating, setGenerating] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
@@ -98,6 +101,13 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({ eventId })
 
   return (
     <div>
+      {/* What happened to the seats (J9): the shop's own notices, only while Launch 3 is open. */}
+      {anyoneHostsOpen() && (
+        <div className="mb-6">
+          <SeatNoticeList notices={seatNotices} by="shop" headingId="event-seat-notices" />
+        </div>
+      )}
+
       {/* ── Invite send block ── */}
       <InviteStatusBlock
         approvedCount={approvedCount}

@@ -5,214 +5,976 @@ import type { DraftClaim } from '../claims';
 
 export const PART: readonly DraftClaim[] = [
   {
-    "claimId": "yunnan-white:making",
-    "pageId": "yunnan-white",
-    "sectionKey": "making",
-    "label": "How Yunnan white is made",
-    "axis": "type",
+    "claimId": "lugu:dong-ding-and-dalunshan",
+    "pageId": "lugu",
+    "sectionKey": "dong-ding-and-dalunshan",
+    "label": "Dong Ding and the higher gardens",
+    "axis": "place",
     "basis": "trade_knowledge",
-    "listingEligible": true,
+    "listingEligible": false,
     "appliesWhen": {
-      "type": "White",
       "origin_includes": [
-        "yunnan"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
-    "text": "Yunnan white follows the white tea way: the leaf is withered and then dried, never heated to stop its change and never rolled. The withering is done indoors or in shade rather than in hot midday sun, and the leaf is then dried by air, without the final low bake that Fujian white tea usually gets. A longer or darker wither gives a darker, redder cup. It is sold loose and pressed, in the cake, coin and brick shapes of pu’er.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
-        "text": "Yunnan white follows the white tea way: the leaf is withered and then dried, never heated to stop its change and never rolled. The withering is done indoors or in shade rather than in hot midday sun, and the leaf is then dried by air, without the final low bake that Fujian white tea usually gets. A longer or darker wither gives a darker, redder cup. It is sold loose and pressed, in the cake, coin and brick shapes of pu’er.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 18)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "yunnan-white:moonlight-white",
-    "pageId": "yunnan-white",
-    "sectionKey": "moonlight-white",
-    "label": "Moonlight White",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "White",
-      "origin_includes": [
-        "yunnan"
-      ],
-      "name_includes": [
-        "moonlight"
+        "lugu"
       ]
     },
     "terms": [
       {
-        "original": "月光白",
-        "pinyin": "yuè guāng bái",
-        "gloss": "Moonlight White"
+        "original": "凍頂",
+        "pinyin": "Dòngdǐng",
+        "gloss": "Dong Ding; frozen peak"
+      },
+      {
+        "original": "大崙山",
+        "pinyin": "Dàlùnshān",
+        "gloss": "Dalunshan"
       }
     ],
     "rev": 1,
-    "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
-    "text": "Moonlight White, yue guang bai, is the best-known Yunnan white. Its home is Jinggu County in Pu’er City, and the Jinggu tea is made from the Jinggu Da Bai Cha variety, whose mother tree grows in Yangta village; other Yunnan makers use the name too. Two explanations are given for the name: the look of the leaf, dark on top and silver beneath, like the moon in a dark sky, and a story that it was picked or withered by moonlight.",
+    "scope": "Dong Ding mountain and the higher Lugu gardens such as Dalunshan; altitude figures differ by source",
+    "text": "Dong Ding is a mountain in Lugu, and gardens on and around it are where the tea took its name. Dong Ding mountain itself is not high, with one local source putting it at about 750 metres. Altitude for Dong Ding tea is quoted very differently, from about 600 metres up past 1,000, because the name covers more than the one mountain. Some growers have moved to higher ground in the township, such as Dalunshan, where gardens are described at about 1,250 to 1,500 metres. One account gives declining soil fertility on the old slopes as the reason. A tea from those gardens is still a Lugu tea, but it grows higher and cooler than Dong Ding mountain itself.",
     "sourceIds": [],
     "reviewState": "approved",
     "previousRevisions": [
       {
         "rev": 1,
         "origin": "approved",
-        "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
-        "text": "Moonlight White, yue guang bai, is the best-known Yunnan white. Its home is Jinggu County in Pu’er City, and the Jinggu tea is made from the Jinggu Da Bai Cha variety, whose mother tree grows in Yangta village; other Yunnan makers use the name too. Two explanations are given for the name: the look of the leaf, dark on top and silver beneath, like the moon in a dark sky, and a story that it was picked or withered by moonlight.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 18)",
+        "scope": "Dong Ding mountain and the higher Lugu gardens such as Dalunshan; altitude figures differ by source",
+        "text": "Dong Ding is a mountain in Lugu, and gardens on and around it are where the tea took its name. Dong Ding mountain itself is not high, with one local source putting it at about 750 metres. Altitude for Dong Ding tea is quoted very differently, from about 600 metres up past 1,000, because the name covers more than the one mountain. Some growers have moved to higher ground in the township, such as Dalunshan, where gardens are described at about 1,250 to 1,500 metres. One account gives declining soil fertility on the old slopes as the reason. A tea from those gardens is still a Lugu tea, but it grows higher and cooler than Dong Ding mountain itself.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
         "evidenceIds": []
       }
     ],
     "pageVisibility": "public"
   },
   {
-    "claimId": "yunnan-white:yabao",
-    "pageId": "yunnan-white",
-    "sectionKey": "yabao",
-    "label": "Yabao",
-    "axis": "type",
+    "claimId": "lugu:history",
+    "pageId": "lugu",
+    "sectionKey": "history",
+    "label": "How tea came to Lugu",
+    "axis": "place",
     "basis": "trade_knowledge",
-    "listingEligible": true,
+    "listingEligible": false,
     "appliesWhen": {
-      "type": "White",
       "origin_includes": [
-        "yunnan"
-      ],
-      "name_includes": [
-        "yabao"
+        "lugu"
       ]
     },
     "terms": [
       {
-        "original": "芽苞",
-        "pinyin": "yá bāo",
-        "gloss": "bud"
+        "original": "林鳳池",
+        "pinyin": "Lín Fèngchí",
+        "gloss": "Lin Fengchi, the man credited with bringing the bushes"
       }
     ],
     "rev": 1,
-    "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
-    "text": "Yabao is made from the buds of wild-growing or old trees in south-west Yunnan, picked in late winter or early spring before they open and sun-dried with little else done to them. It is mostly sold as white tea. Which plant the buds come from is not settled: some are said to be from a wild tea species, not the cultivated tea plant.",
+    "scope": "The locally told account of how Fujian tea bushes reached Lugu; dates and details vary by source",
+    "text": "The story told locally is that tea bushes were brought to Lugu from the Wuyi Mountains in Fujian in the middle of the nineteenth century. In the most repeated version, a local man named Lin Fengchi returned from the mainland with a small number of seedlings, said to be 36, and some were planted on the slopes of Dong Ding. Places differ on the year, giving 1851 in some and 1855 in others, and on who planted what, so the details are told, not settled. What is agreed is that the bushes came from Fujian, that tea has been grown here since the nineteenth century, and that it grew into the township's main cash crop.",
     "sourceIds": [],
     "reviewState": "approved",
     "previousRevisions": [
       {
         "rev": 1,
         "origin": "approved",
-        "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
-        "text": "Yabao is made from the buds of wild-growing or old trees in south-west Yunnan, picked in late winter or early spring before they open and sun-dried with little else done to them. It is mostly sold as white tea. Which plant the buds come from is not settled: some are said to be from a wild tea species, not the cultivated tea plant.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 18)",
+        "scope": "The locally told account of how Fujian tea bushes reached Lugu; dates and details vary by source",
+        "text": "The story told locally is that tea bushes were brought to Lugu from the Wuyi Mountains in Fujian in the middle of the nineteenth century. In the most repeated version, a local man named Lin Fengchi returned from the mainland with a small number of seedlings, said to be 36, and some were planted on the slopes of Dong Ding. Places differ on the year, giving 1851 in some and 1855 in others, and on who planted what, so the details are told, not settled. What is agreed is that the bushes came from Fujian, that tea has been grown here since the nineteenth century, and that it grew into the township's main cash crop.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
         "evidenceIds": []
       }
     ],
     "pageVisibility": "public"
   },
   {
-    "claimId": "yunnan:geographic-frame",
-    "pageId": "yunnan",
-    "sectionKey": "geographic-frame",
-    "label": "The geographic frame",
-    "axis": "place",
-    "basis": "sourced",
+    "claimId": "lugu:known-for",
+    "pageId": "lugu",
+    "sectionKey": "known-for",
+    "label": "Why people value Lugu tea",
+    "axis": "sensory_observation",
+    "basis": "trade_knowledge",
     "listingEligible": false,
-    "appliesWhen": {},
+    "appliesWhen": {
+      "origin_includes": [
+        "lugu"
+      ]
+    },
+    "terms": [
+      {
+        "original": "鹿谷",
+        "pinyin": "Lùgǔ",
+        "gloss": "Lugu"
+      },
+      {
+        "original": "凍頂烏龍",
+        "pinyin": "Dòngdǐng wūlóng",
+        "gloss": "Dong Ding oolong"
+      }
+    ],
+    "rev": 1,
+    "scope": "Why Lugu matters to tea buyers: its link to Dong Ding oolong, its mist and mountain setting, and bamboo; place only, not the tea's making",
+    "text": "Lugu is known as the home of Dong Ding oolong, and for most buyers that is the whole reason the name matters. The place is cool and often under cloud and mist, with sunny mornings and foggy afternoons, and the trade ties the character of its tea to that weather and to the mountain setting. Tea shares the township with bamboo, and the bamboo shoots and bamboo goods of Lugu are as well known in Taiwan as its tea. This page covers the place only. For what Dong Ding oolong is and how it is made, see the Taiwan oolong page.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Why Lugu matters to tea buyers: its link to Dong Ding oolong, its mist and mountain setting, and bamboo; place only, not the tea's making",
+        "text": "Lugu is known as the home of Dong Ding oolong, and for most buyers that is the whole reason the name matters. The place is cool and often under cloud and mist, with sunny mornings and foggy afternoons, and the trade ties the character of its tea to that weather and to the mountain setting. Tea shares the township with bamboo, and the bamboo shoots and bamboo goods of Lugu are as well known in Taiwan as its tea. This page covers the place only. For what Dong Ding oolong is and how it is made, see the Taiwan oolong page.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "lugu:on-a-label",
+    "pageId": "lugu",
+    "sectionKey": "on-a-label",
+    "label": "Lugu on a label",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "lugu"
+      ]
+    },
+    "terms": [
+      {
+        "original": "鹿谷",
+        "pinyin": "Lùgǔ",
+        "gloss": "Lugu"
+      },
+      {
+        "original": "凍頂",
+        "pinyin": "Dòngdǐng",
+        "gloss": "Dong Ding; frozen peak"
+      }
+    ],
+    "rev": 1,
+    "scope": "What the word Lugu on a tea record does and does not establish",
+    "text": "Lugu on a label or a record says the tea was grown in that township. It does not say the tea is Dong Ding oolong, and it does not say how the tea was made, whether roasted or not. Local grade marks that appear on Lugu tea are a separate matter from the place. The name Dong Ding is also used for the style when it is made outside Lugu, so Lugu is the stronger place claim of the two.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "What the word Lugu on a tea record does and does not establish",
+        "text": "Lugu on a label or a record says the tea was grown in that township. It does not say the tea is Dong Ding oolong, and it does not say how the tea was made, whether roasted or not. Local grade marks that appear on Lugu tea are a separate matter from the place. The name Dong Ding is also used for the style when it is made outside Lugu, so Lugu is the stronger place claim of the two.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "lugu:where-it-is",
+    "pageId": "lugu",
+    "sectionKey": "where-it-is",
+    "label": "Where Lugu is",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "lugu"
+      ]
+    },
+    "terms": [
+      {
+        "original": "鹿谷",
+        "pinyin": "Lùgǔ",
+        "gloss": "Lugu; literally deer valley"
+      }
+    ],
+    "rev": 1,
+    "scope": "Lugu Township as a place: location in Nantou, setting, and what a record means by it",
+    "text": "Lugu is a mountain township in the south west of Nantou County, in central Taiwan. It sits in the foothills of the Central Mountain Range and is a township of valleys, bamboo forest and tea gardens. Xitou, Shan Lin Xi and Dong Ding mountain are all known place names in or beside it. On a tea record, Lugu names a township, which is a finer place than the county Nantou and a larger one than any single mountain or garden inside it.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Lugu Township as a place: location in Nantou, setting, and what a record means by it",
+        "text": "Lugu is a mountain township in the south west of Nantou County, in central Taiwan. It sits in the foothills of the Central Mountain Range and is a township of valleys, bamboo forest and tea gardens. Xitou, Shan Lin Xi and Dong Ding mountain are all known place names in or beside it. On a tea record, Lugu names a township, which is a finer place than the county Nantou and a larger one than any single mountain or garden inside it.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "mahei-gushu-red:tea-name",
+    "pageId": "mahei-gushu-red",
+    "sectionKey": "tea-name",
+    "label": "Reading the tea’s name",
+    "axis": "named_tea_history",
+    "basis": "sourced",
+    "listingEligible": true,
+    "appliesWhen": {
+      "named_tea": "mahei-gushu-red"
+    },
     "terms": [],
     "rev": 1,
-    "scope": "Yunnan Pu’er Regions",
-    "text": "Pu’er is unusually place-bound for a broad tea family. Yunnan is the central geographic frame, while comparable processing outside the province does not by itself make a tea Yunnan Pu’er.",
+    "scope": "The recorded name and its meaning. It supplies no tree measurement.",
+    "text": "Mahei names the village in Yiwu. Gushu means “old tree,” the description on this tea’s label. Hong cha, the last two words, means “red tea.” Together the words give a place, a description of the trees and a style of tea.",
     "sourceIds": [
-      "teadb-yunnan-overview"
+      "teajia-mahei-red"
     ],
     "reviewState": "approved",
     "previousRevisions": [
       {
         "rev": 1,
         "origin": "approved",
-        "scope": "Yunnan Pu’er Regions",
-        "text": "Pu’er is unusually place-bound for a broad tea family. Yunnan is the central geographic frame, while comparable processing outside the province does not by itself make a tea Yunnan Pu’er.",
+        "scope": "The recorded name and its meaning. It supplies no tree measurement.",
+        "text": "Mahei names the village in Yiwu. Gushu means “old tree,” the description on this tea’s label. Hong cha, the last two words, means “red tea.” Together the words give a place, a description of the trees and a style of tea.",
         "approvedAt": "2026-11-23",
-        "reason": "Backfilled from pages",
+        "reason": "Reviewed the Stock identity and citations at their recorded scope.",
         "evidenceIds": [
-          "EVIDENCE-FD526336F67070D4C3DD64DF"
+          "EVIDENCE-D2D75741CFD44DE469A12F65"
         ]
       }
     ],
     "pageVisibility": "public"
   },
   {
-    "claimId": "yunnan:reading-labels",
-    "pageId": "yunnan",
-    "sectionKey": "reading-labels",
-    "label": "Read labels with care",
+    "claimId": "mahei:village-road-and-harvest",
+    "pageId": "mahei",
+    "sectionKey": "village-road-and-harvest",
+    "label": "The road through Mahei",
     "axis": "place",
     "basis": "sourced",
-    "listingEligible": false,
-    "appliesWhen": {},
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "mahei",
+        "yiwu"
+      ]
+    },
     "terms": [],
     "rev": 1,
-    "scope": "Yunnan Pu’er Regions",
-    "text": "Regional schemes are editorial aids rather than a single settled ladder. Boundaries, spellings, and the prominence given to one place over another vary, and famous names also function as commercial language. A place label is useful context, not proof of a tea’s exact origin.",
+    "scope": "The documented Mahei road and one grower’s 2024 field account.",
+    "text": "A section of the old Tea Horse Road passes through Mahei. Ma Zhefeng photographed it while tracing the route through Yiwu. In April 2024, local reporters met Mahei farmer Ding Wanchun picking spring tea with his crew. He said his family needed more than twenty pickers a day.",
     "sourceIds": [
-      "teadb-yunnan-overview"
+      "ma-zhefeng-mahei-road",
+      "mengla-mahei-spring"
     ],
     "reviewState": "approved",
     "previousRevisions": [
       {
         "rev": 1,
         "origin": "approved",
-        "scope": "Yunnan Pu’er Regions",
-        "text": "Regional schemes are editorial aids rather than a single settled ladder. Boundaries, spellings, and the prominence given to one place over another vary, and famous names also function as commercial language. A place label is useful context, not proof of a tea’s exact origin.",
+        "scope": "The documented Mahei road and one grower’s 2024 field account.",
+        "text": "A section of the old Tea Horse Road passes through Mahei. Ma Zhefeng photographed it while tracing the route through Yiwu. In April 2024, local reporters met Mahei farmer Ding Wanchun picking spring tea with his crew. He said his family needed more than twenty pickers a day.",
         "approvedAt": "2026-11-23",
-        "reason": "Backfilled from pages",
+        "reason": "Reviewed the Stock identity and citations at their recorded scope.",
         "evidenceIds": [
-          "EVIDENCE-3EE3ABDD50251B7812F1C99A"
+          "EVIDENCE-44151BAAF5BCA58F985D91EE",
+          "EVIDENCE-80742578E49E9441F6CC59CF",
+          "EVIDENCE-7D86F61C923CB5E76CC2CCD4"
         ]
       }
     ],
     "pageVisibility": "public"
   },
   {
-    "claimId": "yunnan:regional-map",
-    "pageId": "yunnan",
-    "sectionKey": "regional-map",
-    "label": "A map of regions",
-    "axis": "place",
+    "claimId": "malaysian-returned-liu-bao:returned",
+    "pageId": "malaysian-returned-liu-bao",
+    "sectionKey": "returned",
+    "label": "Why the tea is called “returned”",
+    "axis": "named_tea_history",
     "basis": "sourced",
-    "listingEligible": false,
-    "appliesWhen": {},
+    "listingEligible": true,
+    "appliesWhen": {
+      "named_tea": "malaysian-returned-liu-bao"
+    },
     "terms": [],
     "rev": 1,
-    "scope": "Yunnan Pu’er Regions",
-    "text": "Reference maps commonly begin with Xishuangbanna, Pu’er Prefecture, and Lincang, then move toward counties, mountain areas, villages, and local names. Xishuangbanna is often divided into eastern and western tea areas, while other production extends through Yunnan beyond those best-known centers.",
+    "scope": "Meaning of the trade name.",
+    "text": "Huiliu means “returned.” On a Malaysian Returned Liu Bao label, Malaysia names a stop in the life of the tea. Liu Bao made in Guangxi travelled overseas, and older tea later found buyers back in China.",
     "sourceIds": [
-      "teadb-yunnan-overview"
+      "cns-malaysia-liubao-trade",
+      "teajia-malaysian-returned"
     ],
     "reviewState": "approved",
     "previousRevisions": [
       {
         "rev": 1,
         "origin": "approved",
-        "scope": "Yunnan Pu’er Regions",
-        "text": "Reference maps commonly begin with Xishuangbanna, Pu’er Prefecture, and Lincang, then move toward counties, mountain areas, villages, and local names. Xishuangbanna is often divided into eastern and western tea areas, while other production extends through Yunnan beyond those best-known centers.",
+        "scope": "Meaning of the trade name.",
+        "text": "Huiliu means “returned.” On a Malaysian Returned Liu Bao label, Malaysia names a stop in the life of the tea. Liu Bao made in Guangxi travelled overseas, and older tea later found buyers back in China.",
+        "approvedAt": "2026-11-23",
+        "reason": "Reviewed the Stock identity and citations at their recorded scope.",
+        "evidenceIds": [
+          "EVIDENCE-25C675AC1B3373D804FFE518",
+          "EVIDENCE-3D052B7C680B4561B8BEB047"
+        ]
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "malaysian-returned-liu-bao:river-trade",
+    "pageId": "malaysian-returned-liu-bao",
+    "sectionKey": "river-trade",
+    "label": "The river route to Malaya",
+    "axis": "named_tea_history",
+    "basis": "sourced",
+    "listingEligible": true,
+    "appliesWhen": {
+      "named_tea": "malaysian-returned-liu-bao"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "The commercial route in the 1951 trade account.",
+    "text": "A trade account published in 1951 follows Liu Bao downstream. At Libu the tea changed to a larger wooden boat for Fengkai, then to a powered vessel for Guangzhou. The account names Ipoh and Kuala Lumpur among its final markets.",
+    "sourceIds": [
+      "guangxi-archives-liubao"
+    ],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "The commercial route in the 1951 trade account.",
+        "text": "A trade account published in 1951 follows Liu Bao downstream. At Libu the tea changed to a larger wooden boat for Fengkai, then to a powered vessel for Guangzhou. The account names Ipoh and Kuala Lumpur among its final markets.",
+        "approvedAt": "2026-11-23",
+        "reason": "Reviewed the Stock identity and citations at their recorded scope.",
+        "evidenceIds": [
+          "EVIDENCE-94FBED6771030379C4352AC1",
+          "EVIDENCE-374E11CAC771CEE17ACA52B9"
+        ]
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "malaysian-returned-liu-bao:tea-came-back",
+    "pageId": "malaysian-returned-liu-bao",
+    "sectionKey": "tea-came-back",
+    "label": "How older tea found its way back",
+    "axis": "named_tea_history",
+    "basis": "sourced",
+    "listingEligible": true,
+    "appliesWhen": {
+      "named_tea": "malaysian-returned-liu-bao"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Lin Hengyi’s account of Malaysian trade and a proposal reported in 2024.",
+    "text": "On a visit to Wuzhou in 2024, Malaysian trade representative Lin Hengyi saw a 1973 import order linking a Malaysian firm and a Wuzhou tea company. His family still kept tea from the 1970s. During the visit, merchants asked him about bringing older Liu Bao back to the Chinese market.",
+    "sourceIds": [
+      "cns-malaysia-liubao-trade"
+    ],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Lin Hengyi’s account of Malaysian trade and a proposal reported in 2024.",
+        "text": "On a visit to Wuzhou in 2024, Malaysian trade representative Lin Hengyi saw a 1973 import order linking a Malaysian firm and a Wuzhou tea company. His family still kept tea from the 1970s. During the visit, merchants asked him about bringing older Liu Bao back to the Chinese market.",
+        "approvedAt": "2026-11-23",
+        "reason": "Reviewed the Stock identity and citations at their recorded scope.",
+        "evidenceIds": [
+          "EVIDENCE-A3F7299E9399CE865CCF9A5D",
+          "EVIDENCE-3D052B7C680B4561B8BEB047"
+        ]
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "menghai-county:common-character",
+    "pageId": "menghai-county",
+    "sectionKey": "common-character",
+    "label": "A forceful reputation",
+    "axis": "sensory_observation",
+    "basis": "sourced",
+    "listingEligible": false,
+    "appliesWhen": {},
+    "attribution": {
+      "sourceId": "teadb-menghai-county",
+      "sourceRole": "specialist_editorial",
+      "sample": "Regional convention reported in specialist writing about Menghai County"
+    },
+    "terms": [],
+    "rev": 2,
+    "scope": "Menghai County",
+    "text": "Menghai raw pu’er has a reputation for strength and bitterness, set against the gentler teas of eastern Xishuangbanna. Treat that as a regional convention rather than a rule: tree age, craft, blend, age and storage all make large differences within the county.",
+    "sourceIds": [
+      "teadb-menghai-county"
+    ],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Menghai County",
+        "text": "Specialist writing often contrasts Menghai’s strength and bitterness with the gentler reputation of eastern Xishuangbanna. That comparison is a broad regional convention: tree material, craft, blend, age, and storage still create large differences within the county.",
         "approvedAt": "2026-11-23",
         "reason": "Backfilled from pages",
         "evidenceIds": [
-          "EVIDENCE-F9F875FFED47BD47BC79EC6C"
+          "EVIDENCE-5F496A300F5E710FC8FA80B0"
         ]
+      },
+      {
+        "rev": 2,
+        "origin": "approved",
+        "scope": "Menghai County",
+        "text": "Menghai raw pu’er has a reputation for strength and bitterness, set against the gentler teas of eastern Xishuangbanna. Treat that as a regional convention rather than a rule: tree age, craft, blend, age and storage all make large differences within the county.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
+        "evidenceIds": [
+          "EVIDENCE-5F496A300F5E710FC8FA80B0"
+        ]
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "menghai-county:county-and-factory",
+    "pageId": "menghai-county",
+    "sectionKey": "county-and-factory",
+    "label": "Menghai the place, Menghai Tea Factory the maker",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "menghai"
+      ]
+    },
+    "terms": [
+      {
+        "original": "勐海茶厂",
+        "pinyin": "Měnghǎi Cháchǎng",
+        "gloss": "Menghai Tea Factory"
+      },
+      {
+        "original": "大益",
+        "pinyin": "Dàyì",
+        "gloss": "Dayi"
+      }
+    ],
+    "rev": 1,
+    "scope": "How a Menghai label can mean the county or Menghai Tea Factory; says nothing about any one tea's leaf source.",
+    "text": "Menghai on a label can mean the county where the leaf grew, or Menghai Tea Factory, which sits in the county and is part of the Dayi group. They are not the same claim. The factory buys and blends leaf from several Menghai mountains, and some of its ripe tea uses leaf from outside the county, such as Lincang. Its recipes and its history belong to its own cakes. A Menghai tea from a village or a small maker is not a factory tea, and a factory cake is not a single mountain unless it says so.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "How a Menghai label can mean the county or Menghai Tea Factory; says nothing about any one tea's leaf source.",
+        "text": "Menghai on a label can mean the county where the leaf grew, or Menghai Tea Factory, which sits in the county and is part of the Dayi group. They are not the same claim. The factory buys and blends leaf from several Menghai mountains, and some of its ripe tea uses leaf from outside the county, such as Lincang. Its recipes and its history belong to its own cakes. A Menghai tea from a village or a small maker is not a factory tea, and a factory cake is not a single mountain unless it says so.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "menghai-county:history",
+    "pageId": "menghai-county",
+    "sectionKey": "history",
+    "label": "Why the name is so well known",
+    "axis": "maker_history",
+    "basis": "sourced",
+    "listingEligible": false,
+    "appliesWhen": {},
+    "terms": [],
+    "rev": 2,
+    "scope": "Menghai County",
+    "text": "Menghai’s fame also comes from its factory. Menghai Tea Factory was founded in the 1940s, and as pu’er grew into a large state industry the county’s leaf went into factory blends, so many benchmark raw and ripe cakes trace back to Menghai.",
+    "sourceIds": [
+      "teadb-menghai-county"
+    ],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Menghai County",
+        "text": "The establishment of Menghai Tea Factory and the post-1950 shift toward large-scale production made the county central to twentieth-century Pu’er. Regional leaf increasingly entered factory blends, connecting Menghai with many benchmark raw and ripe productions.",
+        "approvedAt": "2026-11-23",
+        "reason": "Backfilled from pages",
+        "evidenceIds": [
+          "EVIDENCE-FEBD2174326734F21F2CFF3B"
+        ]
+      },
+      {
+        "rev": 2,
+        "origin": "approved",
+        "scope": "Menghai County",
+        "text": "Menghai’s fame also comes from its factory. Menghai Tea Factory was founded in the 1940s, and as pu’er grew into a large state industry the county’s leaf went into factory blends, so many benchmark raw and ripe cakes trace back to Menghai.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
+        "evidenceIds": [
+          "EVIDENCE-FEBD2174326734F21F2CFF3B"
+        ]
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "menghai-county:mengsong-naka",
+    "pageId": "menghai-county",
+    "sectionKey": "mengsong-naka",
+    "label": "Mengsong and Naka",
+    "axis": "place",
+    "basis": "sourced",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "mengsong"
+      ],
+      "name_includes": [
+        "naka"
+      ]
+    },
+    "terms": [
+      {
+        "original": "勐宋",
+        "pinyin": "Měngsòng",
+        "gloss": "Mengsong township"
+      },
+      {
+        "original": "那卡",
+        "pinyin": "Nàkǎ",
+        "gloss": "Naka village"
+      }
+    ],
+    "rev": 1,
+    "scope": "Naka village in Mengsong, Menghai County",
+    "text": "Naka is a village in Mengsong, one of Menghai County’s tea-growing areas.",
+    "sourceIds": [
+      "teadb-menghai-county"
+    ],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Naka village in Mengsong, Menghai County",
+        "text": "Naka is a village in Mengsong, one of Menghai County’s tea-growing areas.",
+        "approvedAt": "2026-11-23",
+        "reason": "Adrian approved the listing wording and requested that the verified place lead.",
+        "evidenceIds": [
+          "EVIDENCE-44D0521EB5689FC6FA0D2B95"
+        ]
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "menghai-county:old-gardens",
+    "pageId": "menghai-county",
+    "sectionKey": "old-gardens",
+    "label": "Old trees, left to grow",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "menghai"
+      ]
+    },
+    "terms": [
+      {
+        "original": "古茶园",
+        "pinyin": "gǔ cháyuán",
+        "gloss": "old tea garden"
+      }
+    ],
+    "rev": 1,
+    "scope": "How the old-tree gardens of Menghai County are generally kept, as against plantation bushes; not a statement about any single tea's garden.",
+    "text": "What sets the old Menghai gardens apart is how they are kept. The trees are allowed to grow tall, with little pruning, and farmers use little or no fertiliser or spray. They give far less leaf than pruned plantation bushes, which are picked again and again through the season. People who buy old-garden Menghai tea are paying for that slow, low-yield leaf, and it is why the same mountain can taste so different from its plantation tea.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "How the old-tree gardens of Menghai County are generally kept, as against plantation bushes; not a statement about any single tea's garden.",
+        "text": "What sets the old Menghai gardens apart is how they are kept. The trees are allowed to grow tall, with little pruning, and farmers use little or no fertiliser or spray. They give far less leaf than pruned plantation bushes, which are picked again and again through the season. People who buy old-garden Menghai tea are paying for that slow, low-yield leaf, and it is why the same mountain can taste so different from its plantation tea.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "menghai-county:peoples",
+    "pageId": "menghai-county",
+    "sectionKey": "peoples",
+    "label": "Who tends the mountains",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "menghai"
+      ]
+    },
+    "terms": [
+      {
+        "original": "布朗族",
+        "pinyin": "Bùlǎngzú",
+        "gloss": "Bulang people"
+      },
+      {
+        "original": "拉祜族",
+        "pinyin": "Lāhùzú",
+        "gloss": "Lahu people"
+      },
+      {
+        "original": "哈尼族",
+        "pinyin": "Hānízú",
+        "gloss": "Hani people"
+      }
+    ],
+    "rev": 1,
+    "scope": "Which peoples are tied to Bulang, Nannuo and Mengsong within Menghai County; not every garden or village.",
+    "text": "Menghai’s tea mountains are not one community. Bulang Mountain is the home of the Bulang people, and the Bulang are widely credited as some of the first to grow and make tea here. Nannuo is mostly tended by Hani families today (the Aini branch), although the Bulang are said to have planted its earliest trees. In Mengsong, most of the old gardens were planted by Lahu villagers. Who planted and who picks shapes each mountain’s gardens and its tea, so a mountain name is a better guide to a cup than the county name.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Which peoples are tied to Bulang, Nannuo and Mengsong within Menghai County; not every garden or village.",
+        "text": "Menghai’s tea mountains are not one community. Bulang Mountain is the home of the Bulang people, and the Bulang are widely credited as some of the first to grow and make tea here. Nannuo is mostly tended by Hani families today (the Aini branch), although the Bulang are said to have planted its earliest trees. In Mengsong, most of the old gardens were planted by Lahu villagers. Who planted and who picks shapes each mountain’s gardens and its tea, so a mountain name is a better guide to a cup than the county name.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "menghai-county:ripe-origins",
+    "pageId": "menghai-county",
+    "sectionKey": "ripe-origins",
+    "label": "Where ripe pu’er began",
+    "axis": "maker_history",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {},
+    "terms": [],
+    "rev": 1,
+    "scope": "Menghai County",
+    "text": "Ripe pu’er was born in the early 1970s, when Yunnan’s state factories learned to speed up ageing by wet piling the leaf, and Menghai Tea Factory was one of the first to master it. Its 7572 cake became the benchmark ripe recipe, the cup other ripe teas are still judged against. The number reads as the recipe itself: 75 for the year it was first made, 7 for the main leaf grade in the blend, 2 for Menghai.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Menghai County",
+        "text": "Ripe pu’er was born in the early 1970s, when Yunnan’s state factories learned to speed up ageing by wet piling the leaf, and Menghai Tea Factory was one of the first to master it. Its 7572 cake became the benchmark ripe recipe, the cup other ripe teas are still judged against. The number reads as the recipe itself: 75 for the year it was first made, 7 for the main leaf grade in the blend, 2 for Menghai.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "menghai-county:scope",
+    "pageId": "menghai-county",
+    "sectionKey": "scope",
+    "label": "Western Xishuangbanna",
+    "axis": "place",
+    "basis": "sourced",
+    "listingEligible": false,
+    "appliesWhen": {},
+    "terms": [],
+    "rev": 2,
+    "scope": "Menghai County",
+    "text": "Menghai County is the core of pu’er country in western Xishuangbanna. Nannuo, Bulang, Mengsong, Hekai, Pasha and Bada are distinct mountain areas within it, each with its own tea, not interchangeable names for Menghai.",
+    "sourceIds": [
+      "teadb-menghai-county"
+    ],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Menghai County",
+        "text": "Menghai County anchors much of western Xishuangbanna’s Pu’er landscape. Names such as Nannuo, Bulang, Mengsong, Hekai, Pasha, and Bada describe distinct mountain areas within the county rather than interchangeable synonyms for Menghai.",
+        "approvedAt": "2026-11-23",
+        "reason": "Backfilled from pages",
+        "evidenceIds": [
+          "EVIDENCE-5F496A300F5E710FC8FA80B0"
+        ]
+      },
+      {
+        "rev": 2,
+        "origin": "approved",
+        "scope": "Menghai County",
+        "text": "Menghai County is the core of pu’er country in western Xishuangbanna. Nannuo, Bulang, Mengsong, Hekai, Pasha and Bada are distinct mountain areas within it, each with its own tea, not interchangeable names for Menghai.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
+        "evidenceIds": [
+          "EVIDENCE-5F496A300F5E710FC8FA80B0"
+        ]
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "menghai-county:why-people-value-it",
+    "pageId": "menghai-county",
+    "sectionKey": "why-people-value-it",
+    "label": "Why people value Menghai",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {},
+    "terms": [
+      {
+        "original": "勐海",
+        "pinyin": "Měnghǎi",
+        "gloss": "Menghai"
+      }
+    ],
+    "rev": 1,
+    "scope": "Menghai County",
+    "text": "For its trees, above all. Menghai’s old gardens grow in and beside living forest, in warm, wet hills, and many of the trees are centuries old. That old-tree leaf is what tea people mean by Menghai’s mountain character: a strong cup whose bitterness turns quickly into a sweet, lasting finish, the quality the trade calls huigan, most of all on Bulang, while Nannuo gives a softer, more floral tea. The factory history made the name famous, but the trees are why buyers seek out its mountains.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Menghai County",
+        "text": "For its trees, above all. Menghai’s old gardens grow in and beside living forest, in warm, wet hills, and many of the trees are centuries old. That old-tree leaf is what tea people mean by Menghai’s mountain character: a strong cup whose bitterness turns quickly into a sweet, lasting finish, the quality the trade calls huigan, most of all on Bulang, while Nannuo gives a softer, more floral tea. The factory history made the name famous, but the trees are why buyers seek out its mountains.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "menghai-tea-mountain-circuit:editorial-boundary",
+    "pageId": "menghai-tea-mountain-circuit",
+    "sectionKey": "editorial-boundary",
+    "label": "An itinerary, not an origin",
+    "axis": "place",
+    "basis": "sourced",
+    "listingEligible": false,
+    "appliesWhen": {},
+    "terms": [],
+    "rev": 1,
+    "scope": "Menghai Tea Mountain Circuit",
+    "text": "The Menghai tea-culture circuit is a travel itinerary through tea landscapes, villages, cultural sites, and businesses. It is useful evidence of how places are connected for visitors, but the route itself is not a tea area and does not belong in the geographic origin hierarchy.",
+    "sourceIds": [
+      "ctma-menghai-seven-mountains-2025"
+    ],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Menghai Tea Mountain Circuit",
+        "text": "The Menghai tea-culture circuit is a travel itinerary through tea landscapes, villages, cultural sites, and businesses. It is useful evidence of how places are connected for visitors, but the route itself is not a tea area and does not belong in the geographic origin hierarchy.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
+        "evidenceIds": [
+          "EVIDENCE-17B9BF842F4540ED9693D09D"
+        ]
+      }
+    ],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "menghai-tea-mountain-circuit:reading-the-circuit",
+    "pageId": "menghai-tea-mountain-circuit",
+    "sectionKey": "reading-the-circuit",
+    "label": "Reading the circuit",
+    "axis": "place",
+    "basis": "sourced",
+    "listingEligible": false,
+    "appliesWhen": {},
+    "terms": [],
+    "rev": 1,
+    "scope": "Menghai Tea Mountain Circuit",
+    "text": "The published circuit begins at Nannuo and ends at Lao Man’e over roughly 78.5 kilometres, passing tea gardens and communities associated with Hani, Lahu, and Bulang peoples. Those route details support travel context; they do not prove that every tea sold under a stop name came from that place.",
+    "sourceIds": [
+      "ctma-menghai-seven-mountains-2025"
+    ],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Menghai Tea Mountain Circuit",
+        "text": "The published circuit begins at Nannuo and ends at Lao Man’e over roughly 78.5 kilometres, passing tea gardens and communities associated with Hani, Lahu, and Bulang peoples. Those route details support travel context; they do not prove that every tea sold under a stop name came from that place.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
+        "evidenceIds": [
+          "EVIDENCE-4FD67B451554ADAAE0FEBF68"
+        ]
+      }
+    ],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "menghai-tea-mountain-circuit:seven-mountain-route",
+    "pageId": "menghai-tea-mountain-circuit",
+    "sectionKey": "seven-mountain-route",
+    "label": "Seven mountain stops",
+    "axis": "place",
+    "basis": "sourced",
+    "listingEligible": false,
+    "appliesWhen": {},
+    "terms": [],
+    "rev": 1,
+    "scope": "Menghai Tea Mountain Circuit",
+    "text": "One line links Nannuo, Pasha, Hekai, Bangpen, Xin Banzhang, Lao Banzhang, and Lao Man’e. The same itinerary also points toward historic factory remains, old cultivated trees, museums, estates, and temples, placing tea production beside the cultural landscape through which the route passes.",
+    "sourceIds": [
+      "ctma-menghai-seven-mountains-2025"
+    ],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Menghai Tea Mountain Circuit",
+        "text": "One line links Nannuo, Pasha, Hekai, Bangpen, Xin Banzhang, Lao Banzhang, and Lao Man’e. The same itinerary also points toward historic factory remains, old cultivated trees, museums, estates, and temples, placing tea production beside the cultural landscape through which the route passes.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
+        "evidenceIds": [
+          "EVIDENCE-17B9BF842F4540ED9693D09D"
+        ]
+      }
+    ],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "muzha:history",
+    "pageId": "muzha",
+    "sectionKey": "history",
+    "label": "How Tieguanyin came to Muzha",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "muzha"
+      ]
+    },
+    "terms": [
+      {
+        "original": "張迺妙",
+        "pinyin": "Zhāng Nǎimiào",
+        "gloss": "Zhang Naimiao, the tea master named for bringing Tieguanyin to Muzha"
+      },
+      {
+        "original": "安溪",
+        "pinyin": "Ānxī",
+        "gloss": "Anxi, Fujian, the home of Tieguanyin"
+      }
+    ],
+    "rev": 1,
+    "scope": "How Tieguanyin reached Muzha from Anxi, with the 1895 Zhang Naimiao account as the commonly named start. Later plant shipments are left out.",
+    "text": "Tieguanyin reached Muzha from Anxi in Fujian in the late nineteenth century, carried by Fujian settlers. The trade most often names the tea master Zhang Naimiao, who brought plants over in 1895 and planted them in the Zhanghu part of Muzha. Many tea families in the hills still carry the Zhang name. Later shipments of plants are reported, but the years and numbers differ from place to place, so they are not settled here.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "How Tieguanyin reached Muzha from Anxi, with the 1895 Zhang Naimiao account as the commonly named start. Later plant shipments are left out.",
+        "text": "Tieguanyin reached Muzha from Anxi in Fujian in the late nineteenth century, carried by Fujian settlers. The trade most often names the tea master Zhang Naimiao, who brought plants over in 1895 and planted them in the Zhanghu part of Muzha. Many tea families in the hills still carry the Zhang name. Later shipments of plants are reported, but the years and numbers differ from place to place, so they are not settled here.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "muzha:known-for",
+    "pageId": "muzha",
+    "sectionKey": "known-for",
+    "label": "The tea Muzha is known for",
+    "axis": "sensory_observation",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "origin_includes": [
+        "muzha"
+      ]
+    },
+    "terms": [
+      {
+        "original": "木柵鐵觀音",
+        "pinyin": "Mùzhà Tiěguānyīn",
+        "gloss": "Muzha Tieguanyin, the roasted oolong of Muzha"
+      }
+    ],
+    "rev": 1,
+    "scope": "Traditional Muzha Tieguanyin as a style: charcoal-roasted ball-rolled oolong. Describes the style, never the taste of a given lot.",
+    "text": "Muzha is known for Tieguanyin made in the traditional Taiwanese way: a ball-rolled oolong, oxidised part way and then roasted over charcoal. It is far darker and heavier than the green, lightly finished Tieguanyin many people know from Fujian. The trade describes roasted and ripe-fruit notes, nuts and honey, an amber cup with a full body, and a sweet, lingering return. The slow roasting, repeated over many days, is a large part of why the tea costs more.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Traditional Muzha Tieguanyin as a style: charcoal-roasted ball-rolled oolong. Describes the style, never the taste of a given lot.",
+        "text": "Muzha is known for Tieguanyin made in the traditional Taiwanese way: a ball-rolled oolong, oxidised part way and then roasted over charcoal. It is far darker and heavier than the green, lightly finished Tieguanyin many people know from Fujian. The trade describes roasted and ripe-fruit notes, nuts and honey, an amber cup with a full body, and a sweet, lingering return. The slow roasting, repeated over many days, is a large part of why the tea costs more.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "muzha:on-a-label",
+    "pageId": "muzha",
+    "sectionKey": "on-a-label",
+    "label": "Muzha on a label",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "muzha"
+      ]
+    },
+    "terms": [
+      {
+        "original": "正欉鐵觀音",
+        "pinyin": "zhèngcóng Tiěguānyīn",
+        "gloss": "Tieguanyin from the true original cultivar"
+      }
+    ],
+    "rev": 1,
+    "scope": "What the words Muzha Tieguanyin do and do not prove about cultivar, place and roast.",
+    "text": "Muzha Tieguanyin on a label names a place and a style of making. It is not proof of the plant. True Tieguanyin trees, often called zhengcong, give little leaf and need careful hands, and some growers in Muzha now use other cultivars such as Qingxin oolong for the same style of tea. Tieguanyin is also a name used for a way of making, so leaf sold as Tieguanyin may come from other plants. Place, cultivar and roast are three separate facts, and a label rarely gives all three. How the name sits with the wider tea is on the [Tieguanyin](tieguanyin) page.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "What the words Muzha Tieguanyin do and do not prove about cultivar, place and roast.",
+        "text": "Muzha Tieguanyin on a label names a place and a style of making. It is not proof of the plant. True Tieguanyin trees, often called zhengcong, give little leaf and need careful hands, and some growers in Muzha now use other cultivars such as Qingxin oolong for the same style of tea. Tieguanyin is also a name used for a way of making, so leaf sold as Tieguanyin may come from other plants. Place, cultivar and roast are three separate facts, and a label rarely gives all three. How the name sits with the wider tea is on the [Tieguanyin](tieguanyin) page.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
+        "evidenceIds": []
       }
     ],
     "pageVisibility": "public"

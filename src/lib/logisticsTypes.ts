@@ -1,3 +1,5 @@
+import type { PackingBasis, PackingSizes } from './packingSizes';
+import type { PackedItemKind } from './logisticsFreight';
 import type { LogisticsTrackingSnapshot } from './logisticsTrackingUpdate';
 /** Shared supplier → forwarder → studio tracking. Freight is accounting only. */
 export interface LogisticsFreight {
@@ -73,6 +75,10 @@ export interface LogisticsShipmentLine {
   original_cost_amount: number | null;
   original_cost_currency: string | null;
   allocated_freight: number | null;
+  /** Loose or pressed tea, gaiwan, cup, teapot or other, for its packed size. */
+  packing_kind?: PackedItemKind;
+  /** The packed volume the shop expects for this line, and what it learned it from. */
+  packing_estimate?: { volume_m3: number | null; basis: PackingBasis; samples: number; note: string };
 }
 export interface StudioReceiptReferralInput {
   idempotency_key: string;
@@ -116,7 +122,9 @@ export interface LogisticsShipment {
   studio_receipts?: Array<{id:string;line_id:string;ledger_id:string;quantity:number;received_at:string;recorded_by:string|null}>;
   lines: LogisticsShipmentLine[];
 }
-export interface LogisticsTracking { orders: LogisticsOrder[]; shipments: LogisticsShipment[]; services: LogisticsService[]; addresses?: LogisticsAddress[] }
+export interface LogisticsTracking { orders: LogisticsOrder[]; shipments: LogisticsShipment[]; services: LogisticsService[]; addresses?: LogisticsAddress[];
+  /** Packed sizes learned from this shop's shipments (src/lib/packingSizes.ts). */
+  packing_sizes?: PackingSizes }
 export interface LogisticsOrderInput {
   warehouse_address_id?: string | null;
   logistics_company_id: string | null;

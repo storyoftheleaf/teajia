@@ -1,6 +1,7 @@
 import { canonicalCurrency, isUnrecordedCurrency } from '../../src/lib/currency';
 import { SHOP_MARKUP_MULTIPLIER } from './markup';
-import { shippingPerGramUsd, resolveShopFreightDefault } from './shippingRate';
+import { readPackingSizes } from './packingSizes';
+import { shippingPerGramUsd, resolveShopFreightDefault, freightFor, serviceRatesFromRows, shipmentFreightFromRows, type FreightDefaults, type ServiceRow, type ShipmentLineRow } from './shippingRate';
 
 /**
  * Case-insensitive rate lookup with alias normalization, so 'CNY' resolves to
@@ -23,20 +24,58 @@ export function lookupRateToUsd(rates: Map<string, number>, rawCurrency: string 
 }
 
 /**
- * The shop's own freight rate, converted to USD at today's rate.
+ * The shop's own freight rate, the logistics services' rates, and the last
+ * confirmed shipment freight of each tea, converted to USD at today's rate.
+ * A tea picks its own figure with freightFor (src/lib/freightSource.ts).
  *
- * Read per request rather than cached: it is one indexed row, and a rate that
- * kept serving the old number after Adrian changed it in Store Settings would
- * be the same class of bug this whole area exists to stop.
+ * Read per request rather than cached: a rate that kept serving the old number
+ * after Adrian changed it in Settings or Logistics would be the same class of
+ * bug this whole area exists to stop.
  */
-export async function shopFreightPerKgUsd(env: { DB: D1Database }, accountId: string, rates: Map<string, number>): Promise<number | null> {
-  const account = await env.DB.prepare(
-    'SELECT default_shipping_rate_per_kg, default_shipping_rate_currency FROM accounts WHERE id = ?'
-  ).bind(accountId).first() as { default_shipping_rate_per_kg?: number | null; default_shipping_rate_currency?: string | null } | null;
-  return resolveShopFreightDefault(account, c => lookupRateToUsd(rates, c)).perKgUsd;
+export async function accountFreightDefaults(env: { DB: D1Database }, accountId: string, rates: Map<string, number>): Promise<FreightDefaults> {
+  return (await freightDefaultsByAccount(env, [accountId], rates)).get(accountId)!;
 }
 
-export function addPricingFields(product: any, rates: Map<string, number>, shopDefaultPerKgUsd: number | null): any {
+/** The same, for every shop a response carries teas from: three reads, plus one for each shop's packed sizes. */
+export async function freightDefaultsByAccount(env: { DB: D1Database }, accountIds: readonly string[], rates: Map<string, number>): Promise<Map<string, FreightDefaults>> {
+  const ids = [...new Set(accountIds.filter(Boolean))];
+  const out = new Map<string, FreightDefaults>();
+  if (!ids.length) return out;
+  const marks = ids.map(() => '?').join(', ');
+  const accounts = await env.DB.prepare(
+    `SELECT id, default_shipping_rate_per_kg, default_shipping_rate_currency FROM accounts WHERE id IN (${marks})`,
+  ).bind(...ids).all<{ id: string; default_shipping_rate_per_kg?: number | null; default_shipping_rate_currency?: string | null }>();
+  const services = await env.DB.prepare(
+    `SELECT id, account_id, basis, rate, currency, active, name, logistics_company_name FROM logistics_services WHERE account_id IN (${marks})`,
+  ).bind(...ids).all<ServiceRow & { account_id: string }>();
+  const lines = await env.DB.prepare(
+    `SELECT s.id AS shipment_id, s.account_id, s.service_id, COALESCE(s.dispatched_at, s.created_at) AS dated, s.freight_json,
+            l.id AS line_id, r.product_id, r.unit, l.quantity, l.weight_kg, l.volume_m3, l.weight_estimated, l.volume_estimated
+       FROM logistics_shipments s
+       JOIN logistics_shipment_lines l ON l.shipment_id = s.id AND l.account_id = s.account_id
+       JOIN inventory_receipt_lines r ON r.id = l.receipt_line_id AND r.account_id = l.account_id
+      WHERE s.account_id IN (${marks}) AND s.state <> 'cancelled' AND s.service_id IS NOT NULL AND s.freight_json IS NOT NULL`,
+  ).bind(...ids).all<Record<string, any>>();
+  const lookup = (c: string) => lookupRateToUsd(rates, c);
+  const parse = (json: unknown) => { try { return typeof json === 'string' ? JSON.parse(json) : null; } catch { return null; } };
+  const lineRows: Array<ShipmentLineRow & { account_id: string }> = (lines.results ?? []).map(r => ({
+    shipment_id: r.shipment_id, account_id: r.account_id, service_id: r.service_id, dated: String(r.dated ?? ''), freight: parse(r.freight_json),
+    line_id: r.line_id, product_id: r.product_id, unit: r.unit, quantity: Number(r.quantity),
+    weight_kg: r.weight_kg == null ? null : Number(r.weight_kg), volume_m3: r.volume_m3 == null ? null : Number(r.volume_m3),
+    weight_estimated: !!r.weight_estimated, volume_estimated: !!r.volume_estimated,
+  }));
+  for (const id of ids) {
+    out.set(id, {
+      shopPerKgUsd: resolveShopFreightDefault((accounts.results ?? []).find(a => a.id === id) ?? null, lookup).perKgUsd,
+      services: serviceRatesFromRows((services.results ?? []).filter(r => r.account_id === id), lookup),
+      shipments: shipmentFreightFromRows(lineRows.filter(r => r.account_id === id), lookup),
+      packing: await readPackingSizes(env, id),
+    });
+  }
+  return out;
+}
+
+export function addPricingFields(product: any, rates: Map<string, number>, freightDefaults: FreightDefaults): any {
   /* A named cost currency with no rate is not a rate of 1. Reading a 380 yuan
      cost as 380 dollars is a seven-fold error that the x3 then triples, and it
      arrives looking like an expensive tea rather than like a fault. Nothing to
@@ -54,15 +93,20 @@ export function addPricingFields(product: any, rates: Map<string, number>, shopD
   // gets two homes.
   const rate = isUnrecordedCurrency(declared) ? 1 : lookupRateToUsd(rates, declared);
   const isTeaware = product.type === 'Teaware';
+  const fallback = freightFor(product, freightDefaults);
+  // What the admin shows beside the price: the freight a tea with no rate of its own takes, and from where.
+  const freightFields = { freight_fallback_per_kg_usd: fallback.perKgUsd, freight_source: fallback.source, freight_fell_back: fallback.fellBack ?? null, freight_dated: fallback.dated ?? null };
   const freight = shippingPerGramUsd({
     storedRatePerKg: product.shipping_rate_per_kg,
     rateToUsd: rate,
     isTeaware,
-    shopDefaultPerKgUsd,
+    // The tea's own rate, else its service's shipments or quote, else the shop's: src/lib/freightSource.ts.
+    shopDefaultPerKgUsd: fallback.perKgUsd,
   });
   if (!rate || !Number.isFinite(rate) || rate <= 0 || freight === null || product.cost_amount == null || !(Number(product.quantity_purchased) > 0)) {
     return {
       ...product,
+      ...freightFields,
       stock_grams: Math.round(product.stock_grams || 0),
       // The books keep part grams; the Stock page reads this, the shop keeps whole grams.
       stock_grams_exact: product.stock_grams ?? 0,
@@ -78,22 +122,50 @@ export function addPricingFields(product: any, rates: Map<string, number>, shopD
   let retailPricePerUnitUSD = 0;
 
   if (qty > 0) {
-    const costPerUnit = product.cost_amount / qty;
-    /* Freight belongs in the basis the markup multiplies, and the rate itself
-       is decided in one place. See worker/src/shippingRate.ts for both, and
-       for why a NULL rate is not the same as a rate of zero. */
-    costPerUnitUSD = costPerUnit / rate + freight;
-  }
-
-  if (qty > 0) {
-    retailPricePerUnitUSD = costPerUnitUSD * SHOP_MARKUP_MULTIPLIER;
+    const goodsPerUnitUSD = (product.cost_amount / qty) / rate;
+    /* What a gram cost us is the leaf plus its freight. What it sells for is
+       the leaf times the markup, plus the freight at cost: freight is passed
+       on, not marked up (Adrian, 2026-11-27). The rate itself is decided in
+       one place, worker/src/shippingRate.ts, which also says why a NULL rate
+       is not the same as a rate of zero. */
+    costPerUnitUSD = goodsPerUnitUSD + freight;
+    retailPricePerUnitUSD = goodsPerUnitUSD * SHOP_MARKUP_MULTIPLIER + freight;
   }
 
   return {
     ...product,
+    ...freightFields,
     stock_grams: Math.round(product.stock_grams || 0),
     stock_grams_exact: product.stock_grams ?? 0,
     cost_per_gram_usd: Math.round(costPerUnitUSD * 100) / 100,
     retail_price_per_gram_usd: product.fixed_retail_price_usd ?? Math.round(retailPricePerUnitUSD * 100) / 100,
   };
+}
+
+/**
+ * What each tea sells for on the shelf right now, per gram (per piece for
+ * teaware), keyed by product id: a typed fixed price if there is one, else the
+ * shop's price from cost and freight. Null where the shelf prints a dash.
+ *
+ * Collections used to read only `fixed_retail_price_usd`, so every tea priced
+ * from its cost showed no price on a shared collection and went onto the
+ * invoice at nothing. A price that is not typed is read here at use time, never
+ * copied into the collection row, so a cost, freight or rate change moves it.
+ */
+export async function shelfPricesFor(env: { DB: D1Database }, accountId: string, productIds: readonly string[]): Promise<Map<string, number | null>> {
+  const ids = [...new Set(productIds.filter(Boolean))];
+  const out = new Map<string, number | null>();
+  if (!ids.length) return out;
+  const [productRows, rateRows] = await Promise.all([
+    env.DB.prepare(`SELECT * FROM products WHERE account_id = ? AND id IN (${ids.map(() => '?').join(',')})`).bind(accountId, ...ids).all(),
+    env.DB.prepare('SELECT currency, rate_to_usd FROM exchange_rates').all(),
+  ]);
+  const rates = new Map<string, number>(((rateRows.results ?? []) as any[]).map(row => [row.currency, row.rate_to_usd]));
+  const freightDefaults = await accountFreightDefaults(env, accountId, rates);
+  for (const row of (productRows.results ?? []) as any[]) {
+    const priced = addPricingFields(row, rates, freightDefaults);
+    const value = priced.retail_price_per_gram_usd;
+    out.set(row.id, typeof value === 'number' && Number.isFinite(value) ? value : null);
+  }
+  return out;
 }

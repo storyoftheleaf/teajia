@@ -30,13 +30,13 @@ export function GuestBookEntries({ notes, photos, credential, identity, cacheKey
       <ul aria-label="Entries from session guests" className="my-3 divide-y divide-tea-border">
         {entries.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE).map(entry => (
           <li key={entry.key} className="py-3">
-            <p className="text-ui-13 text-tea-text-sec break-words">{entry.displayName}</p>
+            {entry.displayName && <p className="text-ui-13 text-tea-text-sec break-words">{entry.displayName}</p>}
             {entry.note && <p className={`${TYPOGRAPHY_CLASSES.bodyLight} mt-1 whitespace-pre-wrap break-words`}>{entry.note.note}</p>}
             {entry.photos.length > 0 && (
               <div className="mt-2 flex flex-wrap gap-2">
                 {entry.photos.map(photo => (
-                  <GuestBookPhotoTile key={photo.id} queryKey={[...cacheKey, 'included', photo.id]} alt={photo.alt_text}
-                    title={`Photo by ${entry.displayName}`}
+                  <GuestBookPhotoTile key={photo.id} queryKey={[...cacheKey, 'included', photo.id]} previewId={photo.id} alt={photo.alt_text}
+                    title={photo.display_name ? `Photo by ${photo.display_name}` : 'Photo from the table'}
                     load={signal => guestBookPhotoApi.read(credential, { action: 'photo-bytes', grantId: photo.id }, identity, signal)} />
                 ))}
               </div>
@@ -71,7 +71,7 @@ export function GuestBookPhotoPicker({ choices, chosen, onChoose, disabled, cred
         </select>
       </label>
       {chosen && (
-        <GuestBookPhotoTile key={chosen.id} queryKey={[...cacheKey, 'own', chosen.id]}
+        <GuestBookPhotoTile key={chosen.id} queryKey={[...cacheKey, 'own', chosen.id]} previewId={`own-${chosen.id}`}
           alt="Your selected private photo" title="Your selected private photo"
           load={signal => guestBookPhotoApi.read(credential, { action: 'private-photo-preview', photoId: chosen.id }, identity, signal)} />
       )}

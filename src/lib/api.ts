@@ -1,10 +1,16 @@
 import type { CellarItem, CellarPlacementRequest, PublicShelf, ShelfOfferInput, ShelfSettings } from './teaChestTypes';
 export type { CellarItem, CellarPlacementRequest, PublicShelf, PublicShelfItem, ShelfOfferInput, ShelfSettings, TeaChestAccount } from './teaChestTypes';
 import type { ShippingPaymentNotification } from './shippingNotification';
+export type { FavouriteArticle, FavouriteChestTea, FavouriteShopTea, MyFavourites } from './favouritesTypes';
 import type { CustomerOrderDetail, TrackedOrder } from './orderTrackingTypes';
 import { createArticleApi } from './articlesApi';
-import { createHostingApi, createTablesApi } from './hostingApi';
-export type { HostedTableCreated, HostedTableDetail, HostedTableDoor, HostedTableInput, HostedTableSummary, HostingStatus } from './hostingApi';
+import { createHostingApi, createPlatformHostingApi, createTablesApi, type HostReach } from './hostingApi';
+import { createFavouritesApi } from './favouritesApi';
+import { createCirclesApi } from './circlesApi';
+import { createHostTokensApi } from './hostTokensApi';
+import { fewHostsOpen } from './fewHosts';
+import { anyoneHostsOpen } from './anyoneHosts';
+export type { HostedTableCreated, HostedTableDetail, HostedTableDoor, HostedTableInput, HostedTableSummary, HostingStatus, HostReach } from './hostingApi';
 import { createMemberRecordsApi, createCompassInviteApi } from './memberRecordsApi';
 export type { ReceivedTeaCard, PrivateSessionReflection } from './memberRecordsApi';
 import type { VendorProductSale } from './vendorSalesTypes';
@@ -480,6 +486,10 @@ export interface PlatformUser {
   /** Launch 2: Adrian lets this person open tables by link. Only sent while Launch 2 is open. */
   may_host?: boolean;
   host_approved_at?: string | null;
+  /** Launch 3: when Adrian stopped this person's hosting. Only sent while Launch 2 is open. */
+  hosting_stopped_at?: string | null;
+  /** Launch 3 (J10): how far this host's open tables are shown. Sent to the platform owner alone, while Launch 3 is open. */
+  host_reach?: HostReach;
   memberships: { account_id: string; role: string }[];
 }
 
@@ -852,7 +862,7 @@ const PRODUCT_STOCK_UPDATE_FIELDS = new Set([
 ]);
 
 const PRODUCT_COMMERCIAL_UPDATE_FIELDS = new Set([
-  'price', 'cost', 'cost_amount', 'cost_currency', 'shipping_rate_per_kg',
+  'price', 'cost', 'cost_amount', 'cost_currency', 'shipping_rate_per_kg', 'freight_service_id',
   'quantity_purchased', 'markup_multiplier', 'fixed_retail_price_usd',
   'price_per_gram_usd', 'wholesale_price', 'vendor', 'vendor_id', 'vendor_url',
   'can_reorder',
@@ -2665,6 +2675,10 @@ export const api = {
     getNotifications: async (id: string) => {
       return authedFetch(`${API_URL}/api/admin/events/${id}/notifications`)
     },
+    /** What happened to the session's seats (J9). An in-app list; nothing is sent. */
+    getSeatNotices: async (id: string): Promise<{ notices: import('./hostingApi').SeatNotice[] }> => {
+      return authedFetch(`${API_URL}/api/admin/events/${encodeURIComponent(id)}/seat-notices`)
+    },
     createNotifications: async (id: string) => {
       return authedFetch(`${API_URL}/api/admin/events/${id}/notifications`, {
         method: 'POST',
@@ -2798,6 +2812,14 @@ export const api = {
     },
     // Public endpoints
     listPublic: async () => {
+      // Launch 3 (J10): signed in, the list also carries tables shown to people on Teajia (cache cleared on sign-in change, src/index.tsx).
+      if (fewHostsOpen() && anyoneHostsOpen() && getToken()) {
+        try {
+          return await authedFetch(`${API_URL}/api/me/sessions`);
+        } catch {
+          // Fall back to the public list, which is always right to show.
+        }
+      }
       const res = await fetchWithTimeout(`${API_URL}/api/events`);
       return handleResponse(res);
     },
@@ -2955,6 +2977,13 @@ export const api = {
         headers: { 'Content-Type': 'application/json' },
       });
       return handleResponse(res);
+    },
+    /** A signed-in confirmed guest of a tasting joins its session; answers the session id. */
+    openTasting: async (token: string): Promise<{ session_id: string }> => {
+      return authedFetch(`${API_URL}/api/rsvp/${encodeURIComponent(token)}/tasting`, {
+        method: 'POST',
+        body: JSON.stringify({}),
+      });
     },
     getPostSession: async (token: string) => {
       const res = await fetchWithTimeout(`${API_URL}/api/rsvp/${token}/post-session`, {
@@ -3875,7 +3904,7 @@ export const api = {
 
   network: {
     /** Public list of accounts with public_enabled = true */
-    getStores: async (): Promise<Array<{ id: string; slug: string; name: string; tagline?: string; logo_url?: string; location_city?: string; location_country?: string }>> => {
+    getStores: async (): Promise<Array<{ id: string; slug: string; name: string; tagline?: string; logo_url?: string; cover_image_url?: string | null; location_city?: string; location_country?: string; next_session?: import('../types').NetworkNextSession | null }>> => {
       return authedFetch(`${API_URL}/api/network/stores`)
     },
 
@@ -4287,6 +4316,9 @@ export const api = {
   // Launch 2, a few hosts (closed until src/lib/fewHosts.ts opens).
   hosting: createHostingApi({ apiUrl: API_URL, authedFetch }),
   tables: createTablesApi({ apiUrl: API_URL, authedFetch }),
+  // Launch 5: circles and series (M4, src/lib/circles.ts) and a host's own assistant key (M6, src/lib/hostTokens.ts), closed until they open.
+  circles: createCirclesApi({ apiUrl: API_URL, authedFetch }),
+  hostTokens: createHostTokensApi({ apiUrl: API_URL, authedFetch }),
 
   platform: {
     listUsers: async (): Promise<{ users: PlatformUser[] }> => {
@@ -4310,6 +4342,8 @@ export const api = {
         method: 'PUT', body: JSON.stringify({ approved }),
       });
     },
+    // Launch 3: stop a host, and how far their open tables are shown (src/lib/hostingApi.ts).
+    ...createPlatformHostingApi({ apiUrl: API_URL, authedFetch }),
     grantShelf: async (userId: string, data: { enabled: boolean; slug?: string }): Promise<{ ok: boolean; enabled: boolean; slug: string | null }> => {
       return authedFetch(`${API_URL}/api/platform/users/${userId}/shelf`, {
         method: 'PUT',
@@ -4719,6 +4753,9 @@ export const api = {
       return authedFetch(`${API_URL}/api/me/cellar/${id}/unpublish-shelf`, { method: 'POST' });
     },
   },
+
+  // Launch 4: favourites in three kinds, the caller's own only (src/lib/favouritesApi.ts).
+  favourites: createFavouritesApi({ apiUrl: API_URL, authedFetch }),
 
   // Stock spine step 5: PUBLIC standalone shelf (no auth).
   shelf: {

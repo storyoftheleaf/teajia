@@ -947,8 +947,19 @@ body {
 .bottom-nav-label { font-size: var(--fs-ui-14); }
 .bottom-nav-menu { padding-left: var(--space-2); }
 .bottom-nav-account { padding-right: var(--space-2); }
+.bottom-nav-bar button { min-inline-size: var(--tap-min); }
+.bottom-nav-menu::after, .bottom-nav-account::before { pointer-events: none; }
 .bottom-nav-center { padding-inline: var(--space-1); }
 .bottom-nav-spacer { display: none; }
+@media (max-width: 359px) {
+  .bottom-nav-bar { inset-inline: var(--space-1); }
+  .bottom-nav-center { padding-inline: 0; }
+}
+/* The Launch 4 words (HOME_BAR_OPEN) are longer: one size smaller under 340px
+   wide, Adrian's call of 2026-11-26. The shape of the bar stays the same. */
+@media (max-width: 339px) {
+  .bottom-nav-bar[data-bar-words='launch-4'] .bottom-nav-label { font-size: var(--fs-ui-13); }
+}
 @media (min-width: 400px) {
   .bottom-nav-label { font-size: var(--fs-ui-15); }
   .bottom-nav-menu { padding-left: calc(var(--space-3) + var(--space-1) / 2); }

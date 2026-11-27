@@ -8,6 +8,12 @@ import { useStepParam } from '../hooks/useStepParam';
 import { api, hasToken, type HostedTableDoor } from '../lib/api';
 import { authPagePath } from '../lib/authNavigation';
 import { fewHostsOpen } from '../lib/fewHosts';
+import { yourTablePlaceOpen } from '../lib/yourTablePlace';
+import { YourTablePlaceSection } from '../components/host/YourTablePlace';
+import { HostCirclesSection } from '../components/host/HostCircles';
+import { circlesOpen } from '../lib/circles';
+import { HostAssistantSection } from '../components/host/HostAssistant';
+import { hostTokensOpen } from '../lib/hostTokens';
 import { TABLE_AREA_HINT } from '../components/host/hostTableParts';
 
 const textClass = `${TYPOGRAPHY_CLASSES.body} text-tea-text-sec`;
@@ -37,12 +43,29 @@ function HostingAccess() {
     content = <p className={textClass} role="status">Checking hosting access…</p>;
   } else if (hosting.isError) {
     content = <p className={textClass} role="alert">Could not check hosting access. Reload to try again.</p>;
+  } else if (hosting.data.stopped) {
+    // Launch 3: Teajia paused this person's hosting. Told to them alone, here.
+    // Launch 5, M6: a stopped host still sees and may disconnect their assistant keys; none of them works.
+    content = (
+      <>
+        <p className={textClass}>New tables are paused on your account. Write to Teajia to talk it over.</p>
+        {hostTokensOpen() && <HostAssistantSection />}
+      </>
+    );
   } else if (!hosting.data.doors?.length) {
-    content = <p className={textClass}>Hosting opens by invitation for now.</p>;
+    content = (
+      <>
+        <p className={textClass}>Hosting opens by invitation for now.</p>
+        {hostTokensOpen() && <HostAssistantSection onlyWithKeys />}
+      </>
+    );
   } else {
     content = (
       <>
         <MakeTable key={user?.email} doors={hosting.data.doors} />
+        {yourTablePlaceOpen() && <YourTablePlaceSection />}
+        {circlesOpen() && <HostCirclesSection />}
+        {hostTokensOpen() && <HostAssistantSection />}
         <YourRecord />
       </>
     );
@@ -114,7 +137,7 @@ function MakeTable({ doors }: { doors: HostedTableDoor[] }) {
       time: String(fields.get('time')),
       timezone,
       seats: Number(fields.get('seats')),
-      door: fields.get('door') === 'link' ? 'link' : 'request',
+      door: fields.get('door') === 'link' || fields.get('door') === 'open' ? fields.get('door') as 'link' | 'open' : 'request',
       name: String(fields.get('name')).trim() || null,
       area: String(fields.get('area') ?? '').trim() || null,
     }, { onSettled: () => { saving.current = false; } });
@@ -163,6 +186,12 @@ function MakeTable({ doors }: { doors: HostedTableDoor[] }) {
             <label className={`${textClass} flex min-h-tap items-center gap-2`}>
               <input type="radio" name="door" value="link" defaultChecked={!doors.includes('request')} className="accent-tea-gold" />
               Anyone with the link has a seat
+            </label>
+          )}
+          {doors.includes('open') && (
+            <label className={`${textClass} flex min-h-tap items-center gap-2`}>
+              <input type="radio" name="door" value="open" className="accent-tea-gold" />
+              People on Teajia can find it, and I say yes to each guest
             </label>
           )}
         </fieldset>

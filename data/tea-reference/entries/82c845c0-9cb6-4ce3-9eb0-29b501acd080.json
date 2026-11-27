@@ -1,0 +1,77 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-27T03:59:25.411Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "82c845c0-9cb6-4ce3-9eb0-29b501acd080",
+    "name": "Yiwu Mahei Old Tree Shou Cha",
+    "chineseName": "易武麻黑古茶熟茶",
+    "type": "Shou Puer",
+    "form": "Loose",
+    "year": 2006,
+    "origin": "Yiwu, Yunnan, China",
+    "stockGrams": null,
+    "pricePerGramUsd": null,
+    "tags": []
+  },
+  "entry": {
+    "productId": "82c845c0-9cb6-4ce3-9eb0-29b501acd080",
+    "paragraphs": [
+      {
+        "layer": "place",
+        "text": "This leaf comes from [Yiwu](greater-yiwu:where-it-is), in the north of Mengla County in Xishuangbanna, on the east side of the Lancang River. The area is one of the old Six Famous Tea Mountains, and its town has long been where leaf from the surrounding villages is gathered and processed."
+      },
+      {
+        "layer": "age",
+        "text": "At twenty years it sits well inside what the trade counts as [aged ripe pu’er](shou:age-aged). The leaf keeps changing slowly with the air and moisture around it, which is why the way it has been kept matters as much as the years."
+      },
+      {
+        "layer": "type",
+        "text": "It was made as [ripe pu’er](shou:definition) in 2006 and kept loose rather than pressed, thirty-three years after Yunnan’s state factories brought the [wet-pile method](shou:wet-piling) into production. The pile is wetted, heaped and covered to hold the heat its microbes give off, then turned to let air in, so that in weeks the leaf reaches a change that raw pu’er only finds over years of keeping."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Ripe pu’er takes boiling water: fermented, tightly packed leaf needs full heat to open, and it does not scald the way green tea can. A common start is about 7 grams to 100 ml and one quick rinse, which wakes the leaf and carries off dust and any pile smell. Then short steeps that lengthen as the leaf opens, so the cup stays clear rather than heavy; it gives eight or more good cups."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "aged ripe pu’er",
+      "text": "A smooth, deep cup with woody, date-like or medicinal notes, which the trade calls aged aroma."
+    },
+    "missing": [
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "greater-yiwu:where-it-is",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:age-aged",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:wet-piling",
+      "rev": 2
+    },
+    {
+      "claimId": "shou:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:notice-aged",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-27T04:17:17.990Z"
+}

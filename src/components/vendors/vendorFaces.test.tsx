@@ -123,3 +123,18 @@ describe('face photo files', () => {
     expect(looksLikePhoto({ name: 'notes.pdf', type: 'application/pdf' })).toBe(false);
   });
 });
+
+describe('pasted face photos', () => {
+  it('gives each copied picture its own name and leaves copied files and text alone', async () => {
+    const { pastedPhotos } = await import('./facePhotoFile');
+    const shot = new File(['x'], 'image.png', { type: 'image/png' });
+    const named = new File(['y'], 'huang-wei.jpg', { type: 'image/jpeg' });
+    const text = new File(['z'], 'notes.txt', { type: 'text/plain' });
+    const data = { files: [shot, named, text], items: [] } as unknown as DataTransfer;
+    const out = pastedPhotos(data);
+    expect(out).toHaveLength(2);
+    expect(out[0].name).toMatch(/^pasted-\d+-\d+\.png$/);
+    expect(out[1].name).toBe('huang-wei.jpg');
+    expect(pastedPhotos(null)).toEqual([]);
+  });
+});

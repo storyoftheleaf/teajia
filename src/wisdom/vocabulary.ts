@@ -23,6 +23,28 @@ export type Season = typeof SEASONS[number];
 export const STORAGE_STYLES = ['Dry', 'Wet/Traditional', 'HK', 'Malaysian', 'Natural'] as const;
 export type StorageStyle = typeof STORAGE_STYLES[number];
 
+/**
+ * Ways of making a tea that its own name can carry (GABA, tea heads). The one
+ * word list: the Wisdom needs check reads names against it, and every claim
+ * that matches on `process_in_name` must point at a page listed here (guarded
+ * by wisdomNeeds.test.ts). `pageId` (and `sectionKey`, for a process written up
+ * as one section of a style kit) is where its write-up lives or will live.
+ */
+export interface TeaProcess {
+  id: string;
+  name: string;
+  altNames: string[];
+  pageId: string;
+  sectionKey?: string;
+}
+
+export const TEA_PROCESSES: readonly TeaProcess[] = [
+  { id: 'gaba', name: 'GABA', altNames: ['Jiayelong', '佳葉龍', '佳叶龙'], pageId: 'gaba' },
+  { id: 'tea-heads', name: 'Tea heads', altNames: ['Tea head', 'Lao cha tou', 'Laochatou', '老茶头', '老茶頭', '茶头', '茶頭'], pageId: 'tea-heads' },
+  { id: 'wet-piling', name: 'Wet piling', altNames: ['Wet piled', 'Wo dui', 'Wodui', '渥堆'], pageId: 'shou', sectionKey: 'wet-piling' },
+  { id: 'bamboo-tube', name: 'Bamboo tube', altNames: ['Zhu tong', 'Zhutong', '竹筒'], pageId: 'bamboo-tube' },
+];
+
 /** Categories that are not tea but share the same records. */
 export const NON_TEA_TYPES = ['Teaware', 'Misc'] as const;
 
@@ -88,3 +110,9 @@ export function inventoryTeaType(value: string): string {
 }
 
 export const INVENTORY_TEA_TYPES = TEA_TYPES.map(inventoryTeaType);
+
+/** Every stored spelling of a tea type: the short words and the inventory's "Sheng Puer"/"Shou Puer". */
+export const STORED_TEA_TYPES: readonly string[] = [...new Set<string>([...TEA_TYPES, ...INVENTORY_TEA_TYPES])];
+
+/** True for a product row's type when it is a tea, whichever stored spelling it uses. */
+export const isStoredTeaType = (value: string): boolean => STORED_TEA_TYPES.includes(value);

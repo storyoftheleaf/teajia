@@ -5,7 +5,11 @@ import { GUEST_BOOK_NOTE_LIMIT, guestBookEntryKeys, prepareGuestBookNote, type G
 import { readSitPhotoRendition, sitPhotoRenditionResponse } from './revocableSitPhotos';
 import { sessionServedTeaName } from './sessionServedTeas';
 
-export type GuestBookPhotoInput = { action?: unknown; photoId?: unknown; grantId?: unknown; description?: unknown };
+export type GuestBookPhotoInput = {
+  action?: unknown; photoId?: unknown; grantId?: unknown; description?: unknown;
+  /** The taker's own choice, made when offering: true shows their first name beside the photograph. */
+  showName?: unknown;
+};
 type Scope = { accountId: string; userId: string };
 type Seat = { account_id: string; event_id: string; id: string };
 const uuid = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
@@ -27,6 +31,28 @@ const roster = `FROM session_guest_book_photos g
   WHERE g.revoked_at IS NULL AND contributor.status = 'confirmed' AND contributor.attended = 1
     AND ${eventCheck}`;
 const visiblePhoto = 'g.id, contributor.full_name AS display_name, g.alt_text, g.user_id';
+/**
+ * What other guests may know of a photograph's taker: the first name, and only
+ * when the taker chose to show it when offering. Never the full name.
+ */
+const takerFirstName = `CASE WHEN g.show_name = 1 THEN NULLIF(substr(trim(contributor.full_name), 1,
+  instr(trim(contributor.full_name) || ' ', ' ') - 1), '') END`;
+const guestVisiblePhoto = `g.id, ${takerFirstName} AS display_name, g.alt_text, g.user_id, g.show_name`;
+
+/**
+ * Other guests' view of the photographs. A photograph carries the taker's
+ * entry key only when they chose to show their name: the key groups it with
+ * their signed note, so without it a photograph the taker kept unnamed is
+ * shown on its own and never beside their name (A3).
+ */
+async function guestVisibleEntries(rows: { user_id: string; show_name: number }[], accountId: string, eventId: string, groupAll = false) {
+  const named = await guestBookEntryKeys(groupAll ? rows : rows.filter(row => Number(row.show_name) === 1), accountId, eventId);
+  const keys = new Map(named.map(row => [String((row as { id?: unknown }).id), row.entry_key]));
+  return rows.map(({ user_id: _user, show_name: _shown, ...row }) => {
+    const key = keys.get(String((row as { id?: unknown }).id));
+    return key ? { ...row, entry_key: key } : row;
+  });
+}
 const servedTea = sessionServedTeaName();
 const sourceDescription = `COALESCE(NULLIF(?, ''), 'Photo of ' || ${servedTea}, (
   SELECT 'Photo of ' || substr(trim(json_extract(tea.value, '$.name')), 1, 240)
@@ -61,10 +87,17 @@ async function serveBytes(request: Request, bucket: R2Bucket | undefined, source
   return bytes && await source() ? sitPhotoRenditionResponse(request, bytes) : missing();
 }
 
+/**
+ * `launch3Open` is ANYONE_HOSTS_OPEN. Either way a photograph's taker is named
+ * only by first name and only when they allowed it. Closed, every photograph
+ * keeps the entry key that groups it with its taker's signed note, as before
+ * PR 560 (launch-5 flags-off audit); open, only a named one does (A3).
+ */
 export async function serveGuestBookPhotos(
   request: Request, db: D1Database, bucket: R2Bucket | undefined, scope: Scope, credentialHash: string,
-  { action, photoId, grantId, description }: GuestBookPhotoInput,
+  input: GuestBookPhotoInput, launch3Open = true,
 ) {
+  const { action, photoId, grantId, description } = input;
   const binds = [credentialHash, scope.accountId, scope.userId, scope.userId];
   const seat = await guestSeat(db, binds);
   if (!seat) return ineligible();
@@ -72,9 +105,9 @@ export async function serveGuestBookPhotos(
   const ownSource = `p.account_id = ? AND p.event_id = ? AND p.user_id = ?`;
   if (action === 'photos-read') {
     const [gallery, own] = await Promise.all([
-      db.prepare(`SELECT ${visiblePhoto} ${roster}
+      db.prepare(`SELECT ${guestVisiblePhoto} ${roster}
         AND g.account_id = ? AND g.event_id = ? AND g.status = 'included'
-        ORDER BY g.offered_at DESC, g.id`).bind(...event).all<{ user_id: string }>(),
+        ORDER BY g.offered_at DESC, g.id`).bind(...event).all<{ user_id: string; show_name: number }>(),
       db.prepare(`SELECT p.id, p.tea_id, p.created_at,
           COALESCE(${servedTea}, json_extract(tea.value, '$.name')) AS tea_name,
           g.id AS grant_id, g.status, g.alt_text
@@ -87,7 +120,7 @@ export async function serveGuestBookPhotos(
         WHERE ${ownSource}
         ORDER BY p.created_at DESC, p.id`).bind(...event, scope.userId).all(),
     ]);
-    const entries = await guestBookEntryKeys(gallery.results, seat.account_id, seat.event_id);
+    const entries = await guestVisibleEntries(gallery.results, seat.account_id, seat.event_id, !launch3Open);
     return await guestSeat(db, binds) ? json({ gallery: entries, own: own.results }) : ineligible();
   }
   if (action === 'photo-bytes' || action === 'private-photo-preview') {
@@ -116,17 +149,21 @@ export async function serveGuestBookPhotos(
     return removed.meta?.changes ? json({ success: true }) : missing();
   }
   if (action !== 'photo-offer') return json({ error: 'Choose a Guest Book photo action.' }, 400);
-  return saveGuestBookPhoto(db, scope, seat, binds, { photoId, grantId, description });
+  return saveGuestBookPhoto(db, scope, seat, binds, { photoId, grantId, description, showName: input.showName });
 }
 
 async function saveGuestBookPhoto(
-  db: D1Database, scope: Scope, seat: Seat, binds: string[], { photoId, grantId, description }: GuestBookPhotoInput,
+  db: D1Database, scope: Scope, seat: Seat, binds: string[], { photoId, grantId, description, showName }: GuestBookPhotoInput,
   note = '', placement: GuestBookPlacement = {},
 ) {
   const alt = typeof description === 'string' ? description.trim() : '';
   if (!isId(grantId) || !isId(photoId) || alt.length > 250) {
     return json({ error: 'Choose a photo and keep any description to 250 characters.' }, 400);
   }
+  if (showName !== undefined && typeof showName !== 'boolean') {
+    return json({ error: 'Say whether your first name is shown with the photograph.' }, 400);
+  }
+  const shown = showName === true ? 1 : 0;
   const event = [seat.account_id, seat.event_id];
   const eligibility = `${guestCheck} AND a.id = ?`;
   const eligibilityBinds = [...binds, seat.id];
@@ -146,12 +183,12 @@ async function saveGuestBookPhoto(
   const claim = db.prepare(`UPDATE event_attendees AS a SET user_id = ?
     WHERE a.user_id IS NULL AND ${eligibleToOffer}`).bind(scope.userId, ...offerBinds);
   const offer = db.prepare(`INSERT INTO session_guest_book_photos
-      (id, account_id, event_id, attendee_id, user_id, photo_id, alt_text, status, offered_at)
-    SELECT ?, p.account_id, p.event_id, a.id, p.user_id, p.id, ${sourceDescription}, 'pending', ?
+      (id, account_id, event_id, attendee_id, user_id, photo_id, alt_text, status, offered_at, show_name)
+    SELECT ?, p.account_id, p.event_id, a.id, p.user_id, p.id, ${sourceDescription}, 'pending', ?, ?
       FROM private_kept_setup_photos p
       JOIN event_attendees a ON a.account_id = p.account_id AND a.event_id = p.event_id AND a.user_id = p.user_id
     WHERE p.user_id = ? AND p.id = ? AND ${eligibility} AND ${emptySlot}`)
-    .bind(grantId, alt, now, scope.userId, photoId, ...eligibilityBinds, grantId);
+    .bind(grantId, alt, now, shown, scope.userId, photoId, ...eligibilityBinds, grantId);
   const statements = note
     ? [claim, prepareGuestBookNote(db, scope.userId, note, now, eligibleToOffer, offerBinds, placement), offer]
     : [claim, offer];
@@ -163,8 +200,9 @@ async function saveGuestBookPhoto(
   const sameNote = note ? `AND EXISTS (SELECT 1 FROM session_guest_book b
     WHERE b.account_id = g.account_id AND b.event_id = g.event_id AND b.user_id = g.user_id AND b.note = ?)` : '';
   const same = await db.prepare(`SELECT 1 ${roster} AND g.id = ? AND g.account_id = ? AND g.event_id = ?
-    AND g.attendee_id = ? AND g.user_id = ? AND g.photo_id = ? AND g.alt_text = ${sourceDescription} ${sameNote}`)
-    .bind(grantId, ...event, seat.id, scope.userId, photoId, alt, ...(note ? [note] : [])).first();
+    AND g.attendee_id = ? AND g.user_id = ? AND g.photo_id = ? AND g.show_name = ?
+    AND g.alt_text = ${sourceDescription} ${sameNote}`)
+    .bind(grantId, ...event, seat.id, scope.userId, photoId, shown, alt, ...(note ? [note] : [])).first();
   return same && await guestSeat(db, binds) ? json({ success: true })
     : json({ error: 'This entry already has a photo, or the photo changed. Check your current entry.' }, 409);
 }
@@ -224,6 +262,7 @@ export async function serveOwnerGuestBookPhoto(
 
 export async function reviewGuestBookPhotos(
   request: Request, db: D1Database, bucket: R2Bucket | undefined, accountId: string, eventId: string, grantId?: string,
+  audience: 'staff' | 'host' = 'staff',
 ) {
   const event = [accountId, eventId];
   const found = await db.prepare(`SELECT 1 FROM events e JOIN accounts shop ON shop.id = e.account_id
@@ -231,8 +270,14 @@ export async function reviewGuestBookPhotos(
   if (!found) return missing();
   const scoped = `${roster} AND g.account_id = ? AND g.event_id = ?`;
   if (!grantId) {
-    const { results } = await db.prepare(`SELECT ${visiblePhoto}, g.status ${scoped}
-      ORDER BY CASE g.status WHEN 'pending' THEN 0 WHEN 'included' THEN 1 ELSE 2 END, g.offered_at DESC, g.id`)
+    const ordered = `${scoped} ORDER BY CASE g.status WHEN 'pending' THEN 0 WHEN 'included' THEN 1 ELSE 2 END, g.offered_at DESC, g.id`;
+    // Host photos have no entry key that could link them back to a named note.
+    if (audience === 'host') {
+      const { results } = await db.prepare(`SELECT g.id, ${takerFirstName} AS display_name, g.alt_text, g.status ${ordered}`)
+        .bind(...event).all();
+      return json({ photos: results });
+    }
+    const { results } = await db.prepare(`SELECT ${visiblePhoto}, g.status ${ordered}`)
       .bind(...event).all<{ user_id: string }>();
     return json({ photos: await guestBookEntryKeys(results, accountId, eventId) });
   }
@@ -257,4 +302,56 @@ export async function reviewGuestBookPhotos(
     .bind(body.action === 'include' ? 'included' : 'passed', ...event, grantId, body.status).run();
   return updated.meta?.changes ? json({ success: true })
     : json({ error: 'This contribution changed. Check the current review status.' }, 409);
+}
+
+export type GallerySeat = { account_id: string; event_id: string };
+export type GalleryInput = { action?: unknown; grantId?: unknown };
+
+/**
+ * The session gallery on the after-sit page (Launch 3, J7): every photograph
+ * its taker offered and the host included, not withdrawn, newest first.
+ *
+ * `resolveSeat` is the same seat check keeps use (the booking's own link or a
+ * personal party link), run again after each read so a link revoked mid-way
+ * returns nothing. A taker is named by first name only, and only when they
+ * chose to be. `own` marks the viewer's own photographs so they can withdraw
+ * them; `can_add` is true only when this link can offer a photograph (the
+ * booking's own link, opened by the person on that seat).
+ */
+export async function serveSessionGallery(
+  request: Request, db: D1Database, bucket: R2Bucket | undefined, userId: string, credentialHash: string,
+  resolveSeat: () => Promise<GallerySeat | null>, { action, grantId }: GalleryInput,
+) {
+  const seat = await resolveSeat();
+  if (!seat) return missing();
+  const event = [seat.account_id, seat.event_id];
+  if (action === 'read') {
+    const offerBinds = [credentialHash, seat.account_id, userId, userId];
+    const [photos, offerSeat, waiting] = await Promise.all([
+      db.prepare(`SELECT g.id, g.alt_text, ${takerFirstName} AS taker_first_name,
+          CASE WHEN g.user_id = ? THEN 1 ELSE 0 END AS own
+        ${roster} AND g.account_id = ? AND g.event_id = ? AND g.status = 'included'
+        ORDER BY g.offered_at DESC, g.id`).bind(userId, ...event)
+        .all<{ id: string; alt_text: string; taker_first_name: string | null; own: number }>(),
+      guestSeat(db, offerBinds),
+      db.prepare(`SELECT 1 FROM session_guest_book_photos g
+        WHERE g.account_id = ? AND g.event_id = ? AND g.user_id = ? AND g.status = 'pending' AND g.revoked_at IS NULL
+        LIMIT 1`).bind(...event, userId).first(),
+    ]);
+    if (!await resolveSeat()) return missing();
+    return json({
+      photos: photos.results.map(photo => ({ ...photo, own: photo.own === 1 })),
+      can_add: Boolean(offerSeat && offerSeat.event_id === seat.event_id),
+      waiting: Boolean(waiting),
+    });
+  }
+  if (action === 'bytes') {
+    if (!isId(grantId)) return missing();
+    return serveBytes(request, bucket, async () => await resolveSeat()
+      ? db.prepare(`SELECT p.object_key ${roster}
+          AND g.account_id = ? AND g.event_id = ? AND g.id = ? AND g.status = 'included'`)
+        .bind(...event, grantId).first<{ object_key: string }>()
+      : null);
+  }
+  return json({ error: 'Choose a gallery action.' }, 400);
 }

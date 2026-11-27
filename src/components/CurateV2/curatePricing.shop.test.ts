@@ -14,8 +14,8 @@ import type { ExchangeRate } from '../../admin/types';
  * `resolveShopFreightDefault` (worker/src/shippingRate.ts) and the markup in
  * worker/src/markup.ts. `addPricingFields` is a private function of a 27,000
  * line module, so it is written out here from those exported pieces in the
- * same order it applies them: cost per unit over the rate, plus freight per
- * gram, times the markup, rounded to the cent. The worker modules are loaded
+ * same order it applies them: cost per unit over the rate, times the markup,
+ * plus freight per gram at cost, rounded to the cent. The worker modules are loaded
  * by variable path so the frontend's typecheck does not take on Worker
  * sources (the same arrangement as src/lib/teaCompassSync.test.ts).
  */
@@ -47,13 +47,14 @@ function shopRetail(c: Case, account: { default_shipping_rate_per_kg?: number | 
   const shopDefault = resolveShopFreightDefault(account, lookup).perKgUsd;
   const rate = isUnrecordedCurrency(c.currency) ? 1 : lookup(c.currency);
   if (!rate || rate <= 0) return null;
-  const costPerUnitUsd = c.cost / c.qty / rate + shippingPerGramUsd({
+  const freight = shippingPerGramUsd({
     storedRatePerKg: null,
     rateToUsd: rate,
     isTeaware: !!c.isTeaware,
     shopDefaultPerKgUsd: shopDefault,
   });
-  return Math.round(costPerUnitUsd * SHOP_MARKUP_MULTIPLIER * 100) / 100;
+  // The leaf times the markup, then freight at cost (Adrian, 2026-11-27).
+  return Math.round((c.cost / c.qty / rate * SHOP_MARKUP_MULTIPLIER + freight) * 100) / 100;
 }
 
 function v2Retail(c: Case, account: Parameters<typeof shopRetail>[1]) {
@@ -103,10 +104,10 @@ describe('Curate v2 shelf figures against the shop\'s own pricing', () => {
     });
   }
 
-  it('puts the freight inside the markup: a 1,200 yuan 357 g cake is ((1200 + 30.345) / 357 / 7.1) x 3', () => {
+  it('passes freight on at cost: a 1,200 yuan 357 g cake is (1200 / 357 / 7.1) x 3 + 30.345 / 357 / 7.1', () => {
     const preview = curateShelfPreview({ costAmount: 1200, grams: 357, currency: 'Yuan', rates, shopFreightPerKgUsd: 85 / 7.1 });
     // 85 yuan a kilo on 357 g is 30.345 yuan, and it is multiplied with the rest.
-    expect(preview!.retailPerGramUsd).toBeCloseTo(((1200 + 30.345) / 357 / 7.1) * 3, 10);
+    expect(preview!.retailPerGramUsd).toBeCloseTo((1200 / 357 / 7.1) * 3 + 30.345 / 357 / 7.1, 10);
     expect(preview!.freightPerKgSource).toBeCloseTo(85, 10);
   });
 

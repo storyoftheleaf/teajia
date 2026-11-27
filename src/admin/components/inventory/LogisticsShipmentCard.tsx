@@ -1,5 +1,7 @@
 import React, { useId, useState } from 'react';
 import { ArrowUpRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { serviceHref, teaHref } from './logisticsLinks';
 import { TeaCard, TeaCardControlRow, TeaCardMeta, TeaCardMetric, TeaCardTitle } from '../../../components/tea/TeaCard';
 import { TeaPanelSummary } from '../../../components/tea/TeaPanelSummary';
 import { Button } from '../../../components/shared/Button';
@@ -93,12 +95,12 @@ function ShipmentLineEditor({ line, shipment, busy, mutate: save }: { line: Logi
   const { mutate, error } = useLogisticsAction(save);
   const [volume, setVolume] = useState(line.volume_m3 == null ? '' : String(line.volume_m3));
   const [estimated, setEstimated] = useState(line.volume_estimated);
-  const [kind, setKind] = useState<PackedItemKind>(planningItemKind(line));
+  const [kind, setKind] = useState<PackedItemKind>(line.packing_kind ?? planningItemKind(line));
   const [note, setNote] = useState('');
   return <form aria-label={`Packing and references for ${line.product_name}`} className="logistics-fields" onSubmit={event => {
     event.preventDefault(); const form = new FormData(event.currentTarget);
     void mutate(() => api.logistics.updateShipment(shipment.id, { lines: [{ id: line.id, weight_kg: nullableNumber(form.get('weight')), weight_estimated: form.get('weightEstimated') === 'on', volume_m3: volume.trim() === '' ? null : Number(volume), volume_estimated: estimated, image_url: String(form.get('image') || '').trim() || null, source_url: String(form.get('source') || '').trim() || null }] }));
-  }}><label>Packed kg<input name="weight" type="number" min="0" step="any" defaultValue={line.weight_kg ?? ''} disabled={busy}/></label><label><input name="weightEstimated" type="checkbox" defaultChecked={line.weight_estimated}/>Estimated weight</label><label>Packed m³<input name="volume" type="number" min="0" step="any" value={volume} onChange={event => setVolume(event.target.value)} disabled={busy}/></label><label><input type="checkbox" checked={estimated} onChange={event => setEstimated(event.target.checked)}/>Estimated volume</label><label>Estimate for<select value={kind} onChange={event => setKind(event.target.value as PackedItemKind)}><option value="loose_tea">Loose tea</option><option value="pressed_tea">Pressed tea</option><option value="gaiwan">Gaiwan</option><option value="cup">Cup</option><option value="teapot">Teapot</option><option value="other">Other</option></select></label><button type="button" className="tap-target purchase-tracking-button" disabled={busy || kind === 'other'} onClick={() => { const estimate = estimatePackedVolume({ kind, quantity: line.quantity, unit: line.unit }); if (estimate.volume_m3 != null) { setVolume(String(estimate.volume_m3)); setEstimated(true); } setNote(estimate.note); }}>Estimate volume</button>{note && <p className="logistics-field-note text-tea-text-dim">{note}</p>}<label>Reference image URL<input name="image" type="url" defaultValue={line.image_url || ''} placeholder="https://"/></label><label>Source URL<input name="source" type="url" defaultValue={line.source_url || ''} placeholder="https://"/></label><button type="submit" className="tap-target purchase-tracking-button" disabled={busy}>Save packing</button><LogisticsActionError message={error} recovery="Your entries are kept. Use Save packing again to retry."/></form>;
+  }}><label>Packed kg<input name="weight" type="number" min="0" step="any" defaultValue={line.weight_kg ?? ''} disabled={busy}/></label><label><input name="weightEstimated" type="checkbox" defaultChecked={line.weight_estimated}/>Estimated weight</label><label>Packed m³<input name="volume" type="number" min="0" step="any" value={volume} onChange={event => setVolume(event.target.value)} disabled={busy}/></label><label><input type="checkbox" checked={estimated} onChange={event => setEstimated(event.target.checked)}/>Estimated volume</label><label>Estimate for<select value={kind} onChange={event => setKind(event.target.value as PackedItemKind)}><option value="loose_tea">Loose tea</option><option value="pressed_tea">Pressed tea</option><option value="gaiwan">Gaiwan</option><option value="cup">Cup</option><option value="teapot">Teapot</option><option value="other">Other</option></select></label><button type="button" className="tap-target purchase-tracking-button" disabled={busy || kind === 'other'} onClick={() => { const estimate = kind === line.packing_kind && line.packing_estimate?.volume_m3 != null ? line.packing_estimate : estimatePackedVolume({ kind, quantity: line.quantity, unit: line.unit }); if (estimate.volume_m3 != null) { setVolume(String(estimate.volume_m3)); setEstimated(true); } setNote(estimate.note); }}>Estimate volume</button>{note && <p className="logistics-field-note text-tea-text-dim">{note}</p>}<label>Reference image URL<input name="image" type="url" defaultValue={line.image_url || ''} placeholder="https://"/></label><label>Source URL<input name="source" type="url" defaultValue={line.source_url || ''} placeholder="https://"/></label><button type="submit" className="tap-target purchase-tracking-button" disabled={busy}>Save packing</button><LogisticsActionError message={error} recovery="Your entries are kept. Use Save packing again to retry."/></form>;
 }
 function ShipmentReceive({ shipment, orders, busy, mutate: save, accountId, receiptLineId, onCloseReceipt, autoOpenRetry, onReceived }: {
   shipment: LogisticsShipment;
@@ -316,7 +318,9 @@ export function LogisticsShipmentCard({ shipment, orders, addresses = [], busy, 
     className="logistics-shipment logistics-shipment-compact"
     aria-label={`${shipment.logistics_company_name} shipment`}>
     <div className="logistics-shipment-heading">
-      <div className="logistics-actions"><h2 className={T.h3}>{name}</h2>{shipment.service_quote?.name && <span className="text-tea-text-sec">{shipment.service_quote.name}</span>}<span className="logistics-state" data-state={state}>{status[state]}</span></div>
+      <div className="logistics-actions"><h2 className={T.h3}>{name}</h2>{shipment.service_id
+        ? <Link data-testid="shipment-service-link" className="journey-chip tap-target text-ui-13" to={serviceHref(shipment.service_id)}>{shipment.service_quote?.name || 'Its service'}{shipment.service_quote ? `, ${n(shipment.service_quote.rate)} ${shipment.service_quote.currency}${shipment.service_quote.basis === 'fixed' ? ' fixed' : shipment.service_quote.basis === 'm3' ? '/m³' : '/kg'}` : ''}</Link>
+        : <span className="text-tea-text-sec">No service named</span>}<span className="logistics-state" data-state={state}>{status[state]}</span></div>
       {!grouped && <span className="text-tea-text-sec">{shipment.logistics_company_name}</span>}
     </div>
     <div className="px-2 pb-2">
@@ -326,7 +330,7 @@ export function LogisticsShipmentCard({ shipment, orders, addresses = [], busy, 
           const expected = order?.lines.find(item => item.id === line.receipt_line_id)?.expected_quantity;
           const referral = displayed.studio_referrals?.find(item => item.line_id === line.id && !item.resolved_at);
           return <TeaCard key={line.id}
-            title={<TeaCardTitle>{line.product_name}</TeaCardTitle>}
+            title={<TeaCardTitle><Link className="underline-offset-2 hover:underline" to={teaHref(line.product_id)}>{line.product_name}</Link></TeaCardTitle>}
             trailing={<button type="button" className="tap-target purchase-place-link" aria-label={`Open purchase for ${line.product_name}`}
               title="Open purchase" onClick={() => openPurchase(line.purchase_id)}><ArrowUpRight size={14} aria-hidden="true"/></button>}
             meta={<TeaCardMeta primary={order?.vendor_name || 'Supplier'} trailing={referral ? 'With Adrian for review' : undefined}/>}

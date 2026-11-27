@@ -4,7 +4,9 @@
 
 > Every route, organized by tier visibility. For end-to-end flows see FLOWS.md; for current priorities see CONSOLIDATED_DIRECTION.md.
 
-**Last updated:** 2026-09-23 (route tables regenerated from `src/App.tsx` and `src/admin/AdminApp.tsx`)
+**Launch 4 routes updated:** 2026-11-26, from the build branch. See [SECTIONS.md](SECTIONS.md) for the separate navigation proposal.
+
+**The new bar (K7, K10), built behind `HOME_BAR_OPEN`, off.** `VITE_HOME_BAR_OPEN=true` changes the four words on the phone bar and the desktop rail to the ones in `src/components/navSections.ts` (`BAR_WORDS`), keys 1 to 5 to follow them, the phone menu and the rail foot to their short form, Home's opening lines, its "Come to a table" door and its two strips, and adds a row of three shelf names to `/read`, `/craft` and `/wisdom`. No route is added or removed. "Tea table" opens `/tea-table` when `TEA_TABLE_OPEN` is on and `/events` otherwise; "Tea house" opens `/tea-houses` when `TEA_HOUSES_OPEN` is on and `/tea-houses/visit` otherwise.
 
 ---
 
@@ -83,7 +85,10 @@ The phone's admin bar carries four of these words per role (`src/components/admi
 | `/wisdom/named/:id` | WisdomFallback |  |
 | `/about` | AboutPage |  |
 | `/mcp` | McpPage |  |
-| `/account` | AccountRouteBridge |  |
+| `/account` | AccountPanel page or AccountRouteBridge | Page with `YOUR_TABLE_PAGE_OPEN`; overlay by default |
+| `/account/sessions` | AccountPanel sessions page | `YOUR_TABLE_PAGE_OPEN`, off by default |
+| `/account/tea-houses` | AccountPanel house switcher page | `YOUR_TABLE_PAGE_OPEN`, off by default |
+| `/account/favourites` | FavouritesPage | `FAVOURITES_OPEN`, off by default; signed-in list |
 | `/account/journal` | JournalPage |  |
 | `/account/collection` | CollectionPage |  |
 | `/account/cellar` | CellarPage |  |
@@ -103,6 +108,8 @@ The phone's admin bar carries four of these words per role (`src/components/admi
 | `/design/article-editor` | ArticleEditorHarness | development only |
 | `/design/system` | DesignSystemShowcase | development only |
 | `/events` | EventsPage |  |
+| `/tea-table` | TeaTablePage | `TEA_TABLE_OPEN`, off by default; sends visitors Home when off |
+| `/tea-feed` | Redirect | To `/tea-table` when its switch is on, otherwise Home |
 | `/event/:slug` | EventLanding |  |
 | `/event/:slug/recap` | EventRecapPage |  |
 | `/m/:magicToken` | GuestManagement |  |
@@ -119,7 +126,8 @@ The phone's admin bar carries four of these words per role (`src/components/admi
 | `/join/:code` | JoinPage |  |
 | `/t/:token` | TableCardPage |  |
 | `/u/:slug` | ShelfPage |  |
-| `/find-a-table` | FindATable |  |
+| `/find-a-table` | FindATable | Existing directory |
+| `/tea-houses/visit` | TeaHousesVisitPage | Public directory page, behind `TEA_HOUSES_OPEN` |
 | `/community` |  | redirect to `/find-a-table` |
 | `/store/:slug` | Storefront |  |
 | `/people/:slug` | ContributorProfilePage |  |
@@ -234,8 +242,21 @@ The phone's admin bar carries four of these words per role (`src/components/admi
 - Event list, upcoming sessions, event cards
 - **Sub-routes:**
   - `/event/:slug`: Event landing: description, attendee count, RSVP flow, tea menu preview
-  - `/event/:slug/recap`: Post-event summary, photos, aggregated tasting notes
+  - `/event/:slug/recap`: Published recap, public “Poured with” credits and any included notes or photographs with permission. Family photo credit and recap credit open with `TEA_TABLE_OPEN`.
 - **Status:** WIRED
+
+### /tea-table
+
+- Off by default. Enable the page and controls with `VITE_TEA_TABLE_OPEN=true` on the site and the API with `TEA_TABLE_OPEN=true` in the Worker. When off, Tea Table API routes return 404.
+- Public list of eligible tastings shared with fresh Tea Table consent and published public network recaps that hosts place there. Its newest-first order uses the placement time. Manual holds expire.
+- All, Tastings and Sessions use the `show` refinement. Earlier uses the `before` step. Sessions and People are separate links. Nothing still to come is named.
+- Signed-in keeps are private. The platform owner alone sees totals in Manage under Publish, Guest notes, where they can hide or restore pieces. “Take off the table” can leave the author’s tasting on their profile.
+
+### /tea-houses/visit
+
+- Public page behind `TEA_HOUSES_OPEN`. Uses `GET /api/network/stores`, which lists active public accounts with an active public product. No private saved tables or arrival details enter this directory.
+- Shows each house’s name, optional city, country, tagline, cover photograph and next public session. Each row opens `/store/:slug`. No map or distance sort.
+- `/spaces` and `/find-a-table` still serve their own pages. `/community` still forwards to `/find-a-table`.
 
 ### /find-a-table
 - Network store grid, store detail, filter by region/type
@@ -251,8 +272,8 @@ The phone's admin bar carries four of these words per role (`src/components/admi
 - **Status:** WIRED
 
 ### /people and /people/:slug
-- Published Tea Master directory and one global person profile
-- A Tea Master's own tea selection comes from the active public `master` account they host; guest collaborations are shown separately
+- Published people directory and one global profile per person. “Pours at tables” is based on public credit on a completed session and has no effect on order. The person’s page can show the word Adrian granted by hand. “Pours at tables” opens with `TEA_TABLE_OPEN`; the granted word has no switch.
+- A host’s own tea selection comes from their active public storefront account. Guest collaborations are shown separately.
 - **Sub-routes:**
   - `/people/:slug/favorites`: shareable Public favorites
   - `/people/:slug/pay`: external transfer destinations with optional account, amount, currency, and reference context
@@ -275,18 +296,23 @@ The phone's admin bar carries four of these words per role (`src/components/admi
 
 ## Member Routes (/account/*)
 
-All require authentication (Guest cannot access).
+Member records require sign-in. Your Table itself can show a visitor view.
 
 ### /account
-- **Your Table** hub: AccountPanel main view
-- Role-adaptive dashboard (Reader/Member/Operator/Owner views per project_account_panel_structure)
-- Name, role badge, frontispiece quote, journey card
-- Tabs: Journal, Events, Cart, Settings
-- **Status:** WIRED
+
+- Your Table opens as the existing overlay by default. `VITE_YOUR_TABLE_PAGE_OPEN=true` makes the person glyph open a grouped page at `/account`. The page uses the same tiles and omits empty groups.
+- The page opens Sessions at `/account/sessions` and the house switcher at `/account/tea-houses`. Journal and Tea Chest open the existing member pages. The “remember” tile still opens `/account/collection`.
+- The Worker’s `YOUR_TABLE_PAGE_OPEN=true` enables the signed-in journal share-state read at `GET /api/family/tasting-shares`.
+
+### /account/favourites
+
+- Private page for kept articles, shop teas saved with the existing heart, and marked Tea Chest teas. Each nonempty group appears and each item can be removed. “From the Tea Table” needs `TEA_TABLE_OPEN` too.
+- `VITE_FAVOURITES_OPEN=true` enables the page and the article and Tea Chest controls. `FAVOURITES_OPEN=true` enables the Worker endpoints. While closed the page shows Not Found and the endpoints return 404. With the page open, signed-out visitors go to sign-in and back.
 
 ### /account/journal
 - Tasting journal: list of tasting entries
-- Click entry → detail view → edit personal note
+- Open an entry to read or edit your private tasting and score. Shared views omit other people’s scores and score-like verdicts. The authenticated structured tasting host’s live endpoint is the remaining exception on this branch. Score privacy has no dedicated flag.
+- With the Your Table page flag on, eligible shop-tea entries show the profile share state and can reopen Share.
 - Add new tasting (start from product detail or here)
 - Inventory deep links can focus the exact personal entry through `tea` and `entry` query parameters
 - **Status:** WIRED (per project_tasting_model: one CustomerTasting per user × product)
@@ -298,8 +324,8 @@ All require authentication (Guest cannot access).
 - **Status:** WIRED
 
 ### /account/collection
-- Favorites list backed by the member's saved teas
-- Owned inventory lives in the API-backed Cellar surface; a routable `/account/cellar` page remains in Track 9
+- The existing member view for saved shop teas and collections shared with them.
+- Owned teas live at `/account/cellar`. The independently flagged Favourites page has its own address.
 - **Status:** WIRED (favorites)
 
 ### /account/journey

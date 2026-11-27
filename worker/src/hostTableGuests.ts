@@ -10,9 +10,11 @@
 // same transaction as the seat is taken.
 
 import { sessionInstant } from './sessionWalkthrough';
+import { serveGuestBookReview } from './sessionGuestBook';
+import { reviewGuestBookPhotos } from './sessionGuestBookPhotos';
 import { isAreaRefusal, readTableArea } from './hostTableArea';
 
-export type HostedTableDoor = 'request' | 'link';
+export type HostedTableDoor = 'request' | 'link' | 'open';
 
 export type OwnHostedTable = {
   id: string;
@@ -43,6 +45,25 @@ export async function ownHostedTable(db: D1Database, { hostUserId, eventId }: { 
   `).bind(eventId, hostUserId, hostUserId).first<OwnHostedTable>();
 }
 
+/** Review a contribution using the session and account resolved by the ownership guard. */
+export function reviewHostedTableGuestBook(
+  request: Request, db: D1Database, bucket: R2Bucket | undefined, table: OwnHostedTable,
+  kind: 'notes' | 'photos', contributionId?: string,
+) {
+  return kind === 'photos'
+    ? reviewGuestBookPhotos(request, db, bucket, table.account_id, table.id, contributionId, 'host')
+    : serveGuestBookReview(request, db, table.account_id, table.id, contributionId);
+}
+
+/**
+ * A party seat counts only while its guest is still coming. A guest who
+ * cancelled or was said no to before J9 could leave their seat rows held or
+ * confirmed; those never count, so no seat stays lost.
+ */
+export const SEAT_OF_A_GUEST_STILL_COMING = (seat: string) => `NOT EXISTS (SELECT 1 FROM event_attendees gone
+  WHERE gone.id = ${seat}.participation_id AND gone.event_id = ${seat}.event_id AND gone.account_id = ${seat}.account_id
+    AND gone.status IN ('cancelled', 'denied'))`;
+
 /**
  * Seats taken, counted the way the guarded allocator counts them (held and
  * confirmed party seats, and a live offer to someone waiting), plus a
@@ -51,7 +72,8 @@ export async function ownHostedTable(db: D1Database, { hostUserId, eventId }: { 
 export function seatsTakenSql(event: string): string {
   return `(
     (SELECT COUNT(*) FROM event_party_members pm
-      WHERE pm.event_id = ${event}.id AND pm.account_id = ${event}.account_id AND pm.seat_status IN ('held', 'confirmed'))
+      WHERE pm.event_id = ${event}.id AND pm.account_id = ${event}.account_id AND pm.seat_status IN ('held', 'confirmed')
+        AND ${SEAT_OF_A_GUEST_STILL_COMING('pm')})
     + (SELECT COUNT(*) FROM event_attendees offer
       WHERE offer.event_id = ${event}.id AND offer.account_id = ${event}.account_id AND offer.status = 'waitlist'
         AND offer.claim_expires_at IS NOT NULL AND datetime(offer.claim_expires_at) > datetime('now'))
@@ -81,12 +103,21 @@ export type HostTableGuest = {
   phone: string | null;
   /** The guest asked not to be photographed (photo_consent 0; NULL means they said nothing). */
   no_photographs: boolean;
+  /** A waiting guest offered a freed seat: until when they may take it (J9). Null when no live offer. */
+  offer_until: string | null;
+  /** A waiting guest whose offer of a seat ran out unclaimed (J9). */
+  offer_lapsed: boolean;
 };
+
+const PHONE_KEPT_FOR = new Set(['confirmed', 'requested', 'waitlist']);
 
 /** The guests of one of the host's tables, for the host only. Never the guest's private link. */
 export async function hostTableGuests(db: D1Database, table: Pick<OwnHostedTable, 'id' | 'account_id'>): Promise<HostTableGuest[]> {
   const { results } = await db.prepare(`
-    SELECT id, full_name, status, plus_one, attended, created_at, notes, phone_number, photo_consent
+    SELECT id, full_name, status, plus_one, attended, created_at, notes, phone_number, photo_consent,
+           CASE WHEN status = 'waitlist' AND claim_expires_at IS NOT NULL AND datetime(claim_expires_at) > datetime('now')
+                THEN claim_expires_at END AS offer_until,
+           offer_lapsed_at
       FROM event_attendees WHERE event_id = ? AND account_id = ?
      ORDER BY created_at ASC, id ASC
   `).bind(table.id, table.account_id).all<Record<string, unknown>>();
@@ -98,12 +129,17 @@ export async function hostTableGuests(db: D1Database, table: Pick<OwnHostedTable
     attended: row.attended as number | null,
     created_at: row.created_at as string | null,
     note: typeof row.notes === 'string' && row.notes.trim() ? row.notes.trim() : null,
-    phone: typeof row.phone_number === 'string' && row.phone_number.trim() ? row.phone_number.trim() : null,
+    // A host keeps a guest's phone only while that guest is coming or still
+    // asking. Once the host said no or the seat was given back, it goes (A3).
+    phone: PHONE_KEPT_FOR.has(String(row.status)) && typeof row.phone_number === 'string' && row.phone_number.trim()
+      ? row.phone_number.trim() : null,
     // The seat form's "Please, no photographs of me" (H10) sends photo_consent
     // false, stored as 0; a guest who said nothing is stored NULL since H5
     // (seatRequest.photoConsentValue), so only a real no reads as one. Seats
     // taken before H5 kept 0 for silence and were not rewritten.
     no_photographs: row.photo_consent === 0,
+    offer_until: typeof row.offer_until === 'string' ? row.offer_until : null,
+    offer_lapsed: row.status === 'waitlist' && typeof row.offer_lapsed_at === 'string',
   }));
 }
 
@@ -147,16 +183,22 @@ export type TableChangeResult =
 const refuse = (status: number, code: string, error: string) => ({ refused: { status, code, error } });
 export const HOST_TABLE_MAX_SEATS = 40;
 
-/** Read a change of door or seats from a request body. 'open' is refused until Launch 3. */
+/**
+ * Read a change of door or seats from a request body. `doors` is what
+ * hostDoorsFor gives this host now: 'open' only with the Launch 3 switch on
+ * and reach above invitation (J10). A host not offered 'open' is refused it
+ * exactly as before, with nothing that names reach.
+ */
 export function readTableChange(body: Record<string, unknown> | null, doors: HostedTableDoor[]): TableChange | Extract<TableChangeResult, { refused: unknown }> {
   if (!body) return refuse(400, 'hosted_table_change', 'Say what to change.');
   const change: TableChange = {};
   if (body.door !== undefined) {
-    if (body.door !== 'request' && body.door !== 'link') return refuse(400, 'hosted_table_door', 'A table opens by request or by link.');
-    if (!doors.includes(body.door)) {
+    const offered = body.door === 'request' || body.door === 'link' || (body.door === 'open' && doors.includes('open'));
+    if (!offered) return refuse(400, 'hosted_table_door', 'A table opens by request or by link.');
+    if (!doors.includes(body.door as HostedTableDoor)) {
       return refuse(403, 'hosted_table_door_needs_approval', 'A table by link opens once Teajia has approved you as a host.');
     }
-    change.door = body.door;
+    change.door = body.door as HostedTableDoor;
   }
   if (body.seats !== undefined) {
     if (typeof body.seats !== 'number' || !Number.isInteger(body.seats) || body.seats < 1 || body.seats > HOST_TABLE_MAX_SEATS) {
@@ -186,7 +228,8 @@ export async function changeHostedTable(db: D1Database, table: OwnHostedTable, c
   const values: unknown[] = [];
   if (change.door) {
     sets.push('door = ?', 'requires_approval = ?');
-    values.push(change.door, change.door === 'request' ? 1 : 0);
+    // Only the by-link door seats a guest without the host's yes.
+    values.push(change.door, change.door === 'link' ? 0 : 1);
   }
   if (change.seats !== undefined) {
     sets.push('total_capacity = ?');

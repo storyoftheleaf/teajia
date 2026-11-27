@@ -181,6 +181,7 @@ export const useGuestManagement = (token: string) => {
         teaMenu: (data.tea_menu || []).map(mapTeaMenuItem),
         guestInvites,
         briefingCards,
+        tasting: data.event?.is_tasting ? { sessionId: data.event.tasting_session_id ?? null } : null,
       } as GuestManagementData;
     },
     enabled: !!token,

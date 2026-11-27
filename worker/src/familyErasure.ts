@@ -18,13 +18,17 @@
  * Photograph files are listed by familyPhotoKeysForUser before the batch so the
  * caller can remove them from storage once the rows are gone.
  */
+import { teaTableErasureStatements } from './teaTable';
+import { knowThisTeaErasureStatements, knowThisTeaPhotoKeys } from './knowThisTea';
 
 /** The storage keys of every photograph the person added to the family. */
 export async function familyPhotoKeysForUser(db: D1Database, userId: string): Promise<string[]> {
   const { results } = await db.prepare(
     'SELECT full_key, small_key FROM member_photographs WHERE author_user_id = ?',
   ).bind(userId).all<{ full_key: string; small_key: string }>();
-  return (results ?? []).flatMap(row => [row.full_key, row.small_key]).filter(Boolean);
+  // Their "Does anyone know this tea?" photographs go too.
+  const questions = await knowThisTeaPhotoKeys(db, userId);
+  return [...(results ?? []).flatMap(row => [row.full_key, row.small_key]), ...questions].filter(Boolean);
 }
 
 /** Statements to run before the person's journal and user row are deleted. */
@@ -35,6 +39,10 @@ export function familyErasureStatements(db: D1Database, userId: string): D1Prepa
     db.prepare('DELETE FROM tasting_note_candidates WHERE author_user_id = ?').bind(userId),
     db.prepare('UPDATE tasting_note_candidates SET promoted_by = NULL WHERE promoted_by = ?').bind(userId),
     db.prepare('UPDATE tasting_note_candidates SET dismissed_by = NULL WHERE dismissed_by = ?').bind(userId),
+    // Their keeps and holds, and anyone's keeps and holds on their tastings, go before the shares do.
+    ...teaTableErasureStatements(db, userId),
+    // Their questions on the Tea Table, the notes on them, and the notes they wrote to others.
+    ...knowThisTeaErasureStatements(db, userId),
     db.prepare('DELETE FROM member_tasting_shares WHERE author_user_id = ?').bind(userId),
     db.prepare('DELETE FROM member_tea_covers WHERE author_user_id = ?').bind(userId),
     db.prepare(

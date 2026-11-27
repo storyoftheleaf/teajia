@@ -1,6 +1,6 @@
 {
   "status": "approved",
-  "composedAt": "2026-11-24T07:02:37.713Z",
+  "composedAt": "2026-11-27T03:50:50.692Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -20,15 +20,15 @@
     "paragraphs": [
       {
         "layer": "named",
-        "text": "A loose [Liu Bao](liu-bao:definition) from Guangxi, made in the 1990s, that has been abroad and come home. The shop traces it from Guangzhou to storage in Malaysia and Singapore, then back to Guangzhou. That round trip is what [returned](malaysian-returned-liu-bao:returned) means, huiliu in Chinese: the Malaysia in its name marks a stop in the life of the tea, not the place the leaf was grown."
+        "text": "Huiliu means [returned](malaysian-returned-liu-bao:returned), and on this label Malaysia names a stop in the life of the tea, not where it grew. This [Liu Bao](liu-bao:definition) was made in Guangxi in the 1990s. The shop traces it from Guangzhou to storage in Malaysia and Singapore, then back to Guangzhou again."
       },
       {
         "layer": "named",
-        "text": "It travelled an old road. Liu Bao was made for Chinese miners and labourers in Malaya, above all in the [tin mines](liu-bao:nanyang-trade), where the trade believed it eased the heat and damp of the work. A trade account published in 1951 follows the tea downriver, onto a larger wooden boat at Libu for Fengkai and then a powered vessel for Guangzhou, with [Ipoh and Kuala Lumpur](malaysian-returned-liu-bao:river-trade) among its final markets. Older tea from that trade later found buyers back in China."
+        "text": "That journey follows an old road. A [trade account published in 1951](malaysian-returned-liu-bao:river-trade) follows Liu Bao downstream, changing to a larger wooden boat at Libu for Fengkai and then to a powered vessel for Guangzhou, with Ipoh and Kuala Lumpur among its final markets. The tea was made for [Chinese miners and labourers in Malaya](liu-bao:nanyang-trade), above all in the tin mines. Older tea has since been [finding its way back](malaysian-returned-liu-bao:tea-came-back): on a visit to Wuzhou in 2024, the Malaysian trade representative Lin Hengyi saw a 1973 import order linking a Malaysian firm with a Wuzhou tea company, and merchants there asked him about bringing older Liu Bao back to the Chinese market."
       },
       {
         "layer": "age",
-        "text": "At thirty-one years it is far past the ten the trade needs to count a Liu Bao as [aged](liu-bao:age-aged), and its years overseas are part of that age: where a Liu Bao was stored matters as much as how long."
+        "text": "At thirty-one years this lot is well past the ten after which the trade counts a Liu Bao as [aged](liu-bao:age-aged). Its years abroad are part of that count, because how the tea was stored matters as much as how long, and the [place a lot was kept](liu-bao:old-stock) gives it its own character."
       }
     ],
     "brewing": {
@@ -41,18 +41,21 @@
       "text": "A deep red, thick cup with woody, herbal and betel nut notes; tea several decades old is often described with ginseng and camphor."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "A voice note from you on this lot",
       "Photos"
     ]
   },
   "claimUses": [
     {
+      "claimId": "malaysian-returned-liu-bao:returned",
+      "rev": 1
+    },
+    {
       "claimId": "liu-bao:definition",
       "rev": 1
     },
     {
-      "claimId": "malaysian-returned-liu-bao:returned",
+      "claimId": "malaysian-returned-liu-bao:river-trade",
       "rev": 1
     },
     {
@@ -60,11 +63,15 @@
       "rev": 2
     },
     {
-      "claimId": "malaysian-returned-liu-bao:river-trade",
+      "claimId": "malaysian-returned-liu-bao:tea-came-back",
       "rev": 1
     },
     {
       "claimId": "liu-bao:age-aged",
+      "rev": 1
+    },
+    {
+      "claimId": "liu-bao:old-stock",
       "rev": 1
     },
     {
@@ -78,5 +85,5 @@
   ],
   "problems": [],
   "unsupported": [],
-  "approvedAt": "2026-11-24T07:03:36.139Z"
+  "approvedAt": "2026-11-27T04:17:12.204Z"
 }

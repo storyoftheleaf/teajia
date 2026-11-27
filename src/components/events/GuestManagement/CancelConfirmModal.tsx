@@ -7,6 +7,8 @@ import { Modal } from '../../shared/Modal';
 // ----------------------------------------------------------------
 interface CancelConfirmModalProps {
   attendeeName: string;
+  /** A person's table, not a shop's session: the guest says "I can't come". */
+  personsTable?: boolean;
   onConfirm: () => void;
   onClose: () => void;
   isPending: boolean;
@@ -14,6 +16,7 @@ interface CancelConfirmModalProps {
 
 const CancelConfirmModal: React.FC<CancelConfirmModalProps> = ({
   attendeeName,
+  personsTable = false,
   onConfirm,
   onClose,
   isPending,
@@ -22,7 +25,7 @@ const CancelConfirmModal: React.FC<CancelConfirmModalProps> = ({
     <Modal
       isOpen
       onClose={onClose}
-      title="Cancel reservation?"
+      title={personsTable ? "You can't come?" : 'Cancel reservation?'}
       variant="center"
       disableBackdropClose
       initialFocus="container"
@@ -30,10 +33,14 @@ const CancelConfirmModal: React.FC<CancelConfirmModalProps> = ({
       <div className="p-6">
         <div className="flex items-start gap-3 mb-5">
           <AlertCircle className="w-5 h-5 text-tea-error mt-0.5 shrink-0" />
-          <p className="body-light">
-            Are you sure you want to cancel{' '}
-            <span className="text-tea-text">{attendeeName}'s</span> reservation?
-          </p>
+          {personsTable ? (
+            <p className="body-light">Your seat goes back to the host, so someone else can have it.</p>
+          ) : (
+            <p className="body-light">
+              Are you sure you want to cancel{' '}
+              <span className="text-tea-text">{attendeeName}'s</span> reservation?
+            </p>
+          )}
         </div>
 
         {/* Footer: Cancel-left ghost, primary-right destructive */}
@@ -54,7 +61,7 @@ const CancelConfirmModal: React.FC<CancelConfirmModalProps> = ({
             {isPending ? (
               <span className="inline-block w-4 h-4 border-2 border-tea-bg/40 border-t-tea-bg rounded-full animate-spin" />
             ) : (
-              'Cancel reservation'
+              personsTable ? "I can't come" : 'Cancel reservation'
             )}
           </button>
         </div>

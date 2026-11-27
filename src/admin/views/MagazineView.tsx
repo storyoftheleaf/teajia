@@ -6,6 +6,9 @@ import { api } from '../../lib/api';
 import { useAppStore } from '../store';
 import { useToast } from '../components/Toast';
 import { ArticleEditorModal } from '../components/ArticleEditorModal';
+import { HostArticleOfferReview } from '../components/HostArticleOfferReview';
+import { Button } from '../../components/shared/Button';
+import { hostArticlesOpen } from '../../lib/hostArticles';
 import { STATUS_PILL_STYLES } from '../constants';
 import type { DbArticle, ReviewedDbArticle } from '../../types';
 import { useStepParam } from '../../hooks/useStepParam';
@@ -41,6 +44,8 @@ export const MagazineView: React.FC = () => {
   const { showToast } = useToast();
   const queryClient = useQueryClient();
   const isPlatformOwner = canSeeStoryWorkshop(useAppStore(s => s.platformRole));
+  const canReviewOffers = isPlatformOwner && hostArticlesOpen();
+  const [reviewStep, setReviewStep] = useStepParam('offerReview');
   // A step in history, in the address (CLAUDE.md, "Back and forward").
   const [tabParam, stepTab] = useStepParam('tab', 'all');
   const tab: TabFilter = (['all', 'draft', 'published'] as const).includes(tabParam as TabFilter) ? tabParam as TabFilter : 'all';
@@ -111,10 +116,14 @@ export const MagazineView: React.FC = () => {
     { id: 'published', label: 'Published' },
   ];
 
+  if (canReviewOffers && reviewStep) {
+    return <HostArticleOfferReview step={reviewStep} onStep={setReviewStep} />;
+  }
+
   return (
     <div className="h-full flex flex-col overflow-hidden bg-tea-bg">
       {/* Header */}
-      <div className="px-4 md:px-6 lg:px-10 pt-6 pb-3 flex-shrink-0 flex items-center gap-3">
+      <div className={`px-4 md:px-6 lg:px-10 pt-6 pb-3 flex-shrink-0 flex items-center gap-3 ${canReviewOffers ? 'flex-wrap' : ''}`}>
         <h1 className="h2 flex-1">Magazine</h1>
 
         <button
@@ -127,6 +136,12 @@ export const MagazineView: React.FC = () => {
         </button>
 
         {isPlatformOwner && <StoryWorkshopLink />}
+
+        {canReviewOffers && (
+          <Button type="button" variant="secondary" className="tap-target" onClick={() => setReviewStep('inbox')}>
+            Article offers
+          </Button>
+        )}
 
         <button
           onClick={handleNewArticle}

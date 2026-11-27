@@ -27,6 +27,21 @@ function fixture(migrated = false){
  return {db,call,confirm,rpc,rest,hub,shipment,createInput,assignment,failNext:(product:string)=>{failProduct=product},race:(run:()=>Promise<unknown>)=>{beforeBatch=run},raceReceipt:(run:()=>Promise<unknown>)=>{beforeReceipt=run}};
 }
 describe('supplier → logistics → studio through actual worker REST and MCP',()=>{
+ it('a tea follows its shipment\'s service once the bill is confirmed, and keeps a service picked by hand',async()=>{
+  // Everything is connected (Adrian, 2026-11-27): no price moves until the bill is confirmed.
+  const f=fixture();const s=await f.shipment();
+  f.db.sqlite.exec(`INSERT INTO customers(id,account_id,name) VALUES('gz','shop','Forwarder');
+   INSERT INTO logistics_services(id,account_id,logistics_company_id,logistics_company_name,name,mode,basis,rate,currency,active,created_at,updated_at) VALUES('boat','shop','gz','Forwarder','Boat','sea','kg',12,'CNY',1,datetime('now'),datetime('now')),('air','shop','gz','Forwarder','Air','air','kg',85,'CNY',1,datetime('now'),datetime('now'));`);
+  f.db.sqlite.prepare('UPDATE logistics_shipments SET service_id=? WHERE id=?').run('boat',s.id);
+  f.db.sqlite.prepare("UPDATE products SET freight_service_id='air' WHERE id='ware'").run();
+  const service=(id:string)=>(f.db.sqlite.prepare('SELECT freight_service_id s FROM products WHERE id=?').get(id) as any).s;
+  const bill=(confirmed:boolean)=>({basis:'kg',rate:12,billed_quantity:1,total_amount:12,currency:'CNY',confirmed});
+  await f.confirm('update_logistics_shipment',{shipment_id:s.id,freight:bill(false)});
+  expect(service('tea'),'an unconfirmed bill moved the tea').toBeNull();
+  await f.confirm('update_logistics_shipment',{shipment_id:s.id,freight:bill(true)});
+  expect(service('tea')).toBe('boat');
+  expect(service('ware'),'a service picked by hand was overwritten').toBe('air');
+ });
  it('preserves courier and tracking when the agent assigns only an address',async()=>{
   const f=fixture();await f.rest('PUT','logistics/orders/purchase',f.assignment);
   const made=await f.confirm('create_logistics_address',{label:'Warehouse',role:'warehouse',recipient:'Receiving',address_lines:'Example Street',country_code:'CN'});
@@ -96,7 +111,7 @@ describe('supplier → logistics → studio through actual worker REST and MCP',
  });
  it('isolates accounts and Stock permissions, with the same scoped manifest on REST and MCP',async()=>{
   const f=fixture();const s=await f.shipment();expect((await f.rest('GET','logistics')).body).toEqual(await f.call('list_logistics'));
-  expect(await f.call('list_logistics',{},'other')).toEqual({orders:[],shipments:[],services:[],addresses:[]});
+  expect(await f.call('list_logistics',{},'other')).toEqual({orders:[],shipments:[],services:[],addresses:[],packing_sizes:{byItem:{},byKind:{}}});
   expect((await f.rest('PATCH',`logistics/shipments/${s.id}`,{tracking_number:'hijack'},'other','other')).status).toBe(404);
   expect((await f.rest('GET','logistics',undefined,'staff')).status).toBe(403);
   const names=(await f.rpc('tools/list',{},'read')).result.tools.map((x:any)=>x.name);expect(names).toContain('list_logistics');expect(names).not.toContain('receive_logistics_shipment');

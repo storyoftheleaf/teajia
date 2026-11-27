@@ -86,10 +86,11 @@ export interface ShipmentPlanningSummary {
 /** Read-only planning. Suggestions never overwrite measured packing or become a confirmed bill. */
 export function shipmentPlanningSummary(shipment: LogisticsShipment): ShipmentPlanningSummary {
   const lines: PlanningLine[] = shipment.lines.map(line => {
-    const kind = planningItemKind(line);
+    const kind = line.packing_kind ?? planningItemKind(line);
     // An entered zero is preserved. Invalid recorded data is not replaced by a guess.
     const suggestedVolume = line.volume_m3 == null;
-    const volumeM3 = suggestedVolume ? estimatePackedVolume({ kind, quantity: line.quantity, unit: line.unit }).volume_m3 : usable(line.volume_m3) ? line.volume_m3 : null;
+    // The learned size when the shop has one (src/lib/packingSizes.ts), else the planning allowance.
+    const volumeM3 = suggestedVolume ? (line.packing_estimate?.volume_m3 ?? estimatePackedVolume({ kind, quantity: line.quantity, unit: line.unit }).volume_m3) : usable(line.volume_m3) ? line.volume_m3 : null;
     return { id: line.id, kind, volumeM3, suggestedVolume: suggestedVolume && volumeM3 != null };
   });
   const weight = summarizeMeasures(shipment.lines.map(line => ({ value: usable(line.weight_kg) ? line.weight_kg : null, estimated: line.weight_estimated, suggested: false })));

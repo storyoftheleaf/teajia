@@ -2,9 +2,10 @@
   "id": "ya-an",
   "name": "Ya'an",
   "country": "China",
-  "province": null,
+  "province": "Sichuan",
   "altitude": null,
-  "climate": null,
+  "climate": "Humid, rainy and misty at the western edge of the Sichuan Basin",
+  "description": "Prefecture-level city in western Sichuan. Home of Mengding Shan green and yellow tea and of Ya'an Tibetan (Sichuan border) dark tea.",
   "holding": "regions",
   "license": "CC BY 4.0, see LICENSE.txt",
   "source": "https://teajia.com/wisdom/"

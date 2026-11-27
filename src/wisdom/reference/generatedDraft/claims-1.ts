@@ -5,6 +5,306 @@ import type { DraftClaim } from '../claims';
 
 export const PART: readonly DraftClaim[] = [
   {
+    "claimId": "7572:definition",
+    "pageId": "7572",
+    "sectionKey": "definition",
+    "label": "The recipe ripe pu’er is measured against",
+    "axis": "grade",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "grade": "7572"
+    },
+    "terms": [
+      {
+        "original": "唛号",
+        "pinyin": "màihào",
+        "gloss": "mark number; the trade word for a recipe code"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "7572 is a recipe mark, a four-digit number that names one blend of ripe pu’er first made by Menghai Tea Factory in the mid 1970s. It is the best known ripe recipe in the trade, and other ripe cakes are often described by how they compare with it. Buyers look for it because it stands for a plain, reliable idea of what ripe pu’er should be.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "7572 is a recipe mark, a four-digit number that names one blend of ripe pu’er first made by Menghai Tea Factory in the mid 1970s. It is the best known ripe recipe in the trade, and other ripe cakes are often described by how they compare with it. Buyers look for it because it stands for a plain, reliable idea of what ripe pu’er should be.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "7572:reading-the-number",
+    "pageId": "7572",
+    "sectionKey": "reading-the-number",
+    "label": "How to read the four digits",
+    "axis": "grade",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "grade": "7572"
+    },
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "The digits are a code. The first two, 75, stand for 1975, the year the recipe was first made. The third, 7, is the leaf grade that makes up most of the blend, on a scale where 1 is the finest bud and 9 the coarsest leaf. The last, 2, is the factory code for Menghai. The same layout is used on other numbered recipes, which is why a ripe cake and its sheng companion can share the first two digits.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "The digits are a code. The first two, 75, stand for 1975, the year the recipe was first made. The third, 7, is the leaf grade that makes up most of the blend, on a scale where 1 is the finest bud and 9 the coarsest leaf. The last, 2, is the factory code for Menghai. The same layout is used on other numbered recipes, which is why a ripe cake and its sheng companion can share the first two digits.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "7572:recipe-not-quality",
+    "pageId": "7572",
+    "sectionKey": "recipe-not-quality",
+    "label": "Recipe, not grade of quality",
+    "axis": "grade",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "grade": "7572"
+    },
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "Although the number carries a leaf grade, 7572 is not a quality grade like Gong Ting. It names a whole blend, and the 7 describes the main body of the leaf, not how fine or valuable the tea is. A finer ripe tea is not a better 7572, and a cake sold as 7572 shows the factory’s recipe, not a mark of rank.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Although the number carries a leaf grade, 7572 is not a quality grade like Gong Ting. It names a whole blend, and the 7 describes the main body of the leaf, not how fine or valuable the tea is. A finer ripe tea is not a better 7572, and a cake sold as 7572 shows the factory’s recipe, not a mark of rank.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "7572:what-it-does-not-say",
+    "pageId": "7572",
+    "sectionKey": "what-it-does-not-say",
+    "label": "What the number does not tell you",
+    "axis": "grade",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "grade": "7572"
+    },
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "The 75 is the year of the recipe, not the year of the cake. A 7572 pressed in 2010 and one pressed in 2023 carry the same number, so the year of pressing has to come from the wrapper, the batch record or the seller. The number also does not say how old the tea is, how it was stored, or whether it is a good example of the recipe. Young cakes can still taste of piling, while well stored older ones have settled and softened, so two cakes with the same number can drink quite differently.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "The 75 is the year of the recipe, not the year of the cake. A 7572 pressed in 2010 and one pressed in 2023 carry the same number, so the year of pressing has to come from the wrapper, the batch record or the seller. The number also does not say how old the tea is, how it was stored, or whether it is a good example of the recipe. Young cakes can still taste of piling, while well stored older ones have settled and softened, so two cakes with the same number can drink quite differently.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "alishan:cultivars",
+    "pageId": "alishan",
+    "sectionKey": "cultivars",
+    "label": "The cultivars grown",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "alishan"
+      ]
+    },
+    "terms": [
+      {
+        "original": "青心烏龍",
+        "pinyin": "qīngxīn wūlóng",
+        "gloss": "Qingxin oolong, a cultivar"
+      },
+      {
+        "original": "金萱",
+        "pinyin": "jīnxuān",
+        "gloss": "Jin Xuan, a cultivar"
+      }
+    ],
+    "rev": 1,
+    "scope": "The two cultivars most often grown in Alishan; says nothing about any single garden",
+    "text": "Qingxin oolong is the main cultivar, and it is the one people most often mean by classic Alishan, with orchid-like or osmanthus-like fragrance and lasting sweetness. Jin Xuan, the milky cultivar also sold as TTES No. 12, is grown too, mostly on the lower and middle ground. Which cultivar a tea is, and how high it grew, changes the cup more than the name Alishan does.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "The two cultivars most often grown in Alishan; says nothing about any single garden",
+        "text": "Qingxin oolong is the main cultivar, and it is the one people most often mean by classic Alishan, with orchid-like or osmanthus-like fragrance and lasting sweetness. Jin Xuan, the milky cultivar also sold as TTES No. 12, is grown too, mostly on the lower and middle ground. Which cultivar a tea is, and how high it grew, changes the cup more than the name Alishan does.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "alishan:on-a-label",
+    "pageId": "alishan",
+    "sectionKey": "on-a-label",
+    "label": "Alishan on a label",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "alishan"
+      ]
+    },
+    "terms": [
+      {
+        "original": "阿里山",
+        "pinyin": "Ālǐshān",
+        "gloss": "Ali Mountain"
+      }
+    ],
+    "rev": 1,
+    "scope": "How the name Alishan is used on labels and what a fuller claim looks like",
+    "text": "Alishan on a label is a market name that covers a lot of ground, and it does not say which township, garden or height the tea came from. Tea from outside Taiwan, including high-altitude oolong from other countries, is sometimes sold as Alishan, so a bare name with no garden, height or cultivar is the weaker claim. Fenqihu is a related case: it is a tourist town with only a few tea gardens, and much tea sold under its name comes from nearby areas such as Shizhuo. A named village, a stated height and a cultivar make the fuller claim.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "How the name Alishan is used on labels and what a fuller claim looks like",
+        "text": "Alishan on a label is a market name that covers a lot of ground, and it does not say which township, garden or height the tea came from. Tea from outside Taiwan, including high-altitude oolong from other countries, is sometimes sold as Alishan, so a bare name with no garden, height or cultivar is the weaker claim. Fenqihu is a related case: it is a tourist town with only a few tea gardens, and much tea sold under its name comes from nearby areas such as Shizhuo. A named village, a stated height and a cultivar make the fuller claim.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "alishan:sub-areas",
+    "pageId": "alishan",
+    "sectionKey": "sub-areas",
+    "label": "Townships and sub-areas",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "alishan"
+      ]
+    },
+    "terms": [
+      {
+        "original": "梅山",
+        "pinyin": "Méishān",
+        "gloss": "Meishan Township"
+      },
+      {
+        "original": "竹崎",
+        "pinyin": "Zhúqí",
+        "gloss": "Zhuqi Township"
+      },
+      {
+        "original": "阿里山鄉",
+        "pinyin": "Ālǐshān xiāng",
+        "gloss": "Alishan Township"
+      },
+      {
+        "original": "石棹",
+        "pinyin": "Shízhuō",
+        "gloss": "Shizhuo, a sub-area"
+      }
+    ],
+    "rev": 1,
+    "scope": "The townships and sub-areas that make up the Alishan tea area; heights vary by garden",
+    "text": "The tea area is wider than Alishan Township. Tea grows in three townships. Meishan, on the northern edge, has lower and middle gardens in villages such as Taiping, Ruili and Taixing. Zhuqi is the centre, with Shizhuo and Fenqihu. Alishan Township itself holds the higher gardens along the mountain road. Named sub-areas also carry weight with sellers: Shizhuo, Zhangshuhu and Ruifeng are among those most often named, and garden height varies a lot even within one village.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "The townships and sub-areas that make up the Alishan tea area; heights vary by garden",
+        "text": "The tea area is wider than Alishan Township. Tea grows in three townships. Meishan, on the northern edge, has lower and middle gardens in villages such as Taiping, Ruili and Taixing. Zhuqi is the centre, with Shizhuo and Fenqihu. Alishan Township itself holds the higher gardens along the mountain road. Named sub-areas also carry weight with sellers: Shizhuo, Zhangshuhu and Ruifeng are among those most often named, and garden height varies a lot even within one village.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "alishan:where-it-is",
+    "pageId": "alishan",
+    "sectionKey": "where-it-is",
+    "label": "Where Alishan is",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "alishan"
+      ]
+    },
+    "terms": [
+      {
+        "original": "阿里山",
+        "pinyin": "Ālǐshān",
+        "gloss": "Ali Mountain"
+      }
+    ],
+    "rev": 1,
+    "scope": "Where the Alishan tea area is and the range of heights quoted for its gardens; not a statement about any one garden",
+    "text": "Alishan is a mountain range and tea area in Chiayi County, in the southwest of central Taiwan. It is one of the three best known high mountain tea areas on the island, with Lishan and Shanlinxi. Its gardens sit on the western and southern slopes, mostly at about 1,000 to 1,600 metres, though places quote the range differently, from about 700 up to 1,800 metres. On a tea record, Alishan names the mountain area. The county is Chiayi, and some records file Alishan under Nantou, which is not where it is.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Where the Alishan tea area is and the range of heights quoted for its gardens; not a statement about any one garden",
+        "text": "Alishan is a mountain range and tea area in Chiayi County, in the southwest of central Taiwan. It is one of the three best known high mountain tea areas on the island, with Lishan and Shanlinxi. Its gardens sit on the western and southern slopes, mostly at about 1,000 to 1,600 metres, though places quote the range differently, from about 700 up to 1,800 metres. On a tea record, Alishan names the mountain area. The county is Chiayi, and some records file Alishan under Nantou, which is not where it is.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "alishan:why-people-value-it",
+    "pageId": "alishan",
+    "sectionKey": "why-people-value-it",
+    "label": "Why people value Alishan tea",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "alishan"
+      ]
+    },
+    "terms": [
+      {
+        "original": "阿里山",
+        "pinyin": "Ālǐshān",
+        "gloss": "Ali Mountain"
+      }
+    ],
+    "rev": 1,
+    "scope": "What the trade says about Alishan high mountain oolong as a style of place: climate, slow growth, light oxidation; general, not any one lot",
+    "text": "Alishan matters to a buyer for its air and its approachability. Cloud and fog cover the gardens for much of the day, the sun is filtered, and nights are cool, so the leaf grows slowly and comes out thick and soft with little bitterness. The trade explains the cup this way: sweet, smooth and light in astringency, with a floral aroma that lasts through many infusions. Most Alishan tea is lightly oxidised, ball-rolled oolong with little or no roast. It is often the first high mountain oolong people try, and the style most buyers picture when they say high mountain tea.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "What the trade says about Alishan high mountain oolong as a style of place: climate, slow growth, light oxidation; general, not any one lot",
+        "text": "Alishan matters to a buyer for its air and its approachability. Cloud and fog cover the gardens for much of the day, the sun is filtered, and nights are cool, so the leaf grows slowly and comes out thick and soft with little bitterness. The trade explains the cup this way: sweet, smooth and light in astringency, with a floral aroma that lasts through many infusions. Most Alishan tea is lightly oxidised, ball-rolled oolong with little or no roast. It is often the first high mountain oolong people try, and the style most buyers picture when they say high mountain tea.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
     "claimId": "anhua-dark:ageing",
     "pageId": "anhua-dark",
     "sectionKey": "ageing",
@@ -394,565 +694,284 @@ export const PART: readonly DraftClaim[] = [
     "pageVisibility": "public"
   },
   {
-    "claimId": "dancong:ageing",
-    "pageId": "dancong",
-    "sectionKey": "ageing",
-    "label": "Keeping Dancong",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "origin_includes": [
-        "phoenix mountain"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Phoenix Dancong style kit",
-    "text": "Freshly roasted Dancong is rested for some months before it is at its best; how many months is not agreed. Keep it sealed, dry, cool and out of the light.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Phoenix Dancong style kit",
-        "text": "Freshly roasted Dancong is rested for some months before it is at its best; how many months is not agreed. Keep it sealed, dry, cool and out of the light.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the Phoenix Dancong kit 2026-11-25",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "dancong:aromas",
-    "pageId": "dancong",
-    "sectionKey": "aromas",
-    "label": "Aroma types",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "origin_includes": [
-        "phoenix mountain"
-      ]
-    },
-    "terms": [
-      {
-        "original": "香型",
-        "pinyin": "xiāngxíng",
-        "gloss": "aroma type"
-      }
-    ],
-    "rev": 1,
-    "scope": "Phoenix Dancong style kit",
-    "text": "Dancong is sorted and sold by its aroma type, named for a flower, fruit or spice the scent recalls. The scent comes from the bush and the making, not from anything added: an orchid or almond Dancong names a smell, not an ingredient. The trade speaks of the ten aroma types. Nine names turn up in every full list: Huangzhi, yellow sprig; Zhilan, orchid; Milan, honey orchid; Yulan, magnolia; Xingren, almond; Jianghua, ginger flower; Guihua, osmanthus; Yelai, night-blooming flower; and Rougui, cinnamon. The tenth is most often jasmine.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Phoenix Dancong style kit",
-        "text": "Dancong is sorted and sold by its aroma type, named for a flower, fruit or spice the scent recalls. The scent comes from the bush and the making, not from anything added: an orchid or almond Dancong names a smell, not an ingredient. The trade speaks of the ten aroma types. Nine names turn up in every full list: Huangzhi, yellow sprig; Zhilan, orchid; Milan, honey orchid; Yulan, magnolia; Xingren, almond; Jianghua, ginger flower; Guihua, osmanthus; Yelai, night-blooming flower; and Rougui, cinnamon. The tenth is most often jasmine.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the Phoenix Dancong kit 2026-11-25",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "dancong:brewing",
-    "pageId": "dancong",
-    "sectionKey": "brewing",
-    "label": "Brewing Dancong",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "origin_includes": [
-        "phoenix mountain"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Phoenix Dancong style kit",
-    "text": "Brew it gongfu style in a small gaiwan or clay pot, with about 3 to 8 grams for 100 to 120 ml and hot water, about 88 to 100°C; Chinese accounts mostly say 95 to 100°C. A quick rinse is common. Steeps start at a few seconds and grow a few seconds each round, and a good Dancong gives about eight to fifteen. Too long, too hot or too much leaf and it turns bitter and astringent.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Phoenix Dancong style kit",
-        "text": "Brew it gongfu style in a small gaiwan or clay pot, with about 3 to 8 grams for 100 to 120 ml and hot water, about 88 to 100°C; Chinese accounts mostly say 95 to 100°C. A quick rinse is common. Steeps start at a few seconds and grow a few seconds each round, and a good Dancong gives about eight to fifteen. Too long, too hot or too much leaf and it turns bitter and astringent.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the Phoenix Dancong kit 2026-11-25",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "dancong:common-impressions",
-    "pageId": "dancong",
-    "sectionKey": "common-impressions",
-    "label": "What people often notice",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "origin_includes": [
-        "phoenix mountain"
-      ]
-    },
-    "terms": [
-      {
-        "original": "山韵",
-        "pinyin": "shān yùn",
-        "gloss": "mountain rhyme"
-      }
-    ],
-    "rev": 1,
-    "scope": "Phoenix Dancong style kit",
-    "text": "Flowers above all, a sweetness that comes back after swallowing, a high scent that lasts, honey, often ripe fruit such as peach, and what the trade calls mountain rhyme, shan yun; a liquor from golden to orange-red or amber.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Phoenix Dancong style kit",
-        "text": "Flowers above all, a sweetness that comes back after swallowing, a high scent that lasts, honey, often ripe fruit such as peach, and what the trade calls mountain rhyme, shan yun; a liquor from golden to orange-red or amber.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the Phoenix Dancong kit 2026-11-25",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "dancong:definition",
-    "pageId": "dancong",
-    "sectionKey": "definition",
-    "label": "What Phoenix Dancong is",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "origin_includes": [
-        "phoenix mountain"
-      ]
-    },
-    "terms": [
-      {
-        "original": "凤凰单丛",
-        "pinyin": "fènghuáng dāncóng",
-        "gloss": "Phoenix single bush"
-      },
-      {
-        "original": "乌岽",
-        "pinyin": "wūdōng",
-        "gloss": "Wudong peak"
-      }
-    ],
-    "rev": 1,
-    "scope": "Phoenix Dancong style kit",
-    "text": "Phoenix Dancong is the oolong of Phoenix Mountain, Fenghuang Shan, in Chao'an, Chaozhou, in eastern Guangdong. Wudong is the peak named most often as its heart. The dry leaf is a long strip, twisted tight, dark and glossy, not rolled into a ball.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Phoenix Dancong style kit",
-        "text": "Phoenix Dancong is the oolong of Phoenix Mountain, Fenghuang Shan, in Chao'an, Chaozhou, in eastern Guangdong. Wudong is the peak named most often as its heart. The dry leaf is a long strip, twisted tight, dark and glossy, not rolled into a ball.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the Phoenix Dancong kit 2026-11-25",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "dancong:history",
-    "pageId": "dancong",
+    "claimId": "anhua:history",
+    "pageId": "anhua",
     "sectionKey": "history",
-    "label": "The local tea",
-    "axis": "type",
+    "label": "How Anhua became a tea county",
+    "axis": "place",
     "basis": "trade_knowledge",
-    "listingEligible": true,
+    "listingEligible": false,
     "appliesWhen": {
-      "type": "Oolong",
       "origin_includes": [
-        "phoenix mountain"
+        "anhua"
       ]
     },
     "terms": [
       {
-        "original": "潮州工夫茶",
-        "pinyin": "cháozhōu gōngfu chá",
-        "gloss": "Chaozhou gongfu tea"
+        "original": "唐家观",
+        "pinyin": "Tángjiāguān",
+        "gloss": "Tangjiaguan, old tea trading town"
       }
     ],
     "rev": 1,
-    "scope": "Phoenix Dancong style kit",
-    "text": "The old tea of the mountain was called bird-beak tea, and later Shuixian. Dancong is the everyday tea of Chaozhou, and gongfu brewing is tied to Chaozhou, where Chaozhou gongfu tea is still made with small vessels, set ways of pouring, and three cups.",
+    "scope": "How Anhua became a county and a tea county, in outline; the tea's own history is on the Anhua dark tea page",
+    "text": "Anhua was set up as a county in the Northern Song, after the Meishan hill country was opened to the outside world, and tea has been recorded in the area since the Tang. The trade grew under the Ming and Qing, when Anhua tea went north and north-west by road and river to the north-west and on to Russia. Old stone paths and merchant towns such as Tangjiaguan, a stop on the long tea road, still show where that trade passed. For the tea itself, how it was made and what it became, see the Anhua dark tea page.",
     "sourceIds": [],
     "reviewState": "approved",
     "previousRevisions": [
       {
         "rev": 1,
         "origin": "approved",
-        "scope": "Phoenix Dancong style kit",
-        "text": "The old tea of the mountain was called bird-beak tea, and later Shuixian. Dancong is the everyday tea of Chaozhou, and gongfu brewing is tied to Chaozhou, where Chaozhou gongfu tea is still made with small vessels, set ways of pouring, and three cups.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the Phoenix Dancong kit 2026-11-25",
+        "scope": "How Anhua became a county and a tea county, in outline; the tea's own history is on the Anhua dark tea page",
+        "text": "Anhua was set up as a county in the Northern Song, after the Meishan hill country was opened to the outside world, and tea has been recorded in the area since the Tang. The trade grew under the Ming and Qing, when Anhua tea went north and north-west by road and river to the north-west and on to Russia. Old stone paths and merchant towns such as Tangjiaguan, a stop on the long tea road, still show where that trade passed. For the tea itself, how it was made and what it became, see the Anhua dark tea page.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
         "evidenceIds": []
       }
     ],
     "pageVisibility": "public"
   },
   {
-    "claimId": "dancong:making",
-    "pageId": "dancong",
-    "sectionKey": "making",
-    "label": "How Dancong is made",
-    "axis": "type",
+    "claimId": "anhua:tea-today",
+    "pageId": "anhua",
+    "sectionKey": "tea-today",
+    "label": "Tea in the county today",
+    "axis": "place",
     "basis": "trade_knowledge",
-    "listingEligible": true,
+    "listingEligible": false,
     "appliesWhen": {
-      "type": "Oolong",
       "origin_includes": [
-        "phoenix mountain"
+        "anhua"
       ]
     },
     "terms": [],
     "rev": 1,
-    "scope": "Phoenix Dancong style kit",
-    "text": "The leaf is withered in the sun and cooled indoors, then shaken and rested in rounds; this is the step that bruises the leaf edge and builds the scent. It is fixed fast at high heat in a hot pan or drum, rolled into strips, dried, and roasted again as it is refined, sometimes over more than one round. Charcoal is the traditional fire. The roast is a main difference between teas: a light roast keeps the floral scent bright, a heavier one gives a deeper, sweeter cup with caramel in it.",
+    "scope": "Tea as the main industry of Anhua County today, in general terms",
+    "text": "Tea is the main industry of Anhua. Tea gardens cover a large part of the hills, more than two hundred firms process the leaf, and hundreds of thousands of people in and around the county make a living from tea in some way. Visitors come to the tea museum, the old tea roads and the tea farms on Yuntai Mountain, so the place is also a destination in its own right.",
     "sourceIds": [],
     "reviewState": "approved",
     "previousRevisions": [
       {
         "rev": 1,
         "origin": "approved",
-        "scope": "Phoenix Dancong style kit",
-        "text": "The leaf is withered in the sun and cooled indoors, then shaken and rested in rounds; this is the step that bruises the leaf edge and builds the scent. It is fixed fast at high heat in a hot pan or drum, rolled into strips, dried, and roasted again as it is refined, sometimes over more than one round. Charcoal is the traditional fire. The roast is a main difference between teas: a light roast keeps the floral scent bright, a heavier one gives a deeper, sweeter cup with caramel in it.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the Phoenix Dancong kit 2026-11-25",
+        "scope": "Tea as the main industry of Anhua County today, in general terms",
+        "text": "Tea is the main industry of Anhua. Tea gardens cover a large part of the hills, more than two hundred firms process the leaf, and hundreds of thousands of people in and around the county make a living from tea in some way. Visitors come to the tea museum, the old tea roads and the tea farms on Yuntai Mountain, so the place is also a destination in its own right.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
         "evidenceIds": []
       }
     ],
     "pageVisibility": "public"
   },
   {
-    "claimId": "dancong:mi-lan-xiang",
-    "pageId": "dancong",
-    "sectionKey": "mi-lan-xiang",
-    "label": "Mi Lan Xiang",
-    "axis": "type",
+    "claimId": "anhua:where-it-is",
+    "pageId": "anhua",
+    "sectionKey": "where-it-is",
+    "label": "Where Anhua is",
+    "axis": "place",
     "basis": "trade_knowledge",
     "listingEligible": true,
     "appliesWhen": {
-      "type": "Oolong",
       "origin_includes": [
-        "phoenix mountain"
-      ],
-      "name_includes": [
-        "mi",
-        "lan"
+        "anhua"
       ]
     },
     "terms": [
       {
-        "original": "蜜兰香",
-        "pinyin": "mìlán xiāng",
-        "gloss": "honey orchid aroma"
-      }
-    ],
-    "rev": 1,
-    "scope": "Phoenix Dancong style kit",
-    "text": "Mi Lan Xiang, honey orchid, is one of the traditional ten aroma types and one of the most widely made, often named as a good first Dancong. It is described as honey-sweet with an orchid scent, with a cooked sweet potato note, and a liquor from golden amber to orange-red, depending on the roast. The one name covers a range of teas.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Phoenix Dancong style kit",
-        "text": "Mi Lan Xiang, honey orchid, is one of the traditional ten aroma types and one of the most widely made, often named as a good first Dancong. It is described as honey-sweet with an orchid scent, with a cooked sweet potato note, and a liquor from golden amber to orange-red, depending on the roast. The one name covers a range of teas.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the Phoenix Dancong kit 2026-11-25",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "dancong:name",
-    "pageId": "dancong",
-    "sectionKey": "name",
-    "label": "Single bush",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "origin_includes": [
-        "phoenix mountain"
-      ]
-    },
-    "terms": [
-      {
-        "original": "单丛",
-        "pinyin": "dāncóng",
-        "gloss": "single bush"
+        "original": "安化",
+        "pinyin": "Ānhuà",
+        "gloss": "Anhua"
       },
       {
-        "original": "单枞",
-        "pinyin": "dāncōng",
-        "gloss": "single bush, other spelling"
+        "original": "益阳",
+        "pinyin": "Yìyáng",
+        "gloss": "Yiyang"
+      },
+      {
+        "original": "资江",
+        "pinyin": "Zījiāng",
+        "gloss": "Zi river"
+      },
+      {
+        "original": "雪峰山",
+        "pinyin": "Xuěfēng Shān",
+        "gloss": "Xuefeng mountains"
       }
     ],
     "rev": 1,
-    "scope": "Phoenix Dancong style kit",
-    "text": "Dancong means single bush: the leaf of one bush picked and made on its own, never mixed with others. The bushes are chosen from the old Phoenix Shuixian plants of the mountain. Today a named Dancong is mostly grown from cuttings or grafts of a chosen bush, so one name no longer means one tree, though some very old trees are still made on their own.",
+    "scope": "Anhua County as a place: province, city, river, mountains, terrain",
+    "text": "Anhua is a mountain county in north-central Hunan, in the city of Yiyang. It lies on the middle stretch of the Zi river, at the northern foot of the Xuefeng mountains, and is the southernmost and westernmost county of Yiyang. Most of the land is hills and steep valleys, with streams running down to the river. It is a place where rice is hard to grow and tea does well.",
     "sourceIds": [],
     "reviewState": "approved",
     "previousRevisions": [
       {
         "rev": 1,
         "origin": "approved",
-        "scope": "Phoenix Dancong style kit",
-        "text": "Dancong means single bush: the leaf of one bush picked and made on its own, never mixed with others. The bushes are chosen from the old Phoenix Shuixian plants of the mountain. Today a named Dancong is mostly grown from cuttings or grafts of a chosen bush, so one name no longer means one tree, though some very old trees are still made on their own.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the Phoenix Dancong kit 2026-11-25",
+        "scope": "Anhua County as a place: province, city, river, mountains, terrain",
+        "text": "Anhua is a mountain county in north-central Hunan, in the city of Yiyang. It lies on the middle stretch of the Zi river, at the northern foot of the Xuefeng mountains, and is the southernmost and westernmost county of Yiyang. Most of the land is hills and steep valleys, with streams running down to the river. It is a place where rice is hard to grow and tea does well.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
         "evidenceIds": []
       }
     ],
     "pageVisibility": "public"
   },
   {
-    "claimId": "dancong:old-bushes",
-    "pageId": "dancong",
-    "sectionKey": "old-bushes",
-    "label": "Old bushes and Song tea",
-    "axis": "type",
+    "claimId": "anhua:why-people-value-it",
+    "pageId": "anhua",
+    "sectionKey": "why-people-value-it",
+    "label": "Why people value Anhua",
+    "axis": "place",
     "basis": "trade_knowledge",
     "listingEligible": true,
     "appliesWhen": {
-      "type": "Oolong",
       "origin_includes": [
-        "phoenix mountain"
+        "anhua"
       ]
     },
     "terms": [
       {
-        "original": "老丛",
-        "pinyin": "lǎocóng",
-        "gloss": "old bush"
-      },
-      {
-        "original": "宋种",
-        "pinyin": "sòngzhǒng",
-        "gloss": "Song variety"
+        "original": "云台山",
+        "pinyin": "Yúntái Shān",
+        "gloss": "Yuntai Mountain"
       }
     ],
     "rev": 1,
-    "scope": "Phoenix Dancong style kit",
-    "text": "Old bushes, laocong, are prized for depth and a lasting sweetness, and give little leaf; no age is agreed for when a bush counts as old. Song variety, songzhong, is a market label for the oldest named lines, Huangzhi above all, not a proven age. A legend gives the old trees their name: the last Song emperor, fleeing as a boy, was given tea on the mountain by a phoenix.",
+    "scope": "Anhua County's climate, soil, forest and local large-leaf tea, and why the trade ties dark tea character to the place",
+    "text": "People value Anhua first as the home of Chinese dark tea, and then for the ground the tea grows in. The county is warm and very wet, with four clear seasons, a short cold spell, and cloud and mist on the high mountains such as Yuntai. The slopes on both sides of the river are deep, loose, slightly acidic soil weathered from shale, which drains well. A large share of the county is forest, and the tea sits among it, not on cleared plains. The local large-leaf tea, best known from Yuntai Mountain, has thick, soft leaf that suits dark tea making. In Anhua the same wet, warm air that helps the tea grow is also the air the tea is piled, pressed and aged in, which is why the trade ties the character of the finished tea to the place and not only to the method.",
     "sourceIds": [],
     "reviewState": "approved",
     "previousRevisions": [
       {
         "rev": 1,
         "origin": "approved",
-        "scope": "Phoenix Dancong style kit",
-        "text": "Old bushes, laocong, are prized for depth and a lasting sweetness, and give little leaf; no age is agreed for when a bush counts as old. Song variety, songzhong, is a market label for the oldest named lines, Huangzhi above all, not a proven age. A legend gives the old trees their name: the last Song emperor, fleeing as a boy, was given tea on the mountain by a phoenix.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the Phoenix Dancong kit 2026-11-25",
+        "scope": "Anhua County's climate, soil, forest and local large-leaf tea, and why the trade ties dark tea character to the place",
+        "text": "People value Anhua first as the home of Chinese dark tea, and then for the ground the tea grows in. The county is warm and very wet, with four clear seasons, a short cold spell, and cloud and mist on the high mountains such as Yuntai. The slopes on both sides of the river are deep, loose, slightly acidic soil weathered from shale, which drains well. A large share of the county is forest, and the tea sits among it, not on cleared plains. The local large-leaf tea, best known from Yuntai Mountain, has thick, soft leaf that suits dark tea making. In Anhua the same wet, warm air that helps the tea grow is also the air the tea is piled, pressed and aged in, which is why the trade ties the character of the finished tea to the place and not only to the method.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
         "evidenceIds": []
       }
     ],
     "pageVisibility": "public"
   },
   {
-    "claimId": "dancong:ya-shi-xiang",
-    "pageId": "dancong",
-    "sectionKey": "ya-shi-xiang",
-    "label": "Ya Shi Xiang",
-    "axis": "type",
+    "claimId": "anhui:keemun",
+    "pageId": "anhui",
+    "sectionKey": "keemun",
+    "label": "Keemun and the red tea of Qimen",
+    "axis": "place",
     "basis": "trade_knowledge",
-    "listingEligible": true,
+    "listingEligible": false,
     "appliesWhen": {
-      "type": "Oolong",
       "origin_includes": [
-        "phoenix mountain"
-      ],
-      "name_any": [
-        "ya",
-        "duck"
+        "anhui"
       ]
     },
     "terms": [
       {
-        "original": "鸭屎香",
-        "pinyin": "yā shǐ xiāng",
-        "gloss": "duck dung aroma"
-      },
-      {
-        "original": "银花香",
-        "pinyin": "yínhuā xiāng",
-        "gloss": "silver flower aroma"
+        "original": "祁门红茶",
+        "pinyin": "Qímén Hóngchá",
+        "gloss": "Qimen red tea, Keemun"
       }
     ],
     "rev": 1,
-    "scope": "Phoenix Dancong style kit",
-    "text": "Ya Shi Xiang, duck dung aroma, is the market name for a very floral Dancong, and most lists of the ten leave it out even though it sells widely. It is also called Yinhua Xiang, silver flower or honeysuckle aroma, a name put forward in 2014 for a scent likened to the wild honeysuckle of the mountain; many sellers keep the old name. Its line is traced to Pingkengtou village. Three stories explain the name, all told as stories: that it was chosen to put thieves off the bush, that it comes from the yellow local soil called duck dung soil, and that duck droppings lay on the bush. The tea tastes nothing like its name: every account of the cup gives flowers, usually with milk or cream, honey or fruit.",
+    "scope": "Keemun as the tea of Qimen County; its origin in the late nineteenth century",
+    "text": "Keemun began in Qimen County in the late nineteenth century, when red tea making was brought into Anhui, which until then was known for green tea. It was sold abroad early and became a base for English blends. The trade describes it as a light, smooth red tea with a floral scent and little bitterness. Keemun in this sense is the tea of Qimen County and the hills around it, and the name does not cover other teas that are called Keemun style.",
     "sourceIds": [],
     "reviewState": "approved",
     "previousRevisions": [
       {
         "rev": 1,
         "origin": "approved",
-        "scope": "Phoenix Dancong style kit",
-        "text": "Ya Shi Xiang, duck dung aroma, is the market name for a very floral Dancong, and most lists of the ten leave it out even though it sells widely. It is also called Yinhua Xiang, silver flower or honeysuckle aroma, a name put forward in 2014 for a scent likened to the wild honeysuckle of the mountain; many sellers keep the old name. Its line is traced to Pingkengtou village. Three stories explain the name, all told as stories: that it was chosen to put thieves off the bush, that it comes from the yellow local soil called duck dung soil, and that duck droppings lay on the bush. The tea tastes nothing like its name: every account of the cup gives flowers, usually with milk or cream, honey or fruit.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the Phoenix Dancong kit 2026-11-25",
+        "scope": "Keemun as the tea of Qimen County; its origin in the late nineteenth century",
+        "text": "Keemun began in Qimen County in the late nineteenth century, when red tea making was brought into Anhui, which until then was known for green tea. It was sold abroad early and became a base for English blends. The trade describes it as a light, smooth red tea with a floral scent and little bitterness. Keemun in this sense is the tea of Qimen County and the hills around it, and the name does not cover other teas that are called Keemun style.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
         "evidenceIds": []
       }
     ],
     "pageVisibility": "public"
   },
   {
-    "claimId": "dark:ageing",
-    "pageId": "dark",
-    "sectionKey": "ageing",
-    "label": "Dark tea and age",
-    "axis": "type",
+    "claimId": "anhui:known-for",
+    "pageId": "anhui",
+    "sectionKey": "known-for",
+    "label": "What Anhui is known for",
+    "axis": "place",
     "basis": "trade_knowledge",
     "listingEligible": false,
     "appliesWhen": {
-      "type": "Dark"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Dark tea in general",
-    "text": "Dark tea is made to be kept, and the trade values it more with age. Over years it turns darker and redder in the cup and grows mellower and sweeter. How fast it changes depends on how it is stored, and the trade does not agree on one way: some keep it cool and dry for a slow, clean change, others warmer and more humid for a faster, deeper one. When a tea counts as young or aged differs from style to style, so each style sets its own measure.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Dark tea in general",
-        "text": "Dark tea is made to be kept, and the trade values it more with age. Over years it turns darker and redder in the cup and grows mellower and sweeter. How fast it changes depends on how it is stored, and the trade does not agree on one way: some keep it cool and dry for a slow, clean change, others warmer and more humid for a faster, deeper one. When a tea counts as young or aged differs from style to style, so each style sets its own measure.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "dark:brewing",
-    "pageId": "dark",
-    "sectionKey": "brewing",
-    "label": "Brewing dark tea",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Dark"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Dark tea in general",
-    "text": "Dark tea takes boiling water. Its leaf is mature and dense, so it gives up its flavour slowly and is hard to overbrew. Rinse it first with boiling water and pour that off within seconds: the rinse wakes the leaf and washes off dust and any stale smell from storage, and an old tea may take a second rinse. In a small pot use plenty of leaf, about 7 grams to 120 ml, then steep very briefly at first and a little longer each time; a good dark tea gives many cups.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Dark tea in general",
-        "text": "Dark tea takes boiling water. Its leaf is mature and dense, so it gives up its flavour slowly and is hard to overbrew. Rinse it first with boiling water and pour that off within seconds: the rinse wakes the leaf and washes off dust and any stale smell from storage, and an old tea may take a second rinse. In a small pot use plenty of leaf, about 7 grams to 120 ml, then steep very briefly at first and a little longer each time; a good dark tea gives many cups.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "dark:brewing-pressed",
-    "pageId": "dark",
-    "sectionKey": "brewing-pressed",
-    "label": "Breaking a pressed dark tea",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Dark"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Dark tea in general",
-    "text": "From a brick, cake or basket, ease the leaf off along the edge or from the top with a pick rather than snapping it. Whole pieces give up their flavour steadily; crumbs release it all at once and cloud the cup.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Dark tea in general",
-        "text": "From a brick, cake or basket, ease the leaf off along the edge or from the top with a pick rather than snapping it. Whole pieces give up their flavour steadily; crumbs release it all at once and cloud the cup.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "dark:brewing-simmer",
-    "pageId": "dark",
-    "sectionKey": "brewing-simmer",
-    "label": "Simmering older dark tea",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Dark"
+      "origin_includes": [
+        "anhui"
+      ]
     },
     "terms": [
       {
-        "original": "煮",
-        "pinyin": "zhǔ",
-        "gloss": "simmering"
+        "original": "黄山毛峰",
+        "pinyin": "Huángshān Máofēng",
+        "gloss": "Huangshan Maofeng"
+      },
+      {
+        "original": "太平猴魁",
+        "pinyin": "Tàipíng Hóukuí",
+        "gloss": "Taiping Houkui"
+      },
+      {
+        "original": "六安瓜片",
+        "pinyin": "Lù'ān Guāpiàn",
+        "gloss": "Lu'an Guapian, melon seed"
+      },
+      {
+        "original": "祁门红茶",
+        "pinyin": "Qímén Hóngchá",
+        "gloss": "Keemun"
       }
     ],
     "rev": 1,
-    "scope": "Dark tea in general",
-    "text": "Older or coarse dark tea is often simmered rather than steeped: the leaf goes into a pot of water, comes to a gentle boil and simmers for a few minutes. Thick leaf and long-aged tea release their flavour slowly, and the steady heat gives a fuller, smoother cup than short steeps do.",
+    "scope": "Anhui's best-known teas by type; not a ranking",
+    "text": "Anhui is one of the great tea provinces of China, and it is best known for green tea. Three green teas carry most of its name: Huangshan Maofeng from the Huangshan area, Taiping Houkui from the Taiping area, and Lu'an Guapian from the Lu'an area in the west. Its one world-famous red tea is Keemun, from Qimen County. Several of these are on the lists of China's famous teas and the trade often names Anhui among the provinces with many famous teas. Besides these, Anhui makes smaller teas such as Huoshan Huangya, a rare yellow tea, and Liu An basket tea, a dark tea.",
     "sourceIds": [],
     "reviewState": "approved",
     "previousRevisions": [
       {
         "rev": 1,
         "origin": "approved",
-        "scope": "Dark tea in general",
-        "text": "Older or coarse dark tea is often simmered rather than steeped: the leaf goes into a pot of water, comes to a gentle boil and simmers for a few minutes. Thick leaf and long-aged tea release their flavour slowly, and the steady heat gives a fuller, smoother cup than short steeps do.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
+        "scope": "Anhui's best-known teas by type; not a ranking",
+        "text": "Anhui is one of the great tea provinces of China, and it is best known for green tea. Three green teas carry most of its name: Huangshan Maofeng from the Huangshan area, Taiping Houkui from the Taiping area, and Lu'an Guapian from the Lu'an area in the west. Its one world-famous red tea is Keemun, from Qimen County. Several of these are on the lists of China's famous teas and the trade often names Anhui among the provinces with many famous teas. Besides these, Anhui makes smaller teas such as Huoshan Huangya, a rare yellow tea, and Liu An basket tea, a dark tea.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "anhui:land-and-climate",
+    "pageId": "anhui",
+    "sectionKey": "land-and-climate",
+    "label": "Why the hills suit tea",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "origin_includes": [
+        "anhui"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Climate and land of Anhui's tea hills in general; differences between south and west",
+    "text": "The tea hills have a humid, subtropical climate with four clear seasons, plenty of rain, and mist and cloud that lie on the mountains for much of the year. People in the trade link that cover, together with acidic, well-drained mountain soil, to slow-growing leaf with a clean fragrance and a sweet aftertaste. The cold winters let the bushes rest, so spring leaf comes on strong. The west is cooler and drier than the south, which is why its tea grows on hardier bushes.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Climate and land of Anhui's tea hills in general; differences between south and west",
+        "text": "The tea hills have a humid, subtropical climate with four clear seasons, plenty of rain, and mist and cloud that lie on the mountains for much of the year. People in the trade link that cover, together with acidic, well-drained mountain soil, to slow-growing leaf with a clean fragrance and a sweet aftertaste. The cold winters let the bushes rest, so spring leaf comes on strong. The west is cooler and drier than the south, which is why its tea grows on hardier bushes.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
         "evidenceIds": []
       }
     ],

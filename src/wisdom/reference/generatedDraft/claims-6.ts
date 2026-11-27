@@ -5,946 +5,939 @@ import type { DraftClaim } from '../claims';
 
 export const PART: readonly DraftClaim[] = [
   {
-    "claimId": "red:definition",
-    "pageId": "red",
-    "sectionKey": "definition",
-    "label": "What red tea is",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Red"
-    },
-    "terms": [
-      {
-        "original": "红茶",
-        "pinyin": "hóng chá",
-        "gloss": "red tea"
-      },
-      {
-        "original": "发酵",
-        "pinyin": "fā jiào",
-        "gloss": "fermentation"
-      }
-    ],
-    "rev": 1,
-    "scope": "All red tea; Dian Hong where the origin is Yunnan",
-    "text": "Red tea is the tea English calls black tea. The Chinese name follows the colour of the brewed cup, which is red; the English one follows the dry leaf, which is dark. It is the fully oxidised tea: once the leaf’s cells are broken, its own enzymes work on it until it has turned from green to reddish brown. The Chinese trade calls that step fermentation.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "All red tea; Dian Hong where the origin is Yunnan",
-        "text": "Red tea is the tea English calls black tea. The Chinese name follows the colour of the brewed cup, which is red; the English one follows the dry leaf, which is dark. It is the fully oxidised tea: once the leaf’s cells are broken, its own enzymes work on it until it has turned from green to reddish brown. The Chinese trade calls that step fermentation.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 15)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "red:history",
-    "pageId": "red",
-    "sectionKey": "history",
-    "label": "How red tea spread",
-    "axis": "process",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Red"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "All red tea; Dian Hong where the origin is Yunnan",
-    "text": "By the trade’s own telling, red tea began in the Wuyi mountains of northern Fujian, around Tongmu, in the seventeenth century, though no record says exactly how or when it was first made. Dutch traders and then the British East India Company carried it to Europe under the names Bohea and Souchong. In the nineteenth century the craft spread to other Chinese provinces, among them Anhui, where Keemun began late in the Qing dynasty, and the British, having taken Chinese plants and tea makers to India, planted red tea in Assam and later Darjeeling. Taiwan’s red tea dates from the Japanese period, at Yuchi near Sun Moon Lake, and Yunnan’s Dian Hong from the late 1930s.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "All red tea; Dian Hong where the origin is Yunnan",
-        "text": "By the trade’s own telling, red tea began in the Wuyi mountains of northern Fujian, around Tongmu, in the seventeenth century, though no record says exactly how or when it was first made. Dutch traders and then the British East India Company carried it to Europe under the names Bohea and Souchong. In the nineteenth century the craft spread to other Chinese provinces, among them Anhui, where Keemun began late in the Qing dynasty, and the British, having taken Chinese plants and tea makers to India, planted red tea in Assam and later Darjeeling. Taiwan’s red tea dates from the Japanese period, at Yuchi near Sun Moon Lake, and Yunnan’s Dian Hong from the late 1930s.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 15)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "red:making",
-    "pageId": "red",
-    "sectionKey": "making",
-    "label": "How red tea is made",
-    "axis": "process",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Red"
-    },
-    "terms": [
-      {
-        "original": "萎凋",
-        "pinyin": "wěi diāo",
-        "gloss": "withering"
-      },
-      {
-        "original": "揉捻",
-        "pinyin": "róu niǎn",
-        "gloss": "rolling"
-      }
-    ],
-    "rev": 1,
-    "scope": "All red tea; Dian Hong where the origin is Yunnan",
-    "text": "Red tea is made in four steps, each with a reason. The fresh leaf is withered, spread out until it loses water and goes soft enough to work. It is rolled, twisted and bruised so its juices and enzymes meet and the change can begin. It is left to oxidise in warmth and damp air, and the maker judges it by smell and colour, as the grassy smell turns floral or fruity and the leaf turns reddish brown. Then it is dried with hot air, which ends the change and makes the tea stable. Graded teas are then sorted and blended.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "All red tea; Dian Hong where the origin is Yunnan",
-        "text": "Red tea is made in four steps, each with a reason. The fresh leaf is withered, spread out until it loses water and goes soft enough to work. It is rolled, twisted and bruised so its juices and enzymes meet and the change can begin. It is left to oxidise in warmth and damp air, and the maker judges it by smell and colour, as the grassy smell turns floral or fruity and the leaf turns reddish brown. Then it is dried with hot air, which ends the change and makes the tea stable. Graded teas are then sorted and blended.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 15)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "red:whole-and-broken",
-    "pageId": "red",
-    "sectionKey": "whole-and-broken",
-    "label": "Whole leaf and broken leaf",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Red"
-    },
-    "terms": [
-      {
-        "original": "工夫红茶",
-        "pinyin": "gōng fu hóng chá",
-        "gloss": "gongfu red tea"
-      },
-      {
-        "original": "红碎茶",
-        "pinyin": "hóng suì chá",
-        "gloss": "broken red tea"
-      }
-    ],
-    "rev": 1,
-    "scope": "All red tea; Dian Hong where the origin is Yunnan",
-    "text": "Red tea is made in two families. Whole-leaf strip tea, called gongfu in Chinese and orthodox in English, is rolled with care and is the choice for slow, attentive brewing. Broken-leaf tea, cut or crushed, gives its colour and strength fast, which is why it fills tea bags and suits milk tea.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "All red tea; Dian Hong where the origin is Yunnan",
-        "text": "Red tea is made in two families. Whole-leaf strip tea, called gongfu in Chinese and orthodox in English, is rolled with care and is the choice for slow, attentive brewing. Broken-leaf tea, cut or crushed, gives its colour and strength fast, which is why it fills tea bags and suits milk tea.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 15)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "san-he-liu-bao:aging-warehouse",
-    "pageId": "san-he-liu-bao",
-    "sectionKey": "aging-warehouse",
-    "label": "A warehouse built for aging",
-    "axis": "named_tea_history",
-    "basis": "sourced",
-    "listingEligible": true,
-    "appliesWhen": {
-      "named_tea": "san-he-liu-bao"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Wuzhou Tea Factory’s aging warehouse as reported in 2019.",
-    "text": "In 2019 reporters stepped into Wuzhou Tea Factory’s brick-and-timber aging warehouse. Work on it began in 1953, the year the factory opened. Factory staff explained that the porous wooden boards help moderate moisture and temperature while the tea rests after fermentation.",
-    "sourceIds": [
-      "cns-wuzhou-aging-warehouse"
-    ],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Wuzhou Tea Factory’s aging warehouse as reported in 2019.",
-        "text": "In 2019 reporters stepped into Wuzhou Tea Factory’s brick-and-timber aging warehouse. Work on it began in 1953, the year the factory opened. Factory staff explained that the porous wooden boards help moderate moisture and temperature while the tea rests after fermentation.",
-        "approvedAt": "2026-11-23",
-        "reason": "Verified the retained source and reviewed the scope for the named-tea listing.",
-        "evidenceIds": [
-          "EVIDENCE-AC2A67D3B1B5B15ED4E41970"
-        ]
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "san-he-liu-bao:basket-weavers",
-    "pageId": "san-he-liu-bao",
-    "sectionKey": "basket-weavers",
-    "label": "The basket makers",
-    "axis": "named_tea_history",
-    "basis": "sourced",
-    "listingEligible": true,
-    "appliesWhen": {
-      "named_tea": "san-he-liu-bao"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Baskets used by Wuzhou Tea Factory.",
-    "text": "Wuzhou Tea Factory uses handwoven bamboo baskets for its Three Cranes teas. The weave holds its shape and lets air pass through while the tea rests. The supply cooperative describes a network of village weavers, including older residents who earn an income making the baskets.",
-    "sourceIds": [
-      "china-coop-san-he-baskets"
-    ],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Baskets used by Wuzhou Tea Factory.",
-        "text": "Wuzhou Tea Factory uses handwoven bamboo baskets for its Three Cranes teas. The weave holds its shape and lets air pass through while the tea rests. The supply cooperative describes a network of village weavers, including older residents who earn an income making the baskets.",
-        "approvedAt": "2026-11-23",
-        "reason": "Verified the retained source and reviewed the scope for the named-tea listing.",
-        "evidenceIds": [
-          "EVIDENCE-01935FA9B3ED16A899C96AE0",
-          "EVIDENCE-3C9F563CB37502F0AAAE5274"
-        ]
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "san-he-liu-bao:cold-water-piling",
-    "pageId": "san-he-liu-bao",
-    "sectionKey": "cold-water-piling",
-    "label": "Water and the Wuzhou pile",
-    "axis": "named_tea_history",
-    "basis": "sourced",
-    "listingEligible": true,
-    "appliesWhen": {
-      "named_tea": "san-he-liu-bao"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Wuzhou Tea Factory’s documented processing history.",
-    "text": "Wuzhou Tea Factory dates its cold-water piling method to 1958. Workers moisten the leaves and heap them for fermentation. Zhou Mingliang was among the first technicians to practise it. In 1963, Qin Jiquan joined the factory and learned it on shift. When He Meizhen joined the factory in 1988, Qin was one of the senior technicians who taught her.",
-    "sourceIds": [
-      "mofcom-three-cranes"
-    ],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Wuzhou Tea Factory’s documented processing history.",
-        "text": "Wuzhou Tea Factory dates its cold-water piling method to 1958. Workers moisten the leaves and heap them for fermentation. Zhou Mingliang was among the first technicians to practise it. In 1963, Qin Jiquan joined the factory and learned it on shift. When He Meizhen joined the factory in 1988, Qin was one of the senior technicians who taught her.",
-        "approvedAt": "2026-11-23",
-        "reason": "Verified the retained source and reviewed the scope for the named-tea listing.",
-        "evidenceIds": [
-          "EVIDENCE-8214350D25B5D7AAC7EC2C99",
-          "EVIDENCE-15FF408CEBEE1FB22D9133A5",
-          "EVIDENCE-032891B0557E265ACEF9BA27",
-          "EVIDENCE-5A3694521BEEDB837DC86DA9"
-        ]
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "san-he-liu-bao:export-buyers",
-    "pageId": "san-he-liu-bao",
-    "sectionKey": "export-buyers",
-    "label": "What buyers wanted from the leaf",
-    "axis": "named_tea_history",
-    "basis": "sourced",
-    "listingEligible": true,
-    "appliesWhen": {
-      "named_tea": "san-he-liu-bao"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Cangwu County export trade in 1959.",
-    "text": "In July 1959, Guangxi’s trade department circulated an account from tea makers in Buyi, in Cangwu County. Export buyers wanted a brighter, deeper red in the cup and a tighter twist to the leaf. The makers lowered the heat of the firing pan and rolled the leaves more firmly. The circular records how they changed their work in response to buyers overseas.",
-    "sourceIds": [
-      "guangxi-archives-liubao"
-    ],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Cangwu County export trade in 1959.",
-        "text": "In July 1959, Guangxi’s trade department circulated an account from tea makers in Buyi, in Cangwu County. Export buyers wanted a brighter, deeper red in the cup and a tighter twist to the leaf. The makers lowered the heat of the firing pan and rolled the leaves more firmly. The circular records how they changed their work in response to buyers overseas.",
-        "approvedAt": "2026-11-23",
-        "reason": "Verified the retained source and reviewed the scope for the named-tea listing.",
-        "evidenceIds": [
-          "EVIDENCE-E2B7E17EF2EC4C244C0DE398",
-          "EVIDENCE-FC7A270106D6F64BE874A1FA",
-          "EVIDENCE-3390025E05FABA35E65109A2"
-        ]
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "san-he-liu-bao:three-cranes",
-    "pageId": "san-he-liu-bao",
-    "sectionKey": "three-cranes",
-    "label": "The three cranes",
-    "axis": "named_tea_history",
-    "basis": "sourced",
-    "listingEligible": true,
-    "appliesWhen": {
-      "named_tea": "san-he-liu-bao"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Wuzhou Tea Factory and the Three Cranes mark.",
-    "text": "San He means “Three Cranes.” Wuzhou Tea Factory traces the birds on its trademark to Hegang Tower beside the factory. The works opened for the export trade in 1953. The factory registered the Three Cranes mark in October 1991, nearly four decades later.",
-    "sourceIds": [
-      "mofcom-three-cranes"
-    ],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Wuzhou Tea Factory and the Three Cranes mark.",
-        "text": "San He means “Three Cranes.” Wuzhou Tea Factory traces the birds on its trademark to Hegang Tower beside the factory. The works opened for the export trade in 1953. The factory registered the Three Cranes mark in October 1991, nearly four decades later.",
-        "approvedAt": "2026-11-23",
-        "reason": "Verified the retained source and reviewed the scope for the named-tea listing.",
-        "evidenceIds": [
-          "EVIDENCE-AEDB9F86CC043681D5AA7735",
-          "EVIDENCE-5A42B40D3004267C273C17CB",
-          "EVIDENCE-D7706B13A0199430490E0D3A"
-        ]
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "sheng:age-young",
-    "pageId": "sheng",
-    "sectionKey": "age-young",
-    "label": "Young raw pu’er",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Sheng"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Raw pu'er under about three to five years",
-    "text": "Under about three to five years a raw pu’er is young. Its cup is pale, yellow-green to pale gold, fresh and lean, with a bite of bitterness and astringency that is meant to turn sweet in the throat. Some drink it young for that liveliness; others treat it as a tea to put away.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Raw pu'er under about three to five years",
-        "text": "Under about three to five years a raw pu’er is young. Its cup is pale, yellow-green to pale gold, fresh and lean, with a bite of bitterness and astringency that is meant to turn sweet in the throat. Some drink it young for that liveliness; others treat it as a tea to put away.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved all eleven raw pu'er kit sections in chat, 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "sheng:ageing",
-    "pageId": "sheng",
-    "sectionKey": "ageing",
-    "label": "Raw pu’er with age",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Sheng"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Raw pu'er past its first years",
-    "text": "With years, a well-kept raw pu’er turns from pale gold toward amber and then red in the cup, and its bitterness and astringency soften as it grows smoother and sweeter. How fast depends on how it is pressed and stored. The trade does not agree where aged begins: some say ten years, many wait for twenty or more.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Raw pu'er past its first years",
-        "text": "With years, a well-kept raw pu’er turns from pale gold toward amber and then red in the cup, and its bitterness and astringency soften as it grows smoother and sweeter. How fast depends on how it is pressed and stored. The trade does not agree where aged begins: some say ten years, many wait for twenty or more.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved all eleven raw pu'er kit sections in chat, 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "sheng:aging",
-    "pageId": "sheng",
-    "sectionKey": "aging",
-    "label": "Change through storage",
-    "axis": "process",
-    "basis": "sourced",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Sheng"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Sheng Pu’er",
-    "text": "Sheng is not given shou’s rapid fermentation. Its character instead changes gradually during storage, with leaf, liquor, aroma, and texture developing over years. Storage conditions therefore belong to the tea’s history, not as a guarantee of quality but as part of how any particular cake has evolved.",
-    "sourceIds": [
-      "marshaln-young-puer-2013"
-    ],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Sheng Pu’er",
-        "text": "Sheng is not given shou’s rapid fermentation. Its character instead changes gradually during storage, with leaf, liquor, aroma, and texture developing over years. Storage conditions therefore belong to the tea’s history, not as a guarantee of quality but as part of how any particular cake has evolved.",
-        "approvedAt": "2026-11-23",
-        "reason": "Backfilled from pages",
-        "evidenceIds": [
-          "EVIDENCE-E31C7DFEB22516770374C078"
-        ]
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "sheng:brewing",
-    "pageId": "sheng",
+    "claimId": "gaba:brewing",
+    "pageId": "gaba",
     "sectionKey": "brewing",
-    "label": "Brewing raw pu’er",
+    "label": "Brewing GABA oolong",
     "axis": "type",
     "basis": "trade_knowledge",
-    "listingEligible": false,
+    "listingEligible": true,
     "appliesWhen": {
-      "type": "Sheng"
+      "type": "Oolong",
+      "process_in_name": [
+        "gaba"
+      ]
     },
     "terms": [],
     "rev": 1,
-    "scope": "Raw pu'er in general",
-    "text": "Young raw pu’er takes water a little off the boil, about 85 to 95°C, because hotter water draws out more of its bitterness; an aged one takes 95°C to boiling. A common start is about 7 grams to 100 ml and a quick rinse of a few seconds, then a first steep of ten to fifteen seconds, adding a few seconds each round. A good raw tea gives eight to ten cups or more.",
+    "scope": "GABA oolong process kit",
+    "text": "In a cup or pot, steep it for about two to five minutes. It is forgiving of small changes in water temperature and steeping time. It can also be cold-brewed, steeped for some hours in the fridge.",
     "sourceIds": [],
     "reviewState": "approved",
     "previousRevisions": [
       {
         "rev": 1,
         "origin": "approved",
-        "scope": "Raw pu'er in general",
-        "text": "Young raw pu’er takes water a little off the boil, about 85 to 95°C, because hotter water draws out more of its bitterness; an aged one takes 95°C to boiling. A common start is about 7 grams to 100 ml and a quick rinse of a few seconds, then a first steep of ten to fifteen seconds, adding a few seconds each round. A good raw tea gives eight to ten cups or more.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved all eleven raw pu'er kit sections in chat, 2026-11-24",
+        "scope": "GABA oolong process kit",
+        "text": "In a cup or pot, steep it for about two to five minutes. It is forgiving of small changes in water temperature and steeping time. It can also be cold-brewed, steeped for some hours in the fridge.",
+        "approvedAt": "2026-11-25",
+        "reason": "Adrian approved the GABA oolong kit 2026-11-25",
         "evidenceIds": []
       }
     ],
     "pageVisibility": "public"
   },
   {
-    "claimId": "sheng:brewing-pressed",
-    "pageId": "sheng",
-    "sectionKey": "brewing-pressed",
-    "label": "Breaking a pressed cake",
+    "claimId": "gaba:common-impressions",
+    "pageId": "gaba",
+    "sectionKey": "common-impressions",
+    "label": "What people often notice",
     "axis": "type",
     "basis": "trade_knowledge",
-    "listingEligible": false,
+    "listingEligible": true,
     "appliesWhen": {
-      "type": "Sheng"
+      "type": "Oolong",
+      "process_in_name": [
+        "gaba"
+      ]
     },
     "terms": [],
     "rev": 1,
-    "scope": "Raw pu'er in general",
-    "text": "Pry the leaf off a cake or brick in chunks with a pick or knife, from the surface and toward the centre, rather than crumbling it. A mix of larger pieces and smaller ones brews evenly.",
+    "scope": "GABA oolong process kit",
+    "text": "Ripe, dried or stewed fruit such as apricot, honeyed sweetness, a smooth, round body, and little bitterness or astringency; often brown sugar or roasted grain, sometimes wood or spice, and a light fruity sourness.",
     "sourceIds": [],
     "reviewState": "approved",
     "previousRevisions": [
       {
         "rev": 1,
         "origin": "approved",
-        "scope": "Raw pu'er in general",
-        "text": "Pry the leaf off a cake or brick in chunks with a pick or knife, from the surface and toward the centre, rather than crumbling it. A mix of larger pieces and smaller ones brews evenly.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved all eleven raw pu'er kit sections in chat, 2026-11-24",
+        "scope": "GABA oolong process kit",
+        "text": "Ripe, dried or stewed fruit such as apricot, honeyed sweetness, a smooth, round body, and little bitterness or astringency; often brown sugar or roasted grain, sometimes wood or spice, and a light fruity sourness.",
+        "approvedAt": "2026-11-25",
+        "reason": "Adrian approved the GABA oolong kit 2026-11-25",
         "evidenceIds": []
       }
     ],
     "pageVisibility": "public"
   },
   {
-    "claimId": "sheng:common-impressions",
-    "pageId": "sheng",
+    "claimId": "gaba:definition",
+    "pageId": "gaba",
+    "sectionKey": "definition",
+    "label": "What GABA oolong is",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "process_in_name": [
+        "gaba"
+      ]
+    },
+    "terms": [
+      {
+        "original": "佳葉龍茶",
+        "pinyin": "jiāyèlóng chá",
+        "gloss": "Jiayelong tea"
+      },
+      {
+        "original": "γ-氨基丁酸",
+        "pinyin": "γ ānjī dīngsuān",
+        "gloss": "gamma-aminobutyric acid"
+      }
+    ],
+    "rev": 1,
+    "scope": "GABA oolong process kit",
+    "text": "GABA tea names a way of making tea, not a plant or a place. GABA, gamma-aminobutyric acid, is an amino acid found in tea leaf, and the leaf is treated so that the finished tea holds much more of it than ordinary tea. It can be made as green, oolong or red tea; oolong is the form Taiwan is best known for, where the tea research station named its version GABA oolong. In Japan, where the method began, it was called Gabaron, and in Taiwan the trade name is Jiayelong.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "GABA oolong process kit",
+        "text": "GABA tea names a way of making tea, not a plant or a place. GABA, gamma-aminobutyric acid, is an amino acid found in tea leaf, and the leaf is treated so that the finished tea holds much more of it than ordinary tea. It can be made as green, oolong or red tea; oolong is the form Taiwan is best known for, where the tea research station named its version GABA oolong. In Japan, where the method began, it was called Gabaron, and in Taiwan the trade name is Jiayelong.",
+        "approvedAt": "2026-11-25",
+        "reason": "Adrian approved the GABA oolong kit 2026-11-25",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "gaba:history",
+    "pageId": "gaba",
+    "sectionKey": "history",
+    "label": "How GABA tea began",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "process_in_name": [
+        "gaba"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "GABA oolong process kit",
+    "text": "The method was found in Japan, by Dr Tsushida and colleagues at the government tea research institute, and the finding is dated to 1987. The first Japanese teas had a stuffy, sour smell and taste, and Taiwan's tea research station changed the method and adapted it to oolong. It spread among Taiwanese makers, and Taiwan is now a main source of GABA tea sold abroad. It needs no special leaf: ordinary oolong types serve.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "GABA oolong process kit",
+        "text": "The method was found in Japan, by Dr Tsushida and colleagues at the government tea research institute, and the finding is dated to 1987. The first Japanese teas had a stuffy, sour smell and taste, and Taiwan's tea research station changed the method and adapted it to oolong. It spread among Taiwanese makers, and Taiwan is now a main source of GABA tea sold abroad. It needs no special leaf: ordinary oolong types serve.",
+        "approvedAt": "2026-11-25",
+        "reason": "Adrian approved the GABA oolong kit 2026-11-25",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "gaba:making",
+    "pageId": "gaba",
+    "sectionKey": "making",
+    "label": "How GABA oolong is made",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "process_in_name": [
+        "gaba"
+      ]
+    },
+    "terms": [
+      {
+        "original": "厭氧",
+        "pinyin": "yànyǎng",
+        "gloss": "without oxygen"
+      }
+    ],
+    "rev": 2,
+    "scope": "GABA oolong process kit",
+    "text": "The fresh leaf is kept for some hours without oxygen, in a sealed chamber or drum filled with nitrogen or emptied to a vacuum. Without oxygen the leaf turns its glutamic acid into GABA and cannot break it down again, so it builds up. The leaf is then made in the usual way for its type; for oolong that means withering and tossing, fixing, rolling, drying and sometimes a roast. Taiwan's oolong method alternates rounds without oxygen and rounds in air, rather than one long spell.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "GABA oolong process kit",
+        "text": "The fresh leaf is held for some hours without oxygen, in a sealed chamber or drum filled with nitrogen or emptied to a vacuum. Without oxygen the leaf turns its glutamic acid into GABA and cannot break it down again, so it builds up. The leaf is then made in the usual way for its type; for oolong that means withering and tossing, fixing, rolling, drying and sometimes a roast. Taiwan's oolong method alternates rounds without oxygen and rounds in air, rather than one long hold.",
+        "approvedAt": "2026-11-25",
+        "reason": "Adrian approved the GABA oolong kit 2026-11-25",
+        "evidenceIds": []
+      },
+      {
+        "rev": 2,
+        "origin": "approved",
+        "scope": "GABA oolong process kit",
+        "text": "The fresh leaf is kept for some hours without oxygen, in a sealed chamber or drum filled with nitrogen or emptied to a vacuum. Without oxygen the leaf turns its glutamic acid into GABA and cannot break it down again, so it builds up. The leaf is then made in the usual way for its type; for oolong that means withering and tossing, fixing, rolling, drying and sometimes a roast. Taiwan's oolong method alternates rounds without oxygen and rounds in air, rather than one long spell.",
+        "approvedAt": "2026-11-25",
+        "reason": "Adrian approved the GABA oolong kit 2026-11-25; one word changed after approval (held to kept, hold to spell) because held is barred from public text",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "gaba:threshold",
+    "pageId": "gaba",
+    "sectionKey": "threshold",
+    "label": "The 150 milligram line",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "process_in_name": [
+        "gaba"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "GABA oolong process kit",
+    "text": "The figure most often given for calling a tea GABA tea is at least 150 mg of GABA in every 100 grams of dry tea. It is repeated widely for Japan and Taiwan, though no standard document behind it is quoted.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "GABA oolong process kit",
+        "text": "The figure most often given for calling a tea GABA tea is at least 150 mg of GABA in every 100 grams of dry tea. It is repeated widely for Japan and Taiwan, though no standard document behind it is quoted.",
+        "approvedAt": "2026-11-25",
+        "reason": "Adrian approved the GABA oolong kit 2026-11-25",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "golden-bull:maker",
+    "pageId": "golden-bull",
+    "sectionKey": "maker",
+    "label": "Who Hengfengyuan is",
+    "axis": "maker_history",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "grade": "golden-bull"
+    },
+    "terms": [
+      {
+        "original": "恒丰源",
+        "pinyin": "héng fēng yuán",
+        "gloss": "Hengfengyuan, Changtai's ripe tea brand"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Hengfengyuan is the ripe tea brand of the Changtai group in Yunnan. It is sold mainly as ripe cakes, bricks and tuo, and many of its teas are named by recipe number or by a place or line name. Changtai also trades under other brands, so Hengfengyuan on a label tells you the maker, not the grade of the leaf.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Hengfengyuan is the ripe tea brand of the Changtai group in Yunnan. It is sold mainly as ripe cakes, bricks and tuo, and many of its teas are named by recipe number or by a place or line name. Changtai also trades under other brands, so Hengfengyuan on a label tells you the maker, not the grade of the leaf.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "golden-bull:what-it-is",
+    "pageId": "golden-bull",
+    "sectionKey": "what-it-is",
+    "label": "A product name, not a grade",
+    "axis": "terminology",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "grade": "golden-bull"
+    },
+    "terms": [
+      {
+        "original": "金牛",
+        "pinyin": "jīn niú",
+        "gloss": "golden ox or bull; used here as a product name"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Golden Bull, Jin Niu in Chinese, is the name of a ripe pu’er from Hengfengyuan. No ripe pu’er grade scale includes it, and no maker or seller describes it as a leaf grade. Read it as a name the maker chose for a tea, like a brand line, and not as a statement about leaf size or quality. What the name stands for beyond that has not been established.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Golden Bull, Jin Niu in Chinese, is the name of a ripe pu’er from Hengfengyuan. No ripe pu’er grade scale includes it, and no maker or seller describes it as a leaf grade. Read it as a name the maker chose for a tea, like a brand line, and not as a statement about leaf size or quality. What the name stands for beyond that has not been established.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "gong-jin:definition",
+    "pageId": "gong-jin",
+    "sectionKey": "definition",
+    "label": "A selling name, not a grade",
+    "axis": "terminology",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "grade": "gong-jin"
+    },
+    "terms": [
+      {
+        "original": "贡金",
+        "pinyin": "gòngjīn",
+        "gloss": "tribute gold; a product name"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Gong Jin is a name that appears on ripe pu’er bricks, not a leaf grade. The trade grades ripe tea by leaf size and bud content, with names such as Gong Ting and special grade, and Gong Jin is not one of those steps. The word reads as “tribute gold”, and its job is to make a brick sound fine, not to say what is in it.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Gong Jin is a name that appears on ripe pu’er bricks, not a leaf grade. The trade grades ripe tea by leaf size and bud content, with names such as Gong Ting and special grade, and Gong Jin is not one of those steps. The word reads as “tribute gold”, and its job is to make a brick sound fine, not to say what is in it.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "gong-jin:not-established",
+    "pageId": "gong-jin",
+    "sectionKey": "not-established",
+    "label": "What is not established",
+    "axis": "terminology",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "grade": "gong-jin"
+    },
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "No agreed meaning, start date or maker for the name has been found. Whether any one maker uses it for a particular blend or leaf grade is not established, so a Gong Jin brick has to be judged on its recorded leaf, year and keeping, not on the name. The same characters are also used as a name on some unrelated dark teas, which are a different tea.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "No agreed meaning, start date or maker for the name has been found. Whether any one maker uses it for a particular blend or leaf grade is not established, so a Gong Jin brick has to be judged on its recorded leaf, year and keeping, not on the name. The same characters are also used as a name on some unrelated dark teas, which are a different tea.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "gong-jin:not-gong-ting",
+    "pageId": "gong-jin",
+    "sectionKey": "not-gong-ting",
+    "label": "Do not read it as Gong Ting",
+    "axis": "terminology",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "grade": "gong-jin"
+    },
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "Gong Jin and Gong Ting look alike but are different words. Gong Ting is the real grade name for fine, bud-rich ripe leaf. Gong Jin carries no promise about the leaf. The word “gong” (tribute) is borrowed for its old imperial ring, and the tea has no known link to any court.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Gong Jin and Gong Ting look alike but are different words. Gong Ting is the real grade name for fine, bud-rich ripe leaf. Gong Jin carries no promise about the leaf. The word “gong” (tribute) is borrowed for its old imperial ring, and the tea has no known link to any court.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "gong-jin:where-seen",
+    "pageId": "gong-jin",
+    "sectionKey": "where-seen",
+    "label": "Where the word turns up",
+    "axis": "terminology",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "grade": "gong-jin"
+    },
+    "terms": [
+      {
+        "original": "贡金",
+        "pinyin": "gòngjīn",
+        "gloss": "tribute gold; a product name"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "It is found in product names on pressed ripe tea from Menghai makers, written Gong Jin, Ruigong or, on some packs, as part of a longer name such as “gold brick”. The Nanqiao Ruigong Brick is one example. Each time it sits in the title beside the maker or the year, and nothing on the listing explains it as a grade or sets out what leaf it stands for.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "It is found in product names on pressed ripe tea from Menghai makers, written Gong Jin, Ruigong or, on some packs, as part of a longer name such as “gold brick”. The Nanqiao Ruigong Brick is one example. Each time it sits in the title beside the maker or the year, and nothing on the listing explains it as a grade or sets out what leaf it stands for.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "gong-ting:appearance",
+    "pageId": "gong-ting",
+    "sectionKey": "appearance",
+    "label": "Reading the leaf",
+    "axis": "grade",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "grade": "gong-ting",
+      "form": "Loose"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "gong-ting",
+    "text": "Dry Gong Ting is tight, straight and fine, thick with golden down on the buds, and carries no stray stems. Because so little of a batch qualifies, it is the scarcest and usually the dearest ripe grade.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "gong-ting",
+        "text": "Dry Gong Ting is tight, straight and fine, thick with golden down on the buds, and carries no stray stems. Because so little of a batch qualifies, it is the scarcest and usually the dearest ripe grade.",
+        "approvedAt": "2026-11-26",
+        "reason": "Approved by Adrian on the Wisdom Base Places review page, 2026-11-27",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "gong-ting:common-impressions",
+    "pageId": "gong-ting",
     "sectionKey": "common-impressions",
     "label": "What people often notice",
     "axis": "sensory_observation",
     "basis": "trade_knowledge",
     "listingEligible": false,
     "appliesWhen": {
-      "type": "Sheng"
-    },
-    "terms": [
-      {
-        "original": "回甘",
-        "pinyin": "huí gān",
-        "gloss": "returning sweetness"
-      }
-    ],
-    "rev": 1,
-    "scope": "Raw pu'er in general",
-    "text": "In young raw pu’er, a bitter, drying bite that turns into a returning sweetness, a feel in the throat that makes the mouth water, and fresh, floral or fruity notes such as apricot or plum. Tea kept in humid storage can carry a damp, earthy storage taste.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Raw pu'er in general",
-        "text": "In young raw pu’er, a bitter, drying bite that turns into a returning sweetness, a feel in the throat that makes the mouth water, and fresh, floral or fruity notes such as apricot or plum. Tea kept in humid storage can carry a damp, earthy storage taste.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved all eleven raw pu'er kit sections in chat, 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "sheng:history",
-    "pageId": "sheng",
-    "sectionKey": "history",
-    "label": "How the trade grew",
-    "axis": "process",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Sheng"
+      "grade": "gong-ting",
+      "form": "Loose"
     },
     "terms": [],
     "rev": 1,
-    "scope": "Raw pu'er in general",
-    "text": "In the Qing dynasty pu’er went to the court as tribute, but far more was ordinary trade, carried as pressed tea along the Tea Horse Road to Tibet and Southeast Asia. In the twentieth century Hong Kong became its great drinking market, and merchants there kept it in humid stores to speed its change. After 1949 the private tea houses were folded into state factories, among them Menghai, Xiaguan and Kunming, which made pu’er to standard recipes under the state tea company’s labels.",
+    "scope": "gong-ting",
+    "text": "People often notice a smooth, soft and sweet cup with a deep red liquor. Next to coarser grades it is lighter in body and gives fewer good steeps, and a very fine young Gong Ting can show a green or bitter edge. Its small leaf gives up flavour quickly, so short pours suit it.",
     "sourceIds": [],
     "reviewState": "approved",
     "previousRevisions": [
       {
         "rev": 1,
         "origin": "approved",
-        "scope": "Raw pu'er in general",
-        "text": "In the Qing dynasty pu’er went to the court as tribute, but far more was ordinary trade, carried as pressed tea along the Tea Horse Road to Tibet and Southeast Asia. In the twentieth century Hong Kong became its great drinking market, and merchants there kept it in humid stores to speed its change. After 1949 the private tea houses were folded into state factories, among them Menghai, Xiaguan and Kunming, which made pu’er to standard recipes under the state tea company’s labels.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved all eleven raw pu'er kit sections in chat, 2026-11-24",
+        "scope": "gong-ting",
+        "text": "People often notice a smooth, soft and sweet cup with a deep red liquor. Next to coarser grades it is lighter in body and gives fewer good steeps, and a very fine young Gong Ting can show a green or bitter edge. Its small leaf gives up flavour quickly, so short pours suit it.",
+        "approvedAt": "2026-11-26",
+        "reason": "Approved by Adrian on the Wisdom Base Places review page, 2026-11-27",
         "evidenceIds": []
       }
     ],
     "pageVisibility": "public"
   },
   {
-    "claimId": "sheng:history-modern",
-    "pageId": "sheng",
-    "sectionKey": "history-modern",
-    "label": "Collectors and mountains",
-    "axis": "process",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Sheng"
-    },
-    "terms": [
-      {
-        "original": "古树",
-        "pinyin": "gǔ shù",
-        "gloss": "old trees"
-      }
-    ],
-    "rev": 1,
-    "scope": "Raw pu'er in general",
-    "text": "Through the 1980s and 1990s collectors, led at first by Taiwan, came looking for aged raw pu’er, and demand grew into a speculative boom in which fakes and falsely aged tea were common. Since that boom buyers have turned from factory brands to named mountains, villages and old trees, and prices for famous origins have risen.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Raw pu'er in general",
-        "text": "Through the 1980s and 1990s collectors, led at first by Taiwan, came looking for aged raw pu’er, and demand grew into a speculative boom in which fakes and falsely aged tea were common. Since that boom buyers have turned from factory brands to named mountains, villages and old trees, and prices for famous origins have risen.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved all eleven raw pu'er kit sections in chat, 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "sheng:identity",
-    "pageId": "sheng",
-    "sectionKey": "identity",
-    "label": "What sheng means",
-    "axis": "type",
-    "basis": "sourced",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Sheng"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Sheng Pu’er",
-    "text": "Sheng is the undarkened branch of Pu’er, often called raw Pu’er in English. The label distinguishes it from shou, whose accelerated post-fermentation creates a markedly different tea from the outset.",
-    "sourceIds": [
-      "teaguardian-raw-cooked-puer"
-    ],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Sheng Pu’er",
-        "text": "Sheng is the undarkened branch of Pu’er, often called raw Pu’er in English. The label distinguishes it from shou, whose accelerated post-fermentation creates a markedly different tea from the outset.",
-        "approvedAt": "2026-11-23",
-        "reason": "Backfilled from pages",
-        "evidenceIds": [
-          "EVIDENCE-3BB473838666F92132E285E0"
-        ]
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "sheng:making",
-    "pageId": "sheng",
-    "sectionKey": "making",
-    "label": "How raw pu’er is made",
-    "axis": "process",
+    "claimId": "gong-ting:definition",
+    "pageId": "gong-ting",
+    "sectionKey": "definition",
+    "label": "What Gong Ting means",
+    "axis": "grade",
     "basis": "trade_knowledge",
     "listingEligible": true,
     "appliesWhen": {
-      "type": "Sheng"
+      "grade": "gong-ting",
+      "form": "Loose"
     },
     "terms": [
       {
-        "original": "杀青",
-        "pinyin": "shā qīng",
-        "gloss": "kill-green"
-      },
-      {
-        "original": "晒青",
-        "pinyin": "shài qīng",
-        "gloss": "sun-drying"
-      },
-      {
-        "original": "毛茶",
-        "pinyin": "máo chá",
-        "gloss": "rough tea"
+        "original": "宫廷",
+        "pinyin": "gōngtíng",
+        "gloss": "palace; used as a grade name"
       }
     ],
     "rev": 1,
-    "scope": "Raw pu'er in general",
-    "text": "Raw pu’er begins as leaf from Yunnan’s large-leaf tea trees. It is picked and withered, then fried in a wok to kill the green. That heat stops most of the leaf’s own enzymes but not all, and because the leaf is never hot-air dried afterwards, the activity that survives is what lets the tea keep changing for years. It is rolled, then dried in the sun, turned over a couple of days. The result is maocha, the rough tea that is sold loose or pressed.",
+    "scope": "Loose ripe pu’er grading",
+    "text": "Gong Ting is the finest grade of loose ripe pu’er, sorted out for its small leaf and high share of buds. In the market it sits one step above special grade.",
     "sourceIds": [],
     "reviewState": "approved",
     "previousRevisions": [
       {
         "rev": 1,
         "origin": "approved",
-        "scope": "Raw pu'er in general",
-        "text": "Raw pu’er begins as leaf from Yunnan’s large-leaf tea trees. It is picked and withered, then fried in a wok to kill the green. That heat stops most of the leaf’s own enzymes but not all, and because the leaf is never hot-air dried afterwards, the activity that survives is what lets the tea keep changing for years. It is rolled, then dried in the sun, turned over a couple of days. The result is maocha, the rough tea that is sold loose or pressed.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved all eleven raw pu'er kit sections in chat, 2026-11-24",
+        "scope": "Loose ripe pu’er grading",
+        "text": "Gong Ting is the finest grade of loose ripe pu’er, sorted out for its small leaf and high share of buds. In the market it sits one step above special grade.",
+        "approvedAt": "2026-11-23",
+        "reason": "Narrowed to loose ripe pu’er grading (pilot correction demo; awaiting Adrian’s review)",
         "evidenceIds": []
       }
     ],
     "pageVisibility": "public"
   },
   {
-    "claimId": "sheng:notice-aged",
-    "pageId": "sheng",
-    "sectionKey": "notice-aged",
-    "label": "What people often notice in aged raw pu’er",
+    "claimId": "gong-ting:grade-and-quality",
+    "pageId": "gong-ting",
+    "sectionKey": "grade-and-quality",
+    "label": "Grade is not quality",
+    "axis": "terminology",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "grade": "gong-ting",
+      "form": "Loose"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "gong-ting",
+    "text": "A grade describes leaf size and the style of the cup, not how good the tea is. A well made coarser grade can drink better than a poorly made Gong Ting, and where each grade line falls differs from one maker to the next.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "gong-ting",
+        "text": "A grade describes leaf size and the style of the cup, not how good the tea is. A well made coarser grade can drink better than a poorly made Gong Ting, and where each grade line falls differs from one maker to the next.",
+        "approvedAt": "2026-11-26",
+        "reason": "Approved by Adrian on the Wisdom Base Places review page, 2026-11-27",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "gong-ting:name-on-the-label",
+    "pageId": "gong-ting",
+    "sectionKey": "name-on-the-label",
+    "label": "A grade, and a selling word",
+    "axis": "terminology",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "grade": "gong-ting",
+      "form": "Loose"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "gong-ting",
+    "text": "Gong Ting is a modern market name, not an old court grade: the trade dates it to Menghai in the late 1990s, and ripe tea itself only began in the 1970s. The Menghai standard grades loose ripe tea only, so Gong Ting printed on a cake or brick is a selling word, not a grade.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "gong-ting",
+        "text": "Gong Ting is a modern market name, not an old court grade: the trade dates it to Menghai in the late 1990s, and ripe tea itself only began in the 1970s. The Menghai standard grades loose ripe tea only, so Gong Ting printed on a cake or brick is a selling word, not a grade.",
+        "approvedAt": "2026-11-26",
+        "reason": "Approved by Adrian on the Wisdom Base Places review page, 2026-11-27",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "gong-ting:other-names",
+    "pageId": "gong-ting",
+    "sectionKey": "other-names",
+    "label": "Other names and other teas",
+    "axis": "terminology",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "grade": "gong-ting",
+      "form": "Loose"
+    },
+    "terms": [
+      {
+        "original": "宫廷",
+        "pinyin": "gōngtíng",
+        "gloss": "palace; Palace Grade"
+      }
+    ],
+    "rev": 1,
+    "scope": "gong-ting",
+    "text": "Gong Ting is also written Gongting and sold in English as Palace Grade. The older record of the word notes that it is also used for the finest bud and leaf of aged Taiwanese oolong, so the name is not limited to ripe pu’er. That oolong use rests on one record and has not been checked against other places.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "gong-ting",
+        "text": "Gong Ting is also written Gongting and sold in English as Palace Grade. The older record of the word notes that it is also used for the finest bud and leaf of aged Taiwanese oolong, so the name is not limited to ripe pu’er. That oolong use rests on one record and has not been checked against other places.",
+        "approvedAt": "2026-11-26",
+        "reason": "Approved by Adrian on the Wisdom Base Places review page, 2026-11-27",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "gongjian:among-three-tips",
+    "pageId": "gongjian",
+    "sectionKey": "among-three-tips",
+    "label": "Where it sits among the three tips",
+    "axis": "grade",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "grade": "gongjian"
+    },
+    "terms": [
+      {
+        "original": "贡尖",
+        "pinyin": "gòngjiān",
+        "gloss": "tribute tip; the middle grade of the three Anhua tips"
+      },
+      {
+        "original": "天尖",
+        "pinyin": "tiānjiān",
+        "gloss": "heavenly tip, the finest of the three"
+      },
+      {
+        "original": "生尖",
+        "pinyin": "shēngjiān",
+        "gloss": "the coarsest of the three tips"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "The three tips are sorted by the leaf they are made from. Tianjian takes the most tender leaf, Shengjian the coarsest with the most stalk, and Gongjian the leaf in between, usually described as second grade. For a buyer that places it as the plainer, sturdier step up from Shengjian and the lighter, less tender step down from Tianjian. A grade says how the leaf was sorted, not how well the tea was made or kept, so a careful, well aged Gongjian can drink better than a careless Tianjian.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "The three tips are sorted by the leaf they are made from. Tianjian takes the most tender leaf, Shengjian the coarsest with the most stalk, and Gongjian the leaf in between, usually described as second grade. For a buyer that places it as the plainer, sturdier step up from Shengjian and the lighter, less tender step down from Tianjian. A grade says how the leaf was sorted, not how well the tea was made or kept, so a careful, well aged Gongjian can drink better than a careless Tianjian.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "gongjian:common-impressions",
+    "pageId": "gongjian",
+    "sectionKey": "common-impressions",
+    "label": "What people often notice",
     "axis": "sensory_observation",
     "basis": "trade_knowledge",
     "listingEligible": false,
     "appliesWhen": {
-      "type": "Sheng"
+      "grade": "gongjian"
+    },
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "People often notice pine smoke or pine wood from the wood-fire drying, a sweet taste and a thick, smooth feel, in a clear orange liquor. Aged Gongjian is said to turn mellower and sweeter with years in storage. These impressions are shared by Anhua dark tea in general and are not specific to this grade.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "People often notice pine smoke or pine wood from the wood-fire drying, a sweet taste and a thick, smooth feel, in a clear orange liquor. Aged Gongjian is said to turn mellower and sweeter with years in storage. These impressions are shared by Anhua dark tea in general and are not specific to this grade.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "gongjian:definition",
+    "pageId": "gongjian",
+    "sectionKey": "definition",
+    "label": "What Gongjian means",
+    "axis": "grade",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "grade": "gongjian"
     },
     "terms": [
       {
-        "original": "樟香",
-        "pinyin": "zhāng xiāng",
-        "gloss": "camphor aroma"
+        "original": "贡尖",
+        "pinyin": "gòngjiān",
+        "gloss": "tribute tip; the middle grade of the three Anhua tips"
       }
     ],
-    "rev": 1,
-    "scope": "Aged raw pu'er",
-    "text": "A smoother, thicker, sweeter cup with woody, herbal and camphor notes and something of dried dates or dark fruit.",
+    "rev": null,
+    "scope": "",
+    "text": "Gongjian is the middle one of the three traditional loose Anhua teas, known together as the three tips. The name is usually rendered \"tribute tip\". It is a loose, lightly pressed tea made from Anhua raw dark tea, and it sits between the finer Tianjian and the coarser Shengjian.",
     "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Aged raw pu'er",
-        "text": "A smoother, thicker, sweeter cup with woody, herbal and camphor notes and something of dried dates or dark fruit.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved all eleven raw pu'er kit sections in chat, 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
+    "reviewState": "draft",
+    "pendingText": "Gongjian is the middle one of the three traditional loose Anhua teas, known together as the three tips. The name is usually rendered \"tribute tip\". It is a loose, lightly pressed tea made from Anhua raw dark tea, and it sits between the finer Tianjian and the coarser Shengjian.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
   },
   {
-    "claimId": "sheng:pressing",
-    "pageId": "sheng",
-    "sectionKey": "pressing",
-    "label": "Pressing",
-    "axis": "process",
+    "claimId": "gongjian:other-names",
+    "pageId": "gongjian",
+    "sectionKey": "other-names",
+    "label": "Other names and other teas",
+    "axis": "terminology",
     "basis": "trade_knowledge",
     "listingEligible": false,
     "appliesWhen": {
-      "type": "Sheng"
+      "grade": "gongjian"
     },
     "terms": [
       {
-        "original": "沱茶",
-        "pinyin": "tuó chá",
-        "gloss": "tuo"
-      }
-    ],
-    "rev": 1,
-    "scope": "Raw pu'er in general",
-    "text": "Maocha is pressed into cakes, bricks and tuo, small bowl shapes, either under a stone or by a hydraulic press; a stone-pressed cake is looser than a machine-pressed one. Pressing began so the tea could travel: compact cakes packed well onto pack animals on the old trade routes. It also decides how a tea ages, because a tight, large cake changes slowly and a loose or small one faster.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
+        "original": "贡尖",
+        "pinyin": "gòngjiān",
+        "gloss": "tribute tip; the middle grade of the three Anhua tips"
+      },
       {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Raw pu'er in general",
-        "text": "Maocha is pressed into cakes, bricks and tuo, small bowl shapes, either under a stone or by a hydraulic press; a stone-pressed cake is looser than a machine-pressed one. Pressing began so the tea could travel: compact cakes packed well onto pack animals on the old trade routes. It also decides how a tea ages, because a tight, large cake changes slowly and a loose or small one faster.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved all eleven raw pu'er kit sections in chat, 2026-11-24",
-        "evidenceIds": []
+        "original": "湘尖",
+        "pinyin": "xiāngjiān",
+        "gloss": "Hunan tip; the family name of the three tips"
       }
     ],
-    "pageVisibility": "public"
+    "rev": null,
+    "scope": "",
+    "text": "Gongjian is also written Gong Jian and sold in English as Tribute Tip. Its three sisters are together called the three tips, and the same family is also named Xiangjian, the Hunan tip. Tianjian and Shengjian are separate grades with their own leaf. Why the tea is called \"tribute\" is not established here, so the name should not be read as proof that this grade was ever sent as tribute.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Gongjian is also written Gong Jian and sold in English as Tribute Tip. Its three sisters are together called the three tips, and the same family is also named Xiangjian, the Hunan tip. Tianjian and Shengjian are separate grades with their own leaf. Why the tea is called \"tribute\" is not established here, so the name should not be read as proof that this grade was ever sent as tribute.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
   },
   {
-    "claimId": "sheng:processing",
-    "pageId": "sheng",
-    "sectionKey": "processing",
-    "label": "From maocha to finished tea",
-    "axis": "process",
+    "claimId": "greater-yiwu:common-character",
+    "pageId": "greater-yiwu",
+    "sectionKey": "common-character",
+    "label": "Shared reputation, varied tea",
+    "axis": "sensory_observation",
     "basis": "sourced",
     "listingEligible": false,
-    "appliesWhen": {
-      "type": "Sheng"
+    "appliesWhen": {},
+    "attribution": {
+      "sourceId": "teadb-greater-yiwu",
+      "sourceRole": "specialist_editorial",
+      "sample": "Regional convention reported in specialist writing about Greater Yiwu"
     },
     "terms": [],
     "rev": 1,
-    "scope": "Sheng Pu’er",
-    "text": "Maocha names an intermediate state in tea production, while sheng describes the tea as it reaches the drinker. Sheng material may be sorted, dried, left loose, or steamed and compressed; the two terms overlap, but they describe the tea from different viewpoints.",
+    "scope": "Greater Yiwu",
+    "text": "Greater Yiwu is often associated with a softer opening and a persistent sweet return when compared with the more forceful profiles linked to western Xishuangbanna. The area contains many growing places, however, and their material can vary substantially; this is a regional tendency, not a tasting promise for an individual tea.",
     "sourceIds": [
-      "teaguardian-raw-cooked-puer"
+      "teadb-greater-yiwu"
     ],
     "reviewState": "approved",
     "previousRevisions": [
       {
         "rev": 1,
         "origin": "approved",
-        "scope": "Sheng Pu’er",
-        "text": "Maocha names an intermediate state in tea production, while sheng describes the tea as it reaches the drinker. Sheng material may be sorted, dried, left loose, or steamed and compressed; the two terms overlap, but they describe the tea from different viewpoints.",
+        "scope": "Greater Yiwu",
+        "text": "Greater Yiwu is often associated with a softer opening and a persistent sweet return when compared with the more forceful profiles linked to western Xishuangbanna. The area contains many growing places, however, and their material can vary substantially; this is a regional tendency, not a tasting promise for an individual tea.",
         "approvedAt": "2026-11-23",
         "reason": "Backfilled from pages",
         "evidenceIds": [
-          "EVIDENCE-6761D903E45891EFCB26F71D"
+          "EVIDENCE-063C59A9C3026FEBF80765F1"
         ]
       }
     ],
     "pageVisibility": "public"
   },
   {
-    "claimId": "sheng:storage",
-    "pageId": "sheng",
-    "sectionKey": "storage",
-    "label": "Storage",
-    "axis": "process",
+    "claimId": "greater-yiwu:history",
+    "pageId": "greater-yiwu",
+    "sectionKey": "history",
+    "label": "Trade history",
+    "axis": "place",
+    "basis": "sourced",
+    "listingEligible": false,
+    "appliesWhen": {},
+    "terms": [],
+    "rev": 1,
+    "scope": "Greater Yiwu",
+    "text": "Yiwu became an important collection and distribution point for tea from the old Six Famous Tea Mountains. Its trade connected local leaf, merchant networks, tribute routes, and later some of the best-known early twentieth-century tea firms.",
+    "sourceIds": [
+      "teadb-greater-yiwu"
+    ],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Greater Yiwu",
+        "text": "Yiwu became an important collection and distribution point for tea from the old Six Famous Tea Mountains. Its trade connected local leaf, merchant networks, tribute routes, and later some of the best-known early twentieth-century tea firms.",
+        "approvedAt": "2026-11-23",
+        "reason": "Backfilled from pages",
+        "evidenceIds": [
+          "EVIDENCE-A856667D478345A121C24FD6"
+        ]
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "greater-yiwu:known-for",
+    "pageId": "greater-yiwu",
+    "sectionKey": "known-for",
+    "label": "What Yiwu is known for",
+    "axis": "sensory_observation",
     "basis": "trade_knowledge",
     "listingEligible": false,
     "appliesWhen": {
-      "type": "Sheng"
+      "origin_includes": [
+        "yiwu"
+      ]
     },
     "terms": [
       {
-        "original": "干仓",
-        "pinyin": "gān cāng",
-        "gloss": "dry storage"
+        "original": "易武",
+        "pinyin": "Yìwǔ",
+        "gloss": "Yiwu"
+      }
+    ],
+    "rev": 1,
+    "scope": "The regional tendency of Yiwu raw pu'er (soft, sweet, floral and honeyed, little bitterness); not a promise for any single tea.",
+    "text": "Yiwu is known for raw pu’er that drinks soft and sweet rather than forceful. The trade describes a smooth, thick liquor with little bitterness, a floral and honeyed fragrance, and a sweet aftertaste that lasts through many infusions. People like it because it is easy to drink young and is said to hold up well with age. It is the usual contrast to the heavier teas of Menghai and Bulang. This is a regional tendency. The area is large, and the tea from one village can taste quite different from another.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "The regional tendency of Yiwu raw pu'er (soft, sweet, floral and honeyed, little bitterness); not a promise for any single tea.",
+        "text": "Yiwu is known for raw pu’er that drinks soft and sweet rather than forceful. The trade describes a smooth, thick liquor with little bitterness, a floral and honeyed fragrance, and a sweet aftertaste that lasts through many infusions. People like it because it is easy to drink young and is said to hold up well with age. It is the usual contrast to the heavier teas of Menghai and Bulang. This is a regional tendency. The area is large, and the tea from one village can taste quite different from another.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "greater-yiwu:on-a-label",
+    "pageId": "greater-yiwu",
+    "sectionKey": "on-a-label",
+    "label": "Yiwu on a label",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "yiwu"
+      ]
+    },
+    "terms": [
+      {
+        "original": "易武",
+        "pinyin": "Yìwǔ",
+        "gloss": "Yiwu"
+      }
+    ],
+    "rev": 1,
+    "scope": "What the word Yiwu means on a label and how to read it; applies to any tea whose origin says Yiwu.",
+    "text": "Yiwu on a label is a market name, and it is not proof of where the leaf grew. The word is used for the town, for the mountain and for a wider area, and sellers also use it for tea made with Yiwu leaf or in a Yiwu style. Some cakes sold under the name blend in leaf from elsewhere. The clearest labels name the village or plot as well as Yiwu, and a seller who can tie a tea to a village, a harvest and a maker is giving you something you can check.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "What the word Yiwu means on a label and how to read it; applies to any tea whose origin says Yiwu.",
+        "text": "Yiwu on a label is a market name, and it is not proof of where the leaf grew. The word is used for the town, for the mountain and for a wider area, and sellers also use it for tea made with Yiwu leaf or in a Yiwu style. Some cakes sold under the name blend in leaf from elsewhere. The clearest labels name the village or plot as well as Yiwu, and a seller who can tie a tea to a village, a harvest and a maker is giving you something you can check.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "greater-yiwu:scope",
+    "pageId": "greater-yiwu",
+    "sectionKey": "scope",
+    "label": "A name at several scales",
+    "axis": "place",
+    "basis": "sourced",
+    "listingEligible": false,
+    "appliesWhen": {},
+    "terms": [],
+    "rev": 1,
+    "scope": "Greater Yiwu",
+    "text": "Yiwu can mean a township, a market center, or a much broader tea area in eastern Xishuangbanna. In trade, the name often reaches beyond the town itself, so a Yiwu label should be read as a regional claim whose scale still needs context.",
+    "sourceIds": [
+      "teadb-greater-yiwu"
+    ],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Greater Yiwu",
+        "text": "Yiwu can mean a township, a market center, or a much broader tea area in eastern Xishuangbanna. In trade, the name often reaches beyond the town itself, so a Yiwu label should be read as a regional claim whose scale still needs context.",
+        "approvedAt": "2026-11-23",
+        "reason": "Backfilled from pages",
+        "evidenceIds": [
+          "EVIDENCE-B4A02CADDFD91399DD30150A"
+        ]
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "greater-yiwu:where-it-is",
+    "pageId": "greater-yiwu",
+    "sectionKey": "where-it-is",
+    "label": "Where Yiwu is",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "yiwu"
+      ]
+    },
+    "terms": [
+      {
+        "original": "易武",
+        "pinyin": "Yìwǔ",
+        "gloss": "Yiwu"
       },
       {
-        "original": "湿仓",
-        "pinyin": "shī cāng",
-        "gloss": "humid storage"
+        "original": "勐腊",
+        "pinyin": "Měnglà",
+        "gloss": "Mengla"
       }
     ],
     "rev": 1,
-    "scope": "Raw pu'er in general",
-    "text": "Raw pu’er ages partly through slow oxidation and partly through the work of microbes, so heat and humidity decide how fast it changes. Humid, warm stores, the traditional storage of Hong Kong and Guangdong, change it quickly; dry, cool stores, with Kunming as the usual example, change it slowly and keep it brighter, and a store that is too dry can leave a tea stalled and green. The trade does not agree whether humid storage is a flaw or a style of its own. At home, keep a cake wrapped in paper, away from smells and direct sun, at roughly 60 to 75 percent humidity.",
+    "scope": "Where Yiwu sits: Mengla County, east of the Lancang River, one of the Six Famous Tea Mountains; any tea whose origin says Yiwu.",
+    "text": "Yiwu is in the north of Mengla County, the eastern county of Xishuangbanna in southern Yunnan, on the east side of the Lancang River (the upper Mekong). It is one of the old Six Famous Tea Mountains, and the town of Yiwu has long been where tea from the surrounding villages is gathered and processed. Mahei, Mansa and Luoshuidong are among the villages around it where old trees still grow.",
     "sourceIds": [],
     "reviewState": "approved",
     "previousRevisions": [
       {
         "rev": 1,
         "origin": "approved",
-        "scope": "Raw pu'er in general",
-        "text": "Raw pu’er ages partly through slow oxidation and partly through the work of microbes, so heat and humidity decide how fast it changes. Humid, warm stores, the traditional storage of Hong Kong and Guangdong, change it quickly; dry, cool stores, with Kunming as the usual example, change it slowly and keep it brighter, and a store that is too dry can leave a tea stalled and green. The trade does not agree whether humid storage is a flaw or a style of its own. At home, keep a cake wrapped in paper, away from smells and direct sun, at roughly 60 to 75 percent humidity.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved all eleven raw pu'er kit sections in chat, 2026-11-24",
+        "scope": "Where Yiwu sits: Mengla County, east of the Lancang River, one of the Six Famous Tea Mountains; any tea whose origin says Yiwu.",
+        "text": "Yiwu is in the north of Mengla County, the eastern county of Xishuangbanna in southern Yunnan, on the east side of the Lancang River (the upper Mekong). It is one of the old Six Famous Tea Mountains, and the town of Yiwu has long been where tea from the surrounding villages is gathered and processed. Mahei, Mansa and Luoshuidong are among the villages around it where old trees still grow.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
         "evidenceIds": []
       }
     ],
     "pageVisibility": "public"
   },
   {
-    "claimId": "shou:age-aged",
-    "pageId": "shou",
-    "sectionKey": "age-aged",
-    "label": "Ten years and more",
+    "claimId": "green:ageing",
+    "pageId": "green",
+    "sectionKey": "ageing",
+    "label": "Keeping green tea",
     "axis": "type",
     "basis": "trade_knowledge",
     "listingEligible": false,
     "appliesWhen": {
-      "type": "Shou"
-    },
-    "terms": [
-      {
-        "original": "陈香",
-        "pinyin": "chén xiāng",
-        "gloss": "aged aroma"
-      }
-    ],
-    "rev": 1,
-    "scope": "Ripe pu'er at ten years and more",
-    "text": "After ten years or more, a well-kept ripe pu’er grows smooth and deep, with woody, date-like or medicinal notes the trade calls aged aroma. The leaf keeps changing slowly with the air and moisture around it, which is why storage matters as much as age: dry, clean storage keeps it bright, and damp storage leaves it musty.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Ripe pu'er at ten years and more",
-        "text": "After ten years or more, a well-kept ripe pu’er grows smooth and deep, with woody, date-like or medicinal notes the trade calls aged aroma. The leaf keeps changing slowly with the air and moisture around it, which is why storage matters as much as age: dry, clean storage keeps it bright, and damp storage leaves it musty.",
-        "approvedAt": "2026-11-23",
-        "reason": "Adrian approved the ripe pu'er kit, 2026-11-23",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "shou:age-settling",
-    "pageId": "shou",
-    "sectionKey": "age-settling",
-    "label": "Five to ten years",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Shou"
+      "type": "Green"
     },
     "terms": [],
     "rev": 1,
-    "scope": "Ripe pu'er at about five to ten years",
-    "text": "Between about five and ten years the pile note has usually aired away. With it gone, the cup turns cleaner and rounder, and its sweetness comes forward.",
+    "scope": "Green tea family kit",
+    "text": "Green tea is a tea to drink fresh. The sources read give its best time as within about a year of picking, and a shelf life of a year or two when it is sealed. After that it goes flat: the fresh smell fades and the cup turns dull. Nothing read describes a tradition of ageing green tea, and it does not mature the way pu’er or white tea can. Keep it sealed, dark, dry and away from strong smells. If a green tea is sold as old, what counts is how it was kept, because the type itself does not promise anything.",
     "sourceIds": [],
     "reviewState": "approved",
     "previousRevisions": [
       {
         "rev": 1,
         "origin": "approved",
-        "scope": "Ripe pu'er at about five to ten years",
-        "text": "Between about five and ten years the pile note has usually aired away. With it gone, the cup turns cleaner and rounder, and its sweetness comes forward.",
-        "approvedAt": "2026-11-23",
-        "reason": "Adrian approved the ripe pu'er kit, 2026-11-23",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "shou:age-young",
-    "pageId": "shou",
-    "sectionKey": "age-young",
-    "label": "Young ripe pu’er",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Shou"
-    },
-    "terms": [
-      {
-        "original": "堆味",
-        "pinyin": "duī wèi",
-        "gloss": "pile taste"
-      }
-    ],
-    "rev": 1,
-    "scope": "Ripe pu'er under about five years",
-    "text": "In its first few years a ripe pu’er often still carries the smell of the pile, a damp, earthy note left over from fermentation that the trade calls pile taste. Air carries it off, so it fades with airing and with time, and a rinse or two before drinking helps.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Ripe pu'er under about five years",
-        "text": "In its first few years a ripe pu’er often still carries the smell of the pile, a damp, earthy note left over from fermentation that the trade calls pile taste. Air carries it off, so it fades with airing and with time, and a rinse or two before drinking helps.",
-        "approvedAt": "2026-11-23",
-        "reason": "Adrian approved the ripe pu'er kit, 2026-11-23",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "shou:brewing",
-    "pageId": "shou",
-    "sectionKey": "brewing",
-    "label": "Brewing ripe pu’er",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Shou"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Gongfu brewing of ripe pu'er in general",
-    "text": "Ripe pu’er takes boiling water: fermented, tightly packed leaf needs full heat to open, and it does not scald the way green tea can. A common start is about 7 grams to 100 ml and one quick rinse, which wakes the leaf and carries off dust and any pile smell. Then short steeps that lengthen as the leaf opens, so the cup stays clear rather than heavy; it gives eight or more good cups.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Gongfu brewing of ripe pu'er in general",
-        "text": "Ripe pu’er takes boiling water: fermented, tightly packed leaf needs full heat to open, and it does not scald the way green tea can. A common start is about 7 grams to 100 ml and one quick rinse, which wakes the leaf and carries off dust and any pile smell. Then short steeps that lengthen as the leaf opens, so the cup stays clear rather than heavy; it gives eight or more good cups.",
-        "approvedAt": "2026-11-23",
-        "reason": "Adrian approved the ripe pu'er kit, 2026-11-23",
+        "scope": "Green tea family kit",
+        "text": "Green tea is a tea to drink fresh. The sources read give its best time as within about a year of picking, and a shelf life of a year or two when it is sealed. After that it goes flat: the fresh smell fades and the cup turns dull. Nothing read describes a tradition of ageing green tea, and it does not mature the way pu’er or white tea can. Keep it sealed, dark, dry and away from strong smells. If a green tea is sold as old, what counts is how it was kept, because the type itself does not promise anything.",
+        "approvedAt": "2026-11-25",
+        "reason": "Adrian approved the green tea kit 2026-11-25",
         "evidenceIds": []
       }
     ],

@@ -6,6 +6,8 @@ import EventCountdown from '../EventCountdown';
 import CalendarDownload from '../CalendarDownload';
 import CopyInviteLink from './CopyInviteLink';
 import CancelConfirmModal from './CancelConfirmModal';
+import TastingDoor from './TastingDoor';
+import { anyoneHostsOpen } from '../../../lib/anyoneHosts';
 import { wayEndsAt } from '../../../lib/keptWay';
 
 const VenueGuide = lazy(() => import('../VenueGuide'));
@@ -73,6 +75,8 @@ const ConfirmedView: React.FC<ConfirmedViewProps> = ({
 }) => {
   const { attendee, event, guestInvites } = data;
   const status = attendee.status;
+  // "I can't come" at a person's table is Launch 3's (J13 finding 6); closed, main's words.
+  const personsTableWords = event.privateHost === true && anyoneHostsOpen();
 
   // Show approved guest invite links
   const approvedGuests = guestInvites ?? [];
@@ -111,6 +115,11 @@ const ConfirmedView: React.FC<ConfirmedViewProps> = ({
 
         {/* Countdown */}
         <EventCountdown eventDate={event.eventDate} className="mb-8" />
+
+        {/* A tasting only: one button on the day, nothing otherwise (J8). */}
+        {status === 'confirmed' && data.tasting && anyoneHostsOpen() && (
+          <TastingDoor magicToken={attendee.magicToken} eventDate={event.eventDate} timezone={event.timezone} />
+        )}
 
         {/* Calendar download */}
         <div className="flex justify-center mb-10">
@@ -361,12 +370,14 @@ const ConfirmedView: React.FC<ConfirmedViewProps> = ({
             onClick={onOpenCancelConfirm}
             className="tap-target text-xs font-semibold text-tea-text-sec hover:text-tea-error transition-colors py-3"
           >
-            Cancel my reservation
+            {/* At a person's table the guest says it plainly (J13 finding 6). */}
+            {personsTableWords ? "I can't come" : 'Cancel my reservation'}
           </button>
         </div>
 
         {showCancelConfirm && (
           <CancelConfirmModal
+            personsTable={personsTableWords}
             attendeeName={attendee.fullName}
             onConfirm={onConfirmCancel}
             onClose={onCloseCancelConfirm}

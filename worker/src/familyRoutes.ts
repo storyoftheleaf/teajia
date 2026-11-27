@@ -33,9 +33,15 @@ import {
   isFamilyPhotographShape, readFamilyPhotographFrame, type FamilyPhotographFrame, type FamilyPhotographShape,
 } from '../../src/lib/familyContract';
 import { inspectJpeg } from './familyJpeg';
+import { teaTableSittings } from './teaTable';
+import { withdrawTastingShare } from './tastingWithdrawal';
+import { PHOTO_TASTING_NOT_HIDDEN } from './familyPersonTastings';
+import { teaTableOpen } from '../../src/lib/teaTable';
 import { ensureFamilyPage } from './familyPages';
 import { describeReports, familyFeedbackRoutes } from './familyFeedback';
 import { signPhotograph } from './familyMedia';
+import { acknowledgementOpen, photographBy } from './photographCredit';
+import { yourTablePageOpen } from '../../src/lib/yourTablePage';
 import { fixTeaVoiceText, hasTeaVoiceProvider, transcribeTeaVoice, TeaVoiceTranscriptionError, type TeaVoiceEnvironment } from './curateVoiceTranscription';
 
 interface RateLimiter { limit: (opts: { key: string }) => Promise<{ success: boolean }> }
@@ -45,6 +51,10 @@ export interface FamilyEnv extends TeaVoiceEnvironment {
   MEDIA_BUCKET?: R2Bucket;
   PROVIDER_LIMITER?: RateLimiter;
   JWT_SECRET?: string;
+  /** "true" or "false" opens or closes Your Table as a page (Launch 4); see src/lib/yourTablePage.ts. */
+  YOUR_TABLE_PAGE_OPEN?: string;
+  /** See src/lib/teaTable.ts. */
+  TEA_TABLE_OPEN?: string;
 }
 
 type Person = { userId: string; email: string; name: string };
@@ -67,8 +77,10 @@ const MULTIPART_ALLOWANCE = 64 * 1024;
 const OWNER_ACTIONS = ['place', 'lead', 'pass', 'restore'] as const;
 type OwnerAction = typeof OWNER_ACTIONS[number];
 
+// Everything here is a person's own or can be taken back (A4 review, finding
+// 4), so no answer is kept by a browser or a cache.
 function json(data: unknown, status = 200): Response {
-  return new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } });
+  return new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
 }
 
 /** A refusal in a plain sentence, with a code the screen can branch on. */
@@ -121,8 +133,11 @@ type PhotoRow = {
   page: FamilyPhotoPage | null; full_key: string; small_key: string; full_width: number; full_height: number;
   small_width: number; small_height: number; share_state: FamilyShareState; offered_at: string | null;
   shop_use: FamilyOfferedPhotograph['shop_use']; removed_by_member_at: string | null; created_at: string;
-  shape?: string | null; frame?: string | null;
+  shape?: string | null; frame?: string | null; credit_name_shown?: number | null;
 };
+
+/** The photographer said yes to "photograph by <first name>". Absent or anything else is no. */
+const nameShown = (row: { credit_name_shown?: number | null }) => Number(row.credit_name_shown) === 1;
 
 /** A row written before the column existed, or holding anything unexpected, reads as square. */
 /** The stored frame, or null when there is none or it does not read as one. */
@@ -138,16 +153,42 @@ function ownPhoto(row: PhotoRow): FamilyPhotograph {
     full_url: mediaUrl(row.full_key), small_url: mediaUrl(row.small_key),
     full_width: Number(row.full_width), full_height: Number(row.full_height),
     small_width: Number(row.small_width), small_height: Number(row.small_height),
-    share_state: row.share_state, shape: shapeOf(row), frame: frameOf(row), created_at: row.created_at,
+    share_state: row.share_state, shape: shapeOf(row), frame: frameOf(row), credit_name_shown: nameShown(row), created_at: row.created_at,
   };
 }
 
-function sharedPhoto(row: PhotoRow & { author_name: string | null; page_id: string | null }): FamilySharedPhotograph {
-  const author: FamilyAuthor = { name: row.author_name || 'A member of the Teajia family', page_id: row.page_id ?? null };
+type AuthoredRow = PhotoRow & { author_name: string | null; page_id: string | null };
+
+function photoParts(row: AuthoredRow) {
   return {
     id: row.id, full_url: mediaUrl(row.full_key), small_url: mediaUrl(row.small_key),
     full_width: Number(row.full_width), full_height: Number(row.full_height),
-    small_width: Number(row.small_width), small_height: Number(row.small_height), shape: shapeOf(row), frame: frameOf(row), author,
+    small_width: Number(row.small_width), small_height: Number(row.small_height), shape: shapeOf(row), frame: frameOf(row),
+  };
+}
+
+/** The shop's own view of an offered photograph: it knows who sent it. Never served in public. */
+function shopPhoto(row: AuthoredRow): FamilySharedPhotograph & { author: FamilyAuthor } {
+  const author: FamilyAuthor = { name: row.author_name || 'A member of the Teajia family', page_id: row.page_id ?? null };
+  return { ...photoParts(row), author, photograph_by: photographBy(row, row.author_name) };
+}
+
+/**
+ * A photograph as any visitor sees it. The photographer's name leaves the
+ * worker only when they allowed it, and then as a first name; their page is
+ * linked only then too, and only when it is published (AUTHOR_COLUMNS). When
+ * they did not allow it there is no author at all: no name, no page, no slug.
+ */
+function publicPhoto(row: AuthoredRow, credit: boolean): FamilySharedPhotograph {
+  // While the Tea Table is closed the tea page credits a photograph as it
+  // always has: the author's page name and published page, and no
+  // photograph_by. The first-name choice opens with the Tea Table.
+  if (!credit) return { ...photoParts(row), author: { name: row.author_name || 'A member of the Teajia family', page_id: row.page_id ?? null } };
+  const firstName = photographBy(row, row.author_name);
+  return {
+    ...photoParts(row),
+    author: firstName ? { name: firstName, page_id: row.page_id ?? null } : null,
+    photograph_by: firstName,
   };
 }
 
@@ -162,15 +203,15 @@ const AUTHOR_COLUMNS = `
 /** Hidden by the owner: the photograph itself, the tasting it belongs to, or the author's whole page. */
 const NOT_HIDDEN = `
   NOT EXISTS (SELECT 1 FROM family_hides h WHERE h.account_id = p.account_id AND h.target_kind = 'photograph' AND h.target_id = p.id)
-  AND NOT EXISTS (SELECT 1 FROM family_hides h WHERE h.account_id = p.account_id AND h.target_kind = 'tasting' AND h.target_id = p.journal_entry_id)
+  AND ${PHOTO_TASTING_NOT_HIDDEN}
   AND NOT EXISTS (SELECT 1 FROM family_hides h JOIN contributors hc ON hc.id = h.target_id
                    WHERE h.account_id = p.account_id AND h.target_kind = 'page' AND hc.user_id = p.author_user_id)`;
 
 // ── One photograph through the door ───────────────────────────────────────
 
-type CheckedPhoto = { file: File; bytes: Uint8Array; width: number; height: number };
+export type CheckedPhoto = { file: File; bytes: Uint8Array; width: number; height: number };
 
-async function checkPhoto(
+export async function checkPhoto(
   value: unknown,
   label: 'large' | 'small',
   maxBytes: number,
@@ -195,7 +236,7 @@ async function checkPhoto(
   return { file: value, bytes, width: seen.width, height: seen.height };
 }
 
-function sameShape(a: CheckedPhoto, b: CheckedPhoto) {
+export function sameShape(a: CheckedPhoto, b: CheckedPhoto) {
   const ratioA = a.width / a.height;
   const ratioB = b.width / b.height;
   return Math.abs(ratioA - ratioB) / ratioA <= 0.03 && Math.max(b.width, b.height) <= Math.max(a.width, a.height);
@@ -242,7 +283,7 @@ export async function listOfferedPhotographs(db: D1Database, accountId: string, 
       LIMIT 200`,
   ).bind(accountId).all<PhotoRow & { author_name: string | null; page_id: string | null; product_name: string | null; hidden: number }>();
   return Promise.all((results ?? []).map(async row => ({
-    ...(await signPhotograph(secret, sharedPhoto(row))),
+    ...(await signPhotograph(secret, shopPhoto(row))),
     product_id: row.product_id,
     product_name: row.product_name,
     share_state: row.share_state,
@@ -255,13 +296,13 @@ export async function listOfferedPhotographs(db: D1Database, accountId: string, 
 
 export type ShopPhotograph = {
   id: string; product_id: string; shop_use: string; shop_use_before_lead: string | null; offered_at: string | null;
-  removed_by_member_at: string | null;
+  removed_by_member_at: string | null; share_state?: string | null;
 };
 
 /** One photograph in this shop, offered or not. */
 export async function readShopPhotograph(db: D1Database, accountId: string, id: string): Promise<ShopPhotograph | null> {
   return db.prepare(
-    `SELECT id, product_id, shop_use, shop_use_before_lead, offered_at, removed_by_member_at FROM member_photographs WHERE id = ? AND account_id = ?`,
+    `SELECT id, product_id, shop_use, shop_use_before_lead, offered_at, removed_by_member_at, share_state FROM member_photographs WHERE id = ? AND account_id = ?`,
   ).bind(id, accountId).first<ShopPhotograph>();
 }
 
@@ -271,21 +312,14 @@ export function photographUseRefusal(photo: ShopPhotograph, action: OwnerAction)
   if (photo.removed_by_member_at && (action === 'place' || action === 'lead')) {
     return { status: 409, error: 'The member took this photograph off their page, so it cannot be used.', code: 'removed_by_author' };
   }
+  // A photograph its author made private is withdrawn from every place (A4 review, finding 3).
+  if (photo.share_state === 'private' && (action === 'place' || action === 'lead')) {
+    return { status: 409, error: 'The member made this photograph private, so it cannot be used.', code: 'made_private' };
+  }
   return null;
 }
 
-/**
- * Takes one tasting's offered quotes back, as DELETE
- * /api/tasting-journal/:id/offers/:noteKey does for one: the approved quote
- * leaves Home and the tea listing, and the offer leaves the shop's pile.
- */
-export function withdrawTastingQuotes(db: D1Database, journalEntryId: string, authorUserId: string): D1PreparedStatement[] {
-  const offered = `SELECT id FROM tasting_note_candidates WHERE journal_entry_id = ? AND author_user_id = ? AND offered_at IS NOT NULL`;
-  return [
-    db.prepare(`DELETE FROM product_impressions WHERE candidate_id IN (${offered})`).bind(journalEntryId, authorUserId),
-    db.prepare(`DELETE FROM tasting_note_candidates WHERE id IN (${offered})`).bind(journalEntryId, authorUserId),
-  ];
-}
+export { withdrawTastingQuotes } from './tastingWithdrawal';
 
 export type PhotographUseOutcome =
   | { row: Record<string, unknown> | null }
@@ -446,6 +480,27 @@ export function familyRoutes<E extends FamilyEnv>(deps: FamilyDeps<E>): [string,
     });
   };
 
+  // GET /api/family/tasting-shares: the share state of every tasting of the
+  // member's that has ever been shared, in one read, for the share line on
+  // each journal tasting (Your Table, K8). A saved tasting with no row here is
+  // private. Their own rows only; nothing about the words or the score.
+  const tastingShares: FamilyHandler<E> = async (request, env) => {
+    if (!yourTablePageOpen(env)) return refuse(404, 'Not found', 'not_found');
+    const person = await deps.requireAuthenticatedUser(request, env);
+    if ('error' in person) return person.error;
+    const rows = await env.DB.prepare(
+      `SELECT j.product_id, s.share_state FROM customer_tasting_journal j
+         JOIN member_tasting_shares s ON s.journal_entry_id = j.id AND s.author_user_id = ?
+        WHERE j.user_id = ?
+        ORDER BY j.product_id`,
+    ).bind(person.userId, person.email).all<{ product_id: string; share_state: FamilyShareState }>();
+    return json({
+      shares: (rows.results ?? [])
+        .filter(row => isShareState(row.share_state))
+        .map(row => ({ product_id: row.product_id, share_state: row.share_state })),
+    });
+  };
+
   // PUT /api/family/teas/:productId/cover { photograph_id | null }: only the member sees it.
   const setCover: FamilyHandler<E> = async (request, env, params) => {
     const person = await deps.requireAuthenticatedUser(request, env);
@@ -481,6 +536,9 @@ export function familyRoutes<E extends FamilyEnv>(deps: FamilyDeps<E>): [string,
       `UPDATE member_photographs
           SET share_state = ?1,
               offered_at = CASE WHEN ?1 = 'offered' THEN COALESCE(offered_at, datetime('now')) ELSE offered_at END,
+              -- Private withdraws it from the tea page too, as Remove from my page does.
+              shop_use = CASE WHEN ?1 = 'private' AND shop_use IN ('placed', 'lead') THEN 'none' ELSE shop_use END,
+              shop_use_before_lead = CASE WHEN ?1 = 'private' THEN NULL ELSE shop_use_before_lead END,
               updated_at = datetime('now')
         WHERE id = ?2 AND author_user_id = ?3 AND removed_by_member_at IS NULL`,
     ).bind(body.share_state, params.id, person.userId).run();
@@ -506,6 +564,26 @@ export function familyRoutes<E extends FamilyEnv>(deps: FamilyDeps<E>): [string,
       `UPDATE member_photographs SET shape = ?1, frame = ?4, updated_at = datetime('now')
         WHERE id = ?2 AND author_user_id = ?3 AND removed_by_member_at IS NULL`,
     ).bind(body.shape, params.id, person.userId, frame ? JSON.stringify(frame) : null).run();
+    if (!Number(result.meta?.changes ?? 0)) return refuse(404, 'That photograph is not one of yours.', 'photograph_not_found');
+    const row = await env.DB.prepare('SELECT * FROM member_photographs WHERE id = ?').bind(params.id).first<PhotoRow>();
+    return json({ photograph: await signPhotograph(env.JWT_SECRET, ownPhoto(row!)) });
+  };
+
+  // PUT /api/family/photographs/:id/credit { credit_name_shown }: the photographer's own
+  // yes or no to "photograph by <first name>" wherever the picture is shown large.
+  // Starts at no. Only the author can change it; it changes nothing else.
+  const creditPhoto: FamilyHandler<E> = async (request, env, params) => {
+    if (!acknowledgementOpen(env)) return refuse(404, 'Not found', 'not_found');
+    const person = await deps.requireAuthenticatedUser(request, env);
+    if ('error' in person) return person.error;
+    const body = await readBody(request);
+    if (!body || typeof body.credit_name_shown !== 'boolean') {
+      return refuse(400, 'Say whether your first name goes with this photograph.', 'validation_failed');
+    }
+    const result = await env.DB.prepare(
+      `UPDATE member_photographs SET credit_name_shown = ?1, updated_at = datetime('now')
+        WHERE id = ?2 AND author_user_id = ?3 AND removed_by_member_at IS NULL`,
+    ).bind(body.credit_name_shown ? 1 : 0, params.id, person.userId).run();
     if (!Number(result.meta?.changes ?? 0)) return refuse(404, 'That photograph is not one of yours.', 'photograph_not_found');
     const row = await env.DB.prepare('SELECT * FROM member_photographs WHERE id = ?').bind(params.id).first<PhotoRow>();
     return json({ photograph: await signPhotograph(env.JWT_SECRET, ownPhoto(row!)) });
@@ -548,34 +626,71 @@ export function familyRoutes<E extends FamilyEnv>(deps: FamilyDeps<E>): [string,
     const journal = await journalFor(env.DB, person, product.id);
     if (!journal) return refuse(409, 'Save the tasting first, then share it.', 'tasting_not_saved');
     const state = body.share_state;
-    // Private takes the tasting's offered and approved quotes off Home and the
-    // tea listing too, as withdrawing each offer would, in the same batch.
-    const withdrawQuotes = state === 'private' ? withdrawTastingQuotes(env.DB, journal.id, person.userId) : [];
-    const [, photos] = await env.DB.batch([
-      env.DB.prepare(
-        `INSERT INTO member_tasting_shares (journal_entry_id, account_id, product_id, author_user_id, share_state, shared_at, updated_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, CASE WHEN ?5 = 'private' THEN NULL ELSE datetime('now') END, datetime('now'))
-         ON CONFLICT(journal_entry_id) DO UPDATE SET
-           share_state = excluded.share_state,
-           shared_at = CASE WHEN excluded.share_state = 'private' THEN member_tasting_shares.shared_at
-                            ELSE COALESCE(member_tasting_shares.shared_at, excluded.shared_at) END,
-           updated_at = excluded.updated_at
-         WHERE member_tasting_shares.author_user_id = excluded.author_user_id`,
-      ).bind(journal.id, product.account_id, product.id, person.userId, state),
-      env.DB.prepare(
-        `UPDATE member_photographs
-            SET share_state = ?1,
-                offered_at = CASE WHEN ?1 = 'offered' THEN COALESCE(offered_at, datetime('now')) ELSE offered_at END,
-                journal_entry_id = COALESCE(journal_entry_id, ?2),
-                updated_at = datetime('now')
-          WHERE author_user_id = ?3 AND product_id = ?4 AND removed_by_member_at IS NULL`,
-      ).bind(state, journal.id, person.userId, product.id),
-      ...withdrawQuotes,
-    ]);
+    // The Tea Table's consent (worker/src/teaTable.ts): only a share made under
+    // the Tea Table wording, while the Tea Table is open, records the moment
+    // and the sittings the journal holds now. A share under the older wording
+    // leaves what was recorded as it was.
+    const toTeaTable = state !== 'private' && body.tea_table === true && teaTableOpen(env);
+    const sittings = toTeaTable
+      ? teaTableSittings((await env.DB.prepare('SELECT tastings FROM customer_tasting_journal WHERE id = ?')
+        .bind(journal.id).first<{ tastings: string | null }>())?.tastings ?? null)
+      : null;
+    const upsert = env.DB.prepare(
+      `INSERT INTO member_tasting_shares (journal_entry_id, account_id, product_id, author_user_id, share_state, shared_at, updated_at)
+       VALUES (?1, ?2, ?3, ?4, ?5, CASE WHEN ?5 = 'private' THEN NULL ELSE datetime('now') END, datetime('now'))
+       ON CONFLICT(journal_entry_id) DO UPDATE SET
+         share_state = excluded.share_state,
+         shared_at = CASE WHEN excluded.share_state = 'private' THEN member_tasting_shares.shared_at
+                          ELSE COALESCE(member_tasting_shares.shared_at, excluded.shared_at) END,
+         updated_at = excluded.updated_at
+       WHERE member_tasting_shares.author_user_id = excluded.author_user_id`,
+    ).bind(journal.id, product.account_id, product.id, person.userId, state);
+    let photographsUpdated: number;
+    if (state === 'private') {
+      // Private takes the tasting back from every place at once: the page, the
+      // Tea Table, a placed or lead photograph, and its offered and approved
+      // quotes on Home and the tea listing (worker/src/tastingWithdrawal.ts).
+      const [, , photos] = await env.DB.batch([upsert, ...withdrawTastingShare(env.DB, journal.id, person.userId, product.id)]);
+      photographsUpdated = Number(photos.meta?.changes ?? 0);
+    } else {
+      // Whether the person chose their own page by itself (A4 review, finding
+      // 1): a page share standing before the tasting goes on the table, or a
+      // share under the older "On my page" wording. Taking the tasting off the
+      // table later leaves it on that page. Before a table share it is read
+      // ahead of the upsert, which changes the state.
+      const pageAlone = env.DB.prepare(
+        `UPDATE member_tasting_shares SET page_alone_at = COALESCE(page_alone_at, datetime('now'))
+          WHERE journal_entry_id = ? AND author_user_id = ?${toTeaTable ? " AND share_state IN ('page', 'offered') AND tea_table_at IS NULL" : ''}`,
+      ).bind(journal.id, person.userId);
+      const results = await env.DB.batch([
+        ...(toTeaTable ? [pageAlone] : []),
+        upsert,
+        env.DB.prepare(
+          `UPDATE member_photographs
+              SET share_state = ?1,
+                  offered_at = CASE WHEN ?1 = 'offered' THEN COALESCE(offered_at, datetime('now')) ELSE offered_at END,
+                  journal_entry_id = COALESCE(journal_entry_id, ?2),
+                  updated_at = datetime('now')
+            WHERE author_user_id = ?3 AND product_id = ?4 AND removed_by_member_at IS NULL`,
+        ).bind(state, journal.id, person.userId, product.id),
+        toTeaTable
+          ? env.DB.prepare(
+            // A tasting already on the table keeps its place and its words: sharing
+            // it again does not move it forward (A4 review, finding 14).
+            `UPDATE member_tasting_shares
+                SET tea_table_sittings = CASE WHEN tea_table_at IS NULL THEN ? ELSE tea_table_sittings END,
+                    tea_table_at = COALESCE(tea_table_at, datetime('now'))
+              WHERE journal_entry_id = ? AND author_user_id = ?`,
+          ).bind(sittings, journal.id, person.userId)
+          : pageAlone,
+      ]);
+      photographsUpdated = Number(results[toTeaTable ? 2 : 1].meta?.changes ?? 0);
+    }
     // The first share makes the person's page (family, live without review); later ones leave it as it is.
     const page = state === 'private' ? null : await ensureFamilyPage(env.DB, person);
     return json({
-      product_id: product.id, journal_entry_id: journal.id, share_state: state, photographs_updated: Number(photos.meta?.changes ?? 0),
+      product_id: product.id, journal_entry_id: journal.id, share_state: state, photographs_updated: photographsUpdated,
+      on_tea_table: toTeaTable,
       page_id: page?.id ?? null, page_path: page ? `/people/${encodeURIComponent(page.id)}` : null, page_created: page?.created ?? false,
     });
   };
@@ -590,19 +705,21 @@ export function familyRoutes<E extends FamilyEnv>(deps: FamilyDeps<E>): [string,
          JOIN users u ON u.id = p.author_user_id
         WHERE p.account_id = ? AND p.product_id = ?
           AND p.removed_by_member_at IS NULL
-          AND (p.shop_use IN ('placed', 'lead') OR p.share_state IN ('page', 'offered'))
+          AND p.share_state IN ('page', 'offered')
           AND ${NOT_HIDDEN}
         ORDER BY p.created_at DESC
         LIMIT 60`,
     ).bind(product.account_id, product.id).all<PhotoRow & { author_name: string | null; page_id: string | null }>();
     const rows = results ?? [];
     const lead = rows.find(row => row.shop_use === 'lead');
+    const credit = acknowledgementOpen(env);
+    const shown = (row: AuthoredRow) => publicPhoto(row, credit);
     const body: FamilyTeaPhotographs = {
       product_id: product.id,
-      lead: lead ? sharedPhoto(lead) : null,
-      placed: rows.filter(row => row.shop_use === 'placed').map(sharedPhoto),
+      lead: lead ? shown(lead) : null,
+      placed: rows.filter(row => row.shop_use === 'placed').map(shown),
       family: rows.filter(row => row.shop_use !== 'placed' && row.shop_use !== 'lead'
-        && row.removed_by_member_at === null && row.share_state !== 'private').map(sharedPhoto),
+        && row.removed_by_member_at === null && row.share_state !== 'private').map(shown),
     };
     return json(body);
   };
@@ -769,8 +886,10 @@ export function familyRoutes<E extends FamilyEnv>(deps: FamilyDeps<E>): [string,
     ['POST', '/api/family/photographs', upload],
     ['PUT', '/api/family/photographs/:id/share', sharePhoto],
     ['PUT', '/api/family/photographs/:id/shape', shapePhoto],
+    ['PUT', '/api/family/photographs/:id/credit', creditPhoto],
     ['POST', '/api/family/photographs/:id/remove', removePhoto],
     ['GET', '/api/family/teas/:productId/mine', myTea],
+    ['GET', '/api/family/tasting-shares', tastingShares],
     ['PUT', '/api/family/teas/:productId/cover', setCover],
     ['PUT', '/api/family/teas/:productId/share', shareTasting],
     ['GET', '/api/family/teas/:productId/photographs', teaPhotographs],

@@ -19,8 +19,8 @@ const ownerPath = '/api/me/personal-kept-setups/:eventId/photos/:photoId/guest-b
 const databases: SqliteD1[] = [];
 afterEach(() => databases.splice(0).forEach(db => db.close()));
 
-async function fixture() {
-  const sql = new SqliteD1('migrations', '0127');
+async function fixture(launch3Open = true) {
+  const sql = new SqliteD1('migrations');
   databases.push(sql);
   const db = sql as unknown as D1Database;
   seedIdentity(sql, { userId: 'owner', accountId: 'shop' });
@@ -45,7 +45,8 @@ async function fixture() {
 
   const get = vi.fn(async (_key: string) => jpegObject());
   const bucket = { get } as unknown as R2Bucket;
-  const env = { DB: db, ATLAS_BUCKET: bucket };
+  // The name choice is Launch 3's; most of this file reads it open. The closed reading is the last describe.
+  const env = { DB: db, ATLAS_BUCKET: bucket, ANYONE_HOSTS_OPEN: String(launch3Open) };
   const routes = afterSitRoutes<typeof env>({
     requireHost: async req => {
       const accountId = req.headers.get('Test-Host');
@@ -99,7 +100,8 @@ describe('formal attendee Guest Book photos', () => {
 
     const list = await gallery();
     expect(list.headers.get('Cache-Control')).toBe('private, no-store');
-    expect(await list.json()).toEqual({ gallery: [{ id: grantId, alt_text: description, display_name: 'Photo Guest', entry_key: expect.stringMatching(/^[a-f0-9]{64}$/) }], own: [] });
+    // Unnamed by its taker, the photograph carries no entry key, so it is never grouped under their signed note (A3).
+    expect(await list.json()).toEqual({ gallery: [{ id: grantId, alt_text: description, display_name: null }], own: [] });
     const image = await bytes();
     expect(image.headers.get('Content-Type')).toBe('image/jpeg');
     expect(image.headers.get('Cache-Control')).toBe('private, no-store');
@@ -142,7 +144,12 @@ describe('formal attendee Guest Book photos', () => {
     const attendeeNotes = (await (await book('viewer', viewer, 'read')).json()).entries;
     const attendeePhotos = (await (await gallery()).json()).gallery;
     expect(attendeeNotes).toEqual([{ id: firstEntry.id, display_name: 'Photo Guest', note, entry_key: key }]);
-    expect(attendeePhotos).toEqual([{ id: grantId, display_name: 'Photo Guest', alt_text: description, entry_key: key }]);
+    // The taker kept the photograph unnamed, so nothing ties it to their signed note (A3).
+    expect(attendeePhotos).toEqual([{ id: grantId, display_name: null, alt_text: description }]);
+    // Named by its taker, it sits with their note as before.
+    db.sqlite.prepare('UPDATE session_guest_book_photos SET show_name = 1 WHERE id = ?').run(grantId);
+    expect((await (await gallery()).json()).gallery).toEqual([{ id: grantId, display_name: 'Photo', alt_text: description, entry_key: key }]);
+    db.sqlite.prepare('UPDATE session_guest_book_photos SET show_name = 0 WHERE id = ?').run(grantId);
     expect((await save({ note, photo })).status).toBe(200);
     expect(entry()).toMatchObject({ revision: 1, status: 'included' });
 
@@ -292,5 +299,32 @@ describe('formal attendee Guest Book photos', () => {
     expect((await fresh.include(secondGrant)).status).toBe(200);
     expect((await fresh.review('PUT', { action: 'pass', status: 'included' }, secondGrant)).status).toBe(200);
     expect((await fresh.bytes(secondGrant)).status).toBe(404);
+  });
+});
+
+// launch-5 flags-off audit (todo/reviews/launch-5-flags-off-audit.md): with
+// ANYONE_HOSTS_OPEN off, a photograph sits with its taker's signed note as it
+// did before PR 560 (13143c89), through the entry key. The taker is still
+// named only when they allowed it (A7-1, A7-2): never the full name, never by
+// default. The data is not changed; the read is.
+describe('Guest Book photographs with Launch 3 closed', () => {
+  it('keeps the photograph grouped with its signed note, and names no one who did not allow it', async () => {
+    const { book, owner, viewer, db, sql, request, include, gallery } = await fixture(false);
+    const note = 'A quiet second steep.';
+    const photo = { photoId, grantId, description };
+    expect((await book('owner', owner, 'entry-save', { note, photo })).status).toBe(201);
+    const saved = sql.sqlite.prepare('SELECT id, revision FROM session_guest_book').get() as { id: string; revision: number };
+    expect((await serveGuestBookReview(
+      request('POST', undefined, { action: 'include', revision: saved.revision }), db, 'shop', 'event', saved.id,
+    )).status).toBe(200);
+    expect((await include()).status).toBe(200);
+
+    const notes = (await (await book('viewer', viewer, 'read')).json()).entries;
+    const key = notes[0].entry_key;
+    expect(key).toMatch(/^[a-f0-9]{64}$/);
+    expect((await (await gallery()).json()).gallery).toEqual([{ id: grantId, display_name: null, alt_text: description, entry_key: key }]);
+    // Credit allowed: the first name only, as with the switch open.
+    sql.sqlite.prepare('UPDATE session_guest_book_photos SET show_name = 1 WHERE id = ?').run(grantId);
+    expect((await (await gallery()).json()).gallery).toEqual([{ id: grantId, display_name: 'Photo', alt_text: description, entry_key: key }]);
   });
 });

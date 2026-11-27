@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, MessageCircle } from 'lucide-react';
 import { api } from '../lib/api';
 import { usePublicSitRecap } from '../lib/publicSitRecap';
+import { REVOCABLE_QUERY } from '../lib/revocableQuery';
 import { PlaylistSection } from '../components/events/PlaylistSection';
 import { SitRecap } from '../components/sessions/SitRecap';
 
@@ -50,6 +51,8 @@ const EventRecapPage: React.FC = () => {
     queryFn: () => api.events.getPublicRecap(slug),
     enabled: !!slug,
     retry: false,
+    // A recap can be taken down or hidden.
+    ...REVOCABLE_QUERY,
   });
   const recap = usePublicSitRecap(slug);
 

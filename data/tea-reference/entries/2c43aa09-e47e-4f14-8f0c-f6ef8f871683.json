@@ -1,6 +1,6 @@
 {
   "status": "approved",
-  "composedAt": "2026-11-24T12:32:39.335Z",
+  "composedAt": "2026-11-27T03:59:37.201Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -11,7 +11,7 @@
     "form": "Loose",
     "year": null,
     "origin": "Wuyi Mountains, Fujian, China",
-    "stockGrams": 0,
+    "stockGrams": null,
     "pricePerGramUsd": null,
     "tags": []
   },
@@ -20,11 +20,11 @@
     "paragraphs": [
       {
         "layer": "place",
-        "text": "This is [Wuyi rock tea](yancha:definition), the [oolong](oolong:definition) of the Wuyi Mountains in northern Fujian. Only leaf from that area may be sold under the name. The bushes grow among rock, in crevices, on ledges and on cliff terraces. They root in soil weathered from the stone, in country with much fog and rain."
+        "text": "This is [Wuyi rock tea](yancha:definition), the oolong of the [Wuyi Mountains](wuyi-mountains:where-it-is) on the border of northern Fujian and Jiangxi, and only tea from that area may be sold under the name. The bushes grow among rock, on ledges and in the ravines, in [thin soil weathered from the cliffs](wuyi-mountains:nature) that drains fast while fog settles on the slopes through the year. The record names no zone or pit, so it does not say how close to the [scenic core](wuyi-mountains:zones) this leaf grew."
       },
       {
         "layer": "type",
-        "text": "The leaf is twisted into long, narrow strips rather than rolled into balls. It is then finished with a [charcoal roast](yancha:making) given in several rounds, with rests of weeks or months between them. The roast dries the tea so that it keeps, and its strength is matched to the leaf it is given."
+        "text": "Like any [oolong](oolong:definition), it is only partly oxidised. The leaf is twisted into long strips rather than rolled into balls, then finished with a [charcoal roast](yancha:making) given in several rounds, with rests of weeks or months between them. The roast dries the tea so it keeps, and the roaster matches its strength to the leaf in hand."
       }
     ],
     "brewing": {
@@ -37,7 +37,6 @@
       "text": "Roast and stone fruit, a mineral, rocky texture and a long, sweet, mouth-watering finish. Light roast is bright and floral, medium roast fruity and rounded, full roast charcoal, wood and roasted nuts. Da Hong Pao is often floral, Rougui spicy with cinnamon, young Shui Xian sweet and smooth, and old-bush Shui Xian woody and mossy."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "The year it was made: unlocks the age paragraph",
       "A voice note from you on this lot",
       "Photos"
@@ -46,6 +45,18 @@
   "claimUses": [
     {
       "claimId": "yancha:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "wuyi-mountains:where-it-is",
+      "rev": 1
+    },
+    {
+      "claimId": "wuyi-mountains:nature",
+      "rev": 1
+    },
+    {
+      "claimId": "wuyi-mountains:zones",
       "rev": 1
     },
     {
@@ -67,5 +78,5 @@
   ],
   "problems": [],
   "unsupported": [],
-  "approvedAt": "2026-11-24T13:33:41.057Z"
+  "approvedAt": "2026-11-27T04:17:18.631Z"
 }

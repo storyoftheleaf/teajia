@@ -1,8 +1,9 @@
 import { Link } from 'react-router-dom';
+import { favouritesPath } from '../../lib/favouritesOpen';
 
 const destinations = [
   { key: 'journal', label: 'Journal', to: '/account/journal' },
-  { key: 'favorites', label: 'Favorites', to: '/account/collection' },
+  { key: 'favorites', label: 'Favorites' },
   { key: 'cellar', label: 'Tea Chest', to: '/account/cellar' },
 ] as const;
 
@@ -14,7 +15,7 @@ export function PersonalTeaLinks({ current }: { current: PersonalTeaModel }) {
       {destinations.filter(item => item.key !== current).map(item => (
         <Link
           key={item.key}
-          to={item.to}
+          to={item.key === 'favorites' ? favouritesPath() : item.to}
           className="tap-target text-ui-12 text-tea-text-sec transition-colors hover:text-tea-text"
         >
           {item.label} →

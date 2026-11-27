@@ -1,4 +1,7 @@
 import { attachLogisticsTracking } from './logisticsTracking';
+import { readPackingSizes } from './packingSizes';
+import { estimateVolume, packingKindFor } from '../../src/lib/packingSizes';
+import type { PackedItemKind } from '../../src/lib/logisticsFreight';
 import { hasOpenStudioReferral, STUDIO_REFERRAL_MESSAGE, STUDIO_REFERRAL_OPEN } from './studioReceiptReferrals';
 import { calculateShipmentFreight } from '../../src/lib/logisticsFreight';
 import type { LogisticsAddress, LogisticsFreight, LogisticsOrder, LogisticsShipment, LogisticsShipmentLine, LogisticsService, LogisticsTracking } from '../../src/lib/logisticsTypes';
@@ -54,16 +57,21 @@ function checkAddressPreview(body:Row,address:LogisticsAddress|null){
 /** A single export-ready manifest powers the app and MCP. Original paid costs
  * keep their currency; shipment shares are proportional to allocated quantity. */
 export async function readLogistics(env:Env,accountId:string):Promise<LogisticsTracking> {
- const [purchases,receiptLines,shipments,shipmentLines,studioReceipts,services,addresses]=await Promise.all([
+ const [purchases,receiptLines,shipments,shipmentLines,studioReceipts,services,addresses,packingSizes]=await Promise.all([
   env.DB.prepare(`SELECT p.*,h.purchase_id managed_purchase_id,h.logistics_company_id,h.logistics_company_name,h.inbound_courier,h.inbound_tracking_number,h.logistics_arrived_at,h.warehouse_address_id,h.warehouse_address_json FROM purchase_orders p LEFT JOIN purchase_logistics h ON h.purchase_id=p.id AND h.account_id=p.account_id WHERE p.account_id=? ORDER BY p.created_at DESC`).bind(accountId).all<Row>(),
-  env.DB.prepare(`SELECT r.*,COALESCE(p.given_name,p.product_name) product_name,p.image_url,p.source_compass_entry_id FROM inventory_receipt_lines r JOIN products p ON p.id=r.product_id AND p.account_id=r.account_id WHERE r.account_id=?`).bind(accountId).all<Row>(),
+  env.DB.prepare(`SELECT r.*,COALESCE(p.given_name,p.product_name) product_name,p.form product_form,p.image_url,p.source_compass_entry_id FROM inventory_receipt_lines r JOIN products p ON p.id=r.product_id AND p.account_id=r.account_id WHERE r.account_id=?`).bind(accountId).all<Row>(),
   env.DB.prepare('SELECT * FROM logistics_shipments WHERE account_id=? ORDER BY created_at DESC,id').bind(accountId).all<Row>(),
   env.DB.prepare('SELECT * FROM logistics_shipment_lines WHERE account_id=? ORDER BY id').bind(accountId).all<Row>(),
   env.DB.prepare('SELECT r.id,r.shipment_line_id line_id,r.ledger_id,r.quantity,r.received_at,s.user_email recorded_by,l.shipment_id FROM logistics_studio_receipts r JOIN logistics_shipment_lines l ON l.id=r.shipment_line_id AND l.account_id=r.account_id JOIN stock_ledger s ON s.id=r.ledger_id AND s.account_id=r.account_id WHERE r.account_id=? ORDER BY r.received_at DESC,r.id').bind(accountId).all<Row>(),
   env.DB.prepare('SELECT * FROM logistics_services WHERE account_id=? ORDER BY logistics_company_name,name').bind(accountId).all<Row>(),
   readLogisticsAddresses(env,accountId),
+  readPackingSizes(env,accountId),
  ]);
  const lines=receiptLines.results??[],allocated=shipmentLines.results??[];
+ // Loose or pressed, gaiwan, cup or teapot: what kind of thing each shipped line is, for its packed size.
+ const formOf=new Map(lines.map(l=>[l.product_id,l.product_form]));
+ // The size the shop expects, learned from earlier shipments of this item, then like items, then the allowance.
+ const packing=(productId:string,unit:string,quantity:number,kind:PackedItemKind)=>({packing_kind:kind,packing_estimate:estimateVolume({product_id:productId,kind,quantity,unit:unit==='unit'?'unit':'g'},packingSizes)});
  const active=new Set((shipments.results??[]).filter(s=>s.state!=='cancelled').map(s=>s.id));
  const itemFor=(purchase:Row,line:Row)=>{const items=parse(purchase.items_json,[]);return Array.isArray(items)?items.find((i:Row)=>i.product_id===line.product_id||(line.source_compass_entry_id&&i.compass_entry_id===line.source_compass_entry_id)):null};
  const orders:LogisticsOrder[]=(purchases.results??[]).map(p=>({purchase_id:p.id,managed:p.managed_purchase_id!=null,warehouse_address_id:p.warehouse_address_id??null,warehouse_address:parse(p.warehouse_address_json),receipt_id:p.receipt_id??null,vendor_name:p.vendor_name??null,logistics_company_id:p.logistics_company_id??null,logistics_company_name:p.logistics_company_name??null,inbound_courier:p.inbound_courier??null,inbound_tracking_number:p.logistics_company_name!=null?p.inbound_tracking_number??null:p.tracking_number??null,logistics_arrived_at:p.logistics_arrived_at??null,lines:lines.filter(l=>l.receipt_id===p.receipt_id).map(l=>{
@@ -73,18 +81,37 @@ export async function readLogistics(env:Env,accountId:string):Promise<LogisticsT
  const result:LogisticsShipment[]=(shipments.results??[]).map(s=>{
   const items:LogisticsShipmentLine[]=allocated.filter(a=>a.shipment_id===s.id).map(a=>{
    const line=orders.find(o=>o.purchase_id===a.purchase_id)?.lines.find(l=>l.id===a.receipt_line_id);
-   return {...a,id:a.id,shipment_id:a.shipment_id,purchase_id:a.purchase_id,receipt_line_id:a.receipt_line_id,product_id:line?.product_id??'',product_name:line?.product_name??'Unknown item',unit:line?.unit??'g',quantity:Number(a.quantity),received_quantity:Number(a.received_quantity),weight_kg:nullable(a.weight_kg),volume_m3:nullable(a.volume_m3),weight_estimated:!!a.weight_estimated,volume_estimated:!!a.volume_estimated,image_url:a.image_url??line?.image_url??null,source_url:a.source_url??line?.source_url??null,original_cost_amount:line?.original_cost_amount==null?null:line.original_cost_amount*Number(a.quantity)/line.expected_quantity,original_cost_currency:line?.original_cost_currency??null,allocated_freight:null};
+   return {...a,id:a.id,shipment_id:a.shipment_id,purchase_id:a.purchase_id,receipt_line_id:a.receipt_line_id,product_id:line?.product_id??'',product_name:line?.product_name??'Unknown item',unit:line?.unit??'g',quantity:Number(a.quantity),received_quantity:Number(a.received_quantity),weight_kg:nullable(a.weight_kg),volume_m3:nullable(a.volume_m3),weight_estimated:!!a.weight_estimated,volume_estimated:!!a.volume_estimated,image_url:a.image_url??line?.image_url??null,source_url:a.source_url??line?.source_url??null,original_cost_amount:line?.original_cost_amount==null?null:line.original_cost_amount*Number(a.quantity)/line.expected_quantity,original_cost_currency:line?.original_cost_currency??null,allocated_freight:null,...packing(line?.product_id??'',line?.unit??'g',Number(a.quantity),packingKindFor({unit:line?.unit??'g',form:formOf.get(line?.product_id),name:line?.product_name}))};
   });
   const cost=freight(parse(s.freight_json));
   const allocation=cost?calculateShipmentFreight(cost,items):null;
   return {studio_receipts:(studioReceipts.results??[]).filter(r=>r.shipment_id===s.id).map(({shipment_id,...r})=>({id:r.id,line_id:r.line_id,ledger_id:r.ledger_id,quantity:Number(r.quantity),received_at:r.received_at,recorded_by:r.recorded_by??null})),id:s.id,delivery_address_id:s.delivery_address_id??null,delivery_address:parse(s.delivery_address_json),service_id:s.service_id??null,service_quote:parse(s.service_quote_json),logistics_company_id:s.logistics_company_id??null,logistics_company_name:s.logistics_company_name,mode:s.mode,state:s.state,outbound_courier:s.outbound_courier??null,tracking_number:s.tracking_number??null,eta:s.eta??null,created_at:s.created_at,dispatched_at:s.dispatched_at??null,freight:cost,freight_total:allocation?.total_amount??null,freight_estimated:allocation?.estimated??true,freight_issue:allocation?.issue??(cost?null:'Freight has not been entered'),lines:items.map(l=>({...l,allocated_freight:allocation?.allocations.find(a=>a.id===l.id)?.amount??null}))};
  });
- return attachLogisticsTracking(env,accountId,{orders,shipments:result,addresses,services:(services.results??[]).map(serviceView)});
+ return attachLogisticsTracking(env,accountId,{orders,shipments:result,addresses,services:(services.results??[]).map(serviceView),packing_sizes:packingSizes});
 }
 
 function serviceView(row:Row):LogisticsService {return {id:row.id,logistics_company_id:row.logistics_company_id,logistics_company_name:row.logistics_company_name,name:row.name,mode:row.mode,basis:row.basis,rate:Number(row.rate),currency:row.currency,active:!!row.active};}
 
 /** Rechecked when a durable MCP preview is confirmed. REST uses the same path. */
+/**
+ * A tea follows the shipment it came by (Adrian, 2026-11-27: everything is
+ * connected). Once a shipment's bill is confirmed, every tea on it that has
+ * no service yet travels by the shipment's service, so its freight comes from
+ * that bill (src/lib/freightSource.ts). A service picked by hand is kept.
+ * Nothing moves before the bill is confirmed, so no price moves on a guess.
+ */
+export async function adoptShipmentService(env:Env,accountId:string,shipmentId:string):Promise<string[]>{
+ const shipment=await env.DB.prepare('SELECT service_id,freight_json FROM logistics_shipments WHERE id=? AND account_id=?').bind(shipmentId,accountId).first<Row>();
+ const bill=parse(shipment?.freight_json,null) as Row|null;
+ if(!shipment?.service_id||!bill?.confirmed)return [];
+ const {results}=await env.DB.prepare(`SELECT DISTINCT r.product_id FROM logistics_shipment_lines l JOIN inventory_receipt_lines r ON r.id=l.receipt_line_id
+   JOIN products p ON p.id=r.product_id AND p.account_id=l.account_id
+   WHERE l.shipment_id=? AND l.account_id=? AND p.freight_service_id IS NULL`).bind(shipmentId,accountId).all<{product_id:string}>();
+ const ids=(results??[]).map(r=>r.product_id).filter(Boolean);
+ if(ids.length)await env.DB.batch(ids.map(pid=>env.DB.prepare("UPDATE products SET freight_service_id=?,updated_at=datetime('now') WHERE id=? AND account_id=? AND freight_service_id IS NULL").bind(shipment.service_id,pid,accountId)));
+ return ids;
+}
+
 export async function mutateLogistics(env:Env,scope:Scope,action:LogisticsAction,id:string,body:Row,preview=false):Promise<Row> {
  const account=scope.accountId;
  if(action.startsWith('address_')){
@@ -190,6 +217,7 @@ export async function mutateLogistics(env:Env,scope:Scope,action:LogisticsAction
    if(raced?.request_fingerprint===fingerprint)return {shipment:(await readLogistics(env,account)).shipments.find(s=>s.id===raced.id),already_created:true};
    fail('Goods changed while creating shipment; read logistics again',409);
   }
+  await adoptShipmentService(env,account,shipmentId);
   return {shipment:(await readLogistics(env,account)).shipments.find(s=>s.id===shipmentId)};
  }
  const shipment=await shipmentRow(env,account,id);if(!shipment)fail('Shipment not found',404);
@@ -219,6 +247,7 @@ export async function mutateLogistics(env:Env,scope:Scope,action:LogisticsAction
   }
   if(preview)return {action,shipment_id:id,changes:body,...('delivery_address_id' in body?{delivery_address:selectedAddress}:{})};
   if(statements.length)await env.DB.batch(statements);
+  if('freight'in body)await adoptShipmentService(env,account,id);
  }
  if(action==='dispatch'){
   if(shipment.state!=='draft'&&shipment.state!=='in_transit')fail('Shipment has already reached the studio',409);

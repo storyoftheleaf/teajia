@@ -1,6 +1,6 @@
 {
   "status": "approved",
-  "composedAt": "2026-11-24T15:10:36.485Z",
+  "composedAt": "2026-11-27T03:54:48.374Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -11,7 +11,7 @@
     "form": "Loose",
     "year": null,
     "origin": "Wuyi Mountains, Fujian, China",
-    "stockGrams": 0,
+    "stockGrams": null,
     "pricePerGramUsd": null,
     "tags": []
   },
@@ -19,12 +19,16 @@
     "productId": "fb92f73e-a1f2-4740-bb14-110726deae71",
     "paragraphs": [
       {
-        "layer": "type",
-        "text": "Zhengshan Xiaozhong is a [red tea](red:definition), the fully oxidised tea English calls black, from the Wuyi Mountains of northern Fujian. The style belongs to Tongmu, whose home villages and gardens lie inside the mountains' nature reserve. [Zhengshan](lapsang:definition), true mountain, names that core; tea made the same way beyond it is called waishan. Abroad it goes by Lapsang Souchong, a name taken from the Fuzhou dialect."
+        "layer": "place",
+        "text": "This leaf comes from the [Wuyi Mountains](wuyi-mountains:where-it-is), the range along the border of northern Fujian and Jiangxi. UNESCO listed it as a World Heritage site in 1999, and much of it is protected forest. Its different ground makes two very different teas: [rock oolong](wuyi-mountains:two-teas) from the stony valleys lower down, and red tea from the high northern edge around Tongmu. Tea shipped from these mountains to Europe in the seventeenth and eighteenth centuries was sold as [Bohea](fujian:history), a spelling of the local way of saying Wuyi."
       },
       {
         "layer": "type",
-        "text": "It is counted as the [oldest red tea](lapsang:history), though the dates given for its beginning differ, and it reached Europe through Dutch and then British trade. In the making, the oxidised leaf goes into a hot pan, [guo hong guo](lapsang:making), which halts oxidation quickly, and is rolled again while hot to shape the strip. The traditional tea is then dried over local pine in a [qinglou](lapsang:smoke), a wooden house of several floors with the fire at the bottom, so the heat and smoke rise through leaf laid on bamboo mats above."
+        "text": "[Zhengshan Xiaozhong](lapsang:definition), true mountain small kind, is the red tea of Tongmu. Zhengshan names that core, and tea made the same way outside it is called waishan, outer mountain. Abroad it is known as Lapsang Souchong, a name taken from the Fuzhou dialect. It is called the [oldest red tea](lapsang:history), though the dates given for it differ. [Red tea](red:definition) is what English calls black tea: the leaf is fully oxidised, and the Chinese name follows the red colour of the brewed cup."
+      },
+      {
+        "layer": "type",
+        "text": "The leaf is withered, rolled and left to oxidise until it turns reddish brown to copper. It then goes through a hot pan, [guo hong guo](lapsang:making), which stops the oxidation fast, and is rolled again while hot to shape the strip. In the traditional way it is dried over a fire of local pine in a [qinglou](lapsang:smoke), a wooden house of several floors with the fire at the bottom and the leaf on bamboo mats above, so the heat and smoke rise through it. The strongly smoked style was made for export. In China the name also covers gentler and unsmoked tea."
       }
     ],
     "brewing": {
@@ -37,7 +41,6 @@
       "text": "In the smoked tea: pine and pine resin, longan or dried longan, campfire or woodsmoke, dried fruit and a sweet aftertaste. In the unsmoked tea: honey, longan and fruit or flowers."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "The year it was made: unlocks the age paragraph",
       "A voice note from you on this lot",
       "Photos"
@@ -45,7 +48,15 @@
   },
   "claimUses": [
     {
-      "claimId": "red:definition",
+      "claimId": "wuyi-mountains:where-it-is",
+      "rev": 1
+    },
+    {
+      "claimId": "wuyi-mountains:two-teas",
+      "rev": 1
+    },
+    {
+      "claimId": "fujian:history",
       "rev": 1
     },
     {
@@ -54,6 +65,10 @@
     },
     {
       "claimId": "lapsang:history",
+      "rev": 1
+    },
+    {
+      "claimId": "red:definition",
       "rev": 1
     },
     {
@@ -75,5 +90,5 @@
   ],
   "problems": [],
   "unsupported": [],
-  "approvedAt": "2026-11-24T15:14:33.890Z"
+  "approvedAt": "2026-11-27T04:16:57.289Z"
 }

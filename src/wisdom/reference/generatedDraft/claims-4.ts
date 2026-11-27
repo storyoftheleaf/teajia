@@ -5,975 +5,950 @@ import type { DraftClaim } from '../claims';
 
 export const PART: readonly DraftClaim[] = [
   {
-    "claimId": "lapsang:smoke",
-    "pageId": "lapsang",
-    "sectionKey": "smoke",
-    "label": "Smoked and unsmoked",
+    "claimId": "dancong:aromas",
+    "pageId": "dancong",
+    "sectionKey": "aromas",
+    "label": "Aroma types",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "phoenix mountain"
+      ]
+    },
+    "terms": [
+      {
+        "original": "香型",
+        "pinyin": "xiāngxíng",
+        "gloss": "aroma type"
+      }
+    ],
+    "rev": 1,
+    "scope": "Phoenix Dancong style kit",
+    "text": "Dancong is sorted and sold by its aroma type, named for a flower, fruit or spice the scent recalls. The scent comes from the bush and the making, not from anything added: an orchid or almond Dancong names a smell, not an ingredient. The trade speaks of the ten aroma types. Nine names turn up in every full list: Huangzhi, yellow sprig; Zhilan, orchid; Milan, honey orchid; Yulan, magnolia; Xingren, almond; Jianghua, ginger flower; Guihua, osmanthus; Yelai, night-blooming flower; and Rougui, cinnamon. The tenth is most often jasmine.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Phoenix Dancong style kit",
+        "text": "Dancong is sorted and sold by its aroma type, named for a flower, fruit or spice the scent recalls. The scent comes from the bush and the making, not from anything added: an orchid or almond Dancong names a smell, not an ingredient. The trade speaks of the ten aroma types. Nine names turn up in every full list: Huangzhi, yellow sprig; Zhilan, orchid; Milan, honey orchid; Yulan, magnolia; Xingren, almond; Jianghua, ginger flower; Guihua, osmanthus; Yelai, night-blooming flower; and Rougui, cinnamon. The tenth is most often jasmine.",
+        "approvedAt": "2026-11-25",
+        "reason": "Adrian approved the Phoenix Dancong kit 2026-11-25",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "dancong:brewing",
+    "pageId": "dancong",
+    "sectionKey": "brewing",
+    "label": "Brewing Dancong",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "phoenix mountain"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Phoenix Dancong style kit",
+    "text": "Brew it gongfu style in a small gaiwan or clay pot, with about 3 to 8 grams for 100 to 120 ml and hot water, about 88 to 100°C; Chinese accounts mostly say 95 to 100°C. A quick rinse is common. Steeps start at a few seconds and grow a few seconds each round, and a good Dancong gives about eight to fifteen. Too long, too hot or too much leaf and it turns bitter and astringent.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Phoenix Dancong style kit",
+        "text": "Brew it gongfu style in a small gaiwan or clay pot, with about 3 to 8 grams for 100 to 120 ml and hot water, about 88 to 100°C; Chinese accounts mostly say 95 to 100°C. A quick rinse is common. Steeps start at a few seconds and grow a few seconds each round, and a good Dancong gives about eight to fifteen. Too long, too hot or too much leaf and it turns bitter and astringent.",
+        "approvedAt": "2026-11-25",
+        "reason": "Adrian approved the Phoenix Dancong kit 2026-11-25",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "dancong:common-impressions",
+    "pageId": "dancong",
+    "sectionKey": "common-impressions",
+    "label": "What people often notice",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "phoenix mountain"
+      ]
+    },
+    "terms": [
+      {
+        "original": "山韵",
+        "pinyin": "shān yùn",
+        "gloss": "mountain rhyme"
+      }
+    ],
+    "rev": 1,
+    "scope": "Phoenix Dancong style kit",
+    "text": "Flowers above all, a sweetness that comes back after swallowing, a high scent that lasts, honey, often ripe fruit such as peach, and what the trade calls mountain rhyme, shan yun; a liquor from golden to orange-red or amber.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Phoenix Dancong style kit",
+        "text": "Flowers above all, a sweetness that comes back after swallowing, a high scent that lasts, honey, often ripe fruit such as peach, and what the trade calls mountain rhyme, shan yun; a liquor from golden to orange-red or amber.",
+        "approvedAt": "2026-11-25",
+        "reason": "Adrian approved the Phoenix Dancong kit 2026-11-25",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "dancong:definition",
+    "pageId": "dancong",
+    "sectionKey": "definition",
+    "label": "What Phoenix Dancong is",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "phoenix mountain"
+      ]
+    },
+    "terms": [
+      {
+        "original": "凤凰单丛",
+        "pinyin": "fènghuáng dāncóng",
+        "gloss": "Phoenix single bush"
+      },
+      {
+        "original": "乌岽",
+        "pinyin": "wūdōng",
+        "gloss": "Wudong peak"
+      }
+    ],
+    "rev": 1,
+    "scope": "Phoenix Dancong style kit",
+    "text": "Phoenix Dancong is the oolong of Phoenix Mountain, Fenghuang Shan, in Chao'an, Chaozhou, in eastern Guangdong. Wudong is the peak named most often as its heart. The dry leaf is a long strip, twisted tight, dark and glossy, not rolled into a ball.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Phoenix Dancong style kit",
+        "text": "Phoenix Dancong is the oolong of Phoenix Mountain, Fenghuang Shan, in Chao'an, Chaozhou, in eastern Guangdong. Wudong is the peak named most often as its heart. The dry leaf is a long strip, twisted tight, dark and glossy, not rolled into a ball.",
+        "approvedAt": "2026-11-25",
+        "reason": "Adrian approved the Phoenix Dancong kit 2026-11-25",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "dancong:history",
+    "pageId": "dancong",
+    "sectionKey": "history",
+    "label": "The local tea",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "phoenix mountain"
+      ]
+    },
+    "terms": [
+      {
+        "original": "潮州工夫茶",
+        "pinyin": "cháozhōu gōngfu chá",
+        "gloss": "Chaozhou gongfu tea"
+      }
+    ],
+    "rev": 1,
+    "scope": "Phoenix Dancong style kit",
+    "text": "The old tea of the mountain was called bird-beak tea, and later Shuixian. Dancong is the everyday tea of Chaozhou, and gongfu brewing is tied to Chaozhou, where Chaozhou gongfu tea is still made with small vessels, set ways of pouring, and three cups.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Phoenix Dancong style kit",
+        "text": "The old tea of the mountain was called bird-beak tea, and later Shuixian. Dancong is the everyday tea of Chaozhou, and gongfu brewing is tied to Chaozhou, where Chaozhou gongfu tea is still made with small vessels, set ways of pouring, and three cups.",
+        "approvedAt": "2026-11-25",
+        "reason": "Adrian approved the Phoenix Dancong kit 2026-11-25",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "dancong:making",
+    "pageId": "dancong",
+    "sectionKey": "making",
+    "label": "How Dancong is made",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "phoenix mountain"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Phoenix Dancong style kit",
+    "text": "The leaf is withered in the sun and cooled indoors, then shaken and rested in rounds; this is the step that bruises the leaf edge and builds the scent. It is fixed fast at high heat in a hot pan or drum, rolled into strips, dried, and roasted again as it is refined, sometimes over more than one round. Charcoal is the traditional fire. The roast is a main difference between teas: a light roast keeps the floral scent bright, a heavier one gives a deeper, sweeter cup with caramel in it.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Phoenix Dancong style kit",
+        "text": "The leaf is withered in the sun and cooled indoors, then shaken and rested in rounds; this is the step that bruises the leaf edge and builds the scent. It is fixed fast at high heat in a hot pan or drum, rolled into strips, dried, and roasted again as it is refined, sometimes over more than one round. Charcoal is the traditional fire. The roast is a main difference between teas: a light roast keeps the floral scent bright, a heavier one gives a deeper, sweeter cup with caramel in it.",
+        "approvedAt": "2026-11-25",
+        "reason": "Adrian approved the Phoenix Dancong kit 2026-11-25",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "dancong:mi-lan-xiang",
+    "pageId": "dancong",
+    "sectionKey": "mi-lan-xiang",
+    "label": "Mi Lan Xiang",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "phoenix mountain"
+      ],
+      "name_includes": [
+        "mi",
+        "lan"
+      ]
+    },
+    "terms": [
+      {
+        "original": "蜜兰香",
+        "pinyin": "mìlán xiāng",
+        "gloss": "honey orchid aroma"
+      }
+    ],
+    "rev": 1,
+    "scope": "Phoenix Dancong style kit",
+    "text": "Mi Lan Xiang, honey orchid, is one of the traditional ten aroma types and one of the most widely made, often named as a good first Dancong. It is described as honey-sweet with an orchid scent, with a cooked sweet potato note, and a liquor from golden amber to orange-red, depending on the roast. The one name covers a range of teas.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Phoenix Dancong style kit",
+        "text": "Mi Lan Xiang, honey orchid, is one of the traditional ten aroma types and one of the most widely made, often named as a good first Dancong. It is described as honey-sweet with an orchid scent, with a cooked sweet potato note, and a liquor from golden amber to orange-red, depending on the roast. The one name covers a range of teas.",
+        "approvedAt": "2026-11-25",
+        "reason": "Adrian approved the Phoenix Dancong kit 2026-11-25",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "dancong:name",
+    "pageId": "dancong",
+    "sectionKey": "name",
+    "label": "Single bush",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "phoenix mountain"
+      ]
+    },
+    "terms": [
+      {
+        "original": "单丛",
+        "pinyin": "dāncóng",
+        "gloss": "single bush"
+      },
+      {
+        "original": "单枞",
+        "pinyin": "dāncōng",
+        "gloss": "single bush, other spelling"
+      }
+    ],
+    "rev": 1,
+    "scope": "Phoenix Dancong style kit",
+    "text": "Dancong means single bush: the leaf of one bush picked and made on its own, never mixed with others. The bushes are chosen from the old Phoenix Shuixian plants of the mountain. Today a named Dancong is mostly grown from cuttings or grafts of a chosen bush, so one name no longer means one tree, though some very old trees are still made on their own.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Phoenix Dancong style kit",
+        "text": "Dancong means single bush: the leaf of one bush picked and made on its own, never mixed with others. The bushes are chosen from the old Phoenix Shuixian plants of the mountain. Today a named Dancong is mostly grown from cuttings or grafts of a chosen bush, so one name no longer means one tree, though some very old trees are still made on their own.",
+        "approvedAt": "2026-11-25",
+        "reason": "Adrian approved the Phoenix Dancong kit 2026-11-25",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "dancong:old-bushes",
+    "pageId": "dancong",
+    "sectionKey": "old-bushes",
+    "label": "Old bushes and Song tea",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "phoenix mountain"
+      ]
+    },
+    "terms": [
+      {
+        "original": "老丛",
+        "pinyin": "lǎocóng",
+        "gloss": "old bush"
+      },
+      {
+        "original": "宋种",
+        "pinyin": "sòngzhǒng",
+        "gloss": "Song variety"
+      }
+    ],
+    "rev": 1,
+    "scope": "Phoenix Dancong style kit",
+    "text": "Old bushes, laocong, are prized for depth and a lasting sweetness, and give little leaf; no age is agreed for when a bush counts as old. Song variety, songzhong, is a market label for the oldest named lines, Huangzhi above all, not a proven age. A legend gives the old trees their name: the last Song emperor, fleeing as a boy, was given tea on the mountain by a phoenix.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Phoenix Dancong style kit",
+        "text": "Old bushes, laocong, are prized for depth and a lasting sweetness, and give little leaf; no age is agreed for when a bush counts as old. Song variety, songzhong, is a market label for the oldest named lines, Huangzhi above all, not a proven age. A legend gives the old trees their name: the last Song emperor, fleeing as a boy, was given tea on the mountain by a phoenix.",
+        "approvedAt": "2026-11-25",
+        "reason": "Adrian approved the Phoenix Dancong kit 2026-11-25",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "dancong:ya-shi-xiang",
+    "pageId": "dancong",
+    "sectionKey": "ya-shi-xiang",
+    "label": "Ya Shi Xiang",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "phoenix mountain"
+      ],
+      "name_any": [
+        "ya",
+        "duck"
+      ]
+    },
+    "terms": [
+      {
+        "original": "鸭屎香",
+        "pinyin": "yā shǐ xiāng",
+        "gloss": "duck dung aroma"
+      },
+      {
+        "original": "银花香",
+        "pinyin": "yínhuā xiāng",
+        "gloss": "silver flower aroma"
+      }
+    ],
+    "rev": 1,
+    "scope": "Phoenix Dancong style kit",
+    "text": "Ya Shi Xiang, duck dung aroma, is the market name for a very floral Dancong, and most lists of the ten leave it out even though it sells widely. It is also called Yinhua Xiang, silver flower or honeysuckle aroma, a name put forward in 2014 for a scent likened to the wild honeysuckle of the mountain; many sellers keep the old name. Its line is traced to Pingkengtou village. Three stories explain the name, all told as stories: that it was chosen to put thieves off the bush, that it comes from the yellow local soil called duck dung soil, and that duck droppings lay on the bush. The tea tastes nothing like its name: every account of the cup gives flowers, usually with milk or cream, honey or fruit.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Phoenix Dancong style kit",
+        "text": "Ya Shi Xiang, duck dung aroma, is the market name for a very floral Dancong, and most lists of the ten leave it out even though it sells widely. It is also called Yinhua Xiang, silver flower or honeysuckle aroma, a name put forward in 2014 for a scent likened to the wild honeysuckle of the mountain; many sellers keep the old name. Its line is traced to Pingkengtou village. Three stories explain the name, all told as stories: that it was chosen to put thieves off the bush, that it comes from the yellow local soil called duck dung soil, and that duck droppings lay on the bush. The tea tastes nothing like its name: every account of the cup gives flowers, usually with milk or cream, honey or fruit.",
+        "approvedAt": "2026-11-25",
+        "reason": "Adrian approved the Phoenix Dancong kit 2026-11-25",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "dark:ageing",
+    "pageId": "dark",
+    "sectionKey": "ageing",
+    "label": "Dark tea and age",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Dark"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Dark tea in general",
+    "text": "Dark tea is made to be kept, and the trade values it more with age. Over years it turns darker and redder in the cup and grows mellower and sweeter. How fast it changes depends on how it is stored, and the trade does not agree on one way: some keep it cool and dry for a slow, clean change, others warmer and more humid for a faster, deeper one. When a tea counts as young or aged differs from style to style, so each style sets its own measure.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Dark tea in general",
+        "text": "Dark tea is made to be kept, and the trade values it more with age. Over years it turns darker and redder in the cup and grows mellower and sweeter. How fast it changes depends on how it is stored, and the trade does not agree on one way: some keep it cool and dry for a slow, clean change, others warmer and more humid for a faster, deeper one. When a tea counts as young or aged differs from style to style, so each style sets its own measure.",
+        "approvedAt": "2026-11-24",
+        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "dark:brewing",
+    "pageId": "dark",
+    "sectionKey": "brewing",
+    "label": "Brewing dark tea",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Dark"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Dark tea in general",
+    "text": "Dark tea takes boiling water. Its leaf is mature and dense, so it gives up its flavour slowly and is hard to overbrew. Rinse it first with boiling water and pour that off within seconds: the rinse wakes the leaf and washes off dust and any stale smell from storage, and an old tea may take a second rinse. In a small pot use plenty of leaf, about 7 grams to 120 ml, then steep very briefly at first and a little longer each time; a good dark tea gives many cups.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Dark tea in general",
+        "text": "Dark tea takes boiling water. Its leaf is mature and dense, so it gives up its flavour slowly and is hard to overbrew. Rinse it first with boiling water and pour that off within seconds: the rinse wakes the leaf and washes off dust and any stale smell from storage, and an old tea may take a second rinse. In a small pot use plenty of leaf, about 7 grams to 120 ml, then steep very briefly at first and a little longer each time; a good dark tea gives many cups.",
+        "approvedAt": "2026-11-24",
+        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "dark:brewing-pressed",
+    "pageId": "dark",
+    "sectionKey": "brewing-pressed",
+    "label": "Breaking a pressed dark tea",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Dark"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Dark tea in general",
+    "text": "From a brick, cake or basket, ease the leaf off along the edge or from the top with a pick rather than snapping it. Whole pieces give up their flavour steadily; crumbs release it all at once and cloud the cup.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Dark tea in general",
+        "text": "From a brick, cake or basket, ease the leaf off along the edge or from the top with a pick rather than snapping it. Whole pieces give up their flavour steadily; crumbs release it all at once and cloud the cup.",
+        "approvedAt": "2026-11-24",
+        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "dark:brewing-simmer",
+    "pageId": "dark",
+    "sectionKey": "brewing-simmer",
+    "label": "Simmering older dark tea",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Dark"
+    },
+    "terms": [
+      {
+        "original": "煮",
+        "pinyin": "zhǔ",
+        "gloss": "simmering"
+      }
+    ],
+    "rev": 1,
+    "scope": "Dark tea in general",
+    "text": "Older or coarse dark tea is often simmered rather than steeped: the leaf goes into a pot of water, comes to a gentle boil and simmers for a few minutes. Thick leaf and long-aged tea release their flavour slowly, and the steady heat gives a fuller, smoother cup than short steeps do.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Dark tea in general",
+        "text": "Older or coarse dark tea is often simmered rather than steeped: the leaf goes into a pot of water, comes to a gentle boil and simmers for a few minutes. Thick leaf and long-aged tea release their flavour slowly, and the steady heat gives a fuller, smoother cup than short steeps do.",
+        "approvedAt": "2026-11-24",
+        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "dark:common-impressions",
+    "pageId": "dark",
+    "sectionKey": "common-impressions",
+    "label": "What people often notice",
+    "axis": "sensory_observation",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Dark"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Dark tea in general",
+    "text": "A smooth, mellow cup with low bitterness and a deep red colour, often sweet and woody or earthy, sometimes with herbal or medicinal notes. A young dark tea can still smell of the pile or of storage; an aged one is usually redder, sweeter and thicker.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Dark tea in general",
+        "text": "A smooth, mellow cup with low bitterness and a deep red colour, often sweet and woody or earthy, sometimes with herbal or medicinal notes. A young dark tea can still smell of the pile or of storage; an aged one is usually redder, sweeter and thicker.",
+        "approvedAt": "2026-11-24",
+        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "dark:definition",
+    "pageId": "dark",
+    "sectionKey": "definition",
+    "label": "What dark tea is",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Dark"
+    },
+    "terms": [
+      {
+        "original": "黑茶",
+        "pinyin": "hēi chá",
+        "gloss": "dark tea"
+      }
+    ],
+    "rev": 1,
+    "scope": "Dark tea in general",
+    "text": "Dark tea is Chinese tea whose leaf, after it is heated and rolled, is left to change in warmth and moisture, where microbes and the leaf’s own chemistry slowly darken and mellow it. Because that change comes after the leaf is made, the trade calls it post-fermented. In Chinese it is hei cha, “black tea”, which is not the English black tea; that tea is red tea, hong cha, in Chinese.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Dark tea in general",
+        "text": "Dark tea is Chinese tea whose leaf, after it is heated and rolled, is left to change in warmth and moisture, where microbes and the leaf’s own chemistry slowly darken and mellow it. Because that change comes after the leaf is made, the trade calls it post-fermented. In Chinese it is hei cha, “black tea”, which is not the English black tea; that tea is red tea, hong cha, in Chinese.",
+        "approvedAt": "2026-11-24",
+        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "dark:history",
+    "pageId": "dark",
+    "sectionKey": "history",
+    "label": "How the trade grew",
+    "axis": "process",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Dark"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Dark tea in general",
+    "text": "The first records of dark tea by name are from the Ming dynasty, in Hunan around Anhua and in Sichuan, and in the late Ming it became a state-managed tea sent to the north-west in exchange for horses. In the Qing dynasty merchants carried the craft to more regions and more shapes, and some styles were made for new markets: Guangxi’s Liu Bao, for one, went to the tin mines of Southeast Asia. In the twentieth century state factories took over much of the making and settled the brick shapes that are sold today.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Dark tea in general",
+        "text": "The first records of dark tea by name are from the Ming dynasty, in Hunan around Anhua and in Sichuan, and in the late Ming it became a state-managed tea sent to the north-west in exchange for horses. In the Qing dynasty merchants carried the craft to more regions and more shapes, and some styles were made for new markets: Guangxi’s Liu Bao, for one, went to the tin mines of Southeast Asia. In the twentieth century state factories took over much of the making and settled the brick shapes that are sold today.",
+        "approvedAt": "2026-11-24",
+        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "dark:making",
+    "pageId": "dark",
+    "sectionKey": "making",
+    "label": "How dark tea is made",
+    "axis": "process",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Dark"
+    },
+    "terms": [
+      {
+        "original": "渥堆",
+        "pinyin": "wò duī",
+        "gloss": "piling"
+      }
+    ],
+    "rev": 1,
+    "scope": "Dark tea in general",
+    "text": "Most dark tea shares four steps, each with a reason. The leaf is heated first, the kill-green, to stop its own enzymes from browning it; coarse leaf is often sprinkled with a little water so it heats evenly. It is rolled gently, because the large, mature leaf used for dark tea is tough and breaks if it is worked hard. It is then piled, and in the pile warmth, moisture and microbes do the darkening and mellowing, so the heap is turned to keep its heat in range. Finally it is dried, which stops the change and makes the tea stable enough to keep. Many styles then steam the leaf and press it, or pack it into baskets, and let it age.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Dark tea in general",
+        "text": "Most dark tea shares four steps, each with a reason. The leaf is heated first, the kill-green, to stop its own enzymes from browning it; coarse leaf is often sprinkled with a little water so it heats evenly. It is rolled gently, because the large, mature leaf used for dark tea is tough and breaks if it is worked hard. It is then piled, and in the pile warmth, moisture and microbes do the darkening and mellowing, so the heap is turned to keep its heat in range. Finally it is dried, which stops the change and makes the tea stable enough to keep. Many styles then steam the leaf and press it, or pack it into baskets, and let it age.",
+        "approvedAt": "2026-11-24",
+        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "dark:why",
+    "pageId": "dark",
+    "sectionKey": "why",
+    "label": "Why it was made",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Dark"
+    },
+    "terms": [
+      {
+        "original": "边销茶",
+        "pinyin": "biān xiāo chá",
+        "gloss": "border tea"
+      }
+    ],
+    "rev": 1,
+    "scope": "Dark tea in general",
+    "text": "Dark tea was made for people who lived far from where tea grows: Tibet, Mongolia, China’s north-west and, later, Central Asia and Russia. The trade called it border tea. The tea had to survive months on the road, so it was pressed into bricks, cakes and logs, or packed tight in baskets. A dense, even shape is easier to carry, stack and strap to a pack animal, and it keeps better than loose leaf. Some dark tea is still sold loose.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Dark tea in general",
+        "text": "Dark tea was made for people who lived far from where tea grows: Tibet, Mongolia, China’s north-west and, later, Central Asia and Russia. The trade called it border tea. The tea had to survive months on the road, so it was pressed into bricks, cakes and logs, or packed tight in baskets. A dense, even shape is easier to carry, stack and strap to a pack animal, and it keeps better than loose leaf. Some dark tea is still sold loose.",
+        "approvedAt": "2026-11-24",
+        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "dian-hong:ageing",
+    "pageId": "dian-hong",
+    "sectionKey": "ageing",
+    "label": "Keeping Dian Hong",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Red",
+      "origin_includes": [
+        "yunnan"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "All red tea; Dian Hong where the origin is Yunnan",
+    "text": "Dian Hong changes in storage, but the trade treats it as best in its first one to three years. It is kept for freshness rather than for age.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "All red tea; Dian Hong where the origin is Yunnan",
+        "text": "Dian Hong changes in storage, but the trade treats it as best in its first one to three years. It is kept for freshness rather than for age.",
+        "approvedAt": "2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 15)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "dian-hong:brewing",
+    "pageId": "dian-hong",
+    "sectionKey": "brewing",
+    "label": "Brewing Dian Hong",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Red",
+      "origin_includes": [
+        "yunnan"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "All red tea; Dian Hong where the origin is Yunnan",
+    "text": "Dian Hong takes hot water, roughly 90 to 100°C. A common start is about 5 grams to 100 ml, with short steeps that lengthen slowly as the leaf opens.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "All red tea; Dian Hong where the origin is Yunnan",
+        "text": "Dian Hong takes hot water, roughly 90 to 100°C. A common start is about 5 grams to 100 ml, with short steeps that lengthen slowly as the leaf opens.",
+        "approvedAt": "2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 15)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "dian-hong:common-impressions",
+    "pageId": "dian-hong",
+    "sectionKey": "common-impressions",
+    "label": "What people often notice",
+    "axis": "sensory_observation",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Red",
+      "origin_includes": [
+        "yunnan"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "All red tea; Dian Hong where the origin is Yunnan",
+    "text": "A full, sweet cup, often described as malty, with chocolate or cocoa and honey notes and sometimes something floral. The liquor runs golden to bright red, and a good grade has little bitterness.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "All red tea; Dian Hong where the origin is Yunnan",
+        "text": "A full, sweet cup, often described as malty, with chocolate or cocoa and honey notes and sometimes something floral. The liquor runs golden to bright red, and a good grade has little bitterness.",
+        "approvedAt": "2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 15)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "dian-hong:definition",
+    "pageId": "dian-hong",
+    "sectionKey": "definition",
+    "label": "What Dian Hong is",
     "axis": "type",
     "basis": "trade_knowledge",
     "listingEligible": true,
     "appliesWhen": {
       "type": "Red",
       "origin_includes": [
-        "wuyi mountains"
-      ],
-      "name_any": [
-        "lapsang",
-        "zhengshan"
+        "yunnan"
       ]
     },
     "terms": [
       {
-        "original": "松烟",
-        "pinyin": "sōngyān",
-        "gloss": "pine smoke"
-      },
-      {
-        "original": "青楼",
-        "pinyin": "qīnglóu",
-        "gloss": "drying house"
-      },
-      {
-        "original": "桂圆",
-        "pinyin": "guìyuán",
-        "gloss": "longan"
+        "original": "滇红",
+        "pinyin": "diān hóng",
+        "gloss": "Yunnan red"
       }
     ],
     "rev": 1,
-    "scope": "Lapsang and Wuyi red style kit",
-    "text": "The traditional tea is dried over a fire of local pine, and the pine smoke gives it its main aroma, with longan fruit said to sit in the same note. The work is done in a qinglou, a wooden house of several floors with the fire at the bottom and the leaf on bamboo mats above, so the heat and smoke rise through the leaf. The strongly smoked style was made for export and never took hold in China. An unsmoked Tongmu red tea now sits beside it, built up from about 2005 and made widely for the Chinese market. Cheap Lapsang from outside Tongmu is often flavoured or smoked by a shortcut rather than made in a qinglou.",
+    "scope": "All red tea; Dian Hong where the origin is Yunnan",
+    "text": "Dian Hong is red tea from Yunnan, made from the province’s large-leaf tea trees. Its home is Fengqing County in Lincang, in the south-west of the province, and it is also made in other parts of Lincang and in Menghai, Pu’er, Baoshan and Dehong. Golden buds through the dry leaf are the mark of the style.",
     "sourceIds": [],
     "reviewState": "approved",
     "previousRevisions": [
       {
         "rev": 1,
         "origin": "approved",
-        "scope": "Lapsang and Wuyi red style kit",
-        "text": "The traditional tea is dried over a fire of local pine, and the pine smoke gives it its main aroma, with longan fruit said to sit in the same note. The work is done in a qinglou, a wooden house of several floors with the fire at the bottom and the leaf on bamboo mats above, so the heat and smoke rise through the leaf. The strongly smoked style was made for export and never took hold in China. An unsmoked Tongmu red tea now sits beside it, built up from about 2005 and made widely for the Chinese market. Cheap Lapsang from outside Tongmu is often flavoured or smoked by a shortcut rather than made in a qinglou.",
+        "scope": "All red tea; Dian Hong where the origin is Yunnan",
+        "text": "Dian Hong is red tea from Yunnan, made from the province’s large-leaf tea trees. Its home is Fengqing County in Lincang, in the south-west of the province, and it is also made in other parts of Lincang and in Menghai, Pu’er, Baoshan and Dehong. Golden buds through the dry leaf are the mark of the style.",
         "approvedAt": "2026-11-24",
-        "reason": "Adrian approved the Lapsang and Wuyi red kit 2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 15)",
         "evidenceIds": []
       }
     ],
     "pageVisibility": "public"
   },
   {
-    "claimId": "lincang:common-character",
-    "pageId": "lincang",
-    "sectionKey": "common-character",
-    "label": "A broad regional tendency",
-    "axis": "sensory_observation",
-    "basis": "sourced",
-    "listingEligible": false,
-    "appliesWhen": {},
-    "attribution": {
-      "sourceId": "teadb-lincang",
-      "sourceRole": "specialist_editorial",
-      "sample": "Regional convention reported in specialist writing about Lincang"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Lincang",
-    "text": "Young single-origin Lincang sheng is often described as green, firm, and bitter. This reputation is useful as a starting point only: Lincang is a large prefecture, and material from its counties, mountains, and villages should not be collapsed into one tasting profile.",
-    "sourceIds": [
-      "teadb-lincang"
-    ],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Lincang",
-        "text": "Young single-origin Lincang sheng is often described as green, firm, and bitter. This reputation is useful as a starting point only: Lincang is a large prefecture, and material from its counties, mountains, and villages should not be collapsed into one tasting profile.",
-        "approvedAt": "2026-11-23",
-        "reason": "Backfilled from pages",
-        "evidenceIds": [
-          "EVIDENCE-CBE676D28C6D93BEE45434D4"
-        ]
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "lincang:history",
-    "pageId": "lincang",
+    "claimId": "dian-hong:history",
+    "pageId": "dian-hong",
     "sectionKey": "history",
-    "label": "History beyond single origins",
-    "axis": "place",
-    "basis": "sourced",
-    "listingEligible": false,
-    "appliesWhen": {},
-    "terms": [],
-    "rev": 1,
-    "scope": "Lincang",
-    "text": "Lincang has a smaller public archive of famous aged single-origin teas than Yiwu or Menghai. Older blended productions, especially those associated with Xiaguan, nevertheless provide a historical thread, even when the exact origin of their base material cannot be reconstructed.",
-    "sourceIds": [
-      "teadb-lincang"
-    ],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Lincang",
-        "text": "Lincang has a smaller public archive of famous aged single-origin teas than Yiwu or Menghai. Older blended productions, especially those associated with Xiaguan, nevertheless provide a historical thread, even when the exact origin of their base material cannot be reconstructed.",
-        "approvedAt": "2026-11-23",
-        "reason": "Backfilled from pages",
-        "evidenceIds": [
-          "EVIDENCE-84EA37140299AE04597C39E4"
-        ]
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "lincang:scope",
-    "pageId": "lincang",
-    "sectionKey": "scope",
-    "label": "Northern Pu’er country",
-    "axis": "place",
-    "basis": "sourced",
-    "listingEligible": false,
-    "appliesWhen": {},
-    "terms": [],
-    "rev": 1,
-    "scope": "Lincang",
-    "text": "Lincang lies north of Pu’er Prefecture and against Myanmar to the west. Its tea geography includes Mengku, Yongde, Fengqing, Bangdong, Bingdao, and Xigui, with repeated place names such as Daxueshan making precise labels especially important.",
-    "sourceIds": [
-      "teadb-lincang"
-    ],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Lincang",
-        "text": "Lincang lies north of Pu’er Prefecture and against Myanmar to the west. Its tea geography includes Mengku, Yongde, Fengqing, Bangdong, Bingdao, and Xigui, with repeated place names such as Daxueshan making precise labels especially important.",
-        "approvedAt": "2026-11-23",
-        "reason": "Backfilled from pages",
-        "evidenceIds": [
-          "EVIDENCE-4F088D1E4FC6C3B3B00588A1"
-        ]
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "liu-an:ageing",
-    "pageId": "liu-an",
-    "sectionKey": "ageing",
-    "label": "Keeping and ageing Liu An",
-    "axis": "type",
+    "label": "How Dian Hong began",
+    "axis": "process",
     "basis": "trade_knowledge",
-    "listingEligible": true,
+    "listingEligible": false,
     "appliesWhen": {
-      "type": "Dark",
+      "type": "Red",
       "origin_includes": [
-        "anhui"
+        "yunnan"
       ]
     },
     "terms": [],
     "rev": 1,
-    "scope": "Liu An basket tea style kit",
-    "text": "Liu An is said to improve with years in its basket, turning mellower, rounder and redder in the cup. Young tea has an edge of charcoal or smoke that settles with age. Keep it dry, clean, away from smells and direct sun, in wrapping that breathes, not sealed airtight.",
+    "scope": "All red tea; Dian Hong where the origin is Yunnan",
+    "text": "When the war cut China off from its eastern tea regions, the country needed a new red tea to sell abroad, and the national tea company looked to Yunnan’s large leaf. Feng Shaoqiu reached Shunning, now Fengqing, in late 1938 and made a trial batch from one bud and two leaves. An experimental factory followed there in 1939, the start of today’s Fengqing factory. For decades nearly all Dian Hong went abroad; it was sold widely at home only from the 1980s.",
     "sourceIds": [],
     "reviewState": "approved",
     "previousRevisions": [
       {
         "rev": 1,
         "origin": "approved",
-        "scope": "Liu An basket tea style kit",
-        "text": "Liu An is said to improve with years in its basket, turning mellower, rounder and redder in the cup. Young tea has an edge of charcoal or smoke that settles with age. Keep it dry, clean, away from smells and direct sun, in wrapping that breathes, not sealed airtight.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the Liu An basket tea kit 2026-11-25",
+        "scope": "All red tea; Dian Hong where the origin is Yunnan",
+        "text": "When the war cut China off from its eastern tea regions, the country needed a new red tea to sell abroad, and the national tea company looked to Yunnan’s large leaf. Feng Shaoqiu reached Shunning, now Fengqing, in late 1938 and made a trial batch from one bud and two leaves. An experimental factory followed there in 1939, the start of today’s Fengqing factory. For decades nearly all Dian Hong went abroad; it was sold widely at home only from the 1980s.",
+        "approvedAt": "2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 15)",
         "evidenceIds": []
       }
     ],
     "pageVisibility": "public"
   },
   {
-    "claimId": "liu-an:basket",
-    "pageId": "liu-an",
-    "sectionKey": "basket",
-    "label": "The basket and its tickets",
+    "claimId": "dian-hong:large-leaf",
+    "pageId": "dian-hong",
+    "sectionKey": "large-leaf",
+    "label": "Why the large leaf matters",
     "axis": "type",
     "basis": "trade_knowledge",
-    "listingEligible": true,
+    "listingEligible": false,
     "appliesWhen": {
-      "type": "Dark",
+      "type": "Red",
       "origin_includes": [
-        "anhui"
+        "yunnan"
       ]
     },
     "terms": [
       {
-        "original": "箬叶",
-        "pinyin": "ruò yè",
-        "gloss": "bamboo leaf lining"
-      },
-      {
-        "original": "茶票",
-        "pinyin": "chá piào",
-        "gloss": "tea ticket"
-      },
-      {
-        "original": "孙义顺",
-        "pinyin": "sūn yì shùn",
-        "gloss": "Sun Yi Shun"
+        "original": "金毫",
+        "pinyin": "jīn háo",
+        "gloss": "golden buds"
       }
     ],
     "rev": 1,
-    "scope": "Liu An basket tea style kit",
-    "text": "The tea is packed into woven bamboo baskets lined with bamboo leaf, from about 250 to 600 grams each, several tied into a bundle. The leaf lining gives the tea a bamboo note that sellers liken to rice dumplings, and drinkers keep the leaves to brew a small piece with the tea. Old baskets carry printed paper tickets naming the firm, which collectors use to tell editions and fakes apart. Sun Yi Shun is the best-known old firm, but modern baskets carry the name too, so the name alone does not date a basket.",
+    "scope": "All red tea; Dian Hong where the origin is Yunnan",
+    "text": "Yunnan’s large-leaf trees give a plump leaf with many buds, and a strong cup. The trade ties that strength to the leaf’s high polyphenol content, which is also why Dian Hong stands up to milk. The buds turn golden as the tea is made, so a tea heavy in buds shows more gold.",
     "sourceIds": [],
     "reviewState": "approved",
     "previousRevisions": [
       {
         "rev": 1,
         "origin": "approved",
-        "scope": "Liu An basket tea style kit",
-        "text": "The tea is packed into woven bamboo baskets lined with bamboo leaf, from about 250 to 600 grams each, several tied into a bundle. The leaf lining gives the tea a bamboo note that sellers liken to rice dumplings, and drinkers keep the leaves to brew a small piece with the tea. Old baskets carry printed paper tickets naming the firm, which collectors use to tell editions and fakes apart. Sun Yi Shun is the best-known old firm, but modern baskets carry the name too, so the name alone does not date a basket.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the Liu An basket tea kit 2026-11-25",
+        "scope": "All red tea; Dian Hong where the origin is Yunnan",
+        "text": "Yunnan’s large-leaf trees give a plump leaf with many buds, and a strong cup. The trade ties that strength to the leaf’s high polyphenol content, which is also why Dian Hong stands up to milk. The buds turn golden as the tea is made, so a tea heavy in buds shows more gold.",
+        "approvedAt": "2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 15)",
         "evidenceIds": []
       }
     ],
     "pageVisibility": "public"
   },
   {
-    "claimId": "liu-an:brewing",
-    "pageId": "liu-an",
-    "sectionKey": "brewing",
-    "label": "Brewing Liu An",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "anhui"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Liu An basket tea style kit",
-    "text": "Use water at or near the boil, rinse the leaf quickly, and keep the steeps short, each a little longer than the last, in a gaiwan or clay pot; doses run from about 3 to 8 grams for 100 ml, for six to ten or more steeps. A small piece of the basket's bamboo leaf is often brewed with it. Aged tea can also be simmered in a larger pot, about 1 gram to 200 to 300 ml, for a few minutes or longer.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Liu An basket tea style kit",
-        "text": "Use water at or near the boil, rinse the leaf quickly, and keep the steeps short, each a little longer than the last, in a gaiwan or clay pot; doses run from about 3 to 8 grams for 100 ml, for six to ten or more steeps. A small piece of the basket's bamboo leaf is often brewed with it. Aged tea can also be simmered in a larger pot, about 1 gram to 200 to 300 ml, for a few minutes or longer.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the Liu An basket tea kit 2026-11-25",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "liu-an:common-impressions",
-    "pageId": "liu-an",
-    "sectionKey": "common-impressions",
-    "label": "What people often notice",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "anhui"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Liu An basket tea style kit",
-    "text": "Bamboo leaf above all, herbal or medicinal notes, a sweetness that returns after swallowing, a cooling feel in the mouth and throat, and a smooth, thick cup with little bitterness; young tea shows some smoke or charcoal, and the liquor runs from orange-gold to red.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Liu An basket tea style kit",
-        "text": "Bamboo leaf above all, herbal or medicinal notes, a sweetness that returns after swallowing, a cooling feel in the mouth and throat, and a smooth, thick cup with little bitterness; young tea shows some smoke or charcoal, and the liquor runs from orange-gold to red.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the Liu An basket tea kit 2026-11-25",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "liu-an:definition",
-    "pageId": "liu-an",
-    "sectionKey": "definition",
-    "label": "What Liu An basket tea is",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "anhui"
-      ]
-    },
-    "terms": [
-      {
-        "original": "六安篓茶",
-        "pinyin": "liù ān lǒu chá",
-        "gloss": "Liu An basket tea"
-      },
-      {
-        "original": "安茶",
-        "pinyin": "ān chá",
-        "gloss": "An tea"
-      },
-      {
-        "original": "祁门",
-        "pinyin": "qímén",
-        "gloss": "Qimen"
-      },
-      {
-        "original": "六安瓜片",
-        "pinyin": "liù ān guāpiàn",
-        "gloss": "Liu An Gua Pian"
-      }
-    ],
-    "rev": 1,
-    "scope": "Liu An basket tea style kit",
-    "text": "Liu An basket tea is a dark tea packed into small bamboo baskets and kept for years. Despite its name it is made in Qimen County in southern Anhui, around Luxi and Rongkou, not in Lu'an, from the local small-leaf Qimen bush that Keemun red tea also comes from. In the south it was sold as Liu An, and sellers today use Liu An, Lu An, Lao Liu An and An tea for the same basket tea; the name is said to come from its following the Liu An way of making and trading. It is not Liu An Gua Pian, a green tea from the Lu'an area that only shares part of the name.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Liu An basket tea style kit",
-        "text": "Liu An basket tea is a dark tea packed into small bamboo baskets and kept for years. Despite its name it is made in Qimen County in southern Anhui, around Luxi and Rongkou, not in Lu'an, from the local small-leaf Qimen bush that Keemun red tea also comes from. In the south it was sold as Liu An, and sellers today use Liu An, Lu An, Lao Liu An and An tea for the same basket tea; the name is said to come from its following the Liu An way of making and trading. It is not Liu An Gua Pian, a green tea from the Lu'an area that only shares part of the name.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the Liu An basket tea kit 2026-11-25",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "liu-an:making",
-    "pageId": "liu-an",
+    "claimId": "dian-hong:making",
+    "pageId": "dian-hong",
     "sectionKey": "making",
-    "label": "How Liu An is made",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "anhui"
-      ]
-    },
-    "terms": [
-      {
-        "original": "夜露",
-        "pinyin": "yè lù",
-        "gloss": "night dew"
-      }
-    ],
-    "rev": 1,
-    "scope": "Liu An basket tea style kit",
-    "text": "Spring leaf, picked around Grain Rain, is first made much like a green tea: withered, fixed, rolled and dried into rough tea, which rests through the summer. In early autumn it is sorted, graded, blended and fired over charcoal. Then comes the step most accounts single out: the fired tea is spread on bamboo mats outdoors for one night to take the dew, and gathered before sunrise. It is steamed soft, packed into baskets lined with bamboo leaf, tied into bundles and fired a last time over charcoal, and it is sold only after resting for some years, commonly three.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Liu An basket tea style kit",
-        "text": "Spring leaf, picked around Grain Rain, is first made much like a green tea: withered, fixed, rolled and dried into rough tea, which rests through the summer. In early autumn it is sorted, graded, blended and fired over charcoal. Then comes the step most accounts single out: the fired tea is spread on bamboo mats outdoors for one night to take the dew, and gathered before sunrise. It is steamed soft, packed into baskets lined with bamboo leaf, tied into bundles and fired a last time over charcoal, and it is sold only after resting for some years, commonly three.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the Liu An basket tea kit 2026-11-25",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "liu-an:notice-aged",
-    "pageId": "liu-an",
-    "sectionKey": "notice-aged",
-    "label": "What people often notice in Liu An kept for years",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "anhui"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Liu An basket tea style kit",
-    "text": "A redder, browner liquor, the smoke gone, and the cup moving toward medicinal, woody and camphor notes, often with betel nut.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Liu An basket tea style kit",
-        "text": "A redder, browner liquor, the smoke gone, and the cup moving toward medicinal, woody and camphor notes, often with betel nut.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the Liu An basket tea kit 2026-11-25",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "liu-an:old-stock",
-    "pageId": "liu-an",
-    "sectionKey": "old-stock",
-    "label": "Old baskets",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "anhui"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Liu An basket tea style kit",
-    "text": "Old baskets were kept in Hong Kong and Macau tea houses, medicine shops and homes, and the oldest are treated as collector's pieces, with prices that climb steeply with age. Fakes exist, so buyers look at the tickets, the basket's shape and the story of the stock.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Liu An basket tea style kit",
-        "text": "Old baskets were kept in Hong Kong and Macau tea houses, medicine shops and homes, and the oldest are treated as collector's pieces, with prices that climb steeply with age. Fakes exist, so buyers look at the tickets, the basket's shape and the story of the stock.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the Liu An basket tea kit 2026-11-25",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "liu-an:southern-trade",
-    "pageId": "liu-an",
-    "sectionKey": "southern-trade",
-    "label": "The southern trade",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "anhui"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Liu An basket tea style kit",
-    "text": "Basket tea went south to Guangdong, Hong Kong, Macau and the overseas Chinese of Southeast Asia, and that is where it was known and drunk. It was kept in homes and medicine shops, added to herbal remedies, and older drinkers in the south still call it a cooling tea in the traditional Chinese sense. Production stopped in the 1930s and 1940s, as war cut the southern trade, and the tea was nearly gone for decades. In 1983 tea people from Hong Kong sent an aged basket to Anhui and asked for it to be made again, and commercial making returned in the early 1990s.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Liu An basket tea style kit",
-        "text": "Basket tea went south to Guangdong, Hong Kong, Macau and the overseas Chinese of Southeast Asia, and that is where it was known and drunk. It was kept in homes and medicine shops, added to herbal remedies, and older drinkers in the south still call it a cooling tea in the traditional Chinese sense. Production stopped in the 1930s and 1940s, as war cut the southern trade, and the tea was nearly gone for decades. In 1983 tea people from Hong Kong sent an aged basket to Anhui and asked for it to be made again, and commercial making returned in the early 1990s.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the Liu An basket tea kit 2026-11-25",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "liu-bao:age-aged",
-    "pageId": "liu-bao",
-    "sectionKey": "age-aged",
-    "label": "Ten years and more",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "guangxi"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Liu Bao of ten years and more",
-    "text": "After about ten years the trade counts a Liu Bao as aged. The cup turns amber to deep red-brown, thick and smooth, with woody and herbal notes, and decades-old tea is often said to take on ginseng and camphor. How it was stored matters as much as how long, and the trade does not agree whether it keeps improving for decades or peaks sooner.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Liu Bao of ten years and more",
-        "text": "After about ten years the trade counts a Liu Bao as aged. The cup turns amber to deep red-brown, thick and smooth, with woody and herbal notes, and decades-old tea is often said to take on ginseng and camphor. How it was stored matters as much as how long, and the trade does not agree whether it keeps improving for decades or peaks sooner.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "liu-bao:age-settling",
-    "pageId": "liu-bao",
-    "sectionKey": "age-settling",
-    "label": "Five to ten years",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "guangxi"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Liu Bao of about five to ten years",
-    "text": "Between about five and ten years the aged character begins to show. The pile smell has gone, the cup deepens toward red, and the woody, sweet notes the trade looks for start to come through.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Liu Bao of about five to ten years",
-        "text": "Between about five and ten years the aged character begins to show. The pile smell has gone, the cup deepens toward red, and the woody, sweet notes the trade looks for start to come through.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "liu-bao:age-young",
-    "pageId": "liu-bao",
-    "sectionKey": "age-young",
-    "label": "Young Liu Bao",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "guangxi"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Liu Bao under about five years",
-    "text": "Under about five years a Liu Bao is still young. Its cup is paler, yellow to orange, and it can carry a faint smell of the pile and a little brightness or bitterness that age will soften.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Liu Bao under about five years",
-        "text": "Under about five years a Liu Bao is still young. Its cup is paler, yellow to orange, and it can carry a faint smell of the pile and a little brightness or bitterness that age will soften.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "liu-bao:brewing",
-    "pageId": "liu-bao",
-    "sectionKey": "brewing",
-    "label": "Brewing Liu Bao",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "guangxi"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Liu Bao tea",
-    "text": "Liu Bao takes very hot or boiling water, because its leaf is dense and gives up its depth slowly. Rinse it once or twice and pour the rinse away. Use about 5 to 8 grams to 100 ml, start with steeps of five to fifteen seconds and add a few seconds each round; a good Liu Bao gives ten cups or more.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Liu Bao tea",
-        "text": "Liu Bao takes very hot or boiling water, because its leaf is dense and gives up its depth slowly. Rinse it once or twice and pour the rinse away. Use about 5 to 8 grams to 100 ml, start with steeps of five to fifteen seconds and add a few seconds each round; a good Liu Bao gives ten cups or more.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "liu-bao:common-impressions",
-    "pageId": "liu-bao",
-    "sectionKey": "common-impressions",
-    "label": "What people often notice",
-    "axis": "sensory_observation",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "guangxi"
-      ]
-    },
-    "terms": [
-      {
-        "original": "红浓陈醇",
-        "pinyin": "hóng nóng chén chún",
-        "gloss": "red, thick, aged, mellow"
-      },
-      {
-        "original": "槟榔香",
-        "pinyin": "bīng láng xiāng",
-        "gloss": "betel nut aroma"
-      }
-    ],
-    "rev": 1,
-    "scope": "Liu Bao tea",
-    "text": "A sweet, smooth cup, woody and herbal, which the trade sums up as red, thick, aged and mellow. The note most often named is betel nut, faint in younger tea and clearer with age.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Liu Bao tea",
-        "text": "A sweet, smooth cup, woody and herbal, which the trade sums up as red, thick, aged and mellow. The note most often named is betel nut, faint in younger tea and clearer with age.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "liu-bao:definition",
-    "pageId": "liu-bao",
-    "sectionKey": "definition",
-    "label": "What Liu Bao is",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "guangxi"
-      ]
-    },
-    "terms": [
-      {
-        "original": "六堡茶",
-        "pinyin": "liù bǎo chá",
-        "gloss": "Liu Bao tea"
-      }
-    ],
-    "rev": 1,
-    "scope": "Liu Bao tea",
-    "text": "Liu Bao is a dark tea from Cangwu County, near Wuzhou in Guangxi, named for the town of Liubao where it began. Like every dark tea, its leaf is piled after it is made, so that warmth, moisture and microbes turn it darker and softer, and then it is packed and left to age.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Liu Bao tea",
-        "text": "Liu Bao is a dark tea from Cangwu County, near Wuzhou in Guangxi, named for the town of Liubao where it began. Like every dark tea, its leaf is piled after it is made, so that warmth, moisture and microbes turn it darker and softer, and then it is packed and left to age.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "liu-bao:history",
-    "pageId": "liu-bao",
-    "sectionKey": "history",
-    "label": "How the trade fell and returned",
+    "label": "How Dian Hong is made",
     "axis": "process",
     "basis": "trade_knowledge",
     "listingEligible": false,
     "appliesWhen": {
-      "type": "Dark",
+      "type": "Red",
       "origin_includes": [
-        "guangxi"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Liu Bao tea",
-    "text": "From the late 1930s war and blockade cut the river trade, and in the decades that followed production fell further as the planned economy changed who could buy and sell tea, and later as farmers left tea for other work. When the Malaysian tin mines declined, much old stock was left sitting in warehouses in Malaysia and Hong Kong. That forgotten stock is where most very old Liu Bao comes from today.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Liu Bao tea",
-        "text": "From the late 1930s war and blockade cut the river trade, and in the decades that followed production fell further as the planned economy changed who could buy and sell tea, and later as farmers left tea for other work. When the Malaysian tin mines declined, much old stock was left sitting in warehouses in Malaysia and Hong Kong. That forgotten stock is where most very old Liu Bao comes from today.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "liu-bao:making-factory",
-    "pageId": "liu-bao",
-    "sectionKey": "making-factory",
-    "label": "The factory way",
-    "axis": "process",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "guangxi"
+        "yunnan"
       ]
     },
     "terms": [
       {
-        "original": "冷水渥堆",
-        "pinyin": "lěng shuǐ wò duī",
-        "gloss": "cold-water piling"
+        "original": "金芽",
+        "pinyin": "jīn yá",
+        "gloss": "golden bud"
       }
     ],
     "rev": 1,
-    "scope": "Liu Bao tea",
-    "text": "In the 1950s the Wuzhou tea factory worked out cold-water piling, around 1958: the leaf is wetted and heaped at a modest warmth and turned until it has darkened, a steadier route than the farmhouse steaming. Factory tea, too, is packed in baskets and aged before sale.",
+    "scope": "All red tea; Dian Hong where the origin is Yunnan",
+    "text": "Dian Hong follows the steps of every red tea: the leaf is withered, then rolled to break its cells so oxidation can begin, then left to oxidise until it turns from green to reddish brown, and then dried with heat, which fixes it and keeps the leaf golden. It is then sorted into grades. There are two broad kinds: gongfu, whole or strip leaf, and broken. The gongfu grades use one bud with one to three leaves, and teas of buds alone, sold as golden bud or golden needle, sit at the top. A grade name says nothing about where the leaf grew or how old the trees were.",
     "sourceIds": [],
     "reviewState": "approved",
     "previousRevisions": [
       {
         "rev": 1,
         "origin": "approved",
-        "scope": "Liu Bao tea",
-        "text": "In the 1950s the Wuzhou tea factory worked out cold-water piling, around 1958: the leaf is wetted and heaped at a modest warmth and turned until it has darkened, a steadier route than the farmhouse steaming. Factory tea, too, is packed in baskets and aged before sale.",
+        "scope": "All red tea; Dian Hong where the origin is Yunnan",
+        "text": "Dian Hong follows the steps of every red tea: the leaf is withered, then rolled to break its cells so oxidation can begin, then left to oxidise until it turns from green to reddish brown, and then dried with heat, which fixes it and keeps the leaf golden. It is then sorted into grades. There are two broad kinds: gongfu, whole or strip leaf, and broken. The gongfu grades use one bud with one to three leaves, and teas of buds alone, sold as golden bud or golden needle, sit at the top. A grade name says nothing about where the leaf grew or how old the trees were.",
         "approvedAt": "2026-11-24",
-        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 15)",
         "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "liu-bao:making-traditional",
-    "pageId": "liu-bao",
-    "sectionKey": "making-traditional",
-    "label": "The farmhouse way",
-    "axis": "process",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "guangxi"
-      ]
-    },
-    "terms": [
-      {
-        "original": "篓装",
-        "pinyin": "lǒu zhuāng",
-        "gloss": "basket packing"
-      }
-    ],
-    "rev": 1,
-    "scope": "Liu Bao tea",
-    "text": "The older, farmhouse way of making Liu Bao leans on steam and time. The leaf is steamed to soften it, then heaped damp so it darkens and loses its bitterness, and in most accounts it is steamed again before it is pressed. It is dried slowly over a wood or pine fire, which can leave a faint smoke and keeps the leaf sound enough to age. Then it is packed tight into bamboo baskets and rested in a cool, damp, dark store for one to three years before it is sold.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Liu Bao tea",
-        "text": "The older, farmhouse way of making Liu Bao leans on steam and time. The leaf is steamed to soften it, then heaped damp so it darkens and loses its bitterness, and in most accounts it is steamed again before it is pressed. It is dried slowly over a wood or pine fire, which can leave a faint smoke and keeps the leaf sound enough to age. Then it is packed tight into bamboo baskets and rested in a cool, damp, dark store for one to three years before it is sold.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "liu-bao:nanyang-trade",
-    "pageId": "liu-bao",
-    "sectionKey": "nanyang-trade",
-    "label": "Who drank it, and why",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "guangxi"
-      ]
-    },
-    "terms": [],
-    "rev": 2,
-    "scope": "Liu Bao tea",
-    "text": "Liu Bao was made for a market far from home. Chinese miners and labourers in Malaya and across Southeast Asia drank it, above all in the tin mines, and the trade believed it eased the heat and damp of their work and settled the stomach; it was also a taste of home. The tea went by boat down the river to Wuzhou, on to Guangzhou, and out by sea. In the Qing dynasty it was already counted among China’s famous teas.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Liu Bao tea",
-        "text": "Liu Bao was made for a market far from home. Chinese miners and labourers in Malaya and across Southeast Asia drank it, above all in the tin mines, and the trade held that it eased the heat and damp of their work and settled the stomach; it was also a taste of home. The tea went by boat down the river to Wuzhou, on to Guangzhou, and out by sea. In the Qing dynasty it was already counted among China’s famous teas.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
-        "evidenceIds": []
-      },
-      {
-        "rev": 2,
-        "origin": "approved",
-        "scope": "Liu Bao tea",
-        "text": "Liu Bao was made for a market far from home. Chinese miners and labourers in Malaya and across Southeast Asia drank it, above all in the tin mines, and the trade believed it eased the heat and damp of their work and settled the stomach; it was also a taste of home. The tea went by boat down the river to Wuzhou, on to Guangzhou, and out by sea. In the Qing dynasty it was already counted among China’s famous teas.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24; one word changed after approval (held to believed) because held is a reserved review word",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "liu-bao:notice-aged",
-    "pageId": "liu-bao",
-    "sectionKey": "notice-aged",
-    "label": "What people often notice in aged Liu Bao",
-    "axis": "sensory_observation",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "guangxi"
-      ]
-    },
-    "terms": [
-      {
-        "original": "槟榔香",
-        "pinyin": "bīng láng xiāng",
-        "gloss": "betel nut aroma"
-      }
-    ],
-    "rev": 1,
-    "scope": "Liu Bao of ten years and more",
-    "text": "A deep red, thick cup with woody, herbal and betel nut notes; tea several decades old is often described with ginseng and camphor.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Liu Bao of ten years and more",
-        "text": "A deep red, thick cup with woody, herbal and betel nut notes; tea several decades old is often described with ginseng and camphor.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "liu-bao:old-stock",
-    "pageId": "liu-bao",
-    "sectionKey": "old-stock",
-    "label": "Old stock",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "guangxi"
-      ]
-    },
-    "terms": [
-      {
-        "original": "回流",
-        "pinyin": "huí liú",
-        "gloss": "returned"
-      }
-    ],
-    "rev": 1,
-    "scope": "Liu Bao tea",
-    "text": "Liu Bao that is several decades old is mostly stock that sat in Malaysia or Hong Kong after the mining trade ended. It is prized and hard to date, so the trade reads its age from the basket, the labels and the papers packed with it, and the place it was stored gives each lot its own character.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Liu Bao tea",
-        "text": "Liu Bao that is several decades old is mostly stock that sat in Malaysia or Hong Kong after the mining trade ended. It is prized and hard to date, so the trade reads its age from the basket, the labels and the papers packed with it, and the place it was stored gives each lot its own character.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "mahei-gushu-red:tea-name",
-    "pageId": "mahei-gushu-red",
-    "sectionKey": "tea-name",
-    "label": "Reading the tea’s name",
-    "axis": "named_tea_history",
-    "basis": "sourced",
-    "listingEligible": true,
-    "appliesWhen": {
-      "named_tea": "mahei-gushu-red"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "The recorded name and its meaning. It supplies no tree measurement.",
-    "text": "Mahei names the village in Yiwu. Gushu means “old tree,” the description on this tea’s label. Hong cha, the last two words, means “red tea.” Together the words give a place, a description of the trees and a style of tea.",
-    "sourceIds": [
-      "teajia-mahei-red"
-    ],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "The recorded name and its meaning. It supplies no tree measurement.",
-        "text": "Mahei names the village in Yiwu. Gushu means “old tree,” the description on this tea’s label. Hong cha, the last two words, means “red tea.” Together the words give a place, a description of the trees and a style of tea.",
-        "approvedAt": "2026-11-23",
-        "reason": "Reviewed the Stock identity and citations at their recorded scope.",
-        "evidenceIds": [
-          "EVIDENCE-D2D75741CFD44DE469A12F65"
-        ]
       }
     ],
     "pageVisibility": "public"

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { GOLD_TEXT_INLINE, GOLD_TEXT_STYLE, GroupHead } from '../people/immersive';
 import { PaymentOrderSummary } from './PaymentOrderSummary';
+import { looksLikePastedDetails, pastedLines } from './pastedPayment';
 import { formatLocalAmount, localAmountNote } from './profileDomain';
 import type { PaymentContext, PaymentLocalAmount, PaymentMethod, PaymentOrderSummaryData } from './types';
 
@@ -99,15 +100,30 @@ function Method({ method }: { method: PaymentMethod }) {
 
   // Bank transfer, a provider QR, or anything else: the same plain rows.
   const showLabel = method.label.trim().toLowerCase() !== word.toLowerCase();
+  // Details pasted as the bank or Wise gives them become rows of their own,
+  // each value with a Copy, in the order they were pasted.
+  const pasted = looksLikePastedDetails(method.instructions) ? pastedLines(method.instructions) : null;
+  const pasteNamesRecipient = Boolean(pasted?.some(line => line.kind === 'value' && line.value === method.recipient_name));
   return (
     <section aria-label={word} data-testid="pay-method">
       <GroupHead label={word} />
       {method.qr_image_url && <img src={method.qr_image_url} alt={`${method.label} provider QR code`} className="mt-3 h-36 w-36 border border-tea-border bg-tea-surface object-contain p-2" />}
-      <Row action={<CopyButton value={method.recipient_name} label="recipient name" />}>{method.recipient_name}</Row>
+      {!pasteNamesRecipient && <Row action={<CopyButton value={method.recipient_name} label="recipient name" />}>{method.recipient_name}</Row>}
       {showLabel && <Row>{method.label}</Row>}
       {method.account_identifier && <Row mono action={<CopyButton value={method.account_identifier} label={`${method.label} details`} />}>{method.account_identifier}</Row>}
+      {pasted?.map((line, index) => line.kind === 'value' ? (
+        <Row key={index} testId="pay-pasted-value" action={<CopyButton value={line.value} label={line.label} />}>
+          <span className="block text-ui-12 not-italic text-tea-text-sec">{line.label}</span>
+          <span className="block font-mono text-ui-14 tabular-nums">{line.value}</span>
+        </Row>
+      ) : line.kind === 'heading' ? (
+        <p key={index} className="mt-5 font-body text-ui-13 italic text-tea-text-sec">{line.text}</p>
+      ) : (
+        <Dek key={index} className="mt-2">{line.text}</Dek>
+      ))}
       {openLink && <Row action={openLink}><span className="font-body text-ui-13 italic leading-[1.45] text-tea-text-sec">Or pay online.</span></Row>}
-      {dek && <Dek className="mt-3 whitespace-pre-line">{dek}</Dek>}
+      {!pasted && dek && <Dek className="mt-3 whitespace-pre-line">{dek}</Dek>}
+      {pasted && <Dek className="mt-3">{methodDefaultDek(method)}</Dek>}
     </section>
   );
 }

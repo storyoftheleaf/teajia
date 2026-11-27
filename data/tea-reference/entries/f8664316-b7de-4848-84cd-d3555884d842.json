@@ -1,6 +1,6 @@
 {
   "status": "approved",
-  "composedAt": "2026-11-25T15:43:59.931Z",
+  "composedAt": "2026-11-27T03:56:45.521Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -11,25 +11,20 @@
     "form": "Rolled",
     "year": null,
     "origin": "Alishan, Chiayi, Taiwan",
-    "stockGrams": 0,
-    "pricePerGramUsd": 1.37,
-    "tags": [
-      "buttery floral",
-      "fresh orchid",
-      "sweet cream",
-      "crisp vegetal finish"
-    ]
+    "stockGrams": null,
+    "pricePerGramUsd": null,
+    "tags": []
   },
   "entry": {
     "productId": "f8664316-b7de-4848-84cd-d3555884d842",
     "paragraphs": [
       {
         "layer": "place",
-        "text": "This tea comes from Alishan in Chiayi, one of the areas the trade names for [high mountain tea](taiwan-oolong:high-mountain), the name Taiwan gives to tea from gardens at about 1,000 metres and higher. The label says where the leaf grew, not which cultivar or recipe made it. At that height the plant grows slowly, and the trade traces the character of the tea to that slow growth."
+        "text": "This oolong comes from [Alishan](alishan:where-it-is), the mountain tea area of Chiayi County in the southwest of central Taiwan. Its gardens sit on the western and southern slopes, mostly at about 1,000 to 1,600 metres, and they spread across [three townships](alishan:sub-areas): lower and middle ground in Meishan to the north, Zhuqi with Shizhuo and Fenqihu at the centre, and the higher gardens of Alishan Township along the mountain road. Cloud and fog cover the slopes for much of the day, the sun comes through filtered and the nights are cool, so the leaf grows slowly. The [name on a label](alishan:on-a-label) marks the mountain area as a whole, not one township, garden or height."
       },
       {
         "layer": "type",
-        "text": "The leaf was lightly oxidised, rolled in the high mountain way and given only a light roast, making it an [oolong](oolong:definition), the partly oxidised tea that stands between green and red. [Oolong came to Taiwan](taiwan-oolong:history) with settlers from Fujian, and high mountain tea rose in the late twentieth century, as more of the island's tea came to be drunk at home than sold abroad."
+        "text": "It belongs to [high mountain tea](taiwan-oolong:high-mountain), gao shan cha, a name for where a tea grew rather than a cultivar or a recipe: gardens at about 1,000 metres and higher. This one is rolled, the usual form of the style, which is most often lightly oxidised and left unroasted or only lightly roasted. It is a [partly oxidised](oolong:definition) tea, and the plants and the craft of making it reached [Taiwan](taiwan-oolong:definition) with settlers from Fujian."
       }
     ],
     "brewing": {
@@ -42,13 +37,24 @@
       "text": "In light high mountain tea: a sweet, floral cup, often creamy or buttery, with little bitterness and a long sweet aftertaste. In roasted Dong Ding: caramel, ripe fruit, nuts and a toasted aroma. In Baozhong: floral notes and a clear, bright liquor. In Oriental Beauty: ripe fruit and honey, with little bitterness."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "The year it was made: unlocks the age paragraph",
       "A voice note from you on this lot",
       "Photos"
     ]
   },
   "claimUses": [
+    {
+      "claimId": "alishan:where-it-is",
+      "rev": 1
+    },
+    {
+      "claimId": "alishan:sub-areas",
+      "rev": 1
+    },
+    {
+      "claimId": "alishan:on-a-label",
+      "rev": 1
+    },
     {
       "claimId": "taiwan-oolong:high-mountain",
       "rev": 1
@@ -58,7 +64,7 @@
       "rev": 1
     },
     {
-      "claimId": "taiwan-oolong:history",
+      "claimId": "taiwan-oolong:definition",
       "rev": 1
     },
     {
@@ -72,5 +78,5 @@
   ],
   "problems": [],
   "unsupported": [],
-  "approvedAt": "2026-11-25T23:18:45.813Z"
+  "approvedAt": "2026-11-27T04:17:05.729Z"
 }

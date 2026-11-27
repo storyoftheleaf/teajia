@@ -14,6 +14,8 @@ import { HostTableGuests } from '../components/host/HostTableGuests';
 import { HostTableHeader } from '../components/host/HostTableHeader';
 import { HostTeaPicker } from '../components/host/HostTeaPicker';
 import { WalkthroughEditor } from '../components/host/WalkthroughEditor';
+import { CircleGuests } from '../components/host/CircleGuests';
+import { circlesOpen } from '../lib/circles';
 import {
   HOST_TABLE_PARTS, hostTableQueryKey, hostText, type HostTablePart, type HostTablePartProps,
 } from '../components/host/hostTableParts';
@@ -82,6 +84,7 @@ function TableParts(props: HostTablePartProps) {
         ))}
       </div>
       <Part {...props} />
+      {part === 'guests' && circlesOpen() && <CircleGuests {...props} />}
     </div>
   );
 }

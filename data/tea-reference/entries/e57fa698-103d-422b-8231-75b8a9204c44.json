@@ -1,6 +1,6 @@
 {
   "status": "approved",
-  "composedAt": "2026-11-25T15:41:18.297Z",
+  "composedAt": "2026-11-27T04:15:11.600Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -11,7 +11,7 @@
     "form": "Bag",
     "year": 2026,
     "origin": "Phoenix Mountain",
-    "stockGrams": 0,
+    "stockGrams": null,
     "pricePerGramUsd": null,
     "tags": []
   },
@@ -19,12 +19,16 @@
     "productId": "e57fa698-103d-422b-8231-75b8a9204c44",
     "paragraphs": [
       {
-        "layer": "named",
-        "text": "[Ya Shi Xiang](dancong:ya-shi-xiang), duck dung, is the market name for one Dancong line, traced to Pingkengtou village. Most lists of the ten [classic types](dancong:aromas) leave it out, though it sells widely. In 2014 the name Yinhua Xiang, silver flower, was put forward for it, but many sellers keep the old one. Three stories explain that name, and all are told only as stories: that it was chosen to keep thieves away from the bush, that it comes from the yellow local soil called duck dung soil, and that duck droppings lay on the bush."
+        "layer": "type",
+        "text": "[Ya Shi Xiang](dancong:ya-shi-xiang) (鸭屎香), named for duck dung, is the market name for one line of [Phoenix Dancong](dancong:definition), the [oolong](oolong:definition) of Phoenix Mountain. The line is traced to Pingkengtou village. Three stories explain the name, and all are told only as stories: that it was chosen to keep thieves away from the bush, that it comes from the yellow local earth called duck dung soil, and that duck droppings lay on the bush. A second name, Yinhua Xiang, silver flower, was put forward in 2014, though many sellers keep the old one."
       },
       {
-        "layer": "type",
-        "text": "The leaf is [Phoenix Dancong](dancong:definition), the oolong of Phoenix Mountain in Chao'an, Chaozhou, in eastern Guangdong. [Dancong](dancong:name) means single bush, though a named line today is mostly grown from cuttings or grafts of one chosen bush. The leaf is withered in the sun, then [shaken and rested in rounds](dancong:making) to bruise its edges, fixed fast at high heat, rolled into long strips, dried and roasted. This is a 2026 tea. Freshly roasted Dancong is [rested for some months](dancong:ageing) before it is ready, and the trade does not agree on how many."
+        "layer": "place",
+        "text": "Phoenix Mountain, [Fenghuang Shan](phoenix-mountain:where-it-is), is a range in Chao'an district of Chaozhou, in eastern Guangdong, with tea on its slopes up to roughly 1,100 metres. Cloud and mist sit on the upper slopes for much of the year and the nights are cool, so the bushes grow slowly. The higher the garden, the more a tea from it is expected to show what the trade calls [mountain rhyme](phoenix-mountain:mist-and-climate)."
+      },
+      {
+        "layer": "age",
+        "text": "As with all Dancong, the leaf is withered in the sun, then [shaken and rested in rounds](dancong:making) to bruise its edges, fixed at high heat, rolled into long strips and roasted as it is refined. This is a 2026 tea. Freshly roasted Dancong is [rested for some months](dancong:ageing) before it is drunk, and it keeps sealed, dry, cool and out of the light."
       }
     ],
     "brewing": {
@@ -37,7 +41,6 @@
       "text": "Flowers above all, a sweetness that comes back after swallowing, a high scent that lasts, honey, often ripe fruit such as peach, and what the trade calls mountain rhyme, shan yun; a liquor from golden to orange-red or amber."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "A voice note from you on this lot",
       "Photos"
     ]
@@ -48,15 +51,19 @@
       "rev": 1
     },
     {
-      "claimId": "dancong:aromas",
-      "rev": 1
-    },
-    {
       "claimId": "dancong:definition",
       "rev": 1
     },
     {
-      "claimId": "dancong:name",
+      "claimId": "oolong:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "phoenix-mountain:where-it-is",
+      "rev": 1
+    },
+    {
+      "claimId": "phoenix-mountain:mist-and-climate",
       "rev": 1
     },
     {
@@ -78,5 +85,5 @@
   ],
   "problems": [],
   "unsupported": [],
-  "approvedAt": "2026-11-25T23:18:42.875Z"
+  "approvedAt": "2026-11-27T04:16:55.800Z"
 }

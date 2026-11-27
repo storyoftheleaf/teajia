@@ -3653,11 +3653,11 @@ input[type="number"]::-webkit-outer-spin-button {
 .alcove-dock-amount {
   display: flex;
   flex: 1 1 auto;
-  min-width: 0;
+  min-width: var(--tap-min);
   align-items: center;
   gap: 8px;
   align-self: center;
-  min-height: 36px;
+  min-height: max(var(--control-h-lg), var(--tap-min));
   padding: 0 10px;
   overflow: hidden;
   white-space: nowrap;
@@ -3677,7 +3677,7 @@ input[type="number"]::-webkit-outer-spin-button {
 .alcove-dock-add {
   flex: 0 0 auto;
   align-self: center;
-  min-height: 36px;
+  min-height: max(var(--control-h-lg), var(--tap-min));
   padding: 0 16px;
   white-space: nowrap;
   /* The same keyline, radius and wash as the amount picker beside it. It was
@@ -5656,6 +5656,8 @@ body.cart-panel-open .commerce-dock {
 
 .library-supplier-heading { grid-template-columns:minmax(0,1fr); }
 .library-supplier-edit { display:inline-flex; align-items:center; justify-content:center; min-width:var(--tap-min); min-height:var(--tap-min); padding:0; border:0; background:transparent; }
+.library-supplier-face { display:inline-flex; align-items:center; justify-content:center; min-width:var(--tap-min); min-height:var(--tap-min); }
+.library-supplier-face:focus-visible { outline:2px solid var(--tea-gold); outline-offset:2px; }
 
 /* Editable tea fields keep readable text when the browser selects their value. */
 .library-inline-value :is(input,textarea)::selection,
@@ -5987,7 +5989,7 @@ body.cart-panel-open .commerce-dock {
 .stock-arrangement-button:hover { background:var(--tea-surface); }
 .stock-arrangement-button:focus-visible,.stock-current-view select:focus-visible { outline:2px solid var(--tea-gold); outline-offset:2px; }
 
-.stock-view [data-stock-group]>.stock-group-menu-head { grid-template-columns:minmax(0,1fr) 44px; gap:0; padding:2px 6px 7px; }
+.stock-view [data-stock-group]>.stock-group-menu-head { grid-template-columns:minmax(0,1fr) minmax(44px,auto); gap:0; padding:2px 6px 7px; }
 .stock-group-main-toggle { display:flex; flex-direction:column; gap:4px; width:100%; min-width:0; min-height:var(--tap-min); padding:4px; background:transparent; border:0; text-align:left; }
 .stock-group-main-toggle .stock-group-name { min-height:32px; align-items:center; }
 .stock-view .stock-group-main-toggle .stock-group-summary { display:grid; grid-template-columns:1fr auto auto; width:calc(100% + 44px); padding:0; }
@@ -6654,6 +6656,10 @@ body.cart-panel-open .commerce-dock {
 .logistics-service-row { display:flex; flex-wrap:wrap; align-items:center; gap:6px 12px; padding:4px 0; border-bottom:1px solid var(--tea-border); }
 .logistics-service-row>span:first-child { flex:1; min-width:130px; overflow-wrap:anywhere; }
 .logistics-service-row small { display:block; }
+.logistics-service-name { flex:1; min-width:130px; display:block; text-align:left; overflow-wrap:anywhere; }
+.logistics-service-links { flex-basis:100%; display:grid; gap:8px; padding:4px 0 8px; }
+.logistics-service-links ul { margin:0; padding:0; list-style:none; display:grid; gap:2px; }
+.logistics-service-links p { margin:0; }
 .logistics-add-service { justify-self:start; }
 .logistics-service-editor { min-width:0; padding:8px; border:1px solid var(--tea-border); border-radius:4px; background:var(--tea-bg); }
 @media (max-width:640px) {
@@ -7859,12 +7865,15 @@ body.cart-panel-open .commerce-dock {
   .stock-rooms thead th { overflow:visible !important; }
   .stock-rooms td span.font-bold[style] { color:var(--tea-text-sec) !important; font-weight:400; }
   .stock-rooms [data-stock-group]+[data-stock-group] { margin-top:var(--space-6); }
-  .stock-rooms .stock-group-main-toggle { display:grid; grid-template-columns:minmax(0,auto) minmax(0,1fr) auto; align-items:baseline; column-gap:var(--space-4); text-align:left; }
-  .stock-rooms .stock-group-name { grid-column:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:var(--fs-ui-26) !important; }
+  /* Name, then count and warnings, wrapping under the name when the list is
+     narrow (a tea panel open beside it). The old three-column grid kept every
+     part on one line with no wrap, so they ran over each other (Adrian, 2026-11-27). */
+  .stock-rooms .stock-group-main-toggle { display:flex; flex-wrap:wrap; align-items:baseline; column-gap:var(--space-4); row-gap:var(--space-1); text-align:left; }
+  .stock-rooms .stock-group-name { flex:0 1 auto; max-width:100%; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:var(--fs-ui-26) !important; }
   .stock-rooms[data-room] .stock-group-name { font-size:var(--fs-ui-28) !important; }
-  .stock-rooms .stock-group-summary { grid-column:2 !important; grid-row:1; white-space:nowrap; justify-self:start !important; margin:0 !important; display:flex; gap:0; color:var(--tea-text-dim); font-family:var(--font-sans); font-size:var(--fs-ui-12); }
+  .stock-rooms .stock-group-summary { order:2; flex:0 0 auto; width:auto !important; gap:0 !important; white-space:nowrap; margin:0 !important; display:flex; gap:0; color:var(--tea-text-dim); font-family:var(--font-sans); font-size:var(--fs-ui-12); }
   .stock-rooms .stock-group-summary>span+span::before { content:"·"; margin:0 var(--space-1); }
-  .stock-rooms .stock-group-flags { grid-column:3 !important; grid-row:1; white-space:nowrap; justify-self:end !important; margin:0 !important; font-size:var(--fs-ui-12); }
+  .stock-rooms .stock-group-flags { order:3; flex:0 0 auto; white-space:nowrap; margin:0 !important; font-size:var(--fs-ui-12); }
   .stock-rooms .stock-group-flags .text-tea-gold { color:var(--tea-error) !important; }
   /* A group's warnings are small buttons: the chosen one is raised a tone. */
   .stock-room-flag { border-radius:var(--radius-md); cursor:pointer; }
@@ -7902,3 +7911,27 @@ body.cart-panel-open .commerce-dock {
 .stock-room-price { display:flex; align-items:center; gap:var(--space-2); flex-basis:100%; color:var(--admin-text-dim); font-size:var(--fs-ui-12); }
 .stock-room-price>.admin-input { display:inline-flex; align-items:center; gap:var(--space-1); width:7rem; height:var(--control-h); padding:0 var(--space-3); }
 .stock-room-price input { width:100%; min-width:0; border:0; outline:0; background:transparent; color:var(--admin-text); font-family:var(--font-mono); font-size:var(--fs-ui-14); text-align:right; }
+
+/* Logistics journey track (Adrian chose it, 2026-11-27): each service is a
+   line tea moves along. Close tones and space separate things, never lines. */
+.journey-list { display:grid; gap:var(--space-3); }
+.journey-card { display:grid; gap:var(--space-3); padding:var(--space-4); border-radius:var(--radius-xl); background:rgb(var(--tea-elevated-rgb) / 0.42); min-width:0; }
+.journey-card-quiet { background:rgb(var(--tea-elevated-rgb) / 0.22); padding:var(--space-3) var(--space-4); }
+.journey-head { display:flex; align-items:center; gap:var(--space-3); min-width:0; }
+.journey-head > :first-child { flex:1; }
+.journey-rate { text-align:right; }
+.journey-track { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:var(--space-2); }
+.journey-stage { display:grid; align-content:start; gap:2px; min-height:76px; padding:var(--space-2) var(--space-3); border-radius:var(--radius-lg); background:var(--tea-elevated); text-align:left; min-width:0; transition:background 150ms ease; }
+.journey-stage[data-empty] { background:rgb(var(--tea-elevated-rgb) / 0.5); }
+.journey-stage[aria-pressed="true"] { background:rgb(var(--tea-gold-rgb) / 0.22); }
+.journey-stage:focus-visible { outline:1px solid var(--tea-gold); outline-offset:2px; }
+.journey-stage-label, .journey-stage-first { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.journey-items { display:flex; flex-wrap:wrap; gap:var(--space-2); min-width:0; }
+.journey-chip { display:inline-flex; align-items:center; gap:var(--space-2); padding:var(--space-1) var(--space-3); border-radius:999px; background:rgb(var(--tea-bg-rgb) / 0.45); color:var(--tea-text); max-width:100%; }
+.journey-chip > span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.journey-chip:hover, .journey-chip:focus-visible { background:rgb(var(--tea-gold-rgb) / 0.22); outline:none; }
+.journey-more { padding:var(--space-1) var(--space-2); }
+.journey-card .logistics-service-editor { padding:0; }
+@media (max-width:520px) { .journey-track { grid-template-columns:repeat(2, minmax(0, 1fr)); } }
+.journey-items-label { align-self:center; margin-right:var(--space-1); }
+.journey-add { display:flex; flex-wrap:wrap; align-items:center; gap:var(--space-2); width:100%; }

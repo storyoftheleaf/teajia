@@ -1,6 +1,16 @@
 import type { CurateFinalizeMovement } from '../curateImports';
 import type { StockMovementInput } from '../inventoryDomain';
 import type { ReservePartySeatsInput } from '../eventDomain';
+import type { OwnHostedTable } from '../hostTableGuests';
+
+export interface Launch3Services {
+  ownTable: (auth: ToolAuth, tableId: string) => Promise<{ table: OwnHostedTable; stopped: boolean } | null>;
+  duplicate: (table: OwnHostedTable, userId: string, slug: string, date: string, preview: boolean) => Promise<Response>;
+  setTasting: (table: OwnHostedTable, userId: string, isTasting: boolean) => Promise<Response>;
+  releaseGuest: (table: OwnHostedTable, attendeeId: string, email: string, preview: boolean) => Promise<Response>;
+  setHostingStopped: (auth: ToolAuth, userId: string, stopped: boolean) => Promise<Response>;
+  limitReport: () => Promise<Response | null>;
+}
 /**
  * Where MCP tools added from here on live.
  *
@@ -70,17 +80,26 @@ export interface HostSeatService {
 
 export interface ToolEnv {
   EDITORIAL_PILOT_ACCOUNT_ID?: string;
+  FAVOURITES_OPEN?: string;
+  TEA_TABLE_OPEN?: string;
   /** Launch 2's switch (src/lib/fewHosts.ts). The host tools answer "not available" unless it is open. */
   FEW_HOSTS_OPEN?: string;
+  /** Launch 3's switch (src/lib/anyoneHosts.ts): anyone signed in may host by request. */
+  ANYONE_HOSTS_OPEN?: string;
+  /** Launch 5 M4's switch (src/lib/circles.ts): circles and series, with FEW_HOSTS_OPEN. */
+  CIRCLES_OPEN?: string;
   /** The site's address, for a table's link. */
   APP_URL?: string;
   hostSeats?: HostSeatService;
+  launch3?: Launch3Services;
   DB: D1Database;
   MEDIA_BUCKET?: R2Bucket;
   ATLAS_BUCKET?: R2Bucket;
   curateReceipts?: CurateReceiptService;
   inventoryReceipts?: InventoryReceiptService;
   stockMovements?: StockMovementService;
+  /** An invoice's pay link, from resolveInvoicePayment in index.ts. Null when there is none to give. */
+  invoicePayLinks?: { payUrl: (accountId: string, invoiceId: string) => Promise<string | null> };
 }
 
 /** The scopes a module may ask for. Mirrors MCP_SCOPES in mcp.ts. */
@@ -99,10 +118,14 @@ export interface ToolAuth {
 
 export interface ToolDefinition {
   name: string;
-  scope: ToolScope;
+  /** Personal actions may require sign-in without a shop scope. */
+  scope: ToolScope | 'signed-in';
+  available?: (env: ToolEnv, auth: ToolAuth) => boolean;
   description: string;
   inputSchema: Record<string, unknown>;
   annotations?: Record<string, unknown>;
+  /** Return a refusal code when a feature or authority gate is closed. */
+  unavailable?: (env: ToolEnv, auth: ToolAuth) => string | undefined;
 }
 
 export type ToolHandler = (env: ToolEnv, auth: ToolAuth, args: any) => Promise<unknown>;

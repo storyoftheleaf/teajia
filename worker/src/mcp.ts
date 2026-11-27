@@ -34,13 +34,16 @@ import { logisticsTools } from './mcpTools/logistics';
 
 import { customerTagList } from './customerContactHandles';
 import { readVendorDependencies, vendorHasDependencies, deleteUnreferencedVendor } from './vendorDependencies';
-import { combineToolModules, type ToolModule } from './mcpTools/registry';
+import { combineToolModules, type ToolDefinition, type ToolModule } from './mcpTools/registry';
 import { PENDING_TTL_MS as TICKET_PENDING_TTL_MS } from './mcpTools/tickets';
 import { transferToolModule } from './mcpTools/transfer';
 import { curationTools } from './mcpTools/curation';
 import { eventsToolModule } from './mcpTools/events';
 import { firstTableToolModule } from './mcpTools/firstTable';
+import { launch4ToolModule } from './mcpTools/launch4';
 import { fewHostsToolModule } from './mcpTools/fewHosts';
+import { launch3ToolModule } from './mcpTools/launch3';
+import { circlesToolModule } from './mcpTools/circles';
 import { writingToolModule } from './mcpTools/writing';
 import { costCurrencyTools } from './mcpTools/costCurrency';
 import { curateIntakeTools, curateManagerAccess } from './mcpTools/curateIntake';
@@ -51,6 +54,7 @@ import { curateSupplyTools } from './mcpTools/curateSupply';
 import { curatePhotoTools } from './mcpTools/curatePhotos';
 import { curateArrivalTools } from './mcpTools/curateArrivals';
 import { orderTrackingTools } from './mcpTools/orderTracking';
+import { priceLinkTools } from './mcpTools/priceLinks';
 import { purchaseArrivalTools } from './mcpTools/purchaseArrivals';
 import { curateAttachmentTools } from './mcpTools/curateAttachments';
 import { curateManageModule } from './mcpTools/curateManage';
@@ -62,8 +66,9 @@ import { stockCountTools } from './mcpTools/stockCount';
 import { supplierPhotoTools } from './mcpTools/supplierPhoto';
 import { curateDisplayNameTools } from './mcpTools/curateDisplayNames';
 import { teaPageContentTools } from './mcpTools/teaPageContent';
-import type { CurateReceiptService, HostSeatService, InventoryReceiptService, StockMovementService } from './mcpTools/registry';
-import { resolveShopFreightDefault, shippingPerGramUsd } from './shippingRate';
+import type { CurateReceiptService, HostSeatService, InventoryReceiptService, Launch3Services, StockMovementService, ToolEnv } from './mcpTools/registry';
+import { freightFor, shippingPerGramUsd } from './shippingRate';
+import { accountFreightDefaults } from './productPricing';
 import { isShopOwner, tastingWithoutScores } from './publicScores';
 import { deductStockForPaidInvoice } from './orderLifecycle';
 import { costNeedsCurrency, createMissingCost, currencyStated, costCurrencySourceFor, CURRENCY_SOURCE_STATED, COST_CURRENCY_REQUIRED, COST_REQUIRED_ON_CREATE } from './costCurrency';
@@ -115,14 +120,32 @@ import { isTeaType, normalizeTeaType, TEA_TYPES } from '../../src/wisdom/vocabul
 import { reviewedDescription } from './wisdomWordingReview';
 import { mergeProductTasting, readStoredTasting, tastingHasTerms, tastingTermLabel } from './curateImportTasting';
 import { MCP_SERVER_ICONS, MCP_SERVER_WEBSITE } from './siteIcons';
+import { settleHostCredit } from './hostCreditLedger';
+import { hostTokenMayAct } from './hostTokens';
+import { HOST_SELF_SCOPE } from '../../src/lib/hostTokens';
+
+/** Freight rates are typed only in Logistics (Adrian, 2026-11-27), never on a tea. */
+const FREIGHT_RATE_IN_LOGISTICS = 'A tea\'s freight rate is not set here. Rates live in Logistics with the services and the shop default: give the tea a service on its page (freight_service_id), or change the service\'s rate. To hand back a tea that still carries an older rate of its own, pass "shipping_rate_per_kg" in clear_fields on update_tea_pricing.';
 
 type Env = {
   DB: D1Database;
   curateReceipts?: CurateReceiptService;
   inventoryReceipts?: InventoryReceiptService;
   stockMovements?: StockMovementService;
+  invoicePayLinks?: ToolEnv['invoicePayLinks'];
   hostSeats?: HostSeatService;
+  launch3?: Launch3Services;
   JWT_SECRET: string;
+  FAVOURITES_OPEN?: string;
+  TEA_TABLE_OPEN?: string;
+  /** See src/lib/hostCredit.ts. */
+  HOST_CREDIT_OPEN?: string;
+  /** See src/lib/circles.ts. */
+  CIRCLES_OPEN?: string;
+  /** See src/lib/hostTokens.ts: a host's own key (Launch 5, M6). Needs FEW_HOSTS_OPEN too. */
+  HOST_TOKENS_OPEN?: string;
+  FEW_HOSTS_OPEN?: string;
+  ANYONE_HOSTS_OPEN?: string;
   OAUTH_REGISTER_LIMITER?: RateLimiterBinding;
   OAUTH_AUTHORIZE_LIMITER?: RateLimiterBinding;
   // Edge rate limiter for the public prepare_order tool, which unlike the
@@ -368,7 +391,34 @@ type McpAuth = {
   tokenId: string;
   scopes: McpScope[];
   creatorTier: McpCreatorTier;
+  /**
+   * A host's own key (Launch 5, M6): its only scope is `host:self`, on the
+   * host's own personal account. It lists and calls HOST_SELF_TOOLS and
+   * nothing else; the shop scopes are never consulted for it.
+   */
+  hostSelf?: boolean;
 };
+
+/**
+ * Everything a host's own key may list or call (Launch 5, M6 part two): the
+ * host-facing tools of fewHosts.ts, launch3.ts and circles.ts, and the
+ * person's own favourites. Each one already answers only for the caller's own
+ * tables on their own personal account, so a host key reaches its host's
+ * tables, guests, teas, notes and chest and nothing more: never Manage,
+ * another host, or the shop's books. set_host_approval, stop_host and
+ * let_host_again are Adrian's and stay out. A tool added to a module does not
+ * join this list by itself; it is named here or a host key never sees it.
+ */
+export const HOST_SELF_TOOLS: ReadonlySet<string> = new Set([
+  // fewHosts.ts (Launch 2, H12)
+  'host_table', 'list_my_tables', 'get_table_guests', 'answer_guest', 'add_table_tea', 'set_guest_note', 'get_guest_notes',
+  // launch3.ts, the host's own
+  'release_guest_seat', 'same_table_again', 'set_session_tasting', 'report',
+  // circles.ts (Launch 5, M4)
+  'make_circle', 'put_table_in_circle', 'list_my_circles',
+  // launch4.ts: the person's own favourites, which hold their Tea Chest teas. Read only.
+  'list_my_favourites',
+]);
 
 const MCP_SCOPES = [
   'inventory:read', 'stock:write', 'customers:read', 'sales:read', 'sales:write',
@@ -407,6 +457,22 @@ function parseMcpScopes(raw: unknown): McpScope[] {
     return parsed.filter((scope): scope is McpScope => MCP_SCOPES.includes(scope as McpScope));
   } catch {
     return DEFAULT_MCP_SCOPES;
+  }
+}
+
+/**
+ * Whether stored scopes name a host's own key: 'only' when `host:self` is the
+ * one scope, 'mixed' when it sits beside anything else (refused: a host key is
+ * never widened), 'no' otherwise.
+ */
+function rawScopesNameHostSelf(raw: unknown): 'no' | 'only' | 'mixed' {
+  if (typeof raw !== 'string' || !raw.includes(HOST_SELF_SCOPE)) return 'no';
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed) || !parsed.includes(HOST_SELF_SCOPE)) return 'no';
+    return parsed.length === 1 ? 'only' : 'mixed';
+  } catch {
+    return 'mixed';
   }
 }
 
@@ -530,6 +596,28 @@ async function authenticateMcp(request: Request, env: Env): Promise<McpAuth | Re
     else if (membership.role === 'viewer') creatorTier = 'viewer';
     else return unauthorized(request, 'Invalid or revoked token');
     permissions = membership.permissions;
+  }
+
+  // A host's own key carries `host:self` alone. It works only while both
+  // switches are open, on the host's own personal account, while they may
+  // host: a stopped host's keys refuse here at once.
+  const hostSelf = rawScopesNameHostSelf(row.scopes);
+  if (hostSelf !== 'no') {
+    if (hostSelf !== 'only') return unauthorized(request, 'Invalid or revoked token');
+    let mayAct: boolean;
+    try {
+      mayAct = await hostTokenMayAct(env, user.id, row.account_id);
+    } catch (error) {
+      return authenticationDependencyFailure(error);
+    }
+    if (!mayAct) return unauthorized(request, 'Invalid or revoked token');
+    env.DB.prepare("UPDATE mcp_tokens SET last_used_at = datetime('now') WHERE id = ?")
+      .bind(row.id).run().catch(() => {});
+    // Never a platform-owner tier, whoever holds it: the key is a host's.
+    return {
+      accountId: row.account_id, userId: user.id, userEmail: user.email || row.user_email,
+      tokenId: row.id, scopes: [], creatorTier: 'account_owner', hostSelf: true,
+    };
   }
 
   const scopes = parseMcpScopes(row.scopes);
@@ -838,18 +926,14 @@ async function toolCreateTea(env: Env, auth: McpAuth, args: any) {
   if (missingCost) throw new Error(`${COST_REQUIRED_ON_CREATE} (missing: ${missingCost})`);
 
   const costAmount = Math.max(0, Number(args.cost_amount));
-  /* Freight, optional and read the same way every other nullable number is:
-     absent means nobody said, which is the shop rate, NOT zero. `?? null`
-     before any coercion, because Number(undefined) is NaN and Number(null) is
-     0, and a 0 here is Adrian saying this one tea ships free. */
+  /* Freight is not set on a tea (Adrian, 2026-11-27). Rates live with the
+     logistics services and the shop default in Logistics; a new tea follows
+     its service or the shop default, so its own rate is always NULL here. */
   const rawShipping = args?.shipping_rate_per_kg;
-  const shippingRatePerKg = rawShipping === undefined || rawShipping === null
-    || (typeof rawShipping === 'string' && rawShipping.trim() === '')
-    ? null
-    : Number(rawShipping);
-  if (shippingRatePerKg !== null && !Number.isFinite(shippingRatePerKg)) {
-    throw new Error('shipping_rate_per_kg must be a number, or left out to follow the shop rate');
+  if (!(rawShipping === undefined || rawShipping === null || (typeof rawShipping === 'string' && rawShipping.trim() === ''))) {
+    throw new Error(FREIGHT_RATE_IN_LOGISTICS);
   }
+  const shippingRatePerKg = null;
   const fixedRetailPriceUsd = args?.fixed_retail_price_usd ?? null;
   if (fixedRetailPriceUsd !== null && (
     typeof fixedRetailPriceUsd !== 'number' || !Number.isFinite(fixedRetailPriceUsd) || fixedRetailPriceUsd < 0
@@ -2269,7 +2353,11 @@ async function toolUpdateTeaPricing(env: Env, auth: McpAuth, args: any) {
   const hasNewQty = 'quantity_purchased' in (args || {});
   const hasNewDesc = typeof args?.description === 'string';
   const hasNewStockVerify = 'stock_verified' in (args || {});
-  const hasNewShipping = 'shipping_rate_per_kg' in (args || {});
+  /* Setting a tea's own freight rate is refused (rates live in Logistics);
+     clearing one through clear_fields is still the way to hand it back. */
+  if ('shipping_rate_per_kg' in (args || {})) throw new Error(FREIGHT_RATE_IN_LOGISTICS);
+  const hasNewShipping = false;
+  const hasClearFields = Array.isArray(args?.clear_fields) && args.clear_fields.length > 0;
   const hasNewTasting = Array.isArray(args?.tasting_notes);
   const hasNewOrigin = 'origin_country' in (args || {}) || 'origin_region' in (args || {});
   const hasNewLore = typeof args?.lore === 'string';
@@ -2278,8 +2366,8 @@ async function toolUpdateTeaPricing(env: Env, auth: McpAuth, args: any) {
   const hasNewYear = 'year' in (args || {});
   const hasNewStatus = typeof args?.status === 'string';
   const status: string | null = hasNewStatus ? String(args.status).trim() : null;
-  if (!hasNewCost && !hasNewRetail && !hasNewQty && !hasNewYear && !hasNewStatus && !hasNewDesc && !hasNewStockVerify && !hasNewShipping && !hasNewTasting && !hasNewOrigin && !hasNewLore && !hasNewTerroir && !hasNewProcessing) {
-    throw new Error('At least one of cost_amount, cost_currency, retail_price_usd, quantity_purchased, year, status, description, lore, terroir, processing_notes, stock_verified, shipping_rate_per_kg, tasting_notes, or origin_country/origin_region is required');
+  if (!hasNewCost && !hasNewRetail && !hasNewQty && !hasNewYear && !hasNewStatus && !hasNewDesc && !hasNewStockVerify && !hasNewShipping && !hasClearFields && !hasNewTasting && !hasNewOrigin && !hasNewLore && !hasNewTerroir && !hasNewProcessing) {
+    throw new Error('At least one of cost_amount, cost_currency, retail_price_usd, quantity_purchased, year, status, description, lore, terroir, processing_notes, stock_verified, clear_fields, tasting_notes, or origin_country/origin_region is required');
   }
 
   const costAmount: number | null = 'cost_amount' in (args || {}) ? Number(args.cost_amount) : null;
@@ -2332,7 +2420,7 @@ async function toolUpdateTeaPricing(env: Env, auth: McpAuth, args: any) {
     : undefined;
 
   const product = await env.DB.prepare(
-    'SELECT id, type, given_name, product_name, cost_amount, cost_currency, fixed_retail_price_usd, quantity_purchased, shipping_rate_per_kg, status FROM products WHERE id = ? AND account_id = ?'
+    'SELECT id, type, given_name, product_name, cost_amount, cost_currency, fixed_retail_price_usd, quantity_purchased, shipping_rate_per_kg, freight_service_id, form, status FROM products WHERE id = ? AND account_id = ?'
   ).bind(productId, auth.accountId).first() as Record<string, any> | null;
   if (!product) return { error: 'not_found' };
   /* An amount needs a unit. The row's own currency counts, since most calls
@@ -2397,15 +2485,13 @@ async function toolUpdateTeaPricing(env: Env, auth: McpAuth, args: any) {
       const rateToUsd = newCostCurrency === 'USD' ? 1 : rates.get(newCostCurrency!);
       // No rate row → skip the warning rather than emit a false one.
       if (rateToUsd) {
-        const account = await env.DB.prepare(
-          'SELECT default_shipping_rate_per_kg, default_shipping_rate_currency FROM accounts WHERE id = ?'
-        ).bind(auth.accountId).first() as { default_shipping_rate_per_kg?: number | null; default_shipping_rate_currency?: string | null } | null;
-        const shopFreight = resolveShopFreightDefault(account, currency => rates.get(currency));
+        // The shop rate, or the tea's logistics service: src/lib/freightSource.ts.
+        const freightDefaults = await accountFreightDefaults(env, auth.accountId, rates);
         const freight = shippingPerGramUsd({
           storedRatePerKg: newShippingRatePerKg,
           rateToUsd,
           isTeaware: product.type === 'Teaware',
-          shopDefaultPerKgUsd: shopFreight.perKgUsd,
+          shopDefaultPerKgUsd: freightFor(product, freightDefaults).perKgUsd,
         });
         if (freight !== null && Number.isFinite(rateToUsd) && rateToUsd > 0) {
           costUsd = (newCostAmount / newQuantity) / rateToUsd + freight;
@@ -2891,6 +2977,7 @@ async function commitVoidInvoice(
     }
     throw error;
   }
+  await settleHostCredit(env, m.invoiceId);
 
   return {
     committed: true,
@@ -4198,6 +4285,7 @@ async function commitFulfillInvoice(
     }
     throw error;
   }
+  await settleHostCredit(env, m.invoiceId);
 
   return {
     committed: true,
@@ -4369,6 +4457,7 @@ async function commitMarkInvoicePaid(env: Env, m: Extract<PendingMutation, { kin
     }
   }
 
+  await settleHostCredit(env, m.invoiceId);
   return {
     committed: true,
     action: 'mark_invoice_paid',
@@ -5269,6 +5358,7 @@ async function commitConvertOrderRequest(env: Env, m: Extract<PendingMutation, {
   }
 
   await ensureBuyerRelationship(env, m.accountId, customer?.id ?? null, invoiceId);
+  await settleHostCredit(env, invoiceId);
 
   const total = roundUsd(lines.reduce((sum, line) => sum + line.quantity * line.price_at_sale, 0));
   const unpriced = lines.filter(line => !(line.price_at_sale > 0)).length;
@@ -5443,6 +5533,7 @@ async function commitConfirmPayment(env: Env, m: Extract<PendingMutation, { kind
   const changed = Number(update.meta?.changes || 0) > 0;
 
   const result = await recomputeInvoicePaymentStatus(env, invoice);
+  await settleHostCredit(env, invoice.id);
   if (changed) {
     await logOrderProcessActivity(env, {
       accountId: m.accountId, userEmail: m.userEmail,
@@ -5639,6 +5730,7 @@ async function commitRecordPayment(env: Env, m: Extract<PendingMutation, { kind:
   ).run();
 
   const result = await recomputeInvoicePaymentStatus(env, invoice);
+  await settleHostCredit(env, invoice.id);
   await logOrderProcessActivity(env, {
     accountId: m.accountId, userEmail: m.userEmail,
     action: 'INVOICE_PAYMENT_RECORDED',
@@ -6181,7 +6273,7 @@ async function commitIntakeFinalize(env: Env, m: Extract<PendingMutation, { kind
 
 // ── tool registry / JSON-RPC dispatch ──
 
-const TOOL_DEFS = [
+const TOOL_DEFS: ToolDefinition[] = [
   {
     name: 'search_tea',
     scope: 'inventory:read',
@@ -6318,15 +6410,6 @@ const TOOL_DEFS = [
             + 'There is deliberately no default. A yuan invoice recorded as dollars prices the tea about '
             + 'seven times too high and nothing objects, because the number itself is fine.',
         },
-        shipping_rate_per_kg: {
-          type: 'number',
-          description:
-            'OPTIONAL, and usually left out. Leave it out and the tea follows the shop freight rate '
-            + '(85 Yuan/kg, converted live), which is what Adrian pays to air-freight from China, and it '
-            + 'keeps following that rate when he renegotiates it. Pass a number ONLY when this particular '
-            + "tea cost more or less to ship. Written in the tea's OWN cost currency, not USD: on a tea "
-            + 'bought in CNY, pass the CNY rate. A 0 means this tea genuinely ships free.',
-        },
         fixed_retail_price_usd: { type: 'number', description: 'Optional fixed retail price; omit to use markup-based pricing.' },
         low_stock_threshold: { type: 'number', default: 100 },
         notes: { type: 'string', description: 'Optional description/notes.' },
@@ -6447,7 +6530,6 @@ const TOOL_DEFS = [
         quantity_purchased: { type: 'number', description: 'Total grams purchased (e.g. 2490 for 7 x 357g cakes, 1000 for 1kg).' },
         year: { type: 'number', description: 'The year of the tea (e.g. 2025, 2019). Maps to the reference year.' },
         status: { type: 'string', description: 'Product status, e.g. Active or Sold Out. Keeps products + listing in sync.' },
-        shipping_rate_per_kg: { type: 'number', description: 'Shipping freight per kg folded into the COST basis, so the markup multiplies it too. Written in the tea\'s OWN cost currency, not USD: on a tea bought in CNY, pass the CNY rate. Setting it PINS this tea to that figure; to hand it back to the shop rate (85 Yuan/kg, converted live) pass "shipping_rate_per_kg" in clear_fields instead. Not a separate sales charge.' },
         tasting_notes: { type: 'array', items: { type: 'string' }, description: 'Flavor/taste terms for the catalog tasting field (NOT the description). Up to 8.' },
         description: { type: 'string', description: 'Customer-facing "About this tea" (origin/character — NOT flavors; personal note space, shows only when present).' },
         lore: { type: 'string', description: 'Real, sourced historical/cultural background (terse, never fabricated).' },
@@ -6456,7 +6538,7 @@ const TOOL_DEFS = [
         origin_country: { type: 'string', description: 'Harvest country (not the trading house), e.g. Vietnam.' },
         origin_region: { type: 'string', description: 'Harvest region, e.g. Northern Vietnam wild tea trees, on the Yunnan border.' },
         stock_verified: { type: 'boolean', description: 'true = mark stock verified; false = set needs-verification flag. Omit to leave unchanged.' },
-        clear_fields: { type: 'array', items: { type: 'string' }, description: 'Fields to blank rather than set: lore, experience, mood, terroir, processing_notes, shipping_rate_per_kg. Clearing shipping_rate_per_kg hands the tea back to the shop freight rate and it follows that rate from then on; anything else is ignored.' },
+        clear_fields: { type: 'array', items: { type: 'string' }, description: 'Fields to blank rather than set: lore, experience, mood, terroir, processing_notes, shipping_rate_per_kg. Clearing shipping_rate_per_kg hands a tea that still carries its own older freight rate back to its logistics service or the shop default; a rate cannot be set here, rates live in Logistics. Anything else is ignored.' },
         confirm: { type: 'string', description: 'Confirmation token from preview response.' },
       },
       required: ['product_id'],
@@ -7136,7 +7218,10 @@ const TOOL_MODULES: ToolModule[] = [
   curationTools,
   eventsToolModule,
   firstTableToolModule,
+  launch4ToolModule,
   fewHostsToolModule,
+  launch3ToolModule,
+  circlesToolModule,
   writingToolModule,
   costCurrencyTools,
   curateIntakeTools,
@@ -7144,6 +7229,7 @@ const TOOL_MODULES: ToolModule[] = [
   curatePhotoTools,
   curateArrivalTools,
   orderTrackingTools,
+  priceLinkTools,
   purchaseArrivalTools,
   logisticsTools,
   logisticsTrackingTools,
@@ -7161,26 +7247,40 @@ const TOOL_MODULES: ToolModule[] = [
 
 const { defs: MODULE_TOOL_DEFS, handlers: MODULE_TOOL_HANDLERS } = combineToolModules(TOOL_MODULES);
 
+/** Every tool name /mcp knows, built-in and module. For tests that walk the whole surface. */
+export function mcpToolNames(): string[] {
+  return [...TOOL_DEFS, ...MODULE_TOOL_DEFS].map(tool => tool.name);
+}
+
 function toolDefFor(name: string) {
   return TOOL_DEFS.find(tool => tool.name === name)
     ?? MODULE_TOOL_DEFS.find(tool => tool.name === name);
 }
 
-function visibleToolDefs(auth: McpAuth) {
+function visibleToolDefs(env: Env, auth: McpAuth) {
   // Module tools are listed on the same terms as the built-in ones. A tool that
   // dispatches but never appears in tools/list is a tool nobody can find.
   return [...TOOL_DEFS, ...MODULE_TOOL_DEFS]
     .filter(tool => {
-      const scope = tool.scope as McpScope;
-      if (!hasMcpScope(auth, scope)) return false;
+      const scope = tool.scope;
+      if (auth.hostSelf) return hostSelfMayUse(env, auth, tool);
+      if (tool.available && !tool.available(env, auth)) return false;
+      if (scope !== 'signed-in' && !hasMcpScope(auth, scope)) return false;
       // Owner-tier scoped tools are invisible without current owner authority.
-      if (OWNER_TIER_SCOPES.has(scope) && !OWNER_TIERS.has(auth.creatorTier)) return false;
-      return true;
+      if (scope !== 'signed-in' && OWNER_TIER_SCOPES.has(scope) && !OWNER_TIERS.has(auth.creatorTier)) return false;
+      return !('unavailable' in tool && tool.unavailable?.(env, auth));
     })
     .map(tool => {
-      const { scope: _scope, ...rest } = tool;
+      const { scope: _scope, available: _available, unavailable: _unavailable, ...rest } = tool as ToolDefinition;
       return { ...rest, annotations: annotationsFor(tool) };
     });
+}
+
+/** A host key sees a tool only when it is a host tool and its own switches are open. */
+function hostSelfMayUse(env: Env, auth: McpAuth, tool: { name: string } & Partial<Pick<ToolDefinition, 'available' | 'unavailable'>>) {
+  if (!HOST_SELF_TOOLS.has(tool.name)) return false;
+  if (tool.available && !tool.available(env, auth)) return false;
+  return !tool.unavailable?.(env, auth);
 }
 
 const AUDITED_TOOLS = new Set([
@@ -7233,12 +7333,21 @@ async function logMcpToolCall(env: Env, auth: McpAuth, toolName: string, args: a
 
 async function dispatchTool(env: Env, auth: McpAuth, name: string, args: any) {
   const tool = toolDefFor(name);
-  if (!tool) throw new Error(`Unknown tool: ${name}`);
+  // A closed tool answers exactly as an unknown one, before scope or role is
+  // read (A4 review, finding 12); tools/list already leaves it out.
+  if (!tool || ('unavailable' in tool && tool.unavailable?.(env, auth) === 'feature_closed')) throw new Error(`Unknown tool: ${name}`);
+  // A host key never learns whether any other tool exists.
+  if (auth.hostSelf && !HOST_SELF_TOOLS.has(name)) throw new Error(`Unknown tool: ${name}`);
 
-  const scope = tool.scope as McpScope;
+  const scope = tool.scope;
 
-  // Scope check
-  if (!hasMcpScope(auth, scope)) {
+  if (tool.available && !tool.available(env, auth)) {
+    return mcpContent({ error: 'not_available' });
+  }
+
+  // Scope check. A host key holds no shop scope: HOST_SELF_TOOLS is its whole
+  // authority, and each of those tools answers only for the host's own tables.
+  if (!auth.hostSelf && scope !== 'signed-in' && !hasMcpScope(auth, scope)) {
     return mcpContent({
       error: 'insufficient_mcp_scope',
       required_scope: scope,
@@ -7248,13 +7357,16 @@ async function dispatchTool(env: Env, auth: McpAuth, name: string, args: any) {
 
   // Owner-tier gate — defense in depth: reject even if scope is in the token
   // when the creator no longer has owner-tier authority.
-  if (OWNER_TIER_SCOPES.has(scope) && !OWNER_TIERS.has(auth.creatorTier)) {
+  if (!auth.hostSelf && scope !== 'signed-in' && OWNER_TIER_SCOPES.has(scope) && !OWNER_TIERS.has(auth.creatorTier)) {
     return mcpContent({
       error: 'owner_tier_required',
       message: 'This tool requires current account-owner or platform-owner authority.',
       tool: name,
     });
   }
+
+  const unavailable = 'unavailable' in tool && tool.unavailable?.(env, auth);
+  if (unavailable) return mcpContent({ error: unavailable });
 
   let result;
   switch (name) {
@@ -7334,6 +7446,15 @@ const SERVER_INFO = {
   description: 'Teajia inventory, orders, customers and Curate. Ask whats_waiting for pending orders and payments. Use search_tea for products and separate Curate sample holdings; curate_find and curate_get_tea read sourcing records. Curate tools cover structured intake, vendor quotes, attachments and uploads, samples and arrivals. curate_correct edits, clears, deletes, archives or merges records; curate_history and curate_undo preserve attribution; select mutation_id to undo a chosen safe change. curate_drive_photo previews trash or restore of a synced Drive backup. Curate management requires shop ownership or explicit curate_manage permission. Writes use preview and confirmation; curate_promote_tea creates a private zero-stock inventory Draft from a Curate tea; stock and sale tools take product ids only. Available tools depend on token scopes: fetch tools/list after connecting or reconnecting.',
 };
 
+/* What a host's own assistant is told on connecting (Launch 5, M6). Only the
+   host's own tables; nothing of the shop is named. */
+const HOST_SERVER_INFO = {
+  ...SERVER_INFO,
+  name: 'teajia-host',
+  description: 'Your own tables on Teajia: make a table, add its teas, answer guests, keep private notes on them, and gather tables into circles. Only your own tables, guests, teas and notes.',
+};
+const HOST_INSTRUCTIONS = 'Read tools/list after connecting. These tools reach only the host\'s own tables, guests, teas, notes and Tea Chest. Every change is previewed first: read the preview back to the host, and confirm only after they accept it.';
+
 // Default to the current rev (structured output + tool annotations). We echo
 // the client's requested protocolVersion when it sends one in `initialize`, so
 // older clients negotiate down cleanly instead of being forced to our default.
@@ -7378,6 +7499,14 @@ async function mcpFetchInner(request: Request, env: Env): Promise<Response> {
     switch (method) {
       case 'initialize': {
         const requested = typeof params?.protocolVersion === 'string' ? params.protocolVersion : null;
+        if (auth.hostSelf) {
+          return rpcResult(id, {
+            protocolVersion: requested || PROTOCOL_VERSION,
+            capabilities: { tools: { listChanged: false } },
+            serverInfo: HOST_SERVER_INFO,
+            instructions: HOST_INSTRUCTIONS,
+          });
+        }
         return rpcResult(id, {
           protocolVersion: requested || PROTOCOL_VERSION,
           capabilities: { tools: { listChanged: false } },
@@ -7387,7 +7516,7 @@ async function mcpFetchInner(request: Request, env: Env): Promise<Response> {
       }
 
       case 'tools/list':
-        return rpcResult(id, { tools: visibleToolDefs(auth) });
+        return rpcResult(id, { tools: visibleToolDefs(env, auth) });
 
       case 'tools/call': {
         const name = params?.name;

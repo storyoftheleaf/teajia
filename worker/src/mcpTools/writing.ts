@@ -8,6 +8,7 @@ import { isWordforgeManagedArticle } from '../wordforgeArticleDraft';
 import { moveClaimUsesWithBlocks } from '../articleWisdomClaimUses';
 import { buildEventArticleDraft } from '../eventArticleDraft';
 import { readEditorialPilot } from '../articleEditorialPilot';
+import { isHostArticleId } from '../hostArticleOffers';
 
 /**
  * The journal, and the sample shelf: the two things Adrian works on that an
@@ -479,6 +480,7 @@ const toolUpdateArticleDraft: ToolHandler = async (env, auth, args) => {
 
   const existing = await loadArticle(env, auth.accountId, articleId);
   if (!existing) return { error: 'not_found' };
+  if (isHostArticleId(articleId, env as { HOST_ARTICLES_OPEN?: string })) return { error: 'host_article_owner_review', detail: 'Edit this article in Magazine.' };
 
   if (!confirm) {
     const fields: Record<string, string | number | null> = {};
@@ -594,6 +596,7 @@ const toolSetArticlePublished: ToolHandler = async (env, auth, args) => {
 
   const existing = await readArticleReview(env.DB, auth.accountId, articleId);
   if (!existing) return { error: 'not_found' };
+  if (isHostArticleId(articleId, env as { HOST_ARTICLES_OPEN?: string })) return { error: 'host_article_owner_review', detail: 'Review publication in Magazine.' };
   const { article, snapshot, productIds, reviewDigest } = await unpackArticleReview(existing);
 
   if (!confirm) {

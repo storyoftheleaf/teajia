@@ -1,7 +1,6 @@
 import { compassHolding, COMPASS_SAMPLE_HOLDING } from './compassHoldings';
 import { compassValuesFromImport } from './compassCodec';
 import { analysisProviderFailure, AnalysisProviderError, buildAnalysisProviderBody, CURATE_IMPORT_ANALYSIS_DEFAULT_MODEL, sanitizedProviderDetail } from './curateAnalysisProvider';
-import { FALLBACK_SHIPPING_RATE_PER_KG } from './shippingRate';
 import { validateCurateContextPair } from './curateContextValidation';
 import { applyImportRecordHints, buildImportAnalysisPrompt, buildImportRecordFallbackProposal, buildImportRecordHints, decodeImportAnalysisProposal, IMPORT_ANALYSIS_OUTPUT_SCHEMA, inferSilentFills, normalizeImportProposal, renormalizeImportItemData, type ImportAnalysisProposal, type ImportMatchCandidates } from './curateImportAnalysis';
 import { canonicalImportToCompassValues, canonicalImportToProductValues, normalizeCanonicalImportRecord } from './curateImportCanonical';
@@ -1200,29 +1199,13 @@ export async function finalizeCurateImportRequest(request: Request, env: ImportE
           const validVendor = typeof row.resolved_vendor_customer_id === 'string' && Array.isArray(tags) && tags.includes('vendor');
           return { id: String(row.id), vendorId: validVendor ? String(row.resolved_vendor_customer_id) : null, vendorName: typeof row.vendor_name === 'string' ? row.vendor_name : null, position: Number(row.position) };
         });
-        /* Same rule as a product's own rate: nothing recorded means nobody
-           said, and the shop rate applies; a number was said, and is obeyed.
-           The shop rate now lives on the account rather than in code, so it is
-           read from there and the constant is only the floor beneath it. See
-           worker/src/shippingRate.ts. */
-        const shopFreight = await env.DB.prepare(
-          'SELECT default_shipping_rate_per_kg FROM accounts WHERE id = ?'
-        ).bind(ctx.accountId).first() as { default_shipping_rate_per_kg?: number | null } | null;
-        const shopRate = shopFreight?.default_shipping_rate_per_kg;
-        const shopRatePerKg = shopRate != null && Number.isFinite(Number(shopRate))
-          ? Number(shopRate)
-          : FALLBACK_SHIPPING_RATE_PER_KG;
-        /* The stored column is NOT read. It is `NOT NULL DEFAULT 10.0` (added
-           by migration 0001), so it cannot hold "nobody said": every batch that
-           has ever existed carries either that stale default or a number
-           written before freight moved onto the account. A column that cannot
-           express absence cannot be trusted to mean presence, which is the same
-           reasoning that took the markup and the product freight rate off their
-           rows. Nothing anywhere consumes this value, so the batch reports what
-           it is actually charged, which is the shop rate. */
-        const shippingRatePerKg = shopRatePerKg;
+        /* Freight is not stamped on an import (Adrian, 2026-11-27). Each tea
+           it lands follows its logistics service or the shop default when it is
+           priced (src/lib/freightSource.ts, freightFor), so the batch carries no
+           rate of its own. The stored `shipping_rate_per_kg` column on the batch
+           is NOT NULL DEFAULT 10.0 from migration 0001, historical and unread. */
         return {
-          batch: { id: batchId, accountId: ctx.accountId, journeyId, journeyName: journey ? [journey.name, journey.season, journey.year].filter(value => value != null && value !== '').join(' · ') : null, reviewState: String(batch.review_state), shippingRatePerKg },
+          batch: { id: batchId, accountId: ctx.accountId, journeyId, journeyName: journey ? [journey.name, journey.season, journey.year].filter(value => value != null && value !== '').join(' · ') : null, reviewState: String(batch.review_state) },
           groups, items: itemRows.results.map(parsedFinalizeItem),
         } as CurateFinalizeData;
       },
