@@ -216,7 +216,7 @@ describe('circles and series, open', () => {
     expect((await route('host', '/api/me/circles', 'POST', { name: 'New', kind: 'series' })).status).toBe(403);
     expect((await route('host', '/api/me/tables/next/circle', 'PUT', { circle_id: 'c1' })).status).toBe(403);
     expect((await route('host', '/api/me/tables/second/circle-guests/mei/ask', 'POST', {})).status).toBe(403);
-    expect((await tool('host', 'make_circle', { name: 'New' })).error).toBe('hosting_stopped');
+    expect((await tool('host', 'make_circle', { name: 'New', kind: 'circle' })).error).toBe('hosting_stopped');
     expect((await tool('host', 'put_table_in_circle', { table_id: 'next', circle_id: 'c1' })).error).toBe('hosting_stopped');
     expect((await route('host', '/api/me/tables/second/circle', 'PUT', { circle_id: null })).status).toBe(200);
     expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM session_series').get()).toEqual({ n: 1 });

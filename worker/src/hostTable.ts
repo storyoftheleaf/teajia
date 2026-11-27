@@ -30,7 +30,13 @@ function localTimestamp(format: Intl.DateTimeFormat, instant: number): string {
   return `${parts.year.padStart(4, '0')}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}:${parts.second}`;
 }
 
-function tableInstant(date: string, time: string, timezone: string): Date | HostedTableRefusal {
+/**
+ * The instant a table starts, from the day and time on the host's clock in
+ * its zone. Refuses a day already past there. The new-table form and the
+ * host's copy of a table (same table again) both read it, so a host cannot
+ * make by one door a table the other refuses (A11-3).
+ */
+export function tableInstant(date: string, time: string, timezone: string): Date | HostedTableRefusal {
   const wallTime = `${date}T${time}:00`;
   const wallMs = Date.parse(`${wallTime}Z`);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(wallMs)
@@ -60,6 +66,28 @@ function tableInstant(date: string, time: string, timezone: string): Date | Host
   return matches.length
     ? new Date(Math.min(...matches))
     : refuse('hosted_table_time', 'Choose a time that exists on that day in your time zone.');
+}
+
+/**
+ * The day and time a host gave for a copy of their table, on the table's own
+ * clock: "2027-04-05T14:00" as written, or an instant with a zone read on
+ * that clock. Null when it is neither.
+ */
+export function tableWallTime(value: string, timezone: string): { date: string; time: string } | null {
+  const wall = /^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2})(?::00(?:\.0+)?)?$/.exec(value.trim());
+  if (wall) return /^([01]\d|2[0-3]):[0-5]\d$/.test(wall[2]) ? { date: wall[1], time: wall[2] } : null;
+  if (!/(?:[zZ]|[+-]\d{2}:?\d{2})$/.test(value.trim())) return null;
+  const instant = Date.parse(value.trim());
+  if (!Number.isFinite(instant)) return null;
+  try {
+    const local = localTimestamp(new Intl.DateTimeFormat('en-CA', {
+      timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23',
+    }), instant);
+    return { date: local.slice(0, 10), time: local.slice(11, 16) };
+  } catch {
+    return null;
+  }
 }
 
 function tableSlug(title: string): string {
