@@ -89,8 +89,19 @@ function under(pathname: string, prefix: string): boolean {
   return pathname === prefix || pathname.startsWith(prefix + '/');
 }
 
+/**
+ * A tea opened from a shared link (an invoice sheet or a collection, with
+ * ?tea=) is the shop's own tea page, so the bar lights Shop there, exactly as
+ * it does in the shop (Adrian, 2026-11-27).
+ */
+function linkTeaOpen(pathname: string, search: string): boolean {
+  if (!new URLSearchParams(search).get('tea')) return false;
+  return under(pathname, '/c') || /^\/people\/[^/]+\/pay\/?$/.test(pathname);
+}
+
 /** Whether a word is lit at this address. */
-export function barSectionActive(item: BarSection, pathname: string, activeSection: Section): boolean {
+export function barSectionActive(item: BarSection, pathname: string, activeSection: Section, search = ''): boolean {
+  if (linkTeaOpen(pathname, search)) return item.id === 'shop';
   if (item.lights) return item.lights.some(prefix => under(pathname, prefix));
   if (item.path) return pathname.startsWith(item.path);
   return activeSection === item.section;

@@ -178,7 +178,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
   const renderTabButton = (section: BarSection, index: number) => {
     // A path-override tab (Read → /read) is active when on that path; otherwise
     // fall back to the section match.
-    const isActive = !isOnAdmin && barSectionActive(section, location.pathname, activeSection);
+    const isActive = !isOnAdmin && barSectionActive(section, location.pathname, activeSection, location.search);
 
     return (
       <motion.button

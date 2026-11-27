@@ -192,7 +192,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 
         <nav className="flex flex-col items-center gap-5 mt-9" aria-label="Browse">
           {browseItems.map(item => {
-            const isActive = !isAdminRoute && barSectionActive(item, currentPath, activeSection);
+            const isActive = !isAdminRoute && barSectionActive(item, currentPath, activeSection, location.search);
             const onClick = () => {
               if (hasManageRoom) setSidebarRoom('browse');
               if (item.path) {
