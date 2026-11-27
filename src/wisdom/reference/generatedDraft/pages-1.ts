@@ -67,6 +67,90 @@ export const PART: readonly DraftReferencePage[] = [
     ]
   },
   {
+    "id": "banzhang",
+    "slug": "banzhang",
+    "kind": "tea_area",
+    "label": "Banzhang",
+    "visibility": "public",
+    "nativeName": "班章",
+    "parentId": "menghai-county",
+    "sourceIds": [],
+    "sections": [
+      {
+        "key": "where-it-is",
+        "label": "Where Banzhang is",
+        "sourceIds": []
+      },
+      {
+        "key": "old-and-new",
+        "label": "Lao Banzhang and Xin Banzhang",
+        "sourceIds": []
+      },
+      {
+        "key": "known-for",
+        "label": "The tea Banzhang is known for",
+        "sourceIds": []
+      },
+      {
+        "key": "history",
+        "label": "A price that rose fast",
+        "sourceIds": []
+      },
+      {
+        "key": "on-a-label",
+        "label": "Banzhang on a label",
+        "sourceIds": []
+      },
+      {
+        "key": "in-ripe-pu-er",
+        "label": "Banzhang in ripe pu’er",
+        "sourceIds": []
+      }
+    ]
+  },
+  {
+    "id": "bulang-mountain",
+    "slug": "bulang-mountain",
+    "kind": "tea_area",
+    "label": "Bulang Mountain",
+    "visibility": "public",
+    "nativeName": "布朗山",
+    "parentId": "menghai-county",
+    "sourceIds": [],
+    "sections": [
+      {
+        "key": "where-it-is",
+        "label": "Where Bulang Mountain is",
+        "sourceIds": []
+      },
+      {
+        "key": "people",
+        "label": "Who lives there",
+        "sourceIds": []
+      },
+      {
+        "key": "known-for",
+        "label": "The tea it is known for",
+        "sourceIds": []
+      },
+      {
+        "key": "history",
+        "label": "A newer famous mountain",
+        "sourceIds": []
+      },
+      {
+        "key": "on-a-label",
+        "label": "Bulang Mountain on a label",
+        "sourceIds": []
+      },
+      {
+        "key": "in-ripe-pu-er",
+        "label": "Bulang in ripe pu’er",
+        "sourceIds": []
+      }
+    ]
+  },
+  {
     "id": "dancong",
     "slug": "dancong",
     "kind": "tea_type",
@@ -384,6 +468,11 @@ export const PART: readonly DraftReferencePage[] = [
         "key": "common-impressions",
         "label": "What people often notice",
         "sourceIds": []
+      },
+      {
+        "key": "other-names",
+        "label": "Other names and other teas",
+        "sourceIds": []
       }
     ]
   },
@@ -459,6 +548,70 @@ export const PART: readonly DraftReferencePage[] = [
       {
         "key": "brewing",
         "label": "Brewing green tea",
+        "sourceIds": []
+      },
+      {
+        "key": "common-impressions",
+        "label": "What people often notice",
+        "sourceIds": []
+      }
+    ]
+  },
+  {
+    "id": "jingmai",
+    "slug": "jingmai",
+    "kind": "tea_area",
+    "label": "Jingmai",
+    "visibility": "public",
+    "nativeName": "景迈山",
+    "parentId": "yunnan",
+    "sourceIds": [],
+    "sections": [
+      {
+        "key": "where",
+        "label": "Where Jingmai is",
+        "sourceIds": []
+      },
+      {
+        "key": "forest-tea",
+        "label": "Forest tea",
+        "sourceIds": []
+      },
+      {
+        "key": "history",
+        "label": "Who grew it and since when",
+        "sourceIds": []
+      },
+      {
+        "key": "common-impressions",
+        "label": "What people often notice",
+        "sourceIds": []
+      }
+    ]
+  },
+  {
+    "id": "kunlu-mountain",
+    "slug": "kunlu-mountain",
+    "kind": "tea_area",
+    "label": "Kunlu Mountain",
+    "visibility": "public",
+    "nativeName": "困鹿山",
+    "parentId": "yunnan",
+    "sourceIds": [],
+    "sections": [
+      {
+        "key": "where",
+        "label": "Where Kunlu Mountain is",
+        "sourceIds": []
+      },
+      {
+        "key": "trees",
+        "label": "The trees",
+        "sourceIds": []
+      },
+      {
+        "key": "tribute-history",
+        "label": "Tribute tea",
         "sourceIds": []
       },
       {
@@ -808,159 +961,6 @@ export const PART: readonly DraftReferencePage[] = [
         "key": "ripe-origins",
         "label": "Where ripe pu’er began",
         "sourceIds": []
-      }
-    ]
-  },
-  {
-    "id": "menghai-tea-mountain-circuit",
-    "slug": "menghai-tea-mountain-circuit",
-    "kind": "reference_topic",
-    "label": "Menghai Tea Mountain Circuit",
-    "visibility": "draft",
-    "parentId": "menghai-county",
-    "sourceIds": [
-      "ctma-menghai-seven-mountains-2025"
-    ],
-    "sections": [
-      {
-        "key": "editorial-boundary",
-        "label": "An itinerary, not an origin",
-        "sourceIds": [
-          "ctma-menghai-seven-mountains-2025"
-        ]
-      },
-      {
-        "key": "seven-mountain-route",
-        "label": "Seven mountain stops",
-        "sourceIds": [
-          "ctma-menghai-seven-mountains-2025"
-        ]
-      },
-      {
-        "key": "reading-the-circuit",
-        "label": "Reading the circuit",
-        "sourceIds": [
-          "ctma-menghai-seven-mountains-2025"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "nanqiao-ruigong-brick",
-    "slug": "nanqiao-ruigong-brick",
-    "kind": "named_tea",
-    "label": "Nanqiao Ruigong Brick",
-    "visibility": "public",
-    "nativeName": "南峤瑞贡金砖",
-    "parentId": "shou",
-    "sourceIds": [
-      "ctma-nanqiao-company",
-      "dahonghua-ruigong-brick"
-    ],
-    "sections": [
-      {
-        "key": "malaysian-tea-fair",
-        "label": "A brick on the Malaysian tea market",
-        "sourceIds": [
-          "dahonghua-ruigong-brick"
-        ]
-      },
-      {
-        "key": "nanqiao-name",
-        "label": "Where the Nanqiao name comes from",
-        "sourceIds": [
-          "ctma-nanqiao-company"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "oolong",
-    "slug": "oolong",
-    "kind": "tea_family",
-    "label": "Oolong (wulong)",
-    "visibility": "public",
-    "nativeName": "乌龙茶",
-    "sourceIds": [],
-    "sections": [
-      {
-        "key": "definition",
-        "label": "What oolong is",
-        "sourceIds": []
-      },
-      {
-        "key": "making",
-        "label": "How oolong is made",
-        "sourceIds": []
-      },
-      {
-        "key": "oxidation-and-roast",
-        "label": "Oxidation and roast",
-        "sourceIds": []
-      },
-      {
-        "key": "families",
-        "label": "The four families",
-        "sourceIds": []
-      },
-      {
-        "key": "history",
-        "label": "How oolong began",
-        "sourceIds": []
-      },
-      {
-        "key": "ageing",
-        "label": "Keeping and ageing oolong",
-        "sourceIds": []
-      },
-      {
-        "key": "brewing",
-        "label": "Brewing oolong",
-        "sourceIds": []
-      },
-      {
-        "key": "common-impressions",
-        "label": "What people often notice",
-        "sourceIds": []
-      },
-      {
-        "key": "notice-aged",
-        "label": "What people often notice in aged oolong",
-        "sourceIds": []
-      }
-    ]
-  },
-  {
-    "id": "puer",
-    "slug": "puer",
-    "kind": "tea_family",
-    "label": "Pu’er",
-    "visibility": "public",
-    "nativeName": "普洱茶",
-    "sourceIds": [
-      "ctma-puer-history-2021"
-    ],
-    "sections": [
-      {
-        "key": "identity",
-        "label": "A tea rooted in Yunnan",
-        "sourceIds": [
-          "ctma-puer-history-2021"
-        ]
-      },
-      {
-        "key": "history",
-        "label": "Trade and continuity",
-        "sourceIds": [
-          "ctma-puer-history-2021"
-        ]
-      },
-      {
-        "key": "modern-family",
-        "label": "The modern family",
-        "sourceIds": [
-          "ctma-puer-history-2021"
-        ]
       }
     ]
   }

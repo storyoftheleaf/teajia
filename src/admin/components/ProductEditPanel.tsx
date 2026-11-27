@@ -55,6 +55,9 @@ import {
   SECTION_ICONS,
 } from '../../data/tastingTaxonomy';
 
+// The Wisdom pages are heavy; the tea's Wisdom Base list loads them on its own.
+const WisdomNeedsList = React.lazy(() => import('./inventory/stock/WisdomNeedsList'));
+
 /* ------------------------------------------------------------------ */
 /* Shared inline-edit sub-components                                   */
 /* ------------------------------------------------------------------ */
@@ -1735,6 +1738,12 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                 </div>
               </div>
             </CollapsibleSection>
+
+            {inventoryCategory !== 'teaware' && (
+              <CollapsibleSection title="Wisdom Base" description="What its entry can draw on, and what still needs writing." defaultOpen={false}>
+                <React.Suspense fallback={null}><WisdomNeedsList product={product} /></React.Suspense>
+              </CollapsibleSection>
+            )}
 
             <div id="tea-section-placement" />
             <CollapsibleSection title="Links" description="Where this tea came from, its orders and its story page." defaultOpen={false}>

@@ -1,0 +1,85 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-27T00:16:27.741Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "042456f9-f84e-425f-8eef-2aed102fedaa",
+    "name": "Bulang Mountain High-End Old Tree Shou Cha",
+    "chineseName": "布朗山高端古树熟茶",
+    "type": "Shou Puer",
+    "form": "Loose",
+    "year": 2013,
+    "origin": "Bulang Mountain, Yunnan, China",
+    "stockGrams": null,
+    "pricePerGramUsd": null,
+    "tags": []
+  },
+  "entry": {
+    "productId": "042456f9-f84e-425f-8eef-2aed102fedaa",
+    "paragraphs": [
+      {
+        "layer": "place",
+        "text": "[Bulang Mountain](bulang-mountain:where-it-is) lies in the south of Menghai County in Xishuangbanna, along Yunnan’s border with Myanmar. It takes its name from the [Bulang people](bulang-mountain:people), who have grown tea there for a very long time. It is a wide mountain area of many villages, and [Bulang as a market name](bulang-mountain:on-a-label) points to a mountain style more than to one place. This tea names no village."
+      },
+      {
+        "layer": "type",
+        "text": "The leaf was made into [ripe pu’er](shou:definition) in 2013. It was wetted and heaped in a warm, damp [pile](shou:wet-piling), which was turned about once a week to spread the heat the microbes make and to let air in. It was then dried and sold loose rather than pressed."
+      },
+      {
+        "layer": "age",
+        "text": "At thirteen years it has passed into what the trade counts as [aged ripe pu’er](shou:age-aged). The leaf still changes slowly with the air and moisture around it, so storage matters as much as the years."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Ripe pu’er takes boiling water: fermented, tightly packed leaf needs full heat to open, and it does not scald the way green tea can. A common start is about 7 grams to 100 ml and one quick rinse, which wakes the leaf and carries off dust and any pile smell. Then short steeps that lengthen as the leaf opens, so the cup stays clear rather than heavy; it gives eight or more good cups."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "aged ripe pu’er",
+      "text": "A smooth, deep cup with woody, date-like or medicinal notes, which the trade calls aged aroma."
+    },
+    "missing": [
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "bulang-mountain:where-it-is",
+      "rev": 1
+    },
+    {
+      "claimId": "bulang-mountain:people",
+      "rev": 1
+    },
+    {
+      "claimId": "bulang-mountain:on-a-label",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:wet-piling",
+      "rev": 2
+    },
+    {
+      "claimId": "shou:age-aged",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:notice-aged",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-27T00:36:10.226Z"
+}

@@ -1,0 +1,74 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-27T00:16:08.234Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "b33c86ab-f899-4a67-a702-b97001851a56",
+    "name": "Aged Sheng Pu Song Dynasty Tribute Tea",
+    "chineseName": "老生普宋代贡茶",
+    "type": "Sheng Puer",
+    "form": "Loose",
+    "year": 2005,
+    "origin": "Yunnan, China",
+    "stockGrams": null,
+    "pricePerGramUsd": null,
+    "tags": []
+  },
+  "entry": {
+    "productId": "b33c86ab-f899-4a67-a702-b97001851a56",
+    "paragraphs": [
+      {
+        "layer": "type",
+        "text": "This is [raw pu’er](sheng:identity) from Yunnan, made in 2005 and left loose rather than pressed. Raw pu’er is never hot-air dried after the wok, so some of the leaf’s own activity survives, and that is what lets the [rough tea, or maocha](sheng:making), keep changing for years."
+      },
+      {
+        "layer": "age",
+        "text": "At twenty-one years it has passed the point where many in the trade begin to call raw pu’er [aged](sheng:ageing), though some count from ten. Without shou’s quick fermentation, all of that change has come slowly, [in storage](sheng:aging), so how and where it was kept is part of this tea’s history as much as the years are."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Young raw pu’er takes water a little off the boil, about 85 to 95°C, because hotter water draws out more of its bitterness; an aged one takes 95°C to boiling. A common start is about 7 grams to 100 ml and a quick rinse of a few seconds, then a first steep of ten to fifteen seconds, adding a few seconds each round. A good raw tea gives eight to ten cups or more."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "aged Sheng Pu’er",
+      "text": "A smoother, thicker, sweeter cup with woody, herbal and camphor notes and something of dried dates or dark fruit."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "sheng:identity",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:making",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:ageing",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:aging",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:notice-aged",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-27T00:36:10.996Z"
+}

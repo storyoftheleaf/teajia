@@ -5,6 +5,159 @@ import type { DraftReferencePage } from '../claims';
 
 export const PART: readonly DraftReferencePage[] = [
   {
+    "id": "menghai-tea-mountain-circuit",
+    "slug": "menghai-tea-mountain-circuit",
+    "kind": "reference_topic",
+    "label": "Menghai Tea Mountain Circuit",
+    "visibility": "draft",
+    "parentId": "menghai-county",
+    "sourceIds": [
+      "ctma-menghai-seven-mountains-2025"
+    ],
+    "sections": [
+      {
+        "key": "editorial-boundary",
+        "label": "An itinerary, not an origin",
+        "sourceIds": [
+          "ctma-menghai-seven-mountains-2025"
+        ]
+      },
+      {
+        "key": "seven-mountain-route",
+        "label": "Seven mountain stops",
+        "sourceIds": [
+          "ctma-menghai-seven-mountains-2025"
+        ]
+      },
+      {
+        "key": "reading-the-circuit",
+        "label": "Reading the circuit",
+        "sourceIds": [
+          "ctma-menghai-seven-mountains-2025"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "nanqiao-ruigong-brick",
+    "slug": "nanqiao-ruigong-brick",
+    "kind": "named_tea",
+    "label": "Nanqiao Ruigong Brick",
+    "visibility": "public",
+    "nativeName": "南峤瑞贡金砖",
+    "parentId": "shou",
+    "sourceIds": [
+      "ctma-nanqiao-company",
+      "dahonghua-ruigong-brick"
+    ],
+    "sections": [
+      {
+        "key": "malaysian-tea-fair",
+        "label": "A brick on the Malaysian tea market",
+        "sourceIds": [
+          "dahonghua-ruigong-brick"
+        ]
+      },
+      {
+        "key": "nanqiao-name",
+        "label": "Where the Nanqiao name comes from",
+        "sourceIds": [
+          "ctma-nanqiao-company"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "oolong",
+    "slug": "oolong",
+    "kind": "tea_family",
+    "label": "Oolong (wulong)",
+    "visibility": "public",
+    "nativeName": "乌龙茶",
+    "sourceIds": [],
+    "sections": [
+      {
+        "key": "definition",
+        "label": "What oolong is",
+        "sourceIds": []
+      },
+      {
+        "key": "making",
+        "label": "How oolong is made",
+        "sourceIds": []
+      },
+      {
+        "key": "oxidation-and-roast",
+        "label": "Oxidation and roast",
+        "sourceIds": []
+      },
+      {
+        "key": "families",
+        "label": "The four families",
+        "sourceIds": []
+      },
+      {
+        "key": "history",
+        "label": "How oolong began",
+        "sourceIds": []
+      },
+      {
+        "key": "ageing",
+        "label": "Keeping and ageing oolong",
+        "sourceIds": []
+      },
+      {
+        "key": "brewing",
+        "label": "Brewing oolong",
+        "sourceIds": []
+      },
+      {
+        "key": "common-impressions",
+        "label": "What people often notice",
+        "sourceIds": []
+      },
+      {
+        "key": "notice-aged",
+        "label": "What people often notice in aged oolong",
+        "sourceIds": []
+      }
+    ]
+  },
+  {
+    "id": "puer",
+    "slug": "puer",
+    "kind": "tea_family",
+    "label": "Pu’er",
+    "visibility": "public",
+    "nativeName": "普洱茶",
+    "sourceIds": [
+      "ctma-puer-history-2021"
+    ],
+    "sections": [
+      {
+        "key": "identity",
+        "label": "A tea rooted in Yunnan",
+        "sourceIds": [
+          "ctma-puer-history-2021"
+        ]
+      },
+      {
+        "key": "history",
+        "label": "Trade and continuity",
+        "sourceIds": [
+          "ctma-puer-history-2021"
+        ]
+      },
+      {
+        "key": "modern-family",
+        "label": "The modern family",
+        "sourceIds": [
+          "ctma-puer-history-2021"
+        ]
+      }
+    ]
+  },
+  {
     "id": "red",
     "slug": "red",
     "kind": "tea_family",
@@ -393,6 +546,38 @@ export const PART: readonly DraftReferencePage[] = [
       {
         "key": "notice-aged",
         "label": "What people often notice in aged Taiwan oolong",
+        "sourceIds": []
+      }
+    ]
+  },
+  {
+    "id": "tea-heads",
+    "slug": "tea-heads",
+    "kind": "tea_type",
+    "label": "Tea heads",
+    "visibility": "public",
+    "nativeName": "老茶头",
+    "parentId": "puer",
+    "sourceIds": [],
+    "sections": [
+      {
+        "key": "definition",
+        "label": "What tea heads are",
+        "sourceIds": []
+      },
+      {
+        "key": "formation",
+        "label": "How they form",
+        "sourceIds": []
+      },
+      {
+        "key": "old",
+        "label": "Why \"old\"",
+        "sourceIds": []
+      },
+      {
+        "key": "common-impressions",
+        "label": "What people often notice",
         "sourceIds": []
       }
     ]

@@ -1,0 +1,85 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-27T00:15:49.814Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "54f03b67-0e56-4cd2-b478-16f2465f1c80",
+    "name": "Banzhang Palace Grade Shou Cha",
+    "chineseName": "班章宫廷熟茶",
+    "type": "Shou Puer",
+    "form": "Loose",
+    "year": 2003,
+    "origin": "Banzhang, Yunnan, China",
+    "stockGrams": null,
+    "pricePerGramUsd": null,
+    "tags": []
+  },
+  "entry": {
+    "productId": "54f03b67-0e56-4cd2-b478-16f2465f1c80",
+    "paragraphs": [
+      {
+        "layer": "place",
+        "text": "This leaf comes from [Banzhang](banzhang:where-it-is), a group of tea villages on Bulang Mountain in the south of Menghai County, Xishuangbanna. The name covers more than one settlement: [Lao Banzhang and Xin Banzhang](banzhang:old-and-new), the old village and the one that grew out of it. [A Banzhang label](banzhang:on-a-label) rarely says which of the two is meant."
+      },
+      {
+        "layer": "type",
+        "text": "It was made into [ripe pu’er](shou:definition) in 2003 and left loose rather than pressed. The leaf was heaped warm and damp in a [fermenting pile](shou:wet-piling) so that it could be drunk soon after making, thirty years after Yunnan’s state factories brought the method into production in 1973."
+      },
+      {
+        "layer": "age",
+        "text": "At twenty-three years the tea has passed into what the trade counts as [aged ripe pu’er](shou:age-aged). The leaf goes on changing slowly with the air and moisture around it, which is why storage shapes it as much as the years do."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Ripe pu’er takes boiling water: fermented, tightly packed leaf needs full heat to open, and it does not scald the way green tea can. A common start is about 7 grams to 100 ml and one quick rinse, which wakes the leaf and carries off dust and any pile smell. Then short steeps that lengthen as the leaf opens, so the cup stays clear rather than heavy; it gives eight or more good cups."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "aged ripe pu’er",
+      "text": "A smooth, deep cup with woody, date-like or medicinal notes, which the trade calls aged aroma."
+    },
+    "missing": [
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "banzhang:where-it-is",
+      "rev": 1
+    },
+    {
+      "claimId": "banzhang:old-and-new",
+      "rev": 1
+    },
+    {
+      "claimId": "banzhang:on-a-label",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:wet-piling",
+      "rev": 2
+    },
+    {
+      "claimId": "shou:age-aged",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:notice-aged",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-27T00:36:10.083Z"
+}

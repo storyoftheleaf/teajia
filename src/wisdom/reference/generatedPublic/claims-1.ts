@@ -272,6 +272,311 @@ export const PART: readonly PublicClaim[] = [
     "reviewState": "approved"
   },
   {
+    "claimId": "banzhang:history",
+    "pageId": "banzhang",
+    "sectionKey": "history",
+    "label": "A price that rose fast",
+    "axis": "maker_history",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "origin_includes": [
+        "banzhang"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "banzhang",
+    "text": "Prices for fresh leaf and finished tea rose steeply from the early 2000s, and the village became one of the best known names in pu’er.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "banzhang:in-ripe-pu-er",
+    "pageId": "banzhang",
+    "sectionKey": "in-ripe-pu-er",
+    "label": "Banzhang in ripe pu’er",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "origin_includes": [
+        "banzhang"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "banzhang",
+    "text": "Most of what the trade writes about Banzhang describes raw tea. Ripe cakes with Banzhang in the name do exist, but they are less common than raw ones, and the name is seldom backed by a stated leaf source. Reading Banzhang on a ripe cake as the village itself is not safe. It more often points to a Bulang style of ripe tea, thicker in body and stronger than a plain Menghai blend.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "banzhang:known-for",
+    "pageId": "banzhang",
+    "sectionKey": "known-for",
+    "label": "The tea Banzhang is known for",
+    "axis": "sensory_observation",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "origin_includes": [
+        "banzhang"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "banzhang",
+    "text": "Banzhang is known for raw pu’er from old trees. The trade describes it as strong and bitter at first, then quickly sweet, with a long aftertaste and a heavy body. It is one of the most expensive named villages in pu’er, and Lao Banzhang is often called the king of raw pu’er.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "banzhang:old-and-new",
+    "pageId": "banzhang",
+    "sectionKey": "old-and-new",
+    "label": "Lao Banzhang and Xin Banzhang",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "origin_includes": [
+        "banzhang"
+      ]
+    },
+    "terms": [
+      {
+        "original": "老班章",
+        "pinyin": "Lǎo Bānzhāng",
+        "gloss": "Old Banzhang"
+      },
+      {
+        "original": "新班章",
+        "pinyin": "Xīn Bānzhāng",
+        "gloss": "New Banzhang"
+      }
+    ],
+    "rev": 1,
+    "scope": "banzhang",
+    "text": "Xin Banzhang means New Banzhang. It was founded by people who moved out of the old village. The two are priced very differently, with Lao Banzhang far higher. Sellers say Xin Banzhang is less bitter, but too few places agree on that to treat it as settled.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "banzhang:on-a-label",
+    "pageId": "banzhang",
+    "sectionKey": "on-a-label",
+    "label": "Banzhang on a label",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "banzhang"
+      ]
+    },
+    "terms": [
+      {
+        "original": "班章",
+        "pinyin": "Bānzhāng",
+        "gloss": "Banzhang"
+      },
+      {
+        "original": "老班章",
+        "pinyin": "Lǎo Bānzhāng",
+        "gloss": "Old Banzhang"
+      },
+      {
+        "original": "新班章",
+        "pinyin": "Xīn Bānzhāng",
+        "gloss": "New Banzhang"
+      }
+    ],
+    "rev": 1,
+    "scope": "banzhang",
+    "text": "Banzhang on a label is a market name, and it is not proof that the leaf came from the village. The village makes a small amount of tea, and its name sells at a high price, so fakes and blends are widely reported. Some cakes sold under a Banzhang name blend in leaf from other Bulang villages. Lao Banzhang, Xin Banzhang and the wider Banzhang name are three different claims, and a label rarely says which one is meant.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "banzhang:where-it-is",
+    "pageId": "banzhang",
+    "sectionKey": "where-it-is",
+    "label": "Where Banzhang is",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "banzhang"
+      ]
+    },
+    "terms": [
+      {
+        "original": "班章",
+        "pinyin": "Bānzhāng",
+        "gloss": "Banzhang"
+      },
+      {
+        "original": "老班章",
+        "pinyin": "Lǎo Bānzhāng",
+        "gloss": "Old Banzhang"
+      },
+      {
+        "original": "新班章",
+        "pinyin": "Xīn Bānzhāng",
+        "gloss": "New Banzhang"
+      }
+    ],
+    "rev": 1,
+    "scope": "banzhang",
+    "text": "Banzhang is a group of tea villages inside Bulang Mountain, in the south of Menghai County in Xishuangbanna, Yunnan. The name covers more than one settlement. Lao Banzhang is the old village. Xin Banzhang is a separate village that grew out of it. Altitude is quoted differently from place to place, mostly between about 1,600 and 1,900 metres.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "bulang-mountain:history",
+    "pageId": "bulang-mountain",
+    "sectionKey": "history",
+    "label": "A newer famous mountain",
+    "axis": "maker_history",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "origin_includes": [
+        "bulang mountain"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "bulang-mountain",
+    "text": "Bulang is a pu’er area whose fame is recent. Its reputation grew with the rise of Banzhang, whose price pulled attention to the whole mountain.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "bulang-mountain:in-ripe-pu-er",
+    "pageId": "bulang-mountain",
+    "sectionKey": "in-ripe-pu-er",
+    "label": "Bulang in ripe pu’er",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "origin_includes": [
+        "bulang mountain"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "bulang-mountain",
+    "text": "Bulang leaf is also used for ripe pu’er, and ripe cakes and loose tea sold under the name Bulang Mountain are common. The raw tea is strong, so ripe tea made from it is described by sellers as thick and full. Sellers disagree on whether it stays bitter after piling, so ripe Bulang tea is better judged cup by cup than from the name.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "bulang-mountain:known-for",
+    "pageId": "bulang-mountain",
+    "sectionKey": "known-for",
+    "label": "The tea it is known for",
+    "axis": "sensory_observation",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "origin_includes": [
+        "bulang mountain"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "bulang-mountain",
+    "text": "Bulang Mountain is known for raw pu’er from old tea gardens. The trade describes the tea as forceful: a strong, bitter start that turns sweet, thick liquor and a strong feel in the throat. It is often set against the softer, sweeter style of Yiwu. Villages differ a good deal. Lao Man’e is known for bitterness, and some other villages make sweeter tea.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "bulang-mountain:on-a-label",
+    "pageId": "bulang-mountain",
+    "sectionKey": "on-a-label",
+    "label": "Bulang Mountain on a label",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "bulang mountain"
+      ]
+    },
+    "terms": [
+      {
+        "original": "布朗山",
+        "pinyin": "Bùlǎngshān",
+        "gloss": "Bulang Mountain"
+      },
+      {
+        "original": "老曼峨",
+        "pinyin": "Lǎo Màn’é",
+        "gloss": "Lao Man’e village"
+      }
+    ],
+    "rev": 1,
+    "scope": "bulang-mountain",
+    "text": "Bulang Mountain on a label is a broad market name. Leaf from smaller or less famous villages is often sold in bulk, blended, and offered as Bulang tea. A cake called Bulang Mountain rarely names the village, and some makers do not state where the leaf came from. It points to a mountain style more than to one place.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "bulang-mountain:people",
+    "pageId": "bulang-mountain",
+    "sectionKey": "people",
+    "label": "Who lives there",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "origin_includes": [
+        "bulang mountain"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "bulang-mountain",
+    "text": "The mountain takes its name from the Bulang people, who have grown and drunk tea here for a very long time. Lao Man’e is often described as one of their oldest villages, at about fourteen hundred years. Hani villages such as the Banzhang settlements sit in the same mountains.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "bulang-mountain:where-it-is",
+    "pageId": "bulang-mountain",
+    "sectionKey": "where-it-is",
+    "label": "Where Bulang Mountain is",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "bulang mountain"
+      ]
+    },
+    "terms": [
+      {
+        "original": "布朗山",
+        "pinyin": "Bùlǎngshān",
+        "gloss": "Bulang Mountain"
+      },
+      {
+        "original": "老曼峨",
+        "pinyin": "Lǎo Màn’é",
+        "gloss": "Lao Man’e village"
+      }
+    ],
+    "rev": 1,
+    "scope": "bulang-mountain",
+    "text": "Bulang Mountain lies in the south of Menghai County in Xishuangbanna, Yunnan, next to the border with Myanmar. It covers roughly one thousand square kilometres and is one of the larger tea areas in the county. It is a mountain area with many villages, not a single village. Banzhang, Lao Man’e and Manxinlong are among its named tea villages.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
     "claimId": "dancong:ageing",
     "pageId": "dancong",
     "sectionKey": "ageing",
@@ -653,311 +958,6 @@ export const PART: readonly PublicClaim[] = [
     "rev": 1,
     "scope": "Dark tea in general",
     "text": "Older or coarse dark tea is often simmered rather than steeped: the leaf goes into a pot of water, comes to a gentle boil and simmers for a few minutes. Thick leaf and long-aged tea release their flavour slowly, and the steady heat gives a fuller, smoother cup than short steeps do.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "dark:common-impressions",
-    "pageId": "dark",
-    "sectionKey": "common-impressions",
-    "label": "What people often notice",
-    "axis": "sensory_observation",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Dark"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Dark tea in general",
-    "text": "A smooth, mellow cup with low bitterness and a deep red colour, often sweet and woody or earthy, sometimes with herbal or medicinal notes. A young dark tea can still smell of the pile or of storage; an aged one is usually redder, sweeter and thicker.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "dark:definition",
-    "pageId": "dark",
-    "sectionKey": "definition",
-    "label": "What dark tea is",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Dark"
-    },
-    "terms": [
-      {
-        "original": "黑茶",
-        "pinyin": "hēi chá",
-        "gloss": "dark tea"
-      }
-    ],
-    "rev": 1,
-    "scope": "Dark tea in general",
-    "text": "Dark tea is Chinese tea whose leaf, after it is heated and rolled, is left to change in warmth and moisture, where microbes and the leaf’s own chemistry slowly darken and mellow it. Because that change comes after the leaf is made, the trade calls it post-fermented. In Chinese it is hei cha, “black tea”, which is not the English black tea; that tea is red tea, hong cha, in Chinese.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "dark:history",
-    "pageId": "dark",
-    "sectionKey": "history",
-    "label": "How the trade grew",
-    "axis": "process",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Dark"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Dark tea in general",
-    "text": "The first records of dark tea by name are from the Ming dynasty, in Hunan around Anhua and in Sichuan, and in the late Ming it became a state-managed tea sent to the north-west in exchange for horses. In the Qing dynasty merchants carried the craft to more regions and more shapes, and some styles were made for new markets: Guangxi’s Liu Bao, for one, went to the tin mines of Southeast Asia. In the twentieth century state factories took over much of the making and settled the brick shapes that are sold today.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "dark:making",
-    "pageId": "dark",
-    "sectionKey": "making",
-    "label": "How dark tea is made",
-    "axis": "process",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Dark"
-    },
-    "terms": [
-      {
-        "original": "渥堆",
-        "pinyin": "wò duī",
-        "gloss": "piling"
-      }
-    ],
-    "rev": 1,
-    "scope": "Dark tea in general",
-    "text": "Most dark tea shares four steps, each with a reason. The leaf is heated first, the kill-green, to stop its own enzymes from browning it; coarse leaf is often sprinkled with a little water so it heats evenly. It is rolled gently, because the large, mature leaf used for dark tea is tough and breaks if it is worked hard. It is then piled, and in the pile warmth, moisture and microbes do the darkening and mellowing, so the heap is turned to keep its heat in range. Finally it is dried, which stops the change and makes the tea stable enough to keep. Many styles then steam the leaf and press it, or pack it into baskets, and let it age.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "dark:why",
-    "pageId": "dark",
-    "sectionKey": "why",
-    "label": "Why it was made",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Dark"
-    },
-    "terms": [
-      {
-        "original": "边销茶",
-        "pinyin": "biān xiāo chá",
-        "gloss": "border tea"
-      }
-    ],
-    "rev": 1,
-    "scope": "Dark tea in general",
-    "text": "Dark tea was made for people who lived far from where tea grows: Tibet, Mongolia, China’s north-west and, later, Central Asia and Russia. The trade called it border tea. The tea had to survive months on the road, so it was pressed into bricks, cakes and logs, or packed tight in baskets. A dense, even shape is easier to carry, stack and strap to a pack animal, and it keeps better than loose leaf. Some dark tea is still sold loose.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "dian-hong:ageing",
-    "pageId": "dian-hong",
-    "sectionKey": "ageing",
-    "label": "Keeping Dian Hong",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Red",
-      "origin_includes": [
-        "yunnan"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "All red tea; Dian Hong where the origin is Yunnan",
-    "text": "Dian Hong changes in storage, but the trade treats it as best in its first one to three years. It is kept for freshness rather than for age.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "dian-hong:brewing",
-    "pageId": "dian-hong",
-    "sectionKey": "brewing",
-    "label": "Brewing Dian Hong",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Red",
-      "origin_includes": [
-        "yunnan"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "All red tea; Dian Hong where the origin is Yunnan",
-    "text": "Dian Hong takes hot water, roughly 90 to 100°C. A common start is about 5 grams to 100 ml, with short steeps that lengthen slowly as the leaf opens.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "dian-hong:common-impressions",
-    "pageId": "dian-hong",
-    "sectionKey": "common-impressions",
-    "label": "What people often notice",
-    "axis": "sensory_observation",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Red",
-      "origin_includes": [
-        "yunnan"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "All red tea; Dian Hong where the origin is Yunnan",
-    "text": "A full, sweet cup, often described as malty, with chocolate or cocoa and honey notes and sometimes something floral. The liquor runs golden to bright red, and a good grade has little bitterness.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "dian-hong:definition",
-    "pageId": "dian-hong",
-    "sectionKey": "definition",
-    "label": "What Dian Hong is",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Red",
-      "origin_includes": [
-        "yunnan"
-      ]
-    },
-    "terms": [
-      {
-        "original": "滇红",
-        "pinyin": "diān hóng",
-        "gloss": "Yunnan red"
-      }
-    ],
-    "rev": 1,
-    "scope": "All red tea; Dian Hong where the origin is Yunnan",
-    "text": "Dian Hong is red tea from Yunnan, made from the province’s large-leaf tea trees. Its home is Fengqing County in Lincang, in the south-west of the province, and it is also made in other parts of Lincang and in Menghai, Pu’er, Baoshan and Dehong. Golden buds through the dry leaf are the mark of the style.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "dian-hong:history",
-    "pageId": "dian-hong",
-    "sectionKey": "history",
-    "label": "How Dian Hong began",
-    "axis": "process",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Red",
-      "origin_includes": [
-        "yunnan"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "All red tea; Dian Hong where the origin is Yunnan",
-    "text": "When the war cut China off from its eastern tea regions, the country needed a new red tea to sell abroad, and the national tea company looked to Yunnan’s large leaf. Feng Shaoqiu reached Shunning, now Fengqing, in late 1938 and made a trial batch from one bud and two leaves. An experimental factory followed there in 1939, the start of today’s Fengqing factory. For decades nearly all Dian Hong went abroad; it was sold widely at home only from the 1980s.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "dian-hong:large-leaf",
-    "pageId": "dian-hong",
-    "sectionKey": "large-leaf",
-    "label": "Why the large leaf matters",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Red",
-      "origin_includes": [
-        "yunnan"
-      ]
-    },
-    "terms": [
-      {
-        "original": "金毫",
-        "pinyin": "jīn háo",
-        "gloss": "golden buds"
-      }
-    ],
-    "rev": 1,
-    "scope": "All red tea; Dian Hong where the origin is Yunnan",
-    "text": "Yunnan’s large-leaf trees give a plump leaf with many buds, and a strong cup. The trade ties that strength to the leaf’s high polyphenol content, which is also why Dian Hong stands up to milk. The buds turn golden as the tea is made, so a tea heavy in buds shows more gold.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "dian-hong:making",
-    "pageId": "dian-hong",
-    "sectionKey": "making",
-    "label": "How Dian Hong is made",
-    "axis": "process",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Red",
-      "origin_includes": [
-        "yunnan"
-      ]
-    },
-    "terms": [
-      {
-        "original": "金芽",
-        "pinyin": "jīn yá",
-        "gloss": "golden bud"
-      }
-    ],
-    "rev": 1,
-    "scope": "All red tea; Dian Hong where the origin is Yunnan",
-    "text": "Dian Hong follows the steps of every red tea: the leaf is withered, then rolled to break its cells so oxidation can begin, then left to oxidise until it turns from green to reddish brown, and then dried with heat, which fixes it and keeps the leaf golden. It is then sorted into grades. There are two broad kinds: gongfu, whole or strip leaf, and broken. The gongfu grades use one bud with one to three leaves, and teas of buds alone, sold as golden bud or golden needle, sit at the top. A grade name says nothing about where the leaf grew or how old the trees were.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "dian-hong:old-tree-and-sun-dried",
-    "pageId": "dian-hong",
-    "sectionKey": "old-tree-and-sun-dried",
-    "label": "Old-tree and sun-dried red",
-    "axis": "process",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Red",
-      "origin_includes": [
-        "yunnan"
-      ]
-    },
-    "terms": [
-      {
-        "original": "古树",
-        "pinyin": "gǔ shù",
-        "gloss": "old trees"
-      },
-      {
-        "original": "晒红",
-        "pinyin": "shài hóng",
-        "gloss": "sun-dried red"
-      }
-    ],
-    "rev": 1,
-    "scope": "All red tea; Dian Hong where the origin is Yunnan",
-    "text": "Two newer branches sell under the Yunnan red name. Old-tree red is made from old tea trees; it is priced higher, and there is no agreed definition or standard for it. Sun-dried red is red tea whose last drying is done in the strong spring sun of the mountains rather than over heat, a choice of process and not a separate kind of tea. The trade does not agree whether either should be called Dian Hong.",
     "sourceIds": [],
     "reviewState": "approved"
   }

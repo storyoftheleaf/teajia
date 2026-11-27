@@ -20,6 +20,41 @@ The wisdom base is layer 1 given a home.
 
 The inverse rule matters as much: **no surface keeps its own copy.** The moment a screen caches a tea-type list, the fifteen-lists problem starts again.
 
+## One Wisdom Base, two layers (read this before adding anything)
+
+There is one Wisdom Base, at teajia.com/wisdom. It is built from two layers that share ids. Never start a third store, a second library or a parallel set of pages for "tea knowledge" (Adrian, 2026-11-27).
+
+1. **Records (the index).** `data/tea-wisdom-source/*.csv`, built into `src/wisdom/generated/` by `scripts/build-wisdom.mjs`. One row per region, producer, mark, style, named tea and cultivar: its id, names, aliases and short facts (altitude, province). Thin on purpose.
+2. **Pages (the written knowledge).** `data/tea-reference/pages/<id>.md`, one `## Heading {#key}` per claim, each claim approved in `data/tea-reference/claims.json` (`scripts/tea-reference-markdown/claims-cli.mjs`). Built by `npm run tea-reference:pages`. Kinds: `tea_family`, `tea_type`, `tea_area`, `major_region`, `named_tea`, `leaf_grade`, `reference_topic`.
+
+**How they join:** a page with the same id as a record is that record's write-up. `region/:id` shows the page in place of the thin record; `named/:id` shows both. So a page about Banzhang is `pages/banzhang.md` with `id: banzhang`, matching the region row `banzhang`.
+
+**Merging a thin record into a page:** keep every fact the record holds (altitude, Chinese name, aliases, parent region) by carrying it into the page; do not delete the CSV row, it stays the index entry.
+
+**Per-tea entries** (`data/tea-reference/entries/<productId>.json`, composed by `scripts/tea-wisdom-compose/compose.mjs`, approved with `entries-cli.mjs`) are built only from approved page claims plus the tea's own record. They never hold knowledge of their own: if an entry needs a fact, the fact goes in a page first.
+
+### When a new tea is posted: what the Wisdom Base needs
+
+Check each of these against the tea's record before composing its entry. Anything missing is written as a page (draft), shown to Adrian, approved, and only then used.
+
+| From the tea record | Needs | Lives in |
+|---|---|---|
+| Type (Sheng Puer, Oolong, Red...) | a style kit with making, ageing, brewing, notice | `tea_type` / `tea_family` page |
+| Origin, each comma part (Banzhang, Yunnan) | a place page for the most specific part | region row + `tea_area` / `major_region` page |
+| Grade or mark words in the name (Gong Ting / Palace Grade, Golden Bull, Jia Ji) | a grade or mark page | mark row + `leaf_grade` page |
+| Process words in the name or notes (GABA, tea heads, wet piling, bamboo tube) | a process section in the style kit, or its own page | `tea_type` page or `reference_topic` |
+| Factory or brand (Xinghai, Hengfengyuan, Menghai) | a producer write-up | producer row + page |
+| A known named tea (Y562, San He) | its history | named-tea row + `named_tea` page |
+
+A tea with an empty record can still get an entry once its type, place and grade pages exist: the entry then says only what those pages and the record's name, year and place support.
+
+**Running the check.** One function answers the table for a tea: `wisdomNeeds(product, sources)` in `src/wisdom/reference/wisdomNeeds.ts`. Each need says its kind (style, place, grade, process, producer, named), its label, whether a published page covers it, and its state: written, drafted (a page waiting for approval), record (a thin index row only) or missing. It uses the composer's own matching (`src/wisdom/reference/teaMatching.ts`: the kit pages, a grade word in the name, the process words), so what it calls covered is what composing will find.
+
+- On the Mac, before composing: `node scripts/tea-wisdom-compose/needs.mjs --products <public-products.json> [--ids a,b] [--type Shou]` prints each tea's covered and missing needs, drafts included, then the most-needed missing pages across all of them. Read-only.
+- In Curate: the open tea's "Wisdom Base" fold (under More story) shows the same list against published pages only.
+
+Where the words live: grade and mark words are the mark rows (`name`, `chineseName`, `altNames`, so "Palace Grade" is Gong Ting) and the `leaf_grade` pages; process words are `TEA_PROCESSES` in `src/wisdom/vocabulary.ts`, the one list, and every claim that matches on `process_in_name` must point at a page listed there (a test holds this). A grade word in the name that has a grade page now fills the composer's grade layer; the shop listing still never reads a grade from a name.
+
 ## Shape
 
 ```

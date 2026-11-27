@@ -12,10 +12,11 @@ import { PART as claims7 } from './generatedDraft/claims-7';
 import { PART as claims8 } from './generatedDraft/claims-8';
 import { PART as claims9 } from './generatedDraft/claims-9';
 import { PART as claims10 } from './generatedDraft/claims-10';
+import { PART as claims11 } from './generatedDraft/claims-11';
 import { PART as pages1 } from './generatedDraft/pages-1';
 import { PART as pages2 } from './generatedDraft/pages-2';
 import { PART as sources1 } from './generatedDraft/sources-1';
 
-export const GENERATED_DRAFT_CLAIMS: readonly DraftClaim[] = [...claims1, ...claims2, ...claims3, ...claims4, ...claims5, ...claims6, ...claims7, ...claims8, ...claims9, ...claims10];
+export const GENERATED_DRAFT_CLAIMS: readonly DraftClaim[] = [...claims1, ...claims2, ...claims3, ...claims4, ...claims5, ...claims6, ...claims7, ...claims8, ...claims9, ...claims10, ...claims11];
 export const GENERATED_DRAFT_PAGES: readonly DraftReferencePage[] = [...pages1, ...pages2];
 export const GENERATED_DRAFT_SOURCES: readonly PublicTeaReferenceSource[] = [...sources1];
