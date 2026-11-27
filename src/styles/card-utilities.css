@@ -5554,8 +5554,9 @@ body.cart-panel-open .commerce-dock {
 
 /* Unified Library console: views inside a single panel, tools immediately below. */
 .library-controls { display: grid; grid-template-columns: minmax(0,1fr); gap: 0; padding: 4px; border: 1px solid var(--tea-border); border-radius: 7px; background: var(--tea-surface); }
-.library-controls .library-segments { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 2px; padding: 2px; border: 1px solid var(--tea-border); border-radius: 5px; background: var(--tea-bg); }
-.library-controls .library-segments > button { min-width: 0; padding: 0 3px; gap: 4px; justify-content: center; white-space: nowrap; border-radius: 3px; }
+.library-controls .library-segments { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(max-content,1fr); gap: 2px; padding: 2px; border: 1px solid var(--tea-border); border-radius: 5px; background: var(--tea-bg); }
+.library-controls .library-segments > button { min-width: 0; padding: 0 8px; gap: 6px; justify-content: center; white-space: nowrap; border-radius: 3px; }
+.library-controls .library-segments > button .library-segment-dot { width: calc(var(--space-1) * 1.5); height: calc(var(--space-1) * 1.5); border-radius: 999px; background: var(--tea-gold); flex: none; }
 .library-controls .library-segments > button[aria-pressed='true'] { background: var(--tea-elevated); box-shadow: none; color: var(--tea-text); }
 .library-controls .library-tools { width: 100%; display: flex; flex-wrap: wrap; gap: 4px 8px; justify-content: flex-start; padding: 0 3px; }
 .library-controls .library-tools > button { display: inline-flex; align-items: center; gap: 5px; min-height: var(--tap-min); padding: 0 5px; }
@@ -6656,6 +6657,10 @@ body.cart-panel-open .commerce-dock {
 .logistics-service-row { display:flex; flex-wrap:wrap; align-items:center; gap:6px 12px; padding:4px 0; border-bottom:1px solid var(--tea-border); }
 .logistics-service-row>span:first-child { flex:1; min-width:130px; overflow-wrap:anywhere; }
 .logistics-service-row small { display:block; }
+.logistics-service-name { flex:1; min-width:130px; display:block; text-align:left; overflow-wrap:anywhere; }
+.logistics-service-links { flex-basis:100%; display:grid; gap:8px; padding:4px 0 8px; }
+.logistics-service-links ul { margin:0; padding:0; list-style:none; display:grid; gap:2px; }
+.logistics-service-links p { margin:0; }
 .logistics-add-service { justify-self:start; }
 .logistics-service-editor { min-width:0; padding:8px; border:1px solid var(--tea-border); border-radius:4px; background:var(--tea-bg); }
 @media (max-width:640px) {
@@ -7907,3 +7912,27 @@ body.cart-panel-open .commerce-dock {
 .stock-room-price { display:flex; align-items:center; gap:var(--space-2); flex-basis:100%; color:var(--admin-text-dim); font-size:var(--fs-ui-12); }
 .stock-room-price>.admin-input { display:inline-flex; align-items:center; gap:var(--space-1); width:7rem; height:var(--control-h); padding:0 var(--space-3); }
 .stock-room-price input { width:100%; min-width:0; border:0; outline:0; background:transparent; color:var(--admin-text); font-family:var(--font-mono); font-size:var(--fs-ui-14); text-align:right; }
+
+/* Logistics journey track (Adrian chose it, 2026-11-27): each service is a
+   line tea moves along. Close tones and space separate things, never lines. */
+.journey-list { display:grid; gap:var(--space-3); }
+.journey-card { display:grid; gap:var(--space-3); padding:var(--space-4); border-radius:var(--radius-xl); background:rgb(var(--tea-elevated-rgb) / 0.42); min-width:0; }
+.journey-card-quiet { background:rgb(var(--tea-elevated-rgb) / 0.22); padding:var(--space-3) var(--space-4); }
+.journey-head { display:flex; align-items:center; gap:var(--space-3); min-width:0; }
+.journey-head > :first-child { flex:1; }
+.journey-rate { text-align:right; }
+.journey-track { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:var(--space-2); }
+.journey-stage { display:grid; align-content:start; gap:2px; min-height:76px; padding:var(--space-2) var(--space-3); border-radius:var(--radius-lg); background:var(--tea-elevated); text-align:left; min-width:0; transition:background 150ms ease; }
+.journey-stage[data-empty] { background:rgb(var(--tea-elevated-rgb) / 0.5); }
+.journey-stage[aria-pressed="true"] { background:rgb(var(--tea-gold-rgb) / 0.22); }
+.journey-stage:focus-visible { outline:1px solid var(--tea-gold); outline-offset:2px; }
+.journey-stage-label, .journey-stage-first { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.journey-items { display:flex; flex-wrap:wrap; gap:var(--space-2); min-width:0; }
+.journey-chip { display:inline-flex; align-items:center; gap:var(--space-2); padding:var(--space-1) var(--space-3); border-radius:999px; background:rgb(var(--tea-bg-rgb) / 0.45); color:var(--tea-text); max-width:100%; }
+.journey-chip > span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.journey-chip:hover, .journey-chip:focus-visible { background:rgb(var(--tea-gold-rgb) / 0.22); outline:none; }
+.journey-more { padding:var(--space-1) var(--space-2); }
+.journey-card .logistics-service-editor { padding:0; }
+@media (max-width:520px) { .journey-track { grid-template-columns:repeat(2, minmax(0, 1fr)); } }
+.journey-items-label { align-self:center; margin-right:var(--space-1); }
+.journey-add { display:flex; flex-wrap:wrap; align-items:center; gap:var(--space-2); width:100%; }

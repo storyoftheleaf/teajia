@@ -1,6 +1,6 @@
 {
   "status": "approved",
-  "composedAt": "2026-11-24T12:36:19.187Z",
+  "composedAt": "2026-11-27T03:52:09.043Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -11,20 +11,25 @@
     "form": "Loose",
     "year": null,
     "origin": "Wuyi Mountains, Fujian, China",
-    "stockGrams": 0,
-    "pricePerGramUsd": null,
-    "tags": []
+    "stockGrams": 10,
+    "pricePerGramUsd": 1.12,
+    "tags": [
+      "roasted cinnamon",
+      "dark honey",
+      "charcoal sweetness",
+      "warm stone"
+    ]
   },
   "entry": {
     "productId": "3e29dc84-eb0d-4f18-bd71-702b18000b2a",
     "paragraphs": [
       {
-        "layer": "place",
-        "text": "This is [Rougui](yancha:rougui), a cultivar of the Wuyi mountains in northern Fujian that dates from the Qing dynasty and is now one of the most widely planted in the area. It is [Wuyi rock tea](yancha:definition), a name only leaf from these mountains may carry. The bushes grow among rock, on ledges and terraces in cliff country, rooted in soil weathered from the stone."
+        "layer": "lot",
+        "text": "A [rougui](yancha:rougui) from the [Wuyi Mountains](wuyi-mountains:where-it-is), the range along the border of northern Fujian and Jiangxi. Rougui is a cultivar of these mountains that dates from the Qing dynasty. This leaf was finished with a heavy [charcoal roast](yancha:making), given in several rounds with weeks or months of rest between them. The roast dries the tea so it keeps, and a [full roast](yancha:roast-levels) keeps the longest. The heavier the roast, the longer a fresh tea is rested before it is drunk."
       },
       {
-        "layer": "type",
-        "text": "The leaf is made the [oolong](oolong:definition) way: partly oxidised, then twisted into long strips rather than rolled into balls. The finish is a [charcoal roast](yancha:making), given in several rounds with weeks or months of rest between them. The roast dries the tea so that it keeps."
+        "layer": "place",
+        "text": "[Rock tea](yancha:definition) grows among the cliffs, in crevices and on ledges, in thin soil weathered from the rock, with heavy rain and fog through the year. The trade sorts this ground into [true rock, half rock and river bank](wuyi-mountains:zones), by how rocky it is and how near it lies to the scenic core. This tea carries the mountain's name without naming a zone, so the label alone does not say how close to the core the leaf grew."
       }
     ],
     "brewing": {
@@ -37,7 +42,6 @@
       "text": "Roast and stone fruit, a mineral, rocky texture and a long, sweet, mouth-watering finish. Light roast is bright and floral, medium roast fruity and rounded, full roast charcoal, wood and roasted nuts. Da Hong Pao is often floral, Rougui spicy with cinnamon, young Shui Xian sweet and smooth, and old-bush Shui Xian woody and mossy."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "The year it was made: unlocks the age paragraph",
       "A voice note from you on this lot",
       "Photos"
@@ -49,15 +53,23 @@
       "rev": 1
     },
     {
-      "claimId": "yancha:definition",
-      "rev": 1
-    },
-    {
-      "claimId": "oolong:definition",
+      "claimId": "wuyi-mountains:where-it-is",
       "rev": 1
     },
     {
       "claimId": "yancha:making",
+      "rev": 1
+    },
+    {
+      "claimId": "yancha:roast-levels",
+      "rev": 1
+    },
+    {
+      "claimId": "yancha:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "wuyi-mountains:zones",
       "rev": 1
     },
     {
@@ -71,5 +83,5 @@
   ],
   "problems": [],
   "unsupported": [],
-  "approvedAt": "2026-11-24T13:33:41.649Z"
+  "approvedAt": "2026-11-27T04:16:54.535Z"
 }

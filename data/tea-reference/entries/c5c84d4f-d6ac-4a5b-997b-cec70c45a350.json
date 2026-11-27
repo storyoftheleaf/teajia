@@ -1,6 +1,6 @@
 {
   "status": "approved",
-  "composedAt": "2026-11-26T04:43:47.064Z",
+  "composedAt": "2026-11-27T03:54:11.642Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -11,25 +11,20 @@
     "form": "Loose",
     "year": null,
     "origin": "Taiwan",
-    "stockGrams": 0,
-    "pricePerGramUsd": 1.37,
-    "tags": [
-      "toasted grain",
-      "light floral",
-      "smooth sweetness",
-      "mild mineral"
-    ]
+    "stockGrams": null,
+    "pricePerGramUsd": null,
+    "tags": []
   },
   "entry": {
     "productId": "c5c84d4f-d6ac-4a5b-997b-cec70c45a350",
     "paragraphs": [
       {
-        "layer": "type",
-        "text": "Huakang is a loose [Taiwan oolong](taiwan-oolong:definition), from the island whose tea plants and craft first came over from Fujian. Most oolong made there is lightly to moderately oxidised and rolled into balls, and Qingxin and Jinxuan are the two cultivars grown most often. Which cultivar this leaf is, and where on the island it grew, has not been recorded."
+        "layer": "place",
+        "text": "Huakang Oolong is an oolong grown in [Taiwan](taiwan:where-it-is), the island off the coast of Fujian. The record names only the island. That says where the leaf grew and nothing more: not the mountain, the height, the cultivar or the style. Where a seller names a mountain or township, that is the fuller claim."
       },
       {
         "layer": "type",
-        "text": "[Oolong](oolong:definition) is the partly oxidised tea. It sits between green tea, which is not oxidised at all, and red tea, which is oxidised all the way, and the range within it is wide. In Taiwan it became a crop grown for sale in the nineteenth century. From the 1860s it was sold abroad as [Formosa Oolong](taiwan-oolong:history), and late in the twentieth century the island began drinking more of its own tea than it sent overseas."
+        "text": "Oolong is the [partly oxidised tea](oolong:definition), standing between green tea and red. On the island most of it is lightly to moderately oxidised and rolled into balls, with [Qingxin oolong](taiwan-oolong:definition) the main cultivar and Jinxuan the other common one. The plants and the craft came with settlers from that coast. In the 1860s the Scottish merchant John Dodd, working with the Taipei merchant Li Chunsheng, sold the island's tea abroad as [Formosa Oolong](taiwan-oolong:history)."
       }
     ],
     "brewing": {
@@ -42,7 +37,6 @@
       "text": "In light high mountain tea: a sweet, floral cup, often creamy or buttery, with little bitterness and a long sweet aftertaste. In roasted Dong Ding: caramel, ripe fruit, nuts and a toasted aroma. In Baozhong: floral notes and a clear, bright liquor. In Oriental Beauty: ripe fruit and honey, with little bitterness."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "The year it was made: unlocks the age paragraph",
       "A voice note from you on this lot",
       "Photos"
@@ -50,11 +44,15 @@
   },
   "claimUses": [
     {
-      "claimId": "taiwan-oolong:definition",
+      "claimId": "taiwan:where-it-is",
       "rev": 1
     },
     {
       "claimId": "oolong:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "taiwan-oolong:definition",
       "rev": 1
     },
     {
@@ -72,5 +70,5 @@
   ],
   "problems": [],
   "unsupported": [],
-  "approvedAt": "2026-11-26T04:48:23.853Z"
+  "approvedAt": "2026-11-27T04:16:54.874Z"
 }

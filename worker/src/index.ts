@@ -1,4 +1,5 @@
 import { casualSitPublicationRoutes } from './casualSitPublications';
+import { freightRateWriteRefusal } from './freightRateDoor';
 import { publicSitRoutes, publishedSitRecap } from './publicSitConnections';
 import { formalSessionCardsFor, publicSessionRoutes } from './publicSessions';
 import type { PublicProductReader } from './sessionTeas';
@@ -14,6 +15,7 @@ import { boughtLineChestState, boughtLineQuantityUnit, keepBoughtLine, type Boug
 import { firstTableOpen } from '../../src/lib/firstTable';
 import { createHostArticleHandlers, isHostArticleId } from './hostArticleOffers';
 import { favouritesRoutes } from './favourites';
+import { practiceColumnsRemoved, practiceLinesRoutes } from './practiceLines';
 import { favouritesOpen } from '../../src/lib/favouritesOpen';
 import { teaTableRoutes } from './teaTable';
 import { knowThisTeaRoutes } from './knowThisTea';
@@ -358,6 +360,8 @@ interface Env extends WorkerReleaseEnv, PayPalSandboxEnv, PayPalLiveEnv, Shippin
   HOST_ARTICLES_OPEN?: string;
   /** "true" or "false" opens or closes favourites (Launch 4); see src/lib/favouritesOpen.ts. */
   FAVOURITES_OPEN?: string;
+  /** "true" or "false" opens or closes the practice lines on a person's page; see src/lib/practiceLines.ts. */
+  PRACTICE_LINES_OPEN?: string;
   TOP_TEAS_OPEN?: string;
   /** "true" or "false" opens or closes Your Table as a page (Launch 4); see src/lib/yourTablePage.ts. */
   YOUR_TABLE_PAGE_OPEN?: string;
@@ -3103,6 +3107,8 @@ const handleCreateProduct: Handler = async (request, env) => {
   }
   const capabilityError = validateProductCreateCapabilities(ctx, body);
   if (capabilityError) return capabilityError;
+  const freightRefusal = freightRateWriteRefusal(body, 'create');
+  if (freightRefusal) return restError(400, freightRefusal, 'freight_rate_in_logistics');
   /* After the unknown-field check, so `cost_currency_source` is not a field a
      caller may send: it records that this process saw a currency arrive. */
   stampCostCurrencySource(body);
@@ -3248,6 +3254,8 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
     }
     const capabilityError = validateProductCreateCapabilities(ctx, raw, { costRefusedPerRow: true });
     if (capabilityError) return capabilityError;
+    const freightRefusal = freightRateWriteRefusal(raw, 'create');
+    if (freightRefusal) return restError(400, freightRefusal, 'freight_rate_in_logistics');
     const ownerError = await validateProductOwnerAssignment(env, ctx, raw);
     if (ownerError) return ownerError;
   }
@@ -3657,6 +3665,14 @@ async function applyProductUpdate(
       .bind(params.id, accountId).first() as { cost_currency?: string | null } | null;
     const costRefusal = costMissingItsCurrency(body, existingCost?.cost_currency);
     if (costRefusal) return costRefusal;
+  }
+  // Freight rates are typed in Logistics, not here (worker/src/freightRateDoor.ts).
+  if ('shipping_rate_per_kg' in body) {
+    const existingFreight = await env.DB.prepare('SELECT shipping_rate_per_kg, cost_currency FROM products WHERE id = ? AND account_id = ?')
+      .bind(params.id, accountId).first() as { shipping_rate_per_kg?: number | null; cost_currency?: string | null } | null;
+    const freightRefusal = freightRateWriteRefusal(body, existingFreight);
+    if (freightRefusal) return restError(400, freightRefusal, 'freight_rate_in_logistics');
+    if (body.shipping_rate_per_kg === '') body.shipping_rate_per_kg = null;
   }
   // How the tea travels home: one of this shop's active logistics services, or
   // nothing said (src/lib/freightSource.ts). The rate stays on the service.
@@ -8677,7 +8693,8 @@ function parseContributorWrite(body: Record<string, unknown>) {
 function adminContributor(row: Record<string, any>) {
   let links: unknown[] = [];
   try { links = JSON.parse(row.links || '[]'); } catch { links = []; }
-  return { ...row, links };
+  // The practice lines are served only by their own route (worker/src/practiceLines.ts).
+  return { ...practiceColumnsRemoved(row), links };
 }
 
 // Gallery images (contributor_gallery_images): a row-per-photo collection,
@@ -9979,7 +9996,7 @@ const handleListMyPaymentMethods: Handler = async (request, env) => {
 const handleCreateMyPaymentMethod: Handler = async (request, env) => {
   const owned = await requireOwnContributor(request, env);
   if ('error' in owned) return owned.error;
-  if (!familyPageAllowsPay(familyPageTierOf(owned.contributor.page_tier))) return restError(403, 'Pay is for tea masters.', 'pay_not_for_this_page');
+  if (!familyPageAllowsPay(familyPageTierOf(owned.contributor.page_tier))) return restError(403, 'Pay is for hosts.', 'pay_not_for_this_page');
   const bodyResult = await contributorJson(request);
   if (bodyResult instanceof Response) return bodyResult;
   const parsed = parsePaymentMethodWrite(bodyResult);
@@ -22544,11 +22561,11 @@ async function personalSellerPayabilityGap(env: Env, accountId: string, userId: 
 
 const STORE_PAYABILITY_REFUSALS: Record<StorePayabilityGap, { message: string; code: string }> = {
   no_recipient: {
-    message: 'No Tea Master profile is linked to this store, so there is nobody for a customer to pay. Create yours before opening the shop.',
+    message: 'No host profile is linked to this store, so there is nobody for a customer to pay. Create yours before opening the shop.',
     code: 'store_has_no_payment_recipient',
   },
   profile_not_published: {
-    message: 'Publish your Tea Master profile before opening the shop, so customers have somewhere to pay.',
+    message: 'Publish your host profile before opening the shop, so customers have somewhere to pay.',
     code: 'store_recipient_profile_unpublished',
   },
   no_payment_method: {
@@ -24584,7 +24601,7 @@ const handlePlatformInviteTeaMaster: Handler = async (request, env) => {
     emailSent = await sendEmail(
       env,
       email,
-      `You've been invited as a Tea Master on Teajia`,
+      `You've been invited as a host on Teajia`,
       inviteEmailHtml(inviteUrl, displayName || 'Teajia')
     );
   }
@@ -24612,7 +24629,7 @@ const handlePlatformUpgradeToLocation: Handler = async (request, env, params) =>
     .bind(params.id).first();
   if (!account) return json({ error: 'Account not found' }, 404);
   if ((account as any).kind !== 'master') {
-    return json({ error: 'Only Tea Master accounts can be upgraded to Location' }, 400);
+    return json({ error: 'Only host accounts can be upgraded to Location' }, 400);
   }
 
   const body = await request.json() as {
@@ -33492,6 +33509,7 @@ const routes: [string, string, Handler][] = [
   ['DELETE', '/api/me/private-sits/:id/photos/:photoId', handleMemberPrivateSitPhotos],
   ['PUT', '/api/me/private-sits/:id/photos/:photoId/share', handleMemberPrivateSitPhotos],
   ...favouritesRoutes<Env>({ requireUser: requireAuthenticatedUser }),
+  ...practiceLinesRoutes<Env>({ optionalUser: optionalAuthenticatedUser, requireUser: requireAuthenticatedUser }),
   ...teaTableRoutes<Env>({ requireAuthenticatedUser, requireBundle }),
   ...knowThisTeaRoutes<Env>({ requireAuthenticatedUser }),
   ...teaHousesRoutes<Env>({ requireAuthenticatedUser }),
@@ -34226,6 +34244,25 @@ const requestHandler = {
           receiveImport: (scope, line, key) => receiveFinalizedImportLine(env, scope, line, key),
         },
         stockMovements: { apply: (scope, productId, input) => applyStockMovement(env, scope, productId, input) },
+        // draft_invoice's pay link: the same one the admin's Share pay link gives.
+        invoicePayLinks: {
+          payUrl: async (accountId, invoiceId) => {
+            const row = await env.DB.prepare(
+              `SELECT id, account_id, invoice_number, status, payment_status, display_currency,
+                      payment_recipient_user_id, sold_by_user_id, shipping_cost_usd
+                 FROM invoices WHERE id = ? AND account_id = ? AND deleted_at IS NULL`
+            ).bind(invoiceId, accountId).first<Record<string, any>>();
+            if (!row) return null;
+            const payment = await resolveInvoicePayment(env, {
+              id: String(row.id), account_id: String(row.account_id),
+              invoice_number: row.invoice_number ?? null, status: row.status ?? null,
+              payment_status: row.payment_status ?? null, display_currency: row.display_currency ?? null,
+              payment_recipient_user_id: row.payment_recipient_user_id ?? null, sold_by_user_id: row.sold_by_user_id ?? null,
+              shipping_cost_usd: Number(row.shipping_cost_usd || 0),
+            });
+            return payment.pay_url ?? null;
+          },
+        },
         // A host's yes over MCP takes the admin approval's own reservation (Launch 2, H12).
         hostSeats: { reservationFor: (attendee, guests) => buildApprovalReservation(env, attendee as unknown as ApprovalAttendeeRow, guests) },
         launch3: {

@@ -2,13 +2,13 @@
   "meta": {
     "name": "Teajia Tea Wisdom Base",
     "version": "1.0.0",
-    "generatedAt": "2026-11-24",
+    "generatedAt": "2026-11-27",
     "license": "CC BY 4.0, see LICENSE.txt",
     "homepage": "https://teajia.com",
     "contact": "hello@teajia.com",
     "counts": {
       "cultivars": 79,
-      "regions": 183,
+      "regions": 185,
       "teaVarieties": 316,
       "producers": 10,
       "styles": 10,
@@ -151,7 +151,7 @@
       "id": "alishan-nantou-chiayi",
       "name": "Alishan, Nantou/Chiayi",
       "country": "Taiwan",
-      "province": "Nantou",
+      "province": "Chiayi",
       "altitude": "1000-2300m",
       "climate": "Famous mountain range for high-altitude tea cultivation"
     },
@@ -167,9 +167,10 @@
       "id": "anhui",
       "name": "Anhui",
       "country": "China",
-      "province": null,
+      "province": "Anhui",
       "altitude": null,
-      "climate": null
+      "climate": "Humid subtropical climate with four seasons, much rain and mountain mist in the south and west tea hills.",
+      "description": "Province in eastern China, known for green teas such as Huangshan Maofeng, Taiping Houkui and Lu'an Guapian, and for Keemun red tea from Qimen."
     },
     {
       "id": "anji",
@@ -289,7 +290,7 @@
       "country": "China",
       "province": "Guangxi",
       "altitude": null,
-      "climate": "Centered dark-tea tradition along the Xijiang river system; warm, humid climate and soil conditions support the microbial cultures that define liu bao and Liao Fu character."
+      "climate": "Centered dark-tea tradition along the Xijiang river system; warm, humid climate and soil conditions support the microbial cultures that define liu bao. (NOTE: Liao Fu is NOT Cangwu/Guangxi — it is Vietnamese wild-leaf puer imported through the Hong Kong Liao Fu San tea house; corrected 2026-08-27.)"
     },
     {
       "id": "ceylon",
@@ -503,9 +504,10 @@
       "id": "fujian",
       "name": "Fujian",
       "country": "China",
-      "province": null,
+      "province": "Fujian",
       "altitude": null,
-      "climate": null
+      "climate": "Subtropical monsoon climate, warm and wet, with misty mountains and valleys that split the province into separate tea pockets.",
+      "description": "Coastal province in south-east China and home of Wuyi rock oolong, Anxi Tieguanyin, Fuding and Zhenghe white tea, Lapsang Souchong and Fuzhou jasmine tea."
     },
     {
       "id": "fukuoka-prefecture",
@@ -527,17 +529,19 @@
       "id": "guangdong",
       "name": "Guangdong",
       "country": "China",
-      "province": null,
+      "province": "Guangdong",
       "altitude": null,
-      "climate": null
+      "climate": "Hot, humid, with a rainy and a drier season; tea grows mostly in the eastern and northern hills.",
+      "description": "Province on the south coast of China, known for Phoenix Mountain dancong oolong and Yingde black tea, and as a trading and storage centre for pu'er through Guangzhou and Hong Kong."
     },
     {
       "id": "guangxi",
       "name": "Guangxi",
       "country": "China",
-      "province": null,
+      "province": "Guangxi",
       "altitude": null,
-      "climate": null
+      "climate": "Subtropical monsoon climate in the Wuzhou area, warm and wet with hills and forest, which the trade links to Liu Bao's slow ageing.",
+      "description": "Province-level region in southern China, known for Liu Bao dark tea from Wuzhou and Cangwu and for jasmine tea from Hengzhou."
     },
     {
       "id": "guizhou",
@@ -799,7 +803,7 @@
       "id": "lishan-nantou",
       "name": "Lishan, Nantou",
       "country": "Taiwan",
-      "province": "Nantou",
+      "province": "Taichung",
       "altitude": "1800-2300m",
       "climate": "High mountain area producing premium high-altitude oolongs"
     },
@@ -960,8 +964,8 @@
       "name": "Naka",
       "country": "China",
       "province": "Yunnan",
-      "altitude": "1600m (approx.)",
-      "climate": "Village on Nannuo Mountain (one of the ancient six tea mountains) in Menghai county, Xishuangbanna; ancient gardens cultivated by the Lahu ethnic minority."
+      "altitude": "1660m (approx.)",
+      "climate": "Lahu village in Mengsong township, Menghai county, Xishuangbanna, on the eastern side of Huazhu Liangzi mountain; over 600 mu of old tea gardens with trees roughly 300 to 500 years old."
     },
     {
       "id": "nangang-district-taipei",
@@ -1034,6 +1038,15 @@
       "province": "Aichi",
       "altitude": "50-200m",
       "climate": "Major Matcha production center with ideal climate"
+    },
+    {
+      "id": "northern-vietnam-highlands",
+      "name": "Northern Vietnam highlands",
+      "country": "Vietnam",
+      "province": "Ha Giang, Lao Cai, Yen Bai, Son La",
+      "altitude": null,
+      "climate": "Cool, misty mountains along the China border, mostly above about 1,000 metres.",
+      "description": "Mountain region of northern Vietnam known for old Shan Tuyet tea trees, from which green, white, raw and ripe pu'er style teas are made."
     },
     {
       "id": "nuwara-eliya",
@@ -1257,7 +1270,8 @@
       "country": "Taiwan",
       "province": null,
       "altitude": null,
-      "climate": null
+      "climate": null,
+      "description": "Island off the coast of Fujian whose tea trade is built on oolong, with high mountain tea grown in Nantou, Chiayi and Taichung."
     },
     {
       "id": "taohua-feng-huangshan",
@@ -1375,9 +1389,10 @@
       "id": "wuliang-mountain",
       "name": "Wuliang Mountain",
       "country": "China",
-      "province": null,
+      "province": "Yunnan",
       "altitude": null,
-      "climate": null
+      "climate": "Monsoon climate with a wet summer and a dry misty winter; much of the range is forest, part of it a national nature reserve.",
+      "description": "Long mountain range in west-central Yunnan, running from Nanjian through Jingdong, Zhenyuan and Jinggu toward Ning'er, known for old wild and planted tea trees."
     },
     {
       "id": "wuyi",
@@ -1447,9 +1462,10 @@
       "id": "ya-an",
       "name": "Ya'an",
       "country": "China",
-      "province": null,
+      "province": "Sichuan",
       "altitude": null,
-      "climate": null
+      "climate": "Humid, rainy and misty at the western edge of the Sichuan Basin",
+      "description": "Prefecture-level city in western Sichuan. Home of Mengding Shan green and yellow tea and of Ya'an Tibetan (Sichuan border) dark tea."
     },
     {
       "id": "yame",
@@ -1579,6 +1595,15 @@
       "province": "Fujian",
       "altitude": "200-400m",
       "climate": "Core Wuyi area with unique rock soil, most prized for oolongs"
+    },
+    {
+      "id": "zhudong",
+      "name": "Zhudong",
+      "country": "Taiwan",
+      "province": "Hsinchu",
+      "altitude": null,
+      "climate": null,
+      "description": "Township in central Hsinchu County, east of Hsinchu city, at the edge of the northwestern Taiwan hills; named by a few sources among the county's Oriental Beauty areas."
     },
     {
       "id": "zhushan-township-nantou",
@@ -7306,22 +7331,24 @@
       "id": "liao-fu",
       "name": "Liao Fu",
       "chineseName": "廖福",
-      "altNames": [],
-      "kind": "unknown",
-      "country": "China",
-      "region": "Cangwu",
+      "altNames": [
+        "Liao Fu San",
+        "廖福山"
+      ],
+      "kind": "house",
+      "country": "Hong Kong",
+      "founded": 1960,
       "notableMarks": [
         "Jia Ji (甲级)",
         "Wan Yan AAA (万言AAA)"
       ],
-      "description": "A recognized name in Cangwu, Guangxi dark tea production, appearing across grades from standard loose leaf up to a premium Wan Yan AAA classification. Whether Liao Fu is a factory, house, or family producer is not stated in the source write-ups."
+      "description": "A Hong Kong tea house, Liao Fu San (廖福山), that first imported tea from Vietnam in the 1960s. The Liao Fu name denotes this Hong Kong trading house and the Vietnamese wild-leaf puer it brought in — not a Guangxi producer. Leaf is grown on wild tea trees in the north of Vietnam and aged (notably 1980s material). The house's line spans grades from standard loose leaf to a premium Wan Yan AAA classification."
     },
     {
       "id": "menghai-tea-factory",
       "name": "Menghai Tea Factory",
       "chineseName": "勐海茶厂",
       "altNames": [
-        "Menghai",
         "Dayi",
         "Taetea",
         "大益"
@@ -7597,11 +7624,10 @@
       "altNames": [
         "Tribute Gold"
       ],
-      "producerId": "qiaorui",
       "appliesToTypes": [
         "Shou"
       ],
-      "description": "A tribute-grade classification ('gong', historically tea produced for imperial tribute) combined with a gold-brick ('jin zhuan') designation emphasizing prestige, used on a brick-pressed shou pu-erh."
+      "description": "A selling name seen on brick-pressed shou pu-erh, not a recognised grade. Its meaning and first maker are not established."
     },
     {
       "id": "gong-ting",
@@ -7731,7 +7757,7 @@
       "appliesToTypes": [
         "Shou"
       ],
-      "description": "The iconic brand of the China National Tea Corporation, marked by an eight-pointed 'zhong' character surrounded by a red circle. Appears on teas from multiple state-run and later privatized factories across decades."
+      "description": "The brand of the China National Tea Corporation, marked by eight red 'zhong' characters set in a ring around a central 'cha'. Appears on teas from multiple state-run and later privatized factories across decades."
     }
   ],
   "namedTeas": [

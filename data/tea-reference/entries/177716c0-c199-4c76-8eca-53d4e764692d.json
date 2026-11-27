@@ -1,6 +1,6 @@
 {
   "status": "approved",
-  "composedAt": "2026-11-26T07:30:04.609Z",
+  "composedAt": "2026-11-27T03:58:29.875Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -11,26 +11,20 @@
     "form": "Cake",
     "year": 2005,
     "origin": "Dali, Yunnan, China",
-    "stockGrams": 0,
-    "pricePerGramUsd": 1.31,
-    "tags": [
-      "sharp bitterness",
-      "wild herb",
-      "green camphor",
-      "strong mineral",
-      "powerful hui gan"
-    ]
+    "stockGrams": null,
+    "pricePerGramUsd": null,
+    "tags": []
   },
   "entry": {
     "productId": "177716c0-c199-4c76-8eca-53d4e764692d",
     "paragraphs": [
       {
-        "layer": "lot",
-        "text": "A wild tea cake of [raw pu’er](sheng:identity) made in 2005 by the Xiaguan Tea Factory in Dali. Xiaguan was one of the [state factories](sheng:history) that, after 1949, took in Yunnan’s private tea houses and made pu’er to standard recipes under the state tea company’s labels. This leaf was [fried to kill the green](sheng:making), rolled and dried in the sun, then pressed with the firm compression the factory is known for. A tight cake changes slowly, so the [pressing](sheng:pressing) sets the pace at which this one ages."
+        "layer": "place",
+        "text": "This [raw pu’er](sheng:identity) cake comes from [Dali](dali:where-it-is), the prefecture in western Yunnan that lies north of Lincang and well north of the pu’er mountains of Xishuangbanna. The prefecture [grows only a little tea of its own](dali:grown-in-dali), mainly on the Cang mountains and the Wuliang range in Nanjian County. Its name is known in pu’er mostly through [the pressing and trading](dali:tuocha-trade) that grew up there on the old caravan routes."
       },
       {
         "layer": "age",
-        "text": "At twenty-one years it is past both lines the trade draws for [aged](sheng:ageing) raw pu’er: some count from ten years, and many wait for twenty or more. With no rapid fermentation behind it, this cake has [changed through storage](sheng:aging) alone, and the years it has spent are part of its history."
+        "text": "The cake was made in 2005 and is now twenty-one years old. Its leaf was [fried in a wok to kill the green](sheng:making) but never dried with hot air afterwards. Because of that, some of the leaf’s own activity survived, and that is what has let the tea keep changing since. At this age it is past both lines the trade draws for [aged raw pu’er](sheng:ageing): ten years for some, twenty or more for many. How far it has travelled depends on [where it was kept](sheng:storage), because heat and humidity set the pace. It also depends on [how it was pressed](sheng:pressing), because a tight cake changes more slowly than a loose one."
       }
     ],
     "brewing": {
@@ -43,7 +37,6 @@
       "text": "A smoother, thicker, sweeter cup with woody, herbal and camphor notes and something of dried dates or dark fruit."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "A voice note from you on this lot",
       "Photos"
     ]
@@ -54,7 +47,15 @@
       "rev": 1
     },
     {
-      "claimId": "sheng:history",
+      "claimId": "dali:where-it-is",
+      "rev": 1
+    },
+    {
+      "claimId": "dali:grown-in-dali",
+      "rev": 1
+    },
+    {
+      "claimId": "dali:tuocha-trade",
       "rev": 1
     },
     {
@@ -62,15 +63,15 @@
       "rev": 1
     },
     {
-      "claimId": "sheng:pressing",
-      "rev": 1
-    },
-    {
       "claimId": "sheng:ageing",
       "rev": 1
     },
     {
-      "claimId": "sheng:aging",
+      "claimId": "sheng:storage",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:pressing",
       "rev": 1
     },
     {
@@ -88,5 +89,5 @@
   ],
   "problems": [],
   "unsupported": [],
-  "approvedAt": "2026-11-26T07:48:34.139Z"
+  "approvedAt": "2026-11-27T04:17:14.160Z"
 }

@@ -8,7 +8,8 @@ const flags = vi.hoisted(() => ({ table: false, houses: false }));
 vi.mock('../../lib/teaTable', () => ({ teaTableOpen: () => flags.table }));
 vi.mock('../../lib/teaHouses', () => ({ teaHousesOpen: () => flags.houses }));
 
-import { FromTheTeaTable, TeaHousesStrip, consultPlatePath, homeLinesLaunchFour } from './HomeLaunchFour';
+import { FromTheTeaTable, HomeFourDoors, TeaHousesStrip, consultPlatePath, homeDoorsLaunchFour } from './HomeLaunchFour';
+import { housesDoor, tableDoor } from '../../components/navSections';
 
 const recap = (id: string) => ({ kind: 'recap' as const, id, at: '2026-11-20', slug: `s-${id}`, title: `Session ${id}`, session_date: '2026-11-19', host: 'Mei', writing: '', teas: [], tea_type: null });
 
@@ -43,9 +44,27 @@ it('shows the houses only while the portfolio is open and has some', () => {
   expect(html).toContain('href="/tea-houses/work/moon"');
 });
 
-it('the four lines lead to pages that exist, and the consult plate leads to Tea Houses once open', () => {
-  expect(homeLinesLaunchFour().map(line => line.to)).toEqual(['/read', '/events', '/tea-houses/visit', '/shop']);
+it('the four doors lead where the bar words lead, and the consult plate leads to Tea Houses once open', () => {
+  expect(homeDoorsLaunchFour().map(door => door.to)).toEqual(['/read', tableDoor(), housesDoor(), '/shop']);
+  expect(homeDoorsLaunchFour().map(door => door.to)).toEqual(['/read', '/events', '/advise', '/shop']);
   expect(consultPlatePath()).toBe('/advise');
+  flags.table = true;
   flags.houses = true;
+  expect(homeDoorsLaunchFour().map(door => door.to)).toEqual(['/read', '/tea-table', '/tea-houses', '/shop']);
   expect(consultPlatePath()).toBe('/tea-houses');
+});
+
+it('the four doors carry their words, in bar order, with no em dash', () => {
+  const html = render(<HomeFourDoors />);
+  const doors = homeDoorsLaunchFour();
+  expect(doors.map(door => door.accent)).toEqual(['Discover', 'Deepen', 'Create', 'Source']);
+  expect(doors.map(door => door.words)).toEqual([
+    'stories, craft and tea wisdom',
+    'sit at a table, taste, share what you found',
+    'a tea house, or a table of your own',
+    'fine tea and teaware, found by hand',
+  ]);
+  for (const door of doors) expect(html).toContain(door.words);
+  expect(html).toContain('aria-label="Homepage destinations"');
+  expect(html).not.toMatch(new RegExp(String.fromCharCode(0x2014)));
 });

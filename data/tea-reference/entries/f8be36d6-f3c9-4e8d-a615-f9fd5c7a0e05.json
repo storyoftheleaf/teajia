@@ -1,0 +1,82 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-27T04:08:22.749Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "f8be36d6-f3c9-4e8d-a615-f9fd5c7a0e05",
+    "name": "Menghai Pre-Qingming Tender-Bud Palace Tea",
+    "chineseName": "勐海明前嫩芽宫廷",
+    "type": "Shou Puer",
+    "form": "Loose",
+    "year": null,
+    "origin": "Menghai",
+    "stockGrams": 200,
+    "pricePerGramUsd": 0.55,
+    "tags": []
+  },
+  "entry": {
+    "productId": "f8be36d6-f3c9-4e8d-a615-f9fd5c7a0e05",
+    "paragraphs": [
+      {
+        "layer": "grade",
+        "text": "This is loose [ripe pu’er](shou:definition) of the [Gong Ting](gong-ting:definition) grade, sorted out of a batch for its small leaf and high share of buds. In the market the grade sits one step above special grade. [Dry leaf of this grade](gong-ting:appearance) is tight and straight, with golden down on the buds and no stray stems, and so little of any batch qualifies that the grade is always scarce."
+      },
+      {
+        "layer": "place",
+        "text": "The leaf comes from Menghai County. On a label, [Menghai](menghai-county:county-and-factory) can mean the county or the Menghai Tea Factory, which blends leaf from several of the county's mountains. Here the name says where the leaf grew."
+      },
+      {
+        "layer": "type",
+        "text": "It was made by [wet piling](shou:wet-piling): the leaf was wetted and heaped so that heat, moisture and microbes could work on it, covered to hold in the heat the microbes make, and turned to spread it and let air in. That is why it is ready to drink now rather than after years of ageing."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Ripe pu’er takes boiling water: fermented, tightly packed leaf needs full heat to open, and it does not scald the way green tea can. A common start is about 7 grams to 100 ml and one quick rinse, which wakes the leaf and carries off dust and any pile smell. Then short steeps that lengthen as the leaf opens, so the cup stays clear rather than heavy; it gives eight or more good cups."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "ripe pu’er",
+      "text": "A smooth, sweet cup with earthy or woody notes. A young ripe tea can carry a faint smell of the pile, which fades with airing or in the first steeps."
+    },
+    "missing": [
+      "The year it was made: unlocks the age paragraph",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "shou:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "gong-ting:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "gong-ting:appearance",
+      "rev": 1
+    },
+    {
+      "claimId": "menghai-county:county-and-factory",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:wet-piling",
+      "rev": 2
+    },
+    {
+      "claimId": "shou:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:common-impressions",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-27T04:16:51.432Z"
+}

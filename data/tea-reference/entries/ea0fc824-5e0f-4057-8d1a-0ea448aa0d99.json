@@ -1,6 +1,6 @@
 {
   "status": "approved",
-  "composedAt": "2026-11-25T15:43:42.281Z",
+  "composedAt": "2026-11-27T04:17:53.990Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -11,26 +11,20 @@
     "form": "Ball",
     "year": null,
     "origin": "Menghai, Yunnan, China",
-    "stockGrams": 0,
-    "pricePerGramUsd": 0.34,
-    "tags": [
-      "dark honey",
-      "aged forest",
-      "dense sweetness",
-      "mineral depth",
-      "lasting finish"
-    ]
+    "stockGrams": null,
+    "pricePerGramUsd": null,
+    "tags": []
   },
   "entry": {
     "productId": "ea0fc824-5e0f-4057-8d1a-0ea448aa0d99",
     "paragraphs": [
       {
-        "layer": "lot",
-        "text": "These dragon pearls are made from Banzhang village leaf, from Menghai in Yunnan. The leaf was sorted to the gongting grade, which keeps only small buds. It was made into [ripe pu’er](shou:definition), then rolled by hand into pearls, one at a time."
+        "layer": "place",
+        "text": "This leaf grew in Menghai County, in Yunnan. The county's [tea mountains](menghai-county:peoples) are not one community: Bulang, Hani and Lahu villagers planted and still tend their own gardens, and who planted and who picks shapes each mountain's tea."
       },
       {
         "layer": "type",
-        "text": "Like all ripe pu’er, the buds went through [wet piling](shou:wet-piling). They were wetted and heaped so that heat, moisture and microbes could work on them. The pile was covered to hold in the heat the microbes make, and turned about once a week to spread it and let in air. It was kept below about 65°C, because hotter than that the leaf starts to char. Drinkers in Hong Kong and Guangdong once waited years for raw pu’er to darken with age, and the pile was developed to do that in weeks. So these pearls are ready to drink now, without years of waiting."
+        "text": "It was made into [ripe pu’er](shou:definition), fermented in a warm, damp pile so that it is ready to drink soon after making instead of after years of ageing. In [wet piling](shou:wet-piling) the wetted leaf is heaped and covered to hold in the heat its own microbes make. It is turned about once a week to spread that heat and let air in, and kept below about 65°C, since hotter than that the leaf starts to char. After the pile the tea was shaped into balls."
       }
     ],
     "brewing": {
@@ -43,13 +37,16 @@
       "text": "A smooth, sweet cup with earthy or woody notes. A young ripe tea can carry a faint smell of the pile, which fades with airing or in the first steeps."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "The year it was made: unlocks the age paragraph",
       "A voice note from you on this lot",
       "Photos"
     ]
   },
   "claimUses": [
+    {
+      "claimId": "menghai-county:peoples",
+      "rev": 1
+    },
     {
       "claimId": "shou:definition",
       "rev": 1
@@ -73,5 +70,5 @@
   ],
   "problems": [],
   "unsupported": [],
-  "approvedAt": "2026-11-25T23:18:48.233Z"
+  "approvedAt": "2026-11-27T04:17:54.080Z"
 }

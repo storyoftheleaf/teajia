@@ -1,5 +1,8 @@
 import React from 'react';
-import { renderToStaticMarkup } from 'react-dom/server';
+import { renderToStaticMarkup as renderPlain } from 'react-dom/server';
+import { MemoryRouter } from 'react-router-dom';
+// Shipment cards link to teas and services, so they render inside a router.
+const renderToStaticMarkup = (node: React.ReactElement) => renderPlain(<MemoryRouter>{node}</MemoryRouter>);
 import { describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import type { LogisticsService, LogisticsShipment } from '../../../lib/logisticsTypes';

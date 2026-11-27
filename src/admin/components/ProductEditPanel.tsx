@@ -14,7 +14,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   X as XIcon, ChevronLeft, ChevronRight, ChevronDown, QrCode, Star, Sparkles,
   FlaskConical, RefreshCw, Pencil, Plus, Loader2, Check, Globe, Receipt, BookOpen,
-  Camera, Upload, Crop, Download, MoreHorizontal, Trash2, Wand2, Mic, Square, Package,
+  Camera, Upload, Crop, Download, MoreHorizontal, Trash2, Wand2, Mic, Square, Package, ArrowRight,
 } from 'lucide-react';
 import { refreshCommerceQueries } from '../../lib/refreshCommerce';
 import { api } from '../../lib/api';
@@ -1430,15 +1430,6 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
             </div>
           </div>
 
-          {/* Keyboard hint bar: quiet, single-line */}
-          {onNavigate && (
-            <div className="hidden md:flex items-center justify-center gap-3 px-4 py-1.5 border-b border-admin-border">
-              <span className="text-ui-10 text-admin-text-dim uppercase tracking-[0.06em]">Esc close</span>
-              <span className="text-ui-10 text-admin-text-faint">·</span>
-              <span className="text-ui-10 text-admin-text-dim uppercase tracking-[0.06em]">← → navigate</span>
-            </div>
-          )}
-
           {product.personalOfferSourceId ? <StockOfferSource product={product} titleId={titleId} /> : <div ref={scrollRef} data-room-tab="page" data-testid="tea-page" className="curate-v2 flex-1 overflow-y-auto custom-scrollbar">
             <TeaJumpBar value={section} marked={missingMarks} onJump={jumpTo} />
             <TeaMissing items={missingItems} onJump={jumpTo} />
@@ -1515,11 +1506,11 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                 {sharedRecordId && <button type="button" data-testid="inventory-reorder-ledger" disabled={openingOrder}
                   onClick={() => void openReorder()} className="tap-target text-tea-gold disabled:opacity-50">{openingOrder ? 'Opening draft…' : 'Reorder in Ledger'}</button>}
                 {readiness?.state === 'not_ready' && !sharedRecordId && (
-                  <button type="button" data-compass-entry-id={product.sourceCompassEntryId || undefined} className="tap-target text-tea-gold"
+                  <button type="button" data-compass-entry-id={product.sourceCompassEntryId || undefined} className="btn-secondary"
                     onClick={() => navigate(product.sourceCompassEntryId
                       ? `/admin/compass?tab=sourcing&entry=${encodeURIComponent(product.sourceCompassEntryId)}`
                       : `/admin/compass?tab=sourcing&developProduct=${encodeURIComponent(product.id)}&developName=${encodeURIComponent(product.givenName || product.productName)}&developType=${encodeURIComponent(product.type)}`)}
-                  >Develop in Curate</button>
+                  >Develop in Curate <ArrowRight size={15} aria-hidden="true" /></button>
                 )}
               </div>
             </TeaSection>
@@ -1555,6 +1546,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                 </TeaLine>
                 <TeaFreight product={product} shopPerKgUsd={shopFreight.perKgUsd} rates={rates} costRateToUsd={costRateToUsd}
                   onChoose={(serviceId) => persistField(product.id, 'freightServiceId', serviceId)}
+                  onClearOwnRate={() => persistField(product.id, 'shippingRatePerKg', null)}
                   onOpenLogistics={() => navigate('/admin/purchase-orders')} />
                 {(() => {
                   const calc = pricingCalc && pricingCalc.suggestedRetailUSD > 0 ? pricingCalc : null;

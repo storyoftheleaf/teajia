@@ -76,7 +76,7 @@ export const ContributorProfile: React.FC<ContributorProfileProps> = ({ person, 
           href={`/people/${encodeURIComponent(person.id)}`}
           className="tap-target relative z-10 mt-6 inline-flex items-center gap-2 text-ui-13 text-tea-gold transition-colors hover:text-tea-gold-lt"
         >
-          View Tea Master profile <ArrowRight size={16} aria-hidden="true" />
+          View host profile <ArrowRight size={16} aria-hidden="true" />
         </a>
       </div>
     </div>

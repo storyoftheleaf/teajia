@@ -1,6 +1,6 @@
 {
   "status": "approved",
-  "composedAt": "2026-11-26T04:44:19.132Z",
+  "composedAt": "2026-11-27T03:52:50.411Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -11,29 +11,20 @@
     "form": "Loose",
     "year": 2023,
     "origin": "Taiwan",
-    "stockGrams": 100,
-    "pricePerGramUsd": 0.4,
-    "tags": [
-      "honey",
-      "ripe peach",
-      "muscatel",
-      "light citrus"
-    ]
+    "stockGrams": null,
+    "pricePerGramUsd": null,
+    "tags": []
   },
   "entry": {
     "productId": "0bc826ca-79b8-43b1-ae9f-605c016435eb",
     "paragraphs": [
       {
-        "layer": "type",
-        "text": "A loose [red tea](red:definition) from Taiwan, made in 2023. Red tea is the tea English calls black; its Chinese name follows the colour of the brewed cup rather than the dark dry leaf. Taiwan's own red tea goes back to [the Japanese period, at Yuchi near Sun Moon Lake](red:history)."
-      },
-      {
-        "layer": "type",
-        "text": "The leaf is [withered until soft, then rolled](red:making) so its juices and enzymes meet. It is left to oxidise fully until it turns from green to reddish brown, and hot air then stops the change and keeps the tea stable."
+        "layer": "place",
+        "text": "A [red tea](red:definition) made in 2023 on [Taiwan](taiwan:on-a-label). Red tea is the fully oxidised tea that English calls black. The record names only the island, not a mountain or township, so where on it the garden lies is not known. The island is known above all for [oolong](taiwan:known-for), and it [turned to black tea](taiwan:history) under Japanese rule, when red tea was first made at [Yuchi](red:history) near Sun Moon Lake."
       },
       {
         "layer": "age",
-        "text": "At three years it sits at the far edge of what a red tea keeps. The style [has no tradition of ageing](red:ageing): sealed, it holds its quality for a year and a half to three years, so this is a tea for drinking now rather than keeping."
+        "text": "Red tea has no tradition of [ageing](red:ageing). Sealed, it keeps its quality for about a year and a half to three years. At three years this tea sits at the far end of that span, so it is one to drink now rather than to keep."
       }
     ],
     "brewing": {
@@ -46,7 +37,6 @@
       "text": "A sweet cup, often with honey, floral or fruity notes, malt in many, and a brisk strength in the stronger teas. The liquor runs red, bright to deep."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "A voice note from you on this lot",
       "Photos"
     ]
@@ -57,11 +47,19 @@
       "rev": 1
     },
     {
-      "claimId": "red:history",
+      "claimId": "taiwan:on-a-label",
       "rev": 1
     },
     {
-      "claimId": "red:making",
+      "claimId": "taiwan:known-for",
+      "rev": 1
+    },
+    {
+      "claimId": "taiwan:history",
+      "rev": 1
+    },
+    {
+      "claimId": "red:history",
       "rev": 1
     },
     {
@@ -79,5 +77,5 @@
   ],
   "problems": [],
   "unsupported": [],
-  "approvedAt": "2026-11-26T04:48:23.395Z"
+  "approvedAt": "2026-11-27T04:16:50.592Z"
 }

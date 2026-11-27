@@ -1,6 +1,6 @@
 {
   "status": "approved",
-  "composedAt": "2026-11-26T04:44:08.102Z",
+  "composedAt": "2026-11-27T04:14:07.421Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -11,25 +11,20 @@
     "form": "Rolled",
     "year": 1980,
     "origin": "Taiwan",
-    "stockGrams": 0,
-    "pricePerGramUsd": 1.54,
-    "tags": [
-      "dark roast",
-      "dried fruit",
-      "aged honey",
-      "warm mineral"
-    ]
+    "stockGrams": null,
+    "pricePerGramUsd": null,
+    "tags": []
   },
   "entry": {
     "productId": "f33d6d62-3f6d-49a8-9c19-31cf2236956b",
     "paragraphs": [
       {
-        "layer": "lot",
-        "text": "A rolled [Taiwan oolong](taiwan-oolong:definition) from 1980, a [partly oxidised](oolong:definition) tea. No record of its cultivar or its garden came down with it, so what can be said of it now is its age."
+        "layer": "age",
+        "text": "A rolled [Taiwan oolong](taiwan-oolong:definition) from 1980, kept for forty-six years in the island's tradition of [lao cha](taiwan-oolong:ageing), old tea. Leaf chosen for keeping starts out well roasted and dry. It is roasted again at low heat from time to time to drive out the moisture it takes in, and kept cool, dark and sealed between roastings. No standard says when an oolong becomes old. Those who give a figure put it between ten and thirty years, and this tea is sixteen years past the longest of them."
       },
       {
-        "layer": "age",
-        "text": "Taiwan has long kept oolong for years as [lao cha](taiwan-oolong:ageing), old tea. Leaf chosen for keeping starts well roasted and dry, and because it slowly takes in moisture over the years, keepers roast it again at low heat from time to time to drive that moisture out. Between roastings it is held cool, dry, dark and sealed. No standard says when an oolong becomes old; those who give a figure put it between ten and thirty years. At forty-six years, this tea is well past either."
+        "layer": "place",
+        "text": "The label names only [Taiwan](taiwan:on-a-label). That places the leaf on the island and says nothing more: no mountain, no township, no cultivar. What it does carry is the island's own craft. [Oolong](oolong:definition) is the partly oxidised tea between green and red, and the island's trade is built on [rolled, bead-shaped oolong](taiwan:known-for) like this one."
       }
     ],
     "brewing": {
@@ -42,7 +37,6 @@
       "text": "A smooth, mellow, thick cup with little astringency, often plum or prune, sometimes something like medicinal herbs or ginseng, and an amber to red-brown liquor."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "A voice note from you on this lot",
       "Photos"
     ]
@@ -53,11 +47,19 @@
       "rev": 1
     },
     {
+      "claimId": "taiwan-oolong:ageing",
+      "rev": 1
+    },
+    {
+      "claimId": "taiwan:on-a-label",
+      "rev": 1
+    },
+    {
       "claimId": "oolong:definition",
       "rev": 1
     },
     {
-      "claimId": "taiwan-oolong:ageing",
+      "claimId": "taiwan:known-for",
       "rev": 1
     },
     {
@@ -71,5 +73,5 @@
   ],
   "problems": [],
   "unsupported": [],
-  "approvedAt": "2026-11-26T04:48:24.447Z"
+  "approvedAt": "2026-11-27T04:16:58.537Z"
 }

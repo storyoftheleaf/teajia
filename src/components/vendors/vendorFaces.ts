@@ -105,8 +105,8 @@ export function useFaceVendors(options?: { enabled?: boolean }) {
 }
 
 /**
- * A photo squared on its face: head and shoulders, the face a little above
- * centre. Used where a face is saved without the editor opening (placing a
+ * A photo squared on its face: the biggest square the photo holds, slid so
+ * the face is as central as it can be (a square photo stays whole). Used where a face is saved without the editor opening (placing a
  * batch from the tray). A photo with no face found is squared from the middle.
  */
 export async function squareOnFace(file: File, size = 800): Promise<Blob> {

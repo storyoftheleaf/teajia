@@ -130,7 +130,7 @@ describe('with the new bar on', () => {
     const html = rail();
     expect(html).toContain('href="/read"');
     expect(html).toContain('href="/events"');
-    expect(html).toContain('href="/tea-houses/visit"');
+    expect(html).toContain('href="/advise"');
     flags.table = true;
     flags.houses = true;
     const open = rail();
@@ -162,7 +162,7 @@ describe('with the new bar on', () => {
   });
 
   it('keys 1 to 5 follow the words', () => {
-    expect(sectionKeyPaths()).toEqual(['/', '/read', '/events', '/tea-houses/visit', '/shop']);
+    expect(sectionKeyPaths()).toEqual(['/', '/read', '/events', '/advise', '/shop']);
     flags.table = true;
     flags.houses = true;
     expect(sectionKeyPaths()).toEqual(['/', '/read', '/tea-table', '/tea-houses', '/shop']);

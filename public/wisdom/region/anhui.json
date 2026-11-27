@@ -2,9 +2,10 @@
   "id": "anhui",
   "name": "Anhui",
   "country": "China",
-  "province": null,
+  "province": "Anhui",
   "altitude": null,
-  "climate": null,
+  "climate": "Humid subtropical climate with four seasons, much rain and mountain mist in the south and west tea hills.",
+  "description": "Province in eastern China, known for green teas such as Huangshan Maofeng, Taiping Houkui and Lu'an Guapian, and for Keemun red tea from Qimen.",
   "holding": "regions",
   "license": "CC BY 4.0, see LICENSE.txt",
   "source": "https://teajia.com/wisdom/"

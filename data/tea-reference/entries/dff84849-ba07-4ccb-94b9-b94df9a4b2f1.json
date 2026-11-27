@@ -1,6 +1,6 @@
 {
   "status": "approved",
-  "composedAt": "2026-11-25T15:41:06.076Z",
+  "composedAt": "2026-11-27T03:59:33.168Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -11,25 +11,20 @@
     "form": "Tuo",
     "year": 1996,
     "origin": "Menghai, Yunnan, China",
-    "stockGrams": 620,
-    "pricePerGramUsd": 0.31,
-    "tags": [
-      "concentrated camphor",
-      "dark fruit",
-      "mineral sweetness",
-      "long finish"
-    ]
+    "stockGrams": null,
+    "pricePerGramUsd": null,
+    "tags": []
   },
   "entry": {
     "productId": "dff84849-ba07-4ccb-94b9-b94df9a4b2f1",
     "paragraphs": [
       {
-        "layer": "lot",
-        "text": "A [raw pu’er](sheng:identity) from Menghai, made in 1996 from [sun-dried maocha](sheng:making) and pressed under high pressure into a bullet tuo. The name comes from its shape: a smaller, denser version of the [tuo](sheng:pressing), the small bowl form. Pressing began so tea could travel well, and it also sets the pace of ageing, so a format this compact and tight ages differently from a standard cake."
+        "layer": "place",
+        "text": "A [tuo](sheng:pressing) of [raw pu’er](sheng:identity) made in 1996 from leaf grown in [Menghai County](menghai-county:county-and-factory), Yunnan. Tea was first pressed into compact shapes like this small bowl so it could travel the old trade routes, and the shape still decides how it ages: a small tuo changes faster than a large, tight cake."
       },
       {
         "layer": "age",
-        "text": "At thirty years it is past both the ten years some in the trade count as [aged raw pu’er](sheng:ageing) and the twenty or more that many wait for. It was made while collectors, led at first by Taiwan, were [seeking out aged raw pu’er](sheng:history-modern) through the 1990s. Like any sheng, it has changed slowly in storage rather than through a fast ferment."
+        "text": "It was made in the years when [collectors](sheng:history-modern), led at first by Taiwan, came looking for aged raw pu’er. At thirty years it is past both lines the trade draws for [aged](sheng:ageing) raw tea, ten years for some and twenty or more for many. Raw pu’er gets no quick fermentation, so it [changes slowly in storage](sheng:aging). How warm and humid its [stores](sheng:storage) were over those three decades is part of its history, as much as the years themselves."
       }
     ],
     "brewing": {
@@ -42,22 +37,25 @@
       "text": "A smoother, thicker, sweeter cup with woody, herbal and camphor notes and something of dried dates or dark fruit."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "A voice note from you on this lot",
       "Photos"
     ]
   },
   "claimUses": [
     {
+      "claimId": "sheng:pressing",
+      "rev": 1
+    },
+    {
       "claimId": "sheng:identity",
       "rev": 1
     },
     {
-      "claimId": "sheng:making",
+      "claimId": "menghai-county:county-and-factory",
       "rev": 1
     },
     {
-      "claimId": "sheng:pressing",
+      "claimId": "sheng:history-modern",
       "rev": 1
     },
     {
@@ -65,7 +63,11 @@
       "rev": 1
     },
     {
-      "claimId": "sheng:history-modern",
+      "claimId": "sheng:aging",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:storage",
       "rev": 1
     },
     {
@@ -83,5 +85,5 @@
   ],
   "problems": [],
   "unsupported": [],
-  "approvedAt": "2026-11-25T23:18:52.772Z"
+  "approvedAt": "2026-11-27T04:17:15.430Z"
 }
