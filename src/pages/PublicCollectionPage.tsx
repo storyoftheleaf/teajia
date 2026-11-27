@@ -340,17 +340,8 @@ const CollectionCatalog: React.FC<{ data: PublicCollectionResponse }> = ({ data 
 
   return (
     <main className="min-h-screen bg-tea-bg text-tea-text pb-nav-gap-lg">
-      {/* Masthead, editorial cover. Big title over a faint count watermark so an
-          image-less collection still has presence. Contents index doubles as nav. */}
+      {/* Masthead, editorial cover. Big title, no count. Contents index doubles as nav. */}
       <header className="relative overflow-hidden border-b border-tea-border">
-        {/* Faint oversized count watermark, typographic texture, no image needed */}
-        <span
-          aria-hidden
-          className="pointer-events-none select-none absolute -right-2 -top-10 md:-top-16 font-display leading-none text-tea-elevated"
-          style={{ fontSize: 'clamp(160px, 30vw, 360px)', opacity: 0.5 }}
-        >
-          {visible.length || ''}
-        </span>
 
         <div className="relative max-w-5xl mx-auto px-4 md:px-6 lg:px-10 pt-12 pb-10 md:pt-24 md:pb-16">
           {/* Only label a real source, no store-name placeholder. */}

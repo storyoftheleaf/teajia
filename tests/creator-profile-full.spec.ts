@@ -73,7 +73,8 @@ test.describe('creator profile, full (Kenji Tanaka)', () => {
     const teas = page.getByTestId('profile-teas');
     const collection = teas.getByTestId('profile-collection');
     await expect(collection).toHaveAttribute('href', '/c/saturday-at-the-house-fixture');
-    await expect(collection).toContainText('My collection · six teas');
+    await expect(collection).toContainText('My collection');
+    await expect(collection).not.toContainText(/\d|six/);
     await expect(collection).toContainText('Saturday at the house');
     const teaRows = teas.getByTestId('profile-tea-row');
     await expect(teaRows).toHaveCount(3);
@@ -83,7 +84,7 @@ test.describe('creator profile, full (Kenji Tanaka)', () => {
     await expect(teaRows.nth(0)).not.toContainText('Oolong');
     await expect(teaRows.nth(0)).not.toContainText('1988');
     await expect(teaRows.nth(0).locator('span[style*="color"]')).toHaveCount(0);
-    await expect(teas.getByRole('link', { name: 'And three more, in the collection' })).toHaveAttribute('href', '/c/saturday-at-the-house-fixture');
+    await expect(teas.getByRole('link', { name: 'See the whole collection' })).toHaveAttribute('href', '/c/saturday-at-the-house-fixture');
 
     // The event he hosts next and his table: one line under the name, not two sections (2026-09-29).
     const where = page.getByTestId('profile-where');
@@ -151,7 +152,7 @@ test.describe('creator profile, full (Kenji Tanaka)', () => {
     const teas = page.getByTestId('profile-teas');
     await expect(teas.getByTestId('profile-collection')).toHaveCount(0);
     await expect(teas.getByTestId('profile-tea-row')).toHaveCount(3);
-    await expect(teas.getByRole('link', { name: 'And three more, in the selection' })).toHaveAttribute('href', '/people/kenji-tanaka/favorites');
+    await expect(teas.getByRole('link', { name: 'See the whole selection' })).toHaveAttribute('href', '/people/kenji-tanaka/favorites');
     await expect(page.getByTestId('profile-hub').getByRole('link', { name: 'Teas' })).toBeVisible();
   });
 

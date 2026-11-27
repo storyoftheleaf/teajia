@@ -1583,7 +1583,7 @@ export interface PublicCollectionResponse {
   };
   items: PublicCollectionItem[];
   account: { name: string; whatsapp_number?: string | null } | null;
-  publication: { slug: string; view_count: number };
+  publication: { slug: string };
 }
 
 export interface InboundCollectionRow {
@@ -1673,7 +1673,6 @@ export interface ShopCollectionEntry {
   publication_id: string;
   slug: string;
   published_at: string;
-  view_count: number;
   collection: {
     id: string;
     account_id: string;

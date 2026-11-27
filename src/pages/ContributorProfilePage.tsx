@@ -30,7 +30,6 @@ import {
   useReveals,
 } from '../components/people/immersive';
 import {
-  countWord,
   coverKicker,
   formatEventLong,
   galleryPlacement,
@@ -341,7 +340,7 @@ export default function ContributorProfilePage() {
         {collection && (
           <div className="mt-3.5">
             <Cover to={teasHref} image={collection.hero_image_url} imageOpacity={0.55} height={128} fadeFull testId="profile-collection" ariaLabel={`Open the collection ${collection.title}`}>
-              <Kicker size={8.5} className="mb-[7px]">My collection · {countWord(collection.item_count)} teas</Kicker>
+              <Kicker size={8.5} className="mb-[7px]">My collection</Kicker>
               <span className="block font-display text-[25px] leading-none text-tea-text">
                 {collectionFirst}
                 {collectionRest.length > 0 && <> <span className="italic text-tea-readgold">{collectionRest.join(' ')}</span></>}
@@ -356,7 +355,7 @@ export default function ContributorProfilePage() {
         )}
         {moreTeas > 0 && (
           <a href={teasHref} className="tap-target mt-1.5 inline-flex min-h-tap items-center font-sans text-[9.5px] uppercase tracking-[0.26em] text-tea-readgold hover:text-tea-gold-lt">
-            And {countWord(moreTeas)} more, in the {collection ? 'collection' : 'selection'}
+            See the whole {collection ? 'collection' : 'selection'}
           </a>
         )}
       </div>
