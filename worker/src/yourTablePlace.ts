@@ -13,7 +13,7 @@
 
 export const TABLE_AREA_MAX = 80;
 
-export type YourTablePlace = { id: string; name: string; area_hint: string | null; is_table: boolean };
+export type YourTablePlace = { id: string; name: string; area_hint: string | null; is_table: boolean; shown?: boolean };
 
 type Refused = { refused: { status: number; code: string; error: string } };
 const refuse = (code: string, error: string, status = 400): Refused => ({ refused: { status, code, error } });
@@ -21,7 +21,7 @@ const refuse = (code: string, error: string, status = 400): Refused => ({ refuse
 /** The host’s saved places by name, every one of them (review A6-3), and which one is their table. Their own page only. */
 export async function readYourTable(db: D1Database, accountId: string): Promise<{ places: YourTablePlace[] }> {
   const rows = await db.prepare(
-    `SELECT id, name, area_hint, is_host_table FROM saved_locations
+    `SELECT id, name, area_hint, is_host_table, shown_on_spaces FROM saved_locations
       WHERE account_id = ? ORDER BY name COLLATE NOCASE ASC, id ASC`,
   ).bind(accountId).all<Record<string, unknown>>();
   return {
@@ -30,6 +30,8 @@ export async function readYourTable(db: D1Database, accountId: string): Promise<
       name: String(row.name ?? ''),
       area_hint: typeof row.area_hint === 'string' && row.area_hint.trim() ? row.area_hint : null,
       is_table: Number(row.is_host_table) === 1,
+      // On the tea spaces page (step 3), by its area only.
+      shown: Number(row.is_host_table) === 1 && Number(row.shown_on_spaces) === 1,
     })),
   };
 }
@@ -98,10 +100,10 @@ export async function addTeaSpace(db: D1Database, accountId: string, body: Recor
  */
 export async function undoYourTable(db: D1Database, accountId: string, placeId?: string | null): Promise<{ places: YourTablePlace[] }> {
   if (placeId) {
-    await db.prepare(`UPDATE saved_locations SET is_host_table = 0, updated_at = datetime('now')
+    await db.prepare(`UPDATE saved_locations SET is_host_table = 0, shown_on_spaces = 0, updated_at = datetime('now')
                        WHERE account_id = ? AND id = ? AND is_host_table = 1`).bind(accountId, placeId).run();
   } else {
-    await db.prepare(`UPDATE saved_locations SET is_host_table = 0, updated_at = datetime('now')
+    await db.prepare(`UPDATE saved_locations SET is_host_table = 0, shown_on_spaces = 0, updated_at = datetime('now')
                        WHERE account_id = ? AND is_host_table = 1`).bind(accountId).run();
   }
   return readYourTable(db, accountId);

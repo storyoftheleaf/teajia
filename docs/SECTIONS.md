@@ -103,7 +103,7 @@ Full plan: [tea-table.md](../todo/plans/tea-table.md).
 
 | View | Address | The question it answers |
 |---|---|---|
-| Overview | `/tea-houses` | What is a Teajia tea house, and what can I do here |
+| Overview | `/tea-houses` | The tea spaces page (tea spaces, step 3): shown houses with their spaces, then hosts' own spaces by area with who serves there; Adrian's house as a marked placeholder until it is shown; then the doors below |
 | Build | `/tea-houses/build` | I want one. What happens, in what order, and how do I start |
 | Work | `/tea-houses/work`, `/tea-houses/work/:slug` | Show me ones Adrian has built |
 | Visit | `/tea-houses/visit`, then `/store/:slug` | Where can I sit down at a house |

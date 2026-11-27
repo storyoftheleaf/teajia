@@ -36,7 +36,7 @@ it('preserves every original row and cell at every migration boundary and leaves
   // (practice lines), 0151 is taken on another branch, 0153 (vendor face
   // originals) is schema only, and 0155 (short codes) writes no rows against this old shop.
   expect(versions).toEqual(['0127', '0128', '0129', '0130', '0131', '0132', '0133', '0134',
-    '0135', '0136', '0138', '0139', '0140', '0141', '0143', '0144', '0145', '0146', '0147', '0148', '0149', '0150', '0152', '0153', '0155', '0156']);
+    '0135', '0136', '0138', '0139', '0140', '0141', '0143', '0144', '0145', '0146', '0147', '0148', '0149', '0150', '0152', '0153', '0155', '0156', '0157']);
 });
 
 describe.each([false, true])('older Tea Chest, switches open = %s', open => {
@@ -203,7 +203,7 @@ describe.each([true, false])('old public records with switches open=%s', open =>
       const call = publicCalls(shop, open);
       const read = await call('/api/me/your-table', 'GET', undefined, true);
       expect(read.status).toBe(open ? 200 : 404);
-      if (open) expect((await read.json() as any).places[0]).toEqual({ id: 'legacy-place-1', name: 'Garden 01', area_hint: null, is_table: false });
+      if (open) expect((await read.json() as any).places[0]).toEqual({ id: 'legacy-place-1', name: 'Garden 01', area_hint: null, is_table: false, shown: false });
       const save = await call('/api/me/your-table', 'PUT', { place_id: 'legacy-place-1', area_hint: 'North district' }, true);
       expect(save.status).toBe(open ? 200 : 404);
       const record = shop.sqlite.prepare("SELECT address, area_hint, is_host_table FROM saved_locations WHERE id = 'legacy-place-1'").get();

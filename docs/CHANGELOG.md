@@ -1,3 +1,7 @@
+## 2026-11-27: Tea spaces, step 3: the tea spaces page
+
+The bar word "Tea spaces" now opens one page of spaces at `/tea-houses` (the address stays, so no link breaks). A tea house Adrian shows sits under its own name with the spaces inside it; a host's own tea space appears only once they tick "Show it on the tea spaces page, by its area only" on their page, and then by its area alone, with who serves there. Never its name, address, map link or way in. Undoing a tea space takes it off the page too. Until his own house is shown it stands first as "Adrian's house" with two spaces, each marked as a placeholder. Build, Work and Visit stay below. Migration 0157 is schema only (`saved_locations.shown_on_spaces`, default off). Routes: `GET /api/tea-spaces`, `PUT /api/me/your-table/:id/shown`. Plan: `todo/plans/tea-spaces.md`, step 3.
+
 ## 2026-11-27: Tea spaces, step 5: agent tools, and a table in a space
 
 The host's tea spaces are the same for their assistant as on their page (`worker/src/mcpTools/pageActions.ts`, each through the page's own route, preview then confirm): `list_my_tea_spaces`, `add_my_tea_space` (a name and the area, never a link) and `set_table_tea_space`, which says which tea space a table is held in, or none, through the new `PUT /api/me/tables/:id/space`. `set_your_table` now takes off one space (`place_id` with `clear: true`) and leaves the others. All three join a host's own key and the /mcp page. A host keeps at most 50 places, spaces included, as with kept ways in.

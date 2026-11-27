@@ -24,7 +24,7 @@ const token = [encode({ alg: 'HS256', typ: 'JWT' }), encode({
   active_account_id: null, exp: Math.floor(Date.now() / 1000) + 3600,
 }), 'signature'].join('.');
 
-type Place = { id: string; name: string; area_hint: string | null; is_table: boolean };
+type Place = { id: string; name: string; area_hint: string | null; is_table: boolean; shown?: boolean };
 
 async function noSideScroll(page: Page) {
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
@@ -32,7 +32,7 @@ async function noSideScroll(page: Page) {
 }
 
 async function openHostPage(page: Page, places: Place[]) {
-  const state = { places, puts: [] as unknown[], adds: [] as unknown[], deletes: 0 };
+  const state = { places, puts: [] as unknown[], adds: [] as unknown[], shows: [] as unknown[], deletes: 0 };
   await page.addInitScript(jwt => localStorage.setItem('teajia_token', jwt), token);
   await page.route('**/api/**', async route => {
     const request = route.request();
@@ -47,6 +47,13 @@ async function openHostPage(page: Page, places: Place[]) {
       state.places = state.places.map(place => place.id === body.place_id
         ? { ...place, is_table: true, area_hint: body.area_hint }
         : place);
+      return route.fulfill({ json: { places: state.places } });
+    }
+    const shown = pathname.match(/^\/api\/me\/your-table\/([^/]+)\/shown$/);
+    if (shown && method === 'PUT') {
+      const body = request.postDataJSON() as { shown: boolean };
+      state.shows.push({ id: decodeURIComponent(shown[1]), ...body });
+      state.places = state.places.map(place => place.id === decodeURIComponent(shown[1]) ? { ...place, shown: body.shown } : place);
       return route.fulfill({ json: { places: state.places } });
     }
     if (pathname === '/api/me/your-table' && method === 'POST') {
@@ -124,6 +131,13 @@ test('a host with no saved place adds a tea space by its name and area', async (
   expect(state.adds).toEqual([{ name: 'The garden room', area_hint: 'Ubud, near the market' }]);
   await expect(section.getByTestId('your-table-chosen').getByText('The garden room is your tea space.')).toBeVisible();
   await expect(page).not.toHaveURL(/your-table=/);
+
+  // Off the tea spaces page until the host turns it on.
+  const shownBox = section.getByTestId('tea-space').getByTestId('tea-space-shown');
+  await expect(shownBox).not.toBeChecked();
+  await shownBox.click();
+  await expect(shownBox).toBeChecked();
+  expect(state.shows).toEqual([{ id: 'p-new-1', shown: true }]);
 
   // A second space sits beside the first.
   await section.getByTestId('tea-space-add').click();

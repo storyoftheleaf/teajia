@@ -29,6 +29,10 @@ export function YourTablePlaceSection() {
   const view = partView(answer);
   const settle = (next: YourTableAnswer) => queryClient.setQueryData(key, next);
   const undo = useMutation({ mutationFn: (placeId: string) => api.hosting.undoYourTable(placeId), retry: false, onSuccess: settle });
+  const show = useMutation({
+    mutationFn: ({ placeId, shown }: { placeId: string; shown: boolean }) => api.hosting.showTeaSpace(placeId, shown),
+    retry: false, onSuccess: settle,
+  });
 
   const places = answer.data?.places ?? [];
   // A host may have several tea spaces (tea spaces, step 2, 2026-11-27).
@@ -54,6 +58,13 @@ export function YourTablePlaceSection() {
                   <p className={hostSmallText}>
                     People looking at your sessions there see only “{space.area_hint ?? 'your tea space'}”. The address and the way in stay with guests you say yes to.
                   </p>
+                  {/* Tea spaces, step 3: off the tea spaces page until the host turns it on, and then by its area only. */}
+                  <label className={`${hostSmallText} flex min-h-tap items-center gap-2`}>
+                    <input type="checkbox" className="accent-tea-gold" checked={space.shown === true}
+                      disabled={show.isPending} data-testid="tea-space-shown"
+                      onChange={event => show.mutate({ placeId: space.id, shown: event.target.checked })} />
+                    Show it on the tea spaces page, by its area only
+                  </label>
                   <Button type="button" variant="quiet" className="tap-target" disabled={undo.isPending} onClick={() => undo.mutate(space.id)}>
                     {undo.isPending && undo.variables === space.id ? 'Undoing…' : 'Undo'}
                   </Button>
@@ -68,6 +79,7 @@ export function YourTablePlaceSection() {
             </p>
           )}
           {undo.isError && <p className={hostSmallText} role="alert">Could not undo. Try again in a moment.</p>}
+          {show.isError && <p className={hostSmallText} role="alert">Could not change the tea spaces page. Try again in a moment.</p>}
           <div className="flex flex-wrap items-center gap-2">
             {others.length > 0 && (
               <Button type="button" variant="secondary" className="tap-target" onClick={() => setStep('choose')}>

@@ -17,6 +17,7 @@ import { createHostArticleHandlers, isHostArticleId } from './hostArticleOffers'
 import { favouritesRoutes } from './favourites';
 import { practiceColumnsRemoved, practiceLinesRoutes } from './practiceLines';
 import { servesAtRoutes } from './servesAt';
+import { setTeaSpaceShown, teaSpacesPageRoutes } from './teaSpacesPage';
 import { favouritesOpen } from '../../src/lib/favouritesOpen';
 import { teaTableRoutes } from './teaTable';
 import { knowThisTeaRoutes } from './knowThisTea';
@@ -18253,6 +18254,20 @@ const handleHostedTableWay: Handler = async (request, env, params) => {
   return hostTableJson(await signWayForHost(env.JWT_SECRET, await readTableWay(env.DB, own.table)));
 };
 
+// PUT /api/me/your-table/:id/shown {shown}: a host turns one of their tea
+// spaces on or off the tea spaces page, where it shows by its area only.
+const handleYourTeaSpaceShown: Handler = async (request, env, params) => {
+  if (!yourTableShown(env)) return fewHostsClosed();
+  const host = await requireFewHostsHost(request, env);
+  if ('error' in host) return host.error;
+  const account = await personalInventoryAccount(env.DB, host.userId);
+  if (!account) return restError(404, 'That is not one of your tea spaces.', 'tea_space_place');
+  const body = await request.json().catch(() => null) as { shown?: unknown } | null;
+  const set = await setTeaSpaceShown(env.DB, account.id, params.id, body?.shown);
+  if ('refused' in set) return restError(set.refused.status, set.refused.error, set.refused.code);
+  return hostTableJson(await readYourTable(env.DB, account.id));
+};
+
 // PUT /api/me/tables/:id/space {place_id | null}: which of the host's tea
 // spaces this table is in (tea spaces, step 2). The table's host alone.
 const handleHostedTableSpace: Handler = async (request, env, params) => {
@@ -33775,6 +33790,7 @@ const routes: [string, string, Handler][] = [
   ...favouritesRoutes<Env>({ requireUser: requireAuthenticatedUser }),
   ...practiceLinesRoutes<Env>({ optionalUser: optionalAuthenticatedUser, requireUser: requireAuthenticatedUser }),
   ...servesAtRoutes<Env>(),
+  ...teaSpacesPageRoutes<Env>(),
   ...teaTableRoutes<Env>({ requireAuthenticatedUser, requireBundle }),
   ...knowThisTeaRoutes<Env>({ requireAuthenticatedUser }),
   ...teaHousesRoutes<Env>({ requireAuthenticatedUser }),
@@ -33831,6 +33847,7 @@ const routes: [string, string, Handler][] = [
   ['PUT',    '/api/me/your-table', handleYourTable],
   ['DELETE', '/api/me/your-table', handleYourTable],
   ['POST',   '/api/me/your-table', handleYourTable],
+  ['PUT',    '/api/me/your-table/:id/shown', handleYourTeaSpaceShown],
   ['GET',    '/api/me/shelf', handleGetMyShelf],
   ['PUT',    '/api/me/shelf', handleUpdateMyShelf],
   ['POST',   '/api/me/cellar/:id/publish-shelf', handlePublishToShelf],

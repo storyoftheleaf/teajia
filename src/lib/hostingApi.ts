@@ -138,7 +138,7 @@ export interface HostedWayPlace { id: string; name: string; address: string | nu
 export interface HostedTableWayAnswer { way: HostedTableWay; places: HostedWayPlace[] }
 export type HostedTableWayInput = Pick<HostedTableWay, 'address' | 'map_link' | 'venue_guide'>;
 /** One of the host's saved places, by name, and whether it is their table (Launch 4, K4). */
-export interface YourTablePlace { id: string; name: string; area_hint: string | null; is_table: boolean }
+export interface YourTablePlace { id: string; name: string; area_hint: string | null; is_table: boolean; shown?: boolean }
 export interface YourTableAnswer { places: YourTablePlace[] }
 /** The host's private line about one guest (slice H9). Never shown to the guest. */
 export interface HostGuestNote { attendee_id: string; note: string; updated_at: string }
@@ -162,6 +162,9 @@ export function createHostingApi({ apiUrl, authedFetch }: HostingApiDependencies
     // Tea spaces, step 2: a new tea space by name and area.
     addTeaSpace: (space: { name: string; area_hint: string }): Promise<YourTableAnswer> =>
       authedFetch(`${apiUrl}/api/me/your-table`, { method: 'POST', body: JSON.stringify(space) }),
+    // Tea spaces, step 3: on or off the tea spaces page, by its area only.
+    showTeaSpace: (placeId: string, shown: boolean): Promise<YourTableAnswer> =>
+      authedFetch(`${apiUrl}/api/me/your-table/${encodeURIComponent(placeId)}/shown`, { method: 'PUT', body: JSON.stringify({ shown }) }),
   };
 }
 
