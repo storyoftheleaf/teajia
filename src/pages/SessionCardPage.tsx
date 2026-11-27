@@ -4,6 +4,8 @@ import { useParams } from 'react-router-dom';
 import { Button } from '../components/shared/Button';
 import { TYPOGRAPHY_CLASSES } from '../designTokens';
 import { api } from '../lib/api';
+import { Icons } from '../components/Icons';
+import { useAdminBack } from '../admin/hooks/useAdminBack';
 import { PART_QUERY, partView } from '../lib/closedPart';
 import { LoadFailed } from '../components/shared/LoadFailed';
 
@@ -109,6 +111,7 @@ function isPublicSession(data: PublicSession): boolean {
 
 export default function SessionCardPage() {
   const { slug } = useParams<'slug'>();
+  const back = useAdminBack(slug ? `/admin/events/${encodeURIComponent(slug)}` : '/admin/events');
   const session = useQuery<PublicSession>({
     queryKey: ['event-public', slug],
     queryFn: () => api.events.getPublic(encodeURIComponent(slug!)),
@@ -152,7 +155,12 @@ export default function SessionCardPage() {
   return (
     <section className="mx-auto max-w-prose pt-6 pb-nav">
       <style>{printStyles}</style>
-      <div className="session-card-controls mb-4 flex flex-wrap justify-end">
+      <div className="session-card-controls mb-4 flex flex-wrap items-center justify-between gap-2">
+        <button type="button" onClick={back}
+          className="tap-target inline-flex items-center gap-1.5 text-ui-13 text-tea-text-sec transition-colors hover:text-tea-text">
+          <Icons.Back className="h-4 w-4" />
+          <span>Back</span>
+        </button>
         <Button type="button" className="tap-target" onClick={() => window.print()}>Print</Button>
       </div>
       <article className="session-card grid gap-6 bg-tea-bg text-tea-text">

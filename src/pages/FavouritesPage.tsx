@@ -12,6 +12,7 @@ import { PART_QUERY, partView } from '../lib/closedPart';
 import { TEA_TABLE_MINE_KEY, teaTableApi, useTeaTableMine } from '../lib/teaTableApi';
 import { recapPath } from '../lib/publicSitConnections';
 import type { TeaTableItem, TeaTableMine } from '../lib/teaTableContract';
+import { historyIndex } from '../admin/components/adminHistory';
 
 // Launch 4, favourites in three kinds (todo/plans/guests-and-tea-masters-launch-4-run.md, K3).
 // Everything a person has marked, in one place: articles they kept, teas the
@@ -131,7 +132,7 @@ function OpenFavouritesPage() {
       <div className="mx-auto max-w-3xl px-4 pt-6 md:px-6">
         <button
           type="button"
-          onClick={() => navigate(-1)}
+          onClick={() => (historyIndex() > 0 ? navigate(-1) : navigate('/account'))}
           className="tap-target inline-flex items-center gap-1.5 text-ui-13 text-tea-text-sec transition-colors hover:text-tea-text"
         >
           <Icons.Back className="h-4 w-4" />

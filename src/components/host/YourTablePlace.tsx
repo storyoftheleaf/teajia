@@ -96,7 +96,7 @@ function ChooseTable({ places, current, onDone, onCancel }: {
         {places.map(place => (
           <label key={place.id} className={`${hostText} flex min-h-tap items-center gap-2`}>
             <input type="radio" name="your-table-place" value={place.id} checked={placeId === place.id}
-              onChange={() => { setPlaceId(place.id); if (place.area_hint) setArea(place.area_hint); }} className="accent-tea-gold" />
+              onChange={() => { setPlaceId(place.id); setArea(place.area_hint ?? ''); }} className="accent-tea-gold" />
             {place.name}
           </label>
         ))}
