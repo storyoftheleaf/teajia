@@ -1,5 +1,7 @@
 # Tea Wisdom for agents: from a new tea to its entry on the shop
 
+> Before you start: read [the handoff](TEA-WISDOM-HANDOFF.md) for what is open right now.
+
 How a tea that has just gone public gets its Tea Wisdom entry, and every Wisdom page it needs, without any agent deciding where anything goes. Approved by Adrian on 2026-11-27 ([process page](https://claude.ai/artifact/8N9HcPPeDqHmfUbZbLdT21)). The rule this serves is in [CLAUDE.md](../../CLAUDE.md#the-wisdom-base-is-one-place-adrian-2026-11-27): one Wisdom Base, records plus pages, joined by id. The storage is described in [TEA_WISDOM_BASE.md](../TEA_WISDOM_BASE.md#one-wisdom-base-two-layers-read-this-before-adding-anything).
 
 The chain is run by the `/tea-wisdom` command (`.claude/commands/tea-wisdom.md`), only when Adrian asks. It stops at three points, and each one is Adrian's: the pages, the entries, and "push".
