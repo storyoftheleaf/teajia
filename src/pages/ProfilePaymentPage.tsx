@@ -248,7 +248,7 @@ export default function ProfilePaymentPage() {
             {accountLinks}
             <div className={`${associationRows.length > 0 ? 'mt-4' : ''} [&>div>section:first-child>div:first-child]:mt-0`}>{chooser}</div>
           </section>
-          <PayInvoiceKeep productIds={Array.from(new Set(invoiceLines.map(line => line.product_id).filter((id): id is string => Boolean(id))))} signedIn={access.viewer.signed_in} />
+          <PayInvoiceKeep productIds={Array.from(new Set(invoiceLines.map(line => line.product_id).filter((id): id is string => Boolean(id))))} signedIn={access.viewer.signed_in} slug={slug} token={shareToken} kept={access.invoice?.kept === true} />
         </div>
       </main>
     );

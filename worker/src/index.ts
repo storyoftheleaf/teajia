@@ -1,4 +1,5 @@
 import { casualSitPublicationRoutes } from './casualSitPublications';
+import { invoiceKeptBy, keepInvoiceForUser } from './payInvoiceKeep';
 import { freightRateWriteRefusal } from './freightRateDoor';
 import { publicSitRoutes, publishedSitRecap } from './publicSitConnections';
 import { formalSessionCardsFor, publicSessionRoutes } from './publicSessions';
@@ -28589,7 +28590,7 @@ const handleGetPayAccess: Handler = async (request, env, params) => {
   const { decision, link, grant, refusal } = await resolvePayAccess(env, contributor, viewer, url.searchParams.get(PAY_LINK_PARAM));
   if (refusal) return json(refusal, 409);
 
-  let invoice: { invoice_number: string | null; outstanding_usd: number; lines: PayLinkTeaLine[] } | null = null;
+  let invoice: { invoice_number: string | null; outstanding_usd: number; lines: PayLinkTeaLine[]; kept: boolean } | null = null;
   if (link) {
     await env.DB.prepare(
       `UPDATE payment_share_links SET open_count = open_count + 1, last_opened_at = datetime('now') WHERE id = ?`
@@ -28616,7 +28617,8 @@ const handleGetPayAccess: Handler = async (request, env, params) => {
         // The teas on the invoice, shown on the pay page as the shop shows
         // them. Only a holder of this invoice's own link reaches this line.
         const lines = await loadPayLinkTeaLines(env, ledgerInvoice.id, link.account_id);
-        invoice = { invoice_number: ledgerInvoice.invoice_number, outstanding_usd: money.outstanding_usd, lines };
+        const kept = viewer ? await invoiceKeptBy(env, link.account_id, ledgerInvoice.id, viewer.userId) : false;
+        invoice = { invoice_number: ledgerInvoice.invoice_number, outstanding_usd: money.outstanding_usd, lines, kept };
       }
     }
   }
@@ -28657,6 +28659,28 @@ const handleRequestPayAccess: Handler = async (request, env, params) => {
   await logPlatformAction(env, 'pay_access.requested', auth.userId, auth.email, 'contributor', contributor.id,
     { grant_id: id }, contributor.account_id, null);
   return json({ status: 'pending', grant_id: id }, 201);
+};
+
+// POST /api/public/people/:slug/pay-access/keep { token }
+// "Save to my account" on an invoice's pay page: the invoice its link came
+// from joins the signed-in person's orders (payInvoiceKeep.ts).
+const handleKeepPayInvoice: Handler = async (request, env, params) => {
+  const auth = await requireAuthenticatedUser(request, env);
+  if ('error' in auth) return auth.error;
+  const contributor = await loadPayContributor(env, params.slug);
+  if (!contributor) return json({ error: 'Contributor not found' }, 404);
+  const body = await request.json().catch(() => ({})) as { token?: unknown };
+  const token = typeof body.token === 'string' ? body.token : null;
+  const { link } = await resolvePayAccess(env, contributor, auth, token);
+  if (!link?.invoice_id) return json({ error: 'This link has no invoice to keep' }, 404);
+  const kept = await keepInvoiceForUser(env, link.account_id, link.invoice_id, auth);
+  if (!kept.ok) return json({ error: kept.error }, kept.status);
+  if (!kept.already) {
+    await ensureContactRelationship(env, link.account_id, kept.customerId, 'buyer', 'workflow', 'invoice', link.invoice_id);
+    await logPlatformAction(env, 'pay_invoice.kept', auth.userId, auth.email, 'invoice', link.invoice_id,
+      { link_id: link.id, customer_id: kept.customerId }, link.account_id, null);
+  }
+  return json({ ok: true, invoice_id: link.invoice_id, already: kept.already });
 };
 
 function openPayShareUrl(env: Env, slug: string, token: string): string {
@@ -34189,6 +34213,7 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/public/people/:slug/payment-methods', handleGetPublicPaymentMethods],
   ['GET', '/api/public/people/:slug/pay-access', handleGetPayAccess],
   ['POST', '/api/public/people/:slug/pay-access/request', handleRequestPayAccess],
+  ['POST', '/api/public/people/:slug/pay-access/keep', handleKeepPayInvoice],
   ['GET', '/api/public/read/publish-state', handleGetReadPublishState],
   ['GET', '/api/read/access', handleReadAccess],
   ['POST', '/api/read/session', handleReadSession],
