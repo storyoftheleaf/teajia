@@ -3543,6 +3543,169 @@ input[type="number"]::-webkit-outer-spin-button {
   bottom: -10px;
 }
 
+/* ── The three slim-rail ideas (src/components/railIdeas) ───────────────
+   A mock for Adrian to choose from (2026-11-27); the two he does not pick
+   leave with this block's other rules. All three keep the rail 60px wide. */
+
+/* Every idea: a two-word label on two lines held close, so "tea" over
+   "table" reads as one word and never runs past the rail. */
+.rail-stacked {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.02;
+  gap: 1px;
+  text-align: center;
+}
+
+/* A: the rooms as small words in the rail's own lowercase type, stacked up
+   from the word manage, the room you are in lit gold with a short rule. */
+.rail-a-rooms {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  overflow: hidden;
+  padding-bottom: var(--space-4);
+}
+.rail-a-room {
+  position: relative;
+  font-family: var(--font-display);
+  font-size: var(--fs-ui-13);
+  text-transform: lowercase;
+  letter-spacing: 0.03em;
+  line-height: 1;
+  color: var(--tea-text-sec);
+  transition: color 150ms ease;
+}
+.rail-a-room:hover { color: var(--tea-text); }
+.rail-a-room::after {
+  content: '';
+  position: absolute;
+  inset: -6px -10px;
+}
+.rail-a-room[aria-current="page"] { color: var(--tea-gold); font-weight: 600; }
+.rail-a-room[aria-current="page"]::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -5px;
+  width: 12px;
+  height: 1px;
+  margin-left: -6px;
+  background: var(--tea-gold);
+}
+
+/* B: the rail turned over. Each room is a glyph over its word; the room you
+   are in sits on a lifted tile. */
+.rail-b-rooms {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-1);
+  margin-top: var(--space-6);
+  width: 100%;
+  padding: 0 var(--space-1);
+  transform-origin: left center;
+}
+.rail-b-room {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 7px 0 6px;
+  border-radius: var(--radius-control);
+  font-family: var(--font-sans);
+  font-size: var(--fs-ui-10);
+  letter-spacing: 0.02em;
+  line-height: 1;
+  color: var(--tea-text-sec);
+  transition: color 150ms ease, background-color 150ms ease;
+}
+.rail-b-room:hover { color: var(--tea-text); }
+.rail-b-room[aria-current="page"] {
+  background: var(--tea-surface);
+  color: var(--tea-gold);
+}
+
+/* C: one trace of Manage on the rail, the room you are in, in gold; and the
+   card that rises from the word, beside the rail, over the page. */
+.rail-c-here {
+  margin-bottom: var(--space-2);
+  font-family: var(--font-display);
+  font-size: var(--fs-ui-12);
+  text-transform: lowercase;
+  color: var(--tea-gold);
+  line-height: 1;
+}
+.rail-c-card {
+  position: fixed;
+  left: calc(3.75rem + var(--space-2));
+  bottom: var(--space-4);
+  width: 25rem;
+  max-height: calc(100vh - 2 * var(--space-4));
+  overflow-y: auto;
+  padding: var(--space-4);
+  border: 1px solid var(--tea-border);
+  border-radius: var(--radius-xl);
+  background: var(--tea-elevated);
+  box-shadow: var(--shadow-lg);
+}
+.rail-c-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding-bottom: var(--space-3);
+  margin-bottom: var(--space-3);
+  border-bottom: 1px solid var(--tea-border);
+}
+.rail-c-title {
+  font-family: var(--font-display);
+  font-size: var(--fs-ui-16);
+  text-transform: lowercase;
+  letter-spacing: 0.04em;
+  color: var(--tea-text);
+}
+.rail-c-today {
+  font-family: var(--font-sans);
+  font-size: var(--fs-ui-12);
+  color: var(--tea-text-sec);
+}
+.rail-c-today:hover, .rail-c-today[aria-current="page"] { color: var(--tea-gold); }
+.rail-c-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4) var(--space-4);
+}
+.rail-c-room {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.rail-c-room-word {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-sans);
+  font-size: var(--fs-ui-13);
+  font-weight: 600;
+  color: var(--tea-text);
+}
+.rail-c-room-word:hover, .rail-c-room-word[aria-current="page"] { color: var(--tea-gold); }
+.rail-c-screen {
+  padding-left: calc(1rem + var(--space-2));
+  font-family: var(--font-sans);
+  font-size: var(--fs-ui-12);
+  color: var(--tea-text-sec);
+}
+.rail-c-screen:hover { color: var(--tea-text); }
+.rail-c-screen[aria-current="page"] { color: var(--tea-gold); }
+.rail-a-room:focus-visible, .rail-b-room:focus-visible, .rail-c-card a:focus-visible {
+  outline: 2px solid rgb(var(--tea-gold-rgb) / 0.5);
+  outline-offset: 2px;
+  border-radius: var(--radius-control);
+}
+
 /* The seam. With both halves the same material the join needs stating, and
    one hairline states it without turning the assembly back into two boxes. */
 .commerce-dock::after {
