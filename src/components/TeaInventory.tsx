@@ -24,6 +24,7 @@ import { TeaLedger } from './shop/TeaLedger';
 import { TeaQuantityPicker } from './shop/TeaQuantityPicker';
 import { TeaShopViewRegion, TeaShopViewTabs } from './shop/TeaShopViewTabs';
 import { BODY, LINK } from './shared/typeRoles';
+import { SendAsCollection } from './shop/SendAsCollection';
 import {
   applyFinderIntent,
   selectVisibleTeas,
@@ -1003,6 +1004,8 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                </div>
              </div>
            ) : (
+             <>
+             {shopSavedOnly && <SendAsCollection productIds={filteredInventory.map(item => item.id)} />}
              <TeaLedger
                groups={groupedInventory}
                activeType={activeType}
@@ -1017,6 +1020,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                onChooseAmount={onAddToCart ? item => setAmountItemId(item.id) : undefined}
                onAddToCart={onAddToCart ? handleAddWithFeedback : undefined}
              />
+             </>
            )}
 
            {/* The archive link is gone at Adrian's word. `showPast` stays wired
