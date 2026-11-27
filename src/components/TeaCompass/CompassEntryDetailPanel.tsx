@@ -32,6 +32,7 @@ import { useLedgerStore } from '../../lib/ledgerStore';
 import { useLibraryPurchases, purchaseStateLabel } from '../../lib/libraryPurchaseState';
 import { LibraryReceiptActions } from './LibraryReceiptActions';
 import { teaPath } from '../curate/teaPath';
+import { recordRequested } from '../curate/recordOnOpen';
 import { TeaPathLine, type TeaPathActions } from '../curate/TeaPathLine';
 import { useWisdomWriteup, wisdomWriteupHint } from '../curate/useWisdomWriteup';
 import { useWisdomEntryIds } from '../curate/useWisdomEntryIds';
@@ -84,7 +85,7 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
   const materialRef = useRef<HTMLElement>(null);
   const [newNote, setNewNote] = useState('');
   const [noteMessage, setNoteMessage] = useState('');
-  useEffect(() => { setConfirmDelete(false); setNewNote(''); setNoteMessage(''); setActiveSection('tea'); setMoreFieldsOpen(false); setQuoteOpen(false); }, [entryId, accountScopeRevision]);
+  useEffect(() => { setConfirmDelete(false); setNewNote(''); setNoteMessage(''); setActiveSection(recordRequested(entryId) ? 'notes' : 'tea'); setMoreFieldsOpen(false); setQuoteOpen(false); }, [entryId, accountScopeRevision]);
   // The write-up step reads the Wisdom Base check for this tea (wisdomNeeds).
   const wisdom = useWisdomWriteup({
     id: entry?.id, type: entry?.type ?? null, form: entry?.form ?? null, product_name: entry?.name ?? null,

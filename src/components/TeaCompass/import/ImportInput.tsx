@@ -6,6 +6,7 @@ import type { CurateJourney } from '../types';
 import { ImportJourneyPicker } from './ImportJourneyPicker';
 import { IMPORT_BATCH_MAX_BYTES, IMPORT_SOURCE_MAX_COUNT, prepareImportEvidenceFile } from './importEvidenceSelection';
 import type { LookupState } from '../../../lib/api';
+import { ImportTalkButton } from '../../curate/ImportTalkButton';
 
 interface ImportInputProps {
   draft: ImportDraft;
@@ -47,7 +48,7 @@ export const ImportInput: React.FC<ImportInputProps> = ({ draft, onChange, onSub
           disabled={busy}
           value={draft.text}
           onChange={event => { const text = event.target.value; onChange(current => ({ ...current, text })); }}
-          placeholder="Paste WeChat fragments, a vendor list, or invoice lines. One item per line works well."
+          placeholder="Paste WeChat fragments, a vendor list, or invoice lines, or tap Talk and say the teas one after another. One item per line works well."
           className="min-h-64 w-full resize-y border-0 border-b border-tea-border bg-transparent px-0 py-4 font-body text-ui-16 leading-relaxed text-tea-text outline-none placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-0 lg:min-h-56 lg:text-ui-14"
         />
       </div>
@@ -61,6 +62,7 @@ export const ImportInput: React.FC<ImportInputProps> = ({ draft, onChange, onSub
         <button type="button" disabled={busy} onClick={() => fileRef.current?.click()} className="tap-target inline-flex min-h-tap items-center gap-2 text-ui-12 text-tea-text-sec hover:text-tea-text disabled:opacity-50">
           <FileUp size={16} /> Add files
         </button>
+        <ImportTalkButton disabled={busy} onTranscript={said => onChange(current => ({ ...current, text: current.text.trim() ? `${current.text.trimEnd()}\n${said}` : said }))} />
         <p className="basis-full text-ui-11 text-tea-text-sec">DOC, DOCX, XLS, XLSX, ODT, ODS, and HEIC records are supported.</p>
         <p className="basis-full text-ui-11 text-tea-text-sec">Up to 50 records per import. Each file can be up to 5 MB, with 20 MB total, including pasted text.</p>
       </div>

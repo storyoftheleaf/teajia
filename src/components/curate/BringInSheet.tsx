@@ -35,6 +35,7 @@ export const BringInSheet: React.FC<{
       <p className="px-3 pt-3 text-ui-11 uppercase tracking-[0.08em] text-tea-text-sec">How it comes in</p>
       <SheetOption label="New tea" hint="Capture it by typing a name, talking, or a photo of the package" onSelect={() => { close(); onNewTea(kind); }} />
       <SheetOption label="New teaware" hint="Capture a piece and its provenance" onSelect={() => { close(); onNewTeaware(kind); }} />
+      <SheetOption label="Several teas at once" hint="Talk them through, or paste a list; each one waits for you to confirm" onSelect={() => { close(); onImport(); }} />
       <SheetOption label="Import files" hint="A WeChat list, an invoice, a sheet or photos" onSelect={() => { close(); onImport(); }} />
       {children}
     </BottomSheet>
