@@ -7,6 +7,7 @@ import { useAppStore } from '../../lib/store';
 import { authPagePath } from '../../lib/authNavigation';
 import { holdKeepTeaser, type KeepTeaser } from '../../lib/keepTeaser';
 import { keepPayInvoice } from '../../lib/payInvoiceKeepApi';
+import { PayInvoiceDiscount } from './PayInvoiceDiscount';
 import { GuideRow, GuideStep as Step } from '../shop/GuideStep';
 
 const KEEP_PARAM = 'keep';
@@ -111,10 +112,15 @@ export function PayInvoiceGuide({ slug, token, productIds, teaser, signedIn, kep
  * The one line under the invoice's total: where her teas live once kept, the
  * collection they came from, and for the shop that sent it, the link to copy.
  */
-export function PayInvoiceAfter({ kept, yoursToSend = false, collection }: {
+export function PayInvoiceAfter({ kept, yoursToSend = false, collection, slug, token, discount, onDiscountChanged }: {
   kept: boolean;
   yoursToSend?: boolean;
   collection?: { title: string; path: string } | null;
+  slug: string;
+  token: string | null;
+  /** On the shop's own view: the discount it offers, and whether it can still change. */
+  discount?: { editable: boolean; percent: number | null };
+  onDiscountChanged?: () => void;
 }) {
   const [copied, setCopied] = useState(false);
   const copy = async () => {
@@ -139,6 +145,11 @@ export function PayInvoiceAfter({ kept, yoursToSend = false, collection }: {
       ) : <span />}
       {collection && (
         <Link to={collection.path} className={quiet} data-testid="pay-collection-link">See {collection.title} <ArrowRight size={12} /></Link>
+      )}
+      {yoursToSend && discount?.editable && token && (
+        <div className="basis-full">
+          <PayInvoiceDiscount slug={slug} token={token} percent={discount.percent} onChanged={onDiscountChanged} />
+        </div>
       )}
     </div>
   );

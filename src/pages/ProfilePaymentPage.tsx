@@ -66,6 +66,20 @@ export default function ProfilePaymentPage({ onAddToCart }: {
   const access = accessQuery.data;
   const open = access?.access === 'open';
 
+  // An invoice link carries the amount it was sent with. When the invoice has
+  // changed since (a discount offered on it), what it owes now wins, so the
+  // amount to send and the reference agree with the sheet.
+  const owedUsd = access?.invoice?.outstanding_usd;
+  useEffect(() => {
+    if (owedUsd === undefined || owedUsd <= 0) return;
+    if ((search.get('currency') ?? 'USD').toUpperCase() !== 'USD') return;
+    const sent = Number(search.get('amount'));
+    if (!search.get('amount') || Math.abs(sent - owedUsd) < 0.005) return;
+    const next = new URLSearchParams(search);
+    next.set('amount', owedUsd.toFixed(2));
+    setSearch(next, { replace: true }); // history: refine
+  }, [owedUsd, search, setSearch]);
+
   // The amount and the customer's currency travel with the request, because the
   // conversion is the worker's to make: it holds the live rate table and the
   // hour it was refreshed, and a rate worked out on this side would be a second
@@ -265,8 +279,11 @@ export default function ProfilePaymentPage({ onAddToCart }: {
           onTaste={() => { setChoosingTea(true); teaList.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }}
         />
         <div className="mt-2 scroll-mt-4" ref={teaList}>
-          <PayInvoiceTeas lines={invoiceLines} invoiceNumber={access.invoice?.invoice_number ?? null} onAddToCart={onAddToCart} choosing={choosingTea} onChosen={() => setChoosingTea(false)} />
-          <PayInvoiceAfter kept={access.invoice?.kept === true} yoursToSend={access.invoice?.yours_to_send === true} collection={access.invoice?.collection ?? null} />
+          <PayInvoiceTeas lines={invoiceLines} invoiceNumber={access.invoice?.invoice_number ?? null} onAddToCart={onAddToCart} choosing={choosingTea} onChosen={() => setChoosingTea(false)} discount={access.invoice?.discount ?? null} />
+          <PayInvoiceAfter kept={access.invoice?.kept === true} yoursToSend={access.invoice?.yours_to_send === true} collection={access.invoice?.collection ?? null}
+            slug={slug} token={shareToken}
+            discount={access.invoice?.yours_to_send ? { editable: access.invoice.discount_editable === true, percent: access.invoice.discount?.percent ?? null } : undefined}
+            onDiscountChanged={() => queryClient.invalidateQueries({ queryKey: ['profile', slug, 'pay-access'] })} />
           <section aria-label="Pay" className="mt-4 max-w-2xl scroll-mt-4" ref={paySection}>
             {accountLinks}
             <div className={associationRows.length > 0 ? 'mt-4' : ''}>{chooser}</div>

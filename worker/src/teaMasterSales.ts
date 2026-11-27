@@ -1,3 +1,4 @@
+import { isDiscountLine } from './invoiceDiscount';
 import { isStoredTeaType } from '../../src/wisdom/vocabulary';
 
 /* ── Currency canonicalization ──
@@ -156,7 +157,7 @@ export async function authorizeInvoiceLines(env: { DB: D1Database }, input: {
   for (const line of input.lines) {
     const quantity = Number(line.quantity);
     const unitPrice = Number(line.price_at_sale);
-    if (!Number.isFinite(quantity) || quantity <= 0 || !Number.isFinite(unitPrice) || unitPrice < 0) {
+    if (!Number.isFinite(quantity) || quantity <= 0 || !Number.isFinite(unitPrice) || (unitPrice < 0 && !isDiscountLine(line))) {
       throw new SalesInvariantError(400, 'invalid_invoice_line');
     }
     if (!line.product_id) {
@@ -224,7 +225,7 @@ export async function validateInvoiceLineSnapshots(env: { DB: D1Database }, inpu
     const quantity = Number(line.quantity);
     const unitPrice = Number(line.price_at_sale);
     const shareValue = Number(line.owner_share_value);
-    if (!Number.isFinite(quantity) || quantity <= 0 || !Number.isFinite(unitPrice) || unitPrice < 0) {
+    if (!Number.isFinite(quantity) || quantity <= 0 || !Number.isFinite(unitPrice) || (unitPrice < 0 && !isDiscountLine(line))) {
       throw new SalesInvariantError(409, 'invalid_invoice_sale_snapshot');
     }
     if (!['percent', 'fixed'].includes(line.owner_share_type) || !Number.isFinite(shareValue) || shareValue < 0) {

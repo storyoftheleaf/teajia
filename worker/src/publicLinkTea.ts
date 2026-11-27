@@ -1,3 +1,4 @@
+import { isDiscountLine } from './invoiceDiscount';
 import { tastingJsonWithoutScores } from './publicScores';
 
 // What a private link (a /c/ collection, an invoice's pay page) may show about
@@ -89,7 +90,8 @@ export async function loadPayLinkTeaLines(
       WHERE li.invoice_id = ? AND (li.account_id = ? OR li.account_id IS NULL)
       ORDER BY li.rowid ASC`
   ).bind(invoiceId, accountId).all();
-  return ((rows.results ?? []) as Record<string, any>[]).map(row => {
+  // A discount is not a tea: it is read on its own (invoiceDiscount.ts).
+  return ((rows.results ?? []) as Record<string, any>[]).filter(row => !isDiscountLine(row)).map(row => {
     const quantity = Number(row.quantity) || 0;
     const price = Number(row.price_at_sale) || 0;
     const name = String(row.custom_name || row.product_name || 'Tea').trim();

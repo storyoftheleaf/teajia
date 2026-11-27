@@ -247,7 +247,8 @@ export interface PayAccessResponse {
   contributor: { id: string; display_name: string; business_name: string | null; portrait_url: string | null };
   viewer: { signed_in: boolean; is_owner: boolean; request_status: 'pending' | 'approved' | null };
   /** Set when the link came from an invoice: the sheet names the order. */
-  invoice: { invoice_number: string | null; outstanding_usd: number; /** Nothing left to pay, and the worker said so; a missing figure is never read as paid. */ settled?: boolean; lines?: PayLinkTeaLine[]; kept?: boolean; yours_to_send?: boolean; collection?: { title: string; path: string } | null } | null;
+  invoice: { invoice_number: string | null; outstanding_usd: number; /** Nothing left to pay, and the worker said so; a missing figure is never read as paid. */ settled?: boolean; lines?: PayLinkTeaLine[]; kept?: boolean; yours_to_send?: boolean; collection?: { title: string; path: string } | null;
+    discount?: { percent: number; amount_usd: number; subtotal_usd: number } | null; discount_editable?: boolean } | null;
 }
 
 /** One tea on an invoice, as its pay page shows it. */
