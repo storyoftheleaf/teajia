@@ -77,3 +77,10 @@ Checks:
 - **Linking a signed-out seat to the account on sign-in** (the "ideally" in W1-1) would need a new route and an `api.ts` call, for example `POST /api/rsvp/:token/link` signed in, returning `{ linked: boolean }`. Not done; the device fallback covers what the walk checks.
 - **The seat door stays open until the end, not the start.** The upcoming list stops at the start. A direct link still takes a request during the session, as before (A2 F6). Whether a request during tea should be refused is Adrian's call.
 - `mapEvent` in `useEventPolling.ts` still defaults a missing zone to Asia/Taipei, while the worker reads a missing zone as UTC. This only matters for a wall time stored with no zone, and the label now names whichever zone is used.
+
+## The gate, 2026-11-27: A9-8 and A9-9 on the recommended answer
+
+Built on the ledger's recommended options while Adrian's word is pending (ledger questions 10 and 11). `handleDeleteAccount` in `worker/src/index.ts`:
+
+- **A9-9.** A host with a table that has not ended gets 409 `future_tables_hosted` ("Hand over or cancel your future tables…") before anything is written. When older records still name the identity (a past table, received stock, invoices), the single transaction's foreign key failure now answers 409 `identity_still_referenced` in place of a 500. The credit ledger is untouched either way.
+- **A9-8.** With Launch 3 open, every seat the guest holds at a table still to come (confirmed, requested or waiting) is given up through `cancelGuestSeat` once the identity is gone, so the queue moves on. With it closed, the seat stays as main left it. The delete form says so when Launch 3 is open.

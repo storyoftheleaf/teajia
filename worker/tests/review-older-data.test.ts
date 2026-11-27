@@ -34,7 +34,7 @@ it('preserves every original row and cell at every migration boundary and leaves
   db.close();
   // 0137 and 0142 have no SQL file in the migration ledger.
   expect(versions).toEqual(['0127', '0128', '0129', '0130', '0131', '0132', '0133', '0134',
-    '0135', '0136', '0138', '0139', '0140', '0141', '0143', '0144', '0145', '0146', '0147']);
+    '0135', '0136', '0138', '0139', '0140', '0141', '0143', '0144', '0145', '0146', '0147', '0148', '0149']);
 });
 
 describe.each([false, true])('older Tea Chest, switches open = %s', open => {
@@ -353,7 +353,11 @@ describe.each([false, true])('older sessions with switches open = %s', open => {
       expect(JSON.stringify(entries)).not.toContain('Chen');
       const photos = await bookRequest('photos-read');
       expect(photos.status).toBe(200);
-      expect((await photos.json() as { gallery: unknown[] }).gallery).toEqual([{ id: 'legacy-offer', display_name: null, alt_text: 'Tea setup' }]);
+      // The photograph stays unnamed either way. Closed, it keeps main's entry key
+      // grouping it with its taker's note (flags-off parity, 4b2a3bac); open, only a named one does (A3).
+      const gallery = (await photos.json() as { gallery: Record<string, unknown>[] }).gallery;
+      expect(gallery).toEqual([{ id: 'legacy-offer', display_name: null, alt_text: 'Tea setup',
+        ...(open ? {} : { entry_key: expect.stringMatching(/^[0-9a-f]{64}$/) }) }]);
       const edit = await bookRequest('entry-save', { note: 'Long finish' });
       expect(edit.status).toBe(200);
       expect(sqlite.prepare('SELECT note, status, revision, public_recap FROM session_guest_book WHERE id = ?').get('legacy-note'))

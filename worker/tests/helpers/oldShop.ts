@@ -44,7 +44,7 @@ export function oldShop(observe?: (sqlite: DatabaseSync, version: string) => voi
     observe?.(sqlite, '0127');
     for (const file of migrationFiles()) {
       const version = file.slice(0, 4);
-      if (version <= '0127' || version > '0147') continue;
+      if (version <= '0127') continue;
       sqlite.exec(readFileSync(join(MIGRATIONS_DIR, file), 'utf8'));
       observe?.(sqlite, version);
     }

@@ -22,7 +22,7 @@ import { hostTokensRoutes } from './hostTokens';
 import { teaHousesRoutes } from './teaHouses';
 import { fewHostsOpen } from '../../src/lib/fewHosts';
 import { accountHostingStopped, anyoneMayHost, HOSTING_STOPPED_SAYS, hostApproved, hostDoorSql, hostDoorsFor, hostingStoppedSql, hostReachOf, hostStanding, isHostReach, listableHostedSessionSql, personalAccountSql, publicSessionHostSql, reachListedSessionSql, setHostApproval, setHostingStopped, setHostReach, type HostReach } from './hostApproval';
-import { HOST_TEA_MEDIA_KEY, isWalkthroughMedia, mayShowWalkthrough, sessionEndsAt, sessionHasEnded, sessionInstant as sessionStart, sessionMoment, WALKTHROUGH_MEDIA_CACHE } from './sessionWalkthrough';
+import { HOST_TEA_MEDIA_KEY, isWalkthroughMedia, mayShowWalkthrough, sessionEndsAt, sessionHasEnded, sessionInstant as sessionStart, sessionMoment, type SessionTimes, WALKTHROUGH_MEDIA_CACHE } from './sessionWalkthrough';
 import { CONTRIBUTOR_EFFECTIVELY_PUBLISHED_SQL, publicLeadHostSql } from './sessionHost';
 import { areaGivesAwayTheWay, isAreaRefusal, readTableArea } from './hostTableArea';
 import { signedWayPhotoUrl, signWayGuide, WAY_HOST, WAY_SIGNED_SECONDS, wayMediaVerdict } from './wayMedia';
@@ -2335,9 +2335,27 @@ const handleDeleteAccount: Handler = async (request, env) => {
     return restError(409, 'Transfer or remove account ownership before deleting this identity', 'owner_floor_violation');
   }
 
+  // A9-9: a host's future tables point at the user row, so deletion waits
+  // until they are handed over or cancelled, with an answer the host can act on.
+  const hosted = await env.DB.prepare(
+    `SELECT event_date, event_end_date, timezone, lifecycle_status, status FROM events WHERE host_user_id = ?`
+  ).bind(claims.sub).all<SessionTimes>();
+  if ((hosted.results || []).some(table => !sessionHasEnded(table))) {
+    return restError(409, 'Hand over or cancel your future tables before deleting this identity', 'future_tables_hosted');
+  }
+  // A9-8: with Launch 3 open, a seat at a table still to come is given up and
+  // its queue moves on. The rows are read now and released once the identity is gone.
+  const releaseFutureSeats = anyoneHostsOpen(env);
+  const futureSeats = releaseFutureSeats ? ((await env.DB.prepare(
+    `SELECT a.id, a.account_id, a.event_id, e.event_date, e.event_end_date, e.timezone, e.lifecycle_status, e.status
+       FROM event_attendees a JOIN events e ON e.id = a.event_id AND e.account_id = a.account_id
+      WHERE a.user_id = ? AND a.status IN ('confirmed', 'requested', 'waitlist')`
+  ).bind(claims.sub).all<SessionTimes & { id: string; account_id: string; event_id: string }>()).results || [])
+    .filter(seat => !sessionHasEnded(seat)) : [];
+
   // What they shared with the family goes first: those rows point at the user row.
   const familyPhotoKeys = await familyPhotoKeysForUser(env.DB, claims.sub);
-  await env.DB.batch([
+  try { await env.DB.batch([
     queueKeptPhotoCleanupForUser(env.DB, claims.sub),
     ...familyErasureStatements(env.DB, claims.sub),
     env.DB.prepare('DELETE FROM private_session_reflections WHERE user_id = ?').bind(claims.sub),
@@ -2347,7 +2365,18 @@ const handleDeleteAccount: Handler = async (request, env) => {
     env.DB.prepare("UPDATE mcp_tokens SET revoked_at = datetime('now') WHERE user_id = ? AND revoked_at IS NULL").bind(claims.sub),
     env.DB.prepare('DELETE FROM account_members WHERE user_id = ?').bind(claims.sub),
     env.DB.prepare('DELETE FROM users WHERE id = ?').bind(claims.sub),
-  ]);
+  ]); } catch (error) {
+    // The batch is one transaction, so nothing was removed. Older records
+    // (past tables hosted, stock received, invoices) still name this identity.
+    if (/FOREIGN KEY/i.test(error instanceof Error ? error.message : String(error))) {
+      return restError(409, 'Records on this site still name this identity, so it cannot be deleted here. Ask the shop to remove it.', 'identity_still_referenced');
+    }
+    throw error;
+  }
+
+  for (const seat of futureSeats) {
+    await cancelGuestSeat(env.DB, { accountId: seat.account_id, eventId: seat.event_id, attendeeId: seat.id });
+  }
 
   await eraseFamilyPhotoFiles(env.MEDIA_BUCKET, familyPhotoKeys);
   await retryKeptPhotoCleanup(env.DB, env.ATLAS_BUCKET);

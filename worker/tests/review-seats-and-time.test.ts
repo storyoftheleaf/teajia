@@ -276,6 +276,23 @@ it('host deletion is actionable after transfer with a future table, a circle and
   expect([200,409]).toContain(result.status);
 });
 
+it('a former host whose tables have all ended gets an answer, not a failure, while records still name them', async () => {
+  db.exec(`UPDATE events SET event_date='2020-01-01T10:00:00Z', lifecycle_status='completed', status='closed';
+    UPDATE accounts SET owner_user_id='guest',personal_inventory_user_id=NULL WHERE id='house';
+    UPDATE account_members SET role='staff' WHERE user_id='host';
+    INSERT INTO account_members (account_id,user_id,role,status) VALUES ('house','guest','owner','active');`);
+  const result = await call('/api/auth/account', 'DELETE', { password }, 'host');
+  expect(result.status).toBe(409);
+  expect(count("SELECT count(*) n FROM users WHERE id='host'")).toBe(1);
+});
+
+it('with Launch 3 closed, deleting a guest leaves their seat as main did', async () => {
+  anyone = false;
+  expect((await ask('Guest', {}, 'guest')).status).toBe(201);
+  expect((await call('/api/auth/account', 'DELETE', { password }, 'guest')).status).toBe(200);
+  expect(db.sqlite.prepare("SELECT user_id,status FROM event_attendees WHERE event_id='tea'").get()).toEqual({ user_id: null, status: 'confirmed' });
+});
+
 it('a claim cannot confirm a seat after a published session has ended by time', async () => {
   waiting('lin', 1);
   expect(await offer()).toEqual(['lin']);
