@@ -6,7 +6,8 @@
 // unchanged: a confirmed guest, until the session ends.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import worker from '../src/index';
-import { isOwnWayPhoto } from '../src/hostTableWay';
+import { guardGuideWrite, isOwnWayPhoto } from '../src/hostTableWay';
+import { guidePhotoUrls, signWayGuide } from '../src/wayMedia';
 import { SqliteD1, seedIdentity, signedToken } from './helpers/sqliteD1';
 
 const SECRET = 'synthetic-host-way-secret';
@@ -245,5 +246,24 @@ describe('who receives the way is unchanged', () => {
     const waiting = await (await call('/api/rsvp/magic-g-wait')).json() as Record<string, any>;
     expect(waiting.event.venue_guide).toBeNull();
     expect(waiting.event.address_text).toBeNull();
+  });
+});
+
+describe('the picture of the tea space follows the same rules as a step photograph', () => {
+  it('is held to the admin write guard, stored bare, and kept when the stored guide names it', () => {
+    const own = guardGuideWrite({ steps: [], space_image_url: `${photo(9)}?exp=1&for=host&sig=x` }, ana.accountId, null);
+    expect(JSON.parse((own as { venue_guide: string }).venue_guide).space_image_url).toBe(photo(9));
+    expect(guardGuideWrite({ steps: [], space_image_url: photo(1, bo.accountId) }, ana.accountId, null)).toHaveProperty('refused');
+    expect(guardGuideWrite({ steps: [], space_image_url: 5 }, ana.accountId, null)).toHaveProperty('refused');
+    const older = photo(1, bo.accountId);
+    expect(guardGuideWrite({ steps: [], space_image_url: older }, ana.accountId, JSON.stringify({ steps: [], space_image_url: older }))).toHaveProperty('venue_guide');
+    expect(guidePhotoUrls({ steps: [], space_image_url: photo(9) }).has(photo(9))).toBe(true);
+  });
+
+  it('is signed for its holder, and left out when nothing can be signed', async () => {
+    const guide = { steps: [], space_image_url: photo(9) };
+    const signed = await signWayGuide(SECRET, guide, 'host') as { space_image_url: string };
+    expect(signed.space_image_url).toMatch(/\?exp=\d+&for=host&sig=[0-9a-f]{64}$/);
+    expect(await signWayGuide(undefined, JSON.stringify(guide), 'host')).toBe(JSON.stringify({ steps: [] }));
   });
 });
