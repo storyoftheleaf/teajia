@@ -564,7 +564,7 @@ const AppContent = () => {
 
   // `link` is set when the tea is added from a collection link: the line belongs
   // to that link's store and carries the link, so the order keeps its price.
-  const handleAddToCart = (item: InventoryItem, qty: number, total: number, link?: { storeSlug: string; storeName: string; collectionSlug: string }) => {
+  const handleAddToCart = (item: InventoryItem, qty: number, total: number, link?: { storeSlug: string; storeName: string; collectionSlug: string; quoted: boolean }) => {
     if (item.stock_g !== undefined && item.stock_g <= 0) {
       /* Reported, not confirmed. The band carries its own label per tone, so
          the name stays the name and the state stops being smuggled into it. */
@@ -588,7 +588,7 @@ const AppContent = () => {
       category: item.category,
       storeSlug: lineStoreSlug,
       storeName: browsingStoreName,
-      ...(link ? { collectionSlug: link.collectionSlug } : {}),
+      ...(link ? { collectionSlug: link.collectionSlug, linkQuoted: link.quoted } : {}),
       quantityGrams: qty,
       /* One pack of this weight. The store adds a second pack rather than a
          heavier one when the same size is added again. */

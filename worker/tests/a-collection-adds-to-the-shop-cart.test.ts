@@ -56,6 +56,18 @@ describe('a collection adds to the shop cart', () => {
     expect(Math.round(line.quantity * line.price_at_sale * 100) / 100).toBe(19);
   });
 
+  it('prices a tea the link left unquoted by the shop\'s own rule', async () => {
+    vi.stubGlobal('fetch', vi.fn());
+    const db = seed();
+    db.sqlite.exec("UPDATE collection_items SET recommended_price_usd = NULL WHERE id = 'ci'");
+    const response = await order(db, { collectionSlug: 'for-daniel' });
+    expect(response.status).toBe(201);
+    const line = db.sqlite.prepare('SELECT quantity, price_at_sale FROM invoice_line_items').get() as { quantity: number; price_at_sale: number };
+    // Not the flat link rate: the shop's curve adds its handling amount.
+    expect(line.quantity * line.price_at_sale).not.toBeCloseTo(19);
+    expect(line.price_at_sale).toBeGreaterThan(0);
+  });
+
   it('refuses the same private tea without its link', async () => {
     const db = seed();
     const response = await order(db, {});

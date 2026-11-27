@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { Check, Minus, Plus, ArrowRight, Share2, Link2, Bookmark, MessageCircle, ShoppingBag } from 'lucide-react';
+import { Check, Plus, ArrowRight, Share2, Link2, Bookmark, MessageCircle, ShoppingBag } from 'lucide-react';
 import { api } from '../lib/api';
 import { buildWhatsAppUrl } from '../lib/whatsapp';
 import { useAppStore } from '../lib/store';
@@ -12,7 +12,10 @@ import {
   type LinkTeaDetailFields, type LinkTeaSource,
 } from '../components/shop/linkTea';
 import { AlcoveModal } from '../components/shop/AlcoveModal';
-import { TeaLedgerRow } from '../components/shop/TeaLedger';
+import { TeaLedger, type TeaLedgerGroup } from '../components/shop/TeaLedger';
+import { weighOptions, startingIndex, type WeighOption } from '../components/shop/TeaWeighControl';
+import { useShopPrice } from '../components/shop/shopPrice';
+import { TEA_PRICING } from '../lib/teaPricing';
 
 /**
  * A collection link: the shop, filtered down to the teas someone chose for you
@@ -27,7 +30,7 @@ export type AddFromLink = (
   item: InventoryItem,
   grams: number,
   totalUsd: number,
-  link: { storeSlug: string; storeName: string; collectionSlug: string },
+  link: { storeSlug: string; storeName: string; collectionSlug: string; quoted: boolean },
 ) => void;
 
 // ── How a suggested amount is counted ────────────────────────────────────────
@@ -55,8 +58,6 @@ const fmtUsd = (n: number) => {
   const cents = Math.round(n * 100);
   return cents % 100 === 0 ? `$${cents / 100}` : `$${(cents / 100).toFixed(2)}`;
 };
-
-const LOOSE_LEAF_GRAM_OPTIONS = [25, 50, 100, 200];
 
 // ── Page shell ───────────────────────────────────────────────────────────────
 
@@ -181,8 +182,33 @@ const CollectionShelf: React.FC<{ data: PublicCollectionResponse } & CartHooks> 
   const visible = useMemo(() => items.filter(i => i.product_status === 'Active'), [items]);
   const slug = data.publication.slug;
   const [detailId, setDetailId] = useState<string | null>(null);
-  const [amounts, setAmounts] = useState<Record<string, number>>({});
   const [shareState, setShareState] = useState<'idle' | 'copied'>('idle');
+  const shopPrice = useShopPrice();
+  const favoriteTeas = useAppStore(s => s.favoriteTeas);
+  const toggleFavoriteTea = useAppStore(s => s.toggleFavoriteTea);
+  const favoriteIds = useMemo(() => new Set(favoriteTeas), [favoriteTeas]);
+
+  // The shop's rows, grouped by type as the shop groups them, in the order the
+  // curator first put each type.
+  const byProduct = useMemo(() => new Map(visible.map(it => [it.product_id, it])), [visible]);
+  const shelfItems = useMemo(() => visible.map(linkShelfItem), [visible]);
+  const groups = useMemo<TeaLedgerGroup[]>(() => {
+    const order: string[] = [];
+    const byType = new Map<string, InventoryItem[]>();
+    for (const tea of shelfItems) {
+      const type = tea.type || 'Tea';
+      if (!byType.has(type)) { byType.set(type, []); order.push(type); }
+      byType.get(type)!.push(tea);
+    }
+    return order.map(type => ({ type, items: byType.get(type)! }));
+  }, [shelfItems]);
+
+  function addFromLink(item: PublicCollectionItem, grams: number, totalUsd: number) {
+    if (!onAddToCart) return;
+    onAddToCart(linkShelfItem(item), grams, totalUsd, {
+      storeSlug: account?.slug || 'teajia-bali', storeName, collectionSlug: slug, quoted: !!item.price_quoted,
+    });
+  }
 
   const ctx: LinkContext = {
     slug,
@@ -286,17 +312,19 @@ const CollectionShelf: React.FC<{ data: PublicCollectionResponse } & CartHooks> 
             The teas in this collection are currently unavailable.
           </p>
         ) : (
-          <ul className="flex flex-col">
-            {visible.map(item => (
-              <ShelfEntry
-                key={item.id}
-                item={item}
-                ctx={ctx}
-                amount={amounts[item.id]}
-                onOpen={() => setDetailId(item.id)}
-              />
-            ))}
-          </ul>
+          <TeaLedger
+            groups={groups}
+            activeType="All"
+            specialFilter="None"
+            tastingCounts={new Map()}
+            priceWeight={50}
+            formatPrice={shopPrice.symbolTotal}
+            favoriteIds={favoriteIds}
+            onToggleFavorite={(id, event) => { event.stopPropagation(); toggleFavoriteTea(id); }}
+            onOpenProduct={tea => { const it = byProduct.get(tea.id); if (it) setDetailId(it.id); }}
+            onAddToCart={onAddToCart ? (tea, grams, total) => { const it = byProduct.get(tea.id); if (it) addFromLink(it, grams, total); } : undefined}
+            weighOptionsFor={tea => { const it = byProduct.get(tea.id); return it ? linkWeighOptions(it) : undefined; }}
+          />
         )}
       </section>
 
@@ -306,8 +334,7 @@ const CollectionShelf: React.FC<{ data: PublicCollectionResponse } & CartHooks> 
       {detailId && (() => {
         const focused = visible.find(it => it.id === detailId);
         if (!focused) return null;
-        const byProduct = new Map(visible.map(it => [it.product_id, it]));
-        const cards = visible.map(collectionTeaItem);
+        const cards = shelfItems;
         return (
           <AlcoveModal
             item={cards.find(card => card.id === focused.product_id) ?? null}
@@ -320,8 +347,8 @@ const CollectionShelf: React.FC<{ data: PublicCollectionResponse } & CartHooks> 
                 <CardFooter
                   item={it}
                   ctx={ctx}
-                  amount={amounts[it.id]}
-                  setAmount={n => setAmounts(prev => ({ ...prev, [it.id]: n }))}
+                  formatPrice={shopPrice.symbolTotal}
+                  onAdd={addFromLink}
                   onOpenCart={onOpenCart ? () => { setDetailId(null); onOpenCart(); } : undefined}
                 />
               ) : null;
@@ -337,156 +364,102 @@ const CollectionShelf: React.FC<{ data: PublicCollectionResponse } & CartHooks> 
   );
 };
 
-// ── One tea: its amount, its price, and adding it to the cart ────────────────
+// ── One tea: its amounts, its prices, and adding it to the cart ──────────────
 
-function useLinkTea(item: PublicCollectionItem, ctx: LinkContext, chosen?: number) {
+/**
+ * The amounts a tea can be added in from this link, and what each costs.
+ *
+ * A tea whose price the curator quoted keeps that price, scaled to the amount
+ * and with no handling amount on top, exactly as the order prices it
+ * (worker/src/collectionCart.ts). A blank quote follows the shop's own rule,
+ * so those rows are the shop's rows to the cent. A cake counts in whole cakes
+ * and needs its weight. Teaware and an out-of-stock tea are asked about.
+ */
+function linkWeighOptions(item: PublicCollectionItem): WeighOption[] | undefined {
+  if (!item.price_quoted) return undefined;
   const mode = getPickerMode(item);
-  const recQty = (() => {
-    const n = Number(item.recommended_quantity);
-    return item.recommended_quantity != null && Number.isFinite(n) && n > 0 ? n : null;
-  })();
-  const recPrice = item.recommended_price_usd != null ? Number(item.recommended_price_usd) : null;
-  const qty = chosen ?? recQty ?? (mode === 'loose-leaf' ? 50 : 1);
-  const price = recPrice != null && recQty != null ? Math.round((recPrice / recQty) * qty * 100) / 100 : null;
-  const piece = Number(item.piece_weight_g);
-  const grams = mode === 'loose-leaf' ? qty : mode === 'cake-brick' && piece > 0 ? qty * piece : null;
-  const amountLabel = mode === 'loose-leaf' ? `${qty}g` : `${qty} ${mode === 'cake-brick' ? (qty === 1 ? 'cake' : 'cakes') : (qty === 1 ? 'piece' : 'pieces')}`;
-  const inCart = useAppStore(s => s.publicCart.some(line => line.id === item.product_id && line.collectionSlug === ctx.slug));
-  // The cart takes a tea when the link prices it by weight. Anything else (a
-  // cake of unknown weight, teaware, a tea out of stock) is asked about instead.
-  const canCart = !!ctx.onAddToCart && !item.out_of_stock && item.product_id != null
-    && grams != null && price != null && recQty != null && recPrice != null;
-  const name = item.product_name || 'Untitled tea';
-
-  function add() {
-    if (!canCart || grams == null || price == null || recPrice == null || recQty == null) return;
-    const perGram = mode === 'loose-leaf' ? recPrice / recQty : recPrice / (recQty * piece);
-    const base = collectionTeaItem(item);
-    ctx.onAddToCart!({ ...base, price_per_gram: String(perGram), pieceWeightG: piece > 0 ? piece : undefined } as InventoryItem, grams, price, {
-      storeSlug: ctx.storeSlug, storeName: ctx.storeName, collectionSlug: ctx.slug,
-    });
+  const recQty = Number(item.recommended_quantity);
+  const recPrice = Number(item.recommended_price_usd);
+  if (item.out_of_stock || !Number.isFinite(recQty) || recQty <= 0 || !Number.isFinite(recPrice) || recPrice < 0) return [];
+  if (mode === 'loose-leaf') {
+    const rate = recPrice / recQty;
+    const sizes = Array.from(new Set([...TEA_PRICING.sizesG, recQty])).sort((a, b) => a - b);
+    return sizes.map(grams => ({ grams, totalUsd: Math.round(rate * grams * 100) / 100 }));
   }
-
-  const askUrl = buildWhatsAppUrl(ctx.whatsapp, `Hello, I'm looking at "${ctx.title}" and would like to ask about ${name}.`);
-  return { mode, recQty, qty, price, amountLabel, inCart, canCart, add, askUrl, name, oos: item.out_of_stock };
+  const piece = Number(item.piece_weight_g);
+  if (mode !== 'cake-brick' || !(piece > 0)) return [];
+  const rate = recPrice / (recQty * piece);
+  return [1, 2, 3, 5].map(n => ({ grams: n * piece, totalUsd: Math.round(rate * n * piece * 100) / 100 }));
 }
 
-type LinkTea = ReturnType<typeof useLinkTea>;
-
-const PriceLine: React.FC<{ tea: LinkTea }> = ({ tea }) => (
-  tea.oos ? <span className="font-body text-ui-14 text-tea-text-sec">Not available now</span> : (
-    <span className="font-body text-ui-14 text-tea-text">
-      {tea.amountLabel}
-      {tea.price != null && <span className="text-tea-gold"> · {fmtUsd(tea.price)} <span className="text-ui-11 text-tea-text-dim">USD</span></span>}
-    </span>
-  )
-);
-
-const AddButton: React.FC<{ tea: LinkTea; small?: boolean }> = ({ tea, small }) => {
-  if (tea.inCart) {
-    return (
-      <span className="inline-flex items-center gap-1.5 text-ui-12 font-medium text-tea-gold" data-testid="collection-in-cart">
-        <Check size={13} /> In your cart
-      </span>
-    );
-  }
-  if (!tea.canCart) {
-    return (
-      <a href={tea.askUrl} target="_blank" rel="noopener noreferrer" className={`btn-secondary tap-target${small ? ' btn-sm' : ''}`} aria-label={`Ask about ${tea.name}`}>
-        <MessageCircle size={13} /> Ask
-      </a>
-    );
-  }
-  return (
-    <button type="button" onClick={tea.add} className={`btn-primary tap-target${small ? ' btn-sm' : ''}`} aria-label={`Add ${tea.name} to cart`}>
-      <Plus size={13} /> Add
-    </button>
-  );
-};
-
-const ShelfEntry: React.FC<{ item: PublicCollectionItem; ctx: LinkContext; amount?: number; onOpen: () => void }> = ({ item, ctx, amount, onOpen }) => {
-  const tea = useLinkTea(item, ctx, amount);
-  const writing = useLinkTeaWriting(teaSourceOf(item));
-  const note = item.item_note?.trim() || null;
-  return (
-    <li id={`entry-${item.id}`} data-testid="collection-tea-card" className="min-w-0">
-      <TeaLedgerRow
-        item={{
-          name: tea.name,
-          year: item.year != null ? String(item.year) : '',
-          type: item.product_type ?? '',
-          origin: [item.origin_region, item.origin_country].filter(Boolean).join(', '),
-          description: note ?? writing.lead ?? item.description ?? '',
-        }}
-        showType
-        saved={false}
-        onOpen={onOpen}
-        openLabel={`Open ${tea.name}`}
-        trailing={
-          // The row opens the tea; adding here must not open it too.
-          <div className="flex flex-col items-end gap-1.5 text-right" onClick={e => e.stopPropagation()} onKeyDown={e => e.stopPropagation()}>
-            <PriceLine tea={tea} />
-            <AddButton tea={tea} small />
-          </div>
-        }
-      />
-    </li>
-  );
-};
+/** The tea as the shop's row and card read it: the link's rate where it quoted one. */
+function linkShelfItem(item: PublicCollectionItem): InventoryItem {
+  const base = collectionTeaItem(item);
+  const piece = Number(item.piece_weight_g);
+  const options = linkWeighOptions(item);
+  const rate = options?.length ? options[0].totalUsd / options[0].grams : null;
+  return {
+    ...base,
+    price_per_gram: rate != null ? String(rate) : base.price_per_gram,
+    pieceWeightG: piece > 0 ? piece : undefined,
+  } as InventoryItem;
+}
 
 const CardFooter: React.FC<{
   item: PublicCollectionItem;
   ctx: LinkContext;
-  amount?: number;
-  setAmount: (n: number) => void;
+  formatPrice: (usd: number) => string;
+  onAdd: (item: PublicCollectionItem, grams: number, totalUsd: number) => void;
   onOpenCart?: () => void;
-}> = ({ item, ctx, amount, setAmount, onOpenCart }) => {
-  const tea = useLinkTea(item, ctx, amount);
-  const gramOptions = useMemo(() => {
-    const opts = new Set(LOOSE_LEAF_GRAM_OPTIONS);
-    if (tea.recQty) opts.add(tea.recQty);
-    return Array.from(opts).sort((a, b) => a - b);
-  }, [tea.recQty]);
+}> = ({ item, ctx, formatPrice, onAdd, onOpenCart }) => {
+  const shelfItem = useMemo(() => linkShelfItem(item), [item]);
+  const options = useMemo(() => linkWeighOptions(item) ?? weighOptions(shelfItem), [item, shelfItem]);
+  const [index, setIndex] = useState(() => startingIndex(options, Number(item.recommended_quantity) || 50));
+  const inCart = useAppStore(s => s.publicCart.some(line => line.id === item.product_id && line.collectionSlug === ctx.slug));
+  const current = options[Math.min(index, options.length - 1)];
+  const name = item.product_name || 'Untitled tea';
+  const askUrl = buildWhatsAppUrl(ctx.whatsapp, `Hello, I'm looking at "${ctx.title}" and would like to ask about ${name}.`);
   return (
     <div className="shrink-0 border-t border-tea-border bg-tea-surface px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] flex flex-col gap-3" data-testid="collection-pick-footer">
-      {tea.canCart && !tea.inCart && (tea.mode === 'loose-leaf' ? (
-        <div className="flex flex-wrap gap-2" role="group" aria-label="Amount">
-          {gramOptions.map(g => (
-            <button
-              key={g}
-              type="button"
-              onClick={() => setAmount(g)}
-              aria-pressed={tea.qty === g}
-              className={`tap-target px-3 py-1.5 rounded-md text-ui-12 font-medium transition-colors ${tea.qty === g ? 'bg-tea-accent-sub text-tea-gold' : 'bg-tea-elevated text-tea-text-sec hover:text-tea-text'}`}
-            >
-              {g}g
-            </button>
-          ))}
-        </div>
+      {current ? (
+        <>
+          <div className="flex flex-wrap gap-2" role="group" aria-label="Amount">
+            {options.map((option, i) => (
+              <button
+                key={option.grams}
+                type="button"
+                onClick={() => setIndex(i)}
+                aria-pressed={i === index}
+                className={`tap-target px-3 py-1.5 rounded-md text-ui-12 font-medium transition-colors ${i === index ? 'bg-tea-accent-sub text-tea-gold' : 'bg-tea-elevated text-tea-text-sec hover:text-tea-text'}`}
+              >
+                {option.grams}g
+              </button>
+            ))}
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+            <span className="font-body text-ui-14 text-tea-text">
+              {current.grams}g <span className="text-tea-gold">· {formatPrice(current.totalUsd)}</span>
+            </span>
+            <div className="flex items-center gap-3">
+              {inCart && onOpenCart && (
+                <button type="button" onClick={onOpenCart} className="tap-target inline-flex items-center gap-1 text-ui-12 text-tea-text-sec hover:text-tea-text">
+                  <ShoppingBag size={13} /> Open cart
+                </button>
+              )}
+              <button type="button" onClick={() => onAdd(item, current.grams, current.totalUsd)} className="btn-primary tap-target" aria-label={`Add ${current.grams}g of ${name} to cart`}>
+                <Plus size={13} /> {inCart ? 'Add more' : 'Add to cart'}
+              </button>
+            </div>
+          </div>
+        </>
       ) : (
-        <div className="flex items-center gap-3">
-          <button type="button" onClick={() => setAmount(Math.max(1, tea.qty - 1))} disabled={tea.qty <= 1} aria-label="One fewer"
-            className="tap-target w-8 h-8 flex items-center justify-center rounded-md border border-tea-border text-tea-text-sec hover:text-tea-text disabled:opacity-30">
-            <Minus size={12} />
-          </button>
-          <span className="font-mono text-ui-14 text-tea-text w-8 text-center tabular-nums" aria-live="polite">{tea.qty}</span>
-          <button type="button" onClick={() => setAmount(Math.min(10, tea.qty + 1))} disabled={tea.qty >= 10} aria-label="One more"
-            className="tap-target w-8 h-8 flex items-center justify-center rounded-md border border-tea-border text-tea-text-sec hover:text-tea-text disabled:opacity-30">
-            <Plus size={12} />
-          </button>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <span className="font-body text-ui-14 text-tea-text-sec">{item.out_of_stock ? 'Not available now' : 'Ask for the price'}</span>
+          <a href={askUrl} target="_blank" rel="noopener noreferrer" className="btn-secondary tap-target" aria-label={`Ask about ${name}`}>
+            <MessageCircle size={13} /> Ask
+          </a>
         </div>
-      ))}
-      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
-        <PriceLine tea={tea} />
-        <div className="flex items-center gap-3">
-          {tea.inCart && onOpenCart && (
-            <button type="button" onClick={onOpenCart} className="tap-target inline-flex items-center gap-1 text-ui-12 text-tea-text-sec hover:text-tea-text">
-              <ShoppingBag size={13} /> Open cart
-            </button>
-          )}
-          <AddButton tea={tea} />
-        </div>
-      </div>
+      )}
     </div>
   );
 };

@@ -30127,6 +30127,9 @@ const handleGetPublicCollection: Handler = async (_request, env, params) => {
       ORDER BY ci.position ASC`
   ).bind(pub.collection_id, pub.target_type === 'shop' ? 1 : 0).all();
 
+  // Whether the curator quoted a price, read before a blank quote is filled:
+  // a quoted price is kept as it is, a blank one follows the shop's own rule.
+  for (const row of (items.results ?? []) as any[]) row.price_quoted = row.recommended_price_usd != null;
   if (account) await fillBlankQuotes(env, String(account.id), (items.results ?? []) as any[]); // a blank quote shows the shelf price: collectionShelf.ts
   const visibleItems = ((items.results ?? []) as any[])
     .filter(i => i.product_status === 'Active')
