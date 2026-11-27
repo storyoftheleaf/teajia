@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { ChooseTeaLine, ListTasting } from '../shop/GuideStep';
+import { useMemo } from 'react';
+import { useTastingCounts } from '../../hooks/useTastingCount';
 import { useInventory } from '../../context/InventoryContext';
 import { LinkTeaPage } from '../shop/LinkTeaPage';
 import { useOpenLinkTea } from '../shop/useOpenLinkTea';
@@ -20,16 +20,13 @@ import type { PayLinkTeaLine } from './types';
  * sell carries none. Shown only to a
  * holder of the invoice's own link; the worker decides that before it sends a line.
  */
-export function PayInvoiceTeas({ lines, invoiceNumber = null, onAddToCart, discount = null, choosing = false, onChosen, onSaveSignedOut }: {
+export function PayInvoiceTeas({ lines, invoiceNumber = null, onAddToCart, discount = null, onSave }: {
   lines: readonly PayLinkTeaLine[];
   /** A percent off the shop offered, shown as its own line above the total. */
   discount?: { percent: number; amount_usd: number } | null;
   invoiceNumber?: string | null;
-  /** The guide's Taste was tapped: the next tea opened goes straight to its tasting. */
-  choosing?: boolean;
-  onChosen?: () => void;
-  /** Signed out, a save first gets them an account; left out when they are signed in. */
-  onSaveSignedOut?: () => void;
+  /** A tea was saved: the invoice goes into their account, through joining when they are signed out. Left out for the shop that sent it. */
+  onSave?: () => void;
   onAddToCart?: (item: InventoryItem, grams: number, totalUsd: number) => void;
 }) {
   const { openId, open: setOpenId, move: moveTea, close: closeTea } = useOpenLinkTea();
@@ -43,7 +40,7 @@ export function PayInvoiceTeas({ lines, invoiceNumber = null, onAddToCart, disco
   // date inside the save box (Adrian, 2026-11-27), not the invoice's wording.
   const { inventory } = useInventory();
   const listed = useMemo(() => new Map(inventory.map(item => [item.id, item])), [inventory]);
-  const [tasting, setTasting] = useState<InventoryItem | null>(null);
+  const tastingCounts = useTastingCounts();
   const rows = useMemo(() => {
     const seen = new Set<string>();
     return lines.map((line, index) => {
@@ -87,12 +84,11 @@ export function PayInvoiceTeas({ lines, invoiceNumber = null, onAddToCart, disco
   if (lines.length === 0) return null;
   return (
     <section aria-label="What this pays for" data-testid="pay-invoice-teas">
-      {choosing && <ChooseTeaLine onCancel={onChosen} />}
       <TeaLedger
         groups={groups}
         activeType="All"
         specialFilter="None"
-        tastingCounts={new Map()}
+        tastingCounts={tastingCounts}
         priceWeight={50}
         formatPrice={formatPrice}
         favoriteIds={favoriteIds}
@@ -102,12 +98,11 @@ export function PayInvoiceTeas({ lines, invoiceNumber = null, onAddToCart, disco
           if (!productId) return;
           const saving = !favoriteTeas.includes(productId);
           toggleFavoriteTea(productId);
-          if (saving) onSaveSignedOut?.();
+          if (saving) onSave?.();
         }}
         onOpenProduct={card => {
           const row = byId.get(card.id);
           if (!row?.line.product_id) return;
-          if (choosing) { setTasting({ ...row.product, id: row.line.product_id }); onChosen?.(); return; }
           setOpenId(card.id);
         }}
         weighOptionsFor={card => { const row = byId.get(card.id); return row ? [row.amount] : undefined; }}
@@ -127,7 +122,6 @@ export function PayInvoiceTeas({ lines, invoiceNumber = null, onAddToCart, disco
           <span className="font-display text-ui-22 tabular-nums text-tea-text">{exact(totalUsd)}</span>
         </span>
       </div>
-      <ListTasting tea={tasting} onClose={() => setTasting(null)} />
       {openRow && (
         <LinkTeaPage
           item={openRow.product}
