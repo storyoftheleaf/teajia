@@ -3,6 +3,8 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { useProducts } from '../../hooks/useAdminData';
 import { serviceJourney } from './serviceJourney';
 import { ServiceJourneyCard } from './ServiceJourneyCard';
+import { useQueryClient } from '@tanstack/react-query';
+import { refreshCommerceQueries } from '../../../lib/refreshCommerce';
 import { TrackingTask } from './TrackingTask';
 import { useQuery } from '@tanstack/react-query';
 import { api, ApiError } from '../../../lib/api';
@@ -32,6 +34,12 @@ export function LogisticsServices({ services, tracking, accountId, busy, mutate:
   }, [open, linkedService]);
   const close = () => { setOpen(false); if (linkedService) setParams(current => { const next = new URLSearchParams(current); next.delete('serviceId'); return next; }); };
   const { data: products = [] } = useProducts({ enabled: open });
+  const queryClient = useQueryClient();
+  const teaLabel = (product: (typeof products)[number]) => [product.givenName || product.productName, product.year].filter(Boolean).join(' ');
+  const addTea = (serviceId: string) => (productId: string) => mutate(async () => {
+    await api.products.updateCommercial(productId, { freight_service_id: serviceId });
+    await refreshCommerceQueries(queryClient, undefined, { changedProductIds: [productId] });
+  });
   const [editing, setEditing] = useState<string | null>(null);
   const [draft, setDraft] = useState<ServiceDraft>(() => emptyDraft('Yuan'));
   const [details, setDetails] = useState(false);
@@ -96,7 +104,9 @@ export function LogisticsServices({ services, tracking, accountId, busy, mutate:
   return <><button type="button" className="tap-target purchase-tracking-button" aria-label="Logistics services" onClick={() => setOpen(true)}>Services <span className="text-tea-text-dim">{active.length}</span></button><TrackingTask open={open} onClose={close} title="Logistics services"><div className="logistics-form journey-list">
     <ShopFreightDefault accountId={accountId} account={shopDefault.data} busy={busy} run={action => mutate(action)}/>
     {active.map(service => <ServiceJourneyCard key={service.id} service={service} journey={serviceJourney(service, tracking, products)} rate={serviceRateLabel(service)}
-      busy={busy} onEdit={() => chooseEditor(service)} onGo={close}>{editing === service.id && editorForm}</ServiceJourneyCard>)}
+      busy={busy} onEdit={() => chooseEditor(service)} onGo={close}
+      addable={products.filter(product => product.type !== 'Teaware' && product.freightServiceId !== service.id).map(product => ({ id: product.id, label: teaLabel(product) }))}
+      onAddTea={addTea(service.id)}>{editing === service.id && editorForm}</ServiceJourneyCard>)}
     {!active.length && <p className="text-tea-text-sec">Save a company's services and quoted rates here, then choose one when preparing a shipment.</p>}
     {!editing && <div className="logistics-actions"><button type="button" className="tap-target purchase-tracking-button logistics-add-service" onClick={() => chooseEditor()}>+ Logistics company</button>{!hasSuitcase(services) && <button type="button" className="tap-target purchase-tracking-button" disabled={busy || shopDefault.isLoading} onClick={addSuitcase}>+ My suitcase</button>}</div>}
     {editing === 'new' && editorForm}

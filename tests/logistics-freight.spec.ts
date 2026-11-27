@@ -70,7 +70,7 @@ test('Logistics holds the shop default and adds My suitcase as an ordinary servi
 });
 
 test('a service links to its orders, shipments and teas, and a link opens it again', async ({ page }, info) => {
-  await installCompassHarness(page, { products: [{ id: 'velvet', product_name: 'Velvet Earth', type: 'Dark', stock_grams: 100, freight_service_id: 'air' }] });
+  await installCompassHarness(page, { products: [{ id: 'velvet', product_name: 'Velvet Earth', type: 'Dark', stock_grams: 100, freight_service_id: 'air' }, { id: 'forest', product_name: 'Forest Gate', type: 'Sheng', year: 2006, stock_grams: 357 }] });
   const line = { id: 'l1', product_id: 'velvet', product_name: 'Velvet Earth', unit: 'g', expected_quantity: 1000, received_quantity: 0, cancelled_quantity: 0, available_quantity: 400, original_cost_amount: null, original_cost_currency: null, image_url: null, source_url: null };
   const logistics = {
     orders: [{ purchase_id: 'po-chen', managed: true, receipt_id: 'r1', vendor_name: 'Chen Family', logistics_company_id: 'gz', logistics_company_name: 'Guangzhou Forwarder', inbound_courier: null, inbound_tracking_number: null, logistics_arrived_at: '2026-11-20', lines: [line] }],
@@ -92,6 +92,18 @@ test('a service links to its orders, shipments and teas, and a link opens it aga
   await expect(stages.nth(2)).toHaveAttribute('aria-pressed', 'true');
   await expect(card.getByTestId('journey-items-on_the_way').getByRole('link', { name: /Due 4 Dec/ })).toHaveAttribute('href', '/admin/purchase-orders?shipmentId=ship-1');
   await expect(card.getByRole('link', { name: 'Velvet Earth' })).toHaveAttribute('href', '/admin/stock?panel=velvet');
+  // A tea is added to a service by hand, by name, right on its card.
+  const saved = page.waitForRequest(r => r.url().includes('/api/products/forest/commercial') && r.method() === 'PUT');
+  await page.route('**/api/products/forest/commercial', r => r.fulfill({ json: { success: true } }));
+  await card.getByRole('button', { name: '+ Add tea' }).click();
+  const add = card.getByRole('form', { name: 'Add a tea to Airmail' });
+  await add.getByRole('button', { name: 'Add' }).click();
+  await expect(add.getByRole('alert')).toHaveText('Type a tea name.');
+  await add.getByRole('combobox', { name: 'Tea to add' }).fill('Forest Gate 2006');
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: info.outputPath('add-tea.png') });
+  await add.getByRole('button', { name: 'Add' }).click();
+  expect((await saved).postDataJSON()).toEqual({ freight_service_id: 'air' });
   await stages.nth(1).click();
   await expect(card.getByTestId('journey-items-at_forwarder').getByRole('link', { name: 'Chen Family' })).toHaveAttribute('href', '/admin/purchase-orders?purchaseId=po-chen');
   await page.waitForTimeout(200);

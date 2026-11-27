@@ -16,20 +16,47 @@ export function JourneyChip({ item, onGo }: { item: JourneyItem; onGo?: () => vo
   </Link>;
 }
 
-export function ServiceJourneyCard({ service, journey, rate, busy, onEdit, onGo, children }: {
+/** Adding a tea to a service by hand (Adrian, 2026-11-27): pick it by name, it travels by this service from then on. */
+function AddTea({ service, teas, busy, onAdd }: { service: LogisticsService; teas: ReadonlyArray<{ id: string; label: string }>; busy: boolean; onAdd: (id: string) => Promise<unknown> | void }) {
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState('');
+  const [error, setError] = useState('');
+  const listId = `add-tea-${service.id}`;
+  if (!open) return <button type="button" className="journey-more tap-target text-ui-12 text-tea-gold-lt" onClick={() => setOpen(true)}>+ Add tea</button>;
+  const add = () => {
+    const wanted = text.trim().toLocaleLowerCase();
+    const tea = teas.find(item => item.label.toLocaleLowerCase() === wanted);
+    if (!tea) { setError(wanted ? 'Choose a tea from the list.' : 'Type a tea name.'); return; }
+    void Promise.resolve(onAdd(tea.id)).then(() => { setText(''); setOpen(false); });
+  };
+  return <form className="journey-add" aria-label={`Add a tea to ${service.name}`} onSubmit={event => { event.preventDefault(); add(); }}>
+    <input aria-label="Tea to add" list={listId} autoFocus value={text} placeholder="Tea name" disabled={busy}
+      className="min-h-tap min-w-0 flex-1 rounded-md bg-tea-bg px-3 text-ui-15 text-tea-text outline-none focus-visible:ring-1 focus-visible:ring-tea-gold"
+      onChange={event => { setText(event.target.value); setError(''); }}/>
+    <datalist id={listId}>{teas.map(item => <option key={item.id} value={item.label}/>)}</datalist>
+    <button type="submit" className="btn-secondary btn-sm" disabled={busy}>Add</button>
+    <button type="button" className="btn-quiet btn-sm" onClick={() => { setOpen(false); setError(''); }}>Close</button>
+    {error && <p role="alert" className="w-full text-ui-12 text-tea-text-sec">{error}</p>}
+  </form>;
+}
+
+export function ServiceJourneyCard({ service, journey, rate, busy, onEdit, onGo, addable = [], onAddTea, children }: {
   service: LogisticsService;
   journey: ServiceJourney;
   rate: string;
   busy: boolean;
   onEdit: () => void;
   onGo: () => void;
+  /** Teas that could travel by this service, labelled as they are picked. */
+  addable?: ReadonlyArray<{ id: string; label: string }>;
+  onAddTea?: (productId: string) => Promise<unknown> | void;
   /** The editor, when this service is being edited. */
   children?: React.ReactNode;
 }) {
   const [stage, setStage] = useState<JourneyStageKey | null>(journey.focus);
   const [allTeas, setAllTeas] = useState(false);
   const open = journey.stages.find(item => item.key === stage);
-  const quiet = !journey.focus && !journey.teas.length;
+  const quiet = !journey.focus;
   const teas = allTeas ? journey.teas : journey.teas.slice(0, SHOWN_TEAS);
   return <article className="journey-card" data-testid={`service-journey-${service.id}`} aria-label={`${service.logistics_company_name} ${service.name}`}>
     <header className="journey-head">
@@ -43,7 +70,7 @@ export function ServiceJourneyCard({ service, journey, rate, busy, onEdit, onGo,
       </div>
       <button type="button" className="btn-quiet btn-sm" disabled={busy} onClick={onEdit}>Edit</button>
     </header>
-    {quiet ? <p className="text-ui-12 text-tea-text-dim">Nothing on this route yet. Pick it on a tea, or when preparing a shipment.</p> : <>
+    {quiet ? <p className="text-ui-12 text-tea-text-dim">Nothing on this route yet. Choose it when preparing a shipment.</p> : <>
       <div className="journey-track" role="group" aria-label={`${service.name} journey`}>
         {journey.stages.map(item => <button key={item.key} type="button" className="journey-stage" data-stage={item.key}
           aria-pressed={stage === item.key} data-empty={item.items.length === 0 || undefined}
@@ -56,14 +83,15 @@ export function ServiceJourneyCard({ service, journey, rate, busy, onEdit, onGo,
       {open && open.items.length > 0 && <div className="journey-items" data-testid={`journey-items-${open.key}`}>
         {open.items.map(item => <JourneyChip key={item.key} item={item} onGo={onGo}/>)}
       </div>}
-      {journey.teas.length > 0 && <div className="journey-items" aria-label={`Teas priced by ${service.name}`}>
+    </>}
+      {(journey.teas.length > 0 || onAddTea) && <div className="journey-items" aria-label={`Teas priced by ${service.name}`}>
         <span className="text-ui-12 text-tea-text-dim journey-items-label">Teas</span>
         {teas.map(item => <JourneyChip key={item.key} item={item} onGo={onGo}/>)}
         {journey.teas.length > SHOWN_TEAS && <button type="button" className="journey-more tap-target text-ui-12 text-tea-text-dim" onClick={() => setAllTeas(!allTeas)}>
           {allTeas ? 'Fewer teas' : `+ ${journey.teas.length - SHOWN_TEAS} teas`}
         </button>}
+        {onAddTea && <AddTea service={service} teas={addable} busy={busy} onAdd={onAddTea}/>}
       </div>}
-    </>}
     {children}
   </article>;
 }
