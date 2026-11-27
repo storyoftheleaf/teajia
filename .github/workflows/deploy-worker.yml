@@ -88,8 +88,8 @@ jobs:
           echo "proven=$proven" >> "$GITHUB_OUTPUT"
           echo "prove: proven=$proven ($why)"
 
-  # Not proven: the same suite, split four ways as in Playwright, so a
-  # deploy that must test waits about 3 minutes, not 9.
+  # Not proven: the same suite, split six ways as in Playwright, so a
+  # deploy that must test waits about 2.5 minutes, not 9.
   worker-tests:
     needs: prove
     if: needs.prove.outputs.proven != 'true'
@@ -98,7 +98,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        shard: [1, 2, 3, 4]
+        shard: [1, 2, 3, 4, 5, 6]
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
@@ -118,8 +118,8 @@ jobs:
         run: npm ci
 
       # A failing auth/fulfillment test blocks the deploy.
-      - name: Worker tests (shard ${{ matrix.shard }}/4)
-        run: npm run test:worker -- --shard=${{ matrix.shard }}/4
+      - name: Worker tests (shard ${{ matrix.shard }}/6)
+        run: npm run test:worker -- --shard=${{ matrix.shard }}/6
 
   deploy:
     needs: [prove, worker-tests]

@@ -155,15 +155,34 @@ jobs:
       - name: Color rules
         run: npm run lint:colors
 
+  build:
+    # The production build, beside the static lane instead of after it: it
+    # was the last minute of a 3 minute serial job (2026-11-27). Same command,
+    # same bundle Cloudflare Pages produces; `checks` still requires it.
+    runs-on: ubuntu-latest
+    needs: gate
+    if: needs.gate.outputs.run == 'true' && github.event_name != 'schedule'
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
       - name: Build
         run: npm run build
 
   worker-tests:
     # The worker suite took 9 of a PR's 12 minutes run in one piece, and
-    # crossed 15 minutes on slow runners (2026-11-27). Split four ways it
-    # takes about 2.5 minutes a shard. Every test still runs: vitest's
-    # --shard partitions the whole file list, and `checks` fails unless
-    # every shard passed.
+    # crossed 15 minutes on slow runners (2026-11-27). Split four ways a shard
+    # still took 3.5 minutes and was the long pole with `mobile`; six ways it
+    # is about 2.5. Every test still runs: vitest's --shard partitions the
+    # whole file list, and `checks` fails unless every shard passed.
     runs-on: ubuntu-latest
     needs: gate
     if: needs.gate.outputs.run == 'true' && github.event_name != 'schedule'
@@ -171,7 +190,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4]
+        shard: [1, 2, 3, 4, 5, 6]
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
@@ -190,8 +209,8 @@ jobs:
         working-directory: worker
         run: npm ci
 
-      - name: Worker tests (shard ${{ matrix.shard }}/4)
-        run: npm run test:worker -- --shard=${{ matrix.shard }}/4
+      - name: Worker tests (shard ${{ matrix.shard }}/6)
+        run: npm run test:worker -- --shard=${{ matrix.shard }}/6
 
   checks:
     # One stable required check. It passes only when the static lane and
@@ -200,15 +219,16 @@ jobs:
     # looks for that name and skips rerunning the worker suite for a tree
     # already proven here, which is what a merge of an up-to-date PR is.
     runs-on: ubuntu-latest
-    needs: [gate, checks-static, worker-tests]
+    needs: [gate, checks-static, build, worker-tests]
     if: always() && needs.gate.outputs.run == 'true' && github.event_name != 'schedule'
     timeout-minutes: 3
     steps:
-      - name: Require the static lane and every worker shard
+      - name: Require the static lane, the build and every worker shard
         env:
           STATIC_RESULT: ${{ needs.checks-static.result }}
+          BUILD_RESULT: ${{ needs.build.result }}
           WORKER_RESULT: ${{ needs.worker-tests.result }}
-        run: test "$STATIC_RESULT" = success && test "$WORKER_RESULT" = success
+        run: test "$STATIC_RESULT" = success && test "$BUILD_RESULT" = success && test "$WORKER_RESULT" = success
 
       - name: Record the proven tree
         env:
@@ -227,11 +247,21 @@ jobs:
           overwrite: true
           if-no-files-found: error
 
-  mobile:
+  mobile-lane:
+    # `mobile` ran the mobile browser suite and then the admin journeys one
+    # after the other, about 5 minutes, the longest job on every PR
+    # (2026-11-27). Now the browser suite is split in two (the config is
+    # fullyParallel, so --shard splits by test) and the admin journeys, which
+    # are vitest and need no browser install, run beside them. `mobile` below
+    # joins the three into the one check it always was.
     runs-on: ubuntu-latest
     needs: gate
     if: needs.gate.outputs.run == 'true' && github.event_name != 'schedule'
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        lane: [mobile-1, mobile-2, admin-behavior]
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
@@ -244,13 +274,28 @@ jobs:
         run: npm ci
 
       - name: Install Chromium
+        if: matrix.lane != 'admin-behavior'
         run: npx playwright install --with-deps chromium
 
-      - name: Mobile regression suite
-        run: npm run test:mobile
+      - name: Mobile regression suite (half ${{ matrix.lane == 'mobile-1' && '1' || '2' }} of 2)
+        if: matrix.lane != 'admin-behavior'
+        run: npm run test:mobile -- --shard=${{ matrix.lane == 'mobile-1' && '1' || '2' }}/2
 
       - name: Admin component browser journeys
+        if: matrix.lane == 'admin-behavior'
         run: npm run test:admin-behavior
+
+  mobile:
+    # The one stable check name, as before the split.
+    runs-on: ubuntu-latest
+    needs: [gate, mobile-lane]
+    if: always() && needs.gate.outputs.run == 'true' && github.event_name != 'schedule'
+    timeout-minutes: 3
+    steps:
+      - name: Require both mobile halves and the admin journeys
+        env:
+          LANES_RESULT: ${{ needs.mobile-lane.result }}
+        run: test "$LANES_RESULT" = success
 
   e2e:
     # Every spec the default config can run. Two projects, not three:
@@ -355,13 +400,30 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Most PRs change no spec, and every shard used to install Chromium and
+      # build (about 2 minutes each, 12 runner minutes a PR) to then run
+      # nothing (2026-11-27). Listing needs neither the browser nor the dev
+      # server, so ask first and skip the rest when this shard has no test.
+      - id: select
+        name: Which specs this shard runs
+        run: |
+          set -euo pipefail
+          out="$(npx playwright test --project="Desktop Chrome" --project="Mobile Chrome" --only-changed="origin/${{ github.base_ref }}" --pass-with-no-tests --shard=${{ matrix.shard }}/6 --list)"
+          printf '%s\n' "$out" | tail -n 20
+          total="$(printf '%s\n' "$out" | sed -n 's/^Total: \([0-9][0-9]*\) tests\{0,1\} in .*/\1/p' | tail -n1)"
+          case "$total" in ''|*[!0-9]*) echo "could not read the test count; running the shard"; total=1;; esac
+          echo "total=$total" >> "$GITHUB_OUTPUT"
+
       - name: Install Chromium
+        if: steps.select.outputs.total != '0'
         run: npx playwright install --with-deps chromium
 
       - name: Build
+        if: steps.select.outputs.total != '0'
         run: npm run build
 
       - name: Browser specs this PR changed
+        if: steps.select.outputs.total != '0'
         run: npx playwright test --project="Desktop Chrome" --project="Mobile Chrome" --only-changed="origin/${{ github.base_ref }}" --pass-with-no-tests --shard=${{ matrix.shard }}/6 --reporter=list
 
   e2e-changed:

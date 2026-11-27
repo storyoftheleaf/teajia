@@ -1,3 +1,7 @@
+## 2026-11-27: Ship faster: preflight, wider CI, review while CI runs, auto-merge
+
+Today's red PR runs were all repo-wide guards (the raw button ceiling, a style-size ceiling, the migration ledger) that run in seconds. `npm run preflight` (`scripts/preflight.mjs`) now runs them, the type check, colors and the tests for what changed, side by side, in about a minute. In CI the build has its own lane, the worker suite runs in six shards, `mobile` runs as two browser halves plus the admin journeys (no browser install), and each changed-spec shard lists its tests first and skips the browser install and build when it has none, which is most PRs. `checks`, `mobile` and `e2e-changed` keep their names. `review-pr` now runs while CI runs on a draft, then the PR goes ready with auto-merge on and the thread moves on. The rules are in `CLAUDE.md` and `docs/claude/ship-fast.md`.
+
 ## 2026-11-27: The rail's two-word labels stack, and the Manage drawer is a slim column
 
 Adrian chose the final desktop look from the alternatives. "tea table" and "tea spaces" in the rail now sit on two close lines (`.rail-stacked`). The Manage drawer is a 56px porcelain column of small glyph-over-word tiles joined to the rail with a gold hairline, the room you are in lit gold, so the aside is `7.25rem` with the drawer out (was `9rem`). The other looks tried and their `?manage=` switch are gone. Files: `LeftSidebar.tsx`, `card-utilities.css`; the rules are in `docs/claude/layout.md`.

@@ -21,6 +21,7 @@
     "lint:colors": "bash scripts/lint-colors.sh",
     "preview": "vite preview",
     "lint": "tsc --noEmit",
+    "preflight": "node scripts/preflight.mjs",
     "test:read-delivery": "node --test scripts/read-delivery-plugin.test.mjs",
     "test:admin-behavior": "vitest run --config vitest.admin-behavior.config.ts",
     "test:src": "vitest run src functions --exclude='**/*.behavior.test.ts' --exclude='**/.claude/worktrees/**' --exclude='**/.worktrees/**'",
