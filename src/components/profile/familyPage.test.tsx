@@ -31,7 +31,7 @@ describe('the word on a page', () => {
     expect(familyPageAllowsPay('creator')).toBe(false);
     expect(familyPageAllowsPay('master')).toBe(true);
     expect(familyPageAllowsPay(null)).toBe(true);
-    expect(Object.values(FAMILY_PAGE_WORDS)).toEqual(['Teajia family', 'Tea creator', 'Tea master']);
+    expect(Object.values(FAMILY_PAGE_WORDS)).toEqual(['Teajia family', 'Tea creator', 'Host']);
   });
 });
 
@@ -56,7 +56,7 @@ describe('the editor a person sees', () => {
 
   it('keeps the approval step for a tea master', () => {
     const html = editor({ ...base, page_tier: 'master' });
-    expect(html).toContain('Tea master');
+    expect(html).toContain('value="Host"');
     expect(html).toContain('Save for review');
   });
 });

@@ -12,6 +12,10 @@ export const teaHref = (productId: string) => `/admin/stock?panel=${q(productId)
 export const purchaseHref = (purchaseId: string) => `/admin/purchase-orders?purchaseId=${q(purchaseId)}`;
 export const shipmentHref = (shipmentId: string) => `/admin/purchase-orders?shipmentId=${q(shipmentId)}`;
 export const serviceHref = (serviceId: string) => `/admin/purchase-orders?serviceId=${q(serviceId)}`;
+/** Shipping rates, opened at the shop default with its form ready (Adrian, 2026-11-27). */
+export const shopDefaultHref = '/admin/purchase-orders?serviceId=shop';
+/** Shipping rates, the shop default and every service. */
+export const shippingRatesHref = '/admin/purchase-orders?rates=open';
 
 export const SHIPMENT_STATE_WORD: Record<LogisticsShipment['state'], string> = {
   draft: 'Being packed', in_transit: 'On the way', partially_received: 'Part received', received: 'Received', cancelled: 'Cancelled',

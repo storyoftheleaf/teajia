@@ -61,7 +61,7 @@ test('a route is added and its figures are tapped and typed, but it holds no fre
   await expect(air).toContainText('Teajia Bali');
   // Freight rates are typed only in Logistics (Adrian, 2026-11-27): no rate here, a link there.
   await expect(air.getByRole('button', { name: /rate per kilo|rate currency/ })).toHaveCount(0);
-  await expect(section.getByRole('link', { name: 'Logistics' })).toHaveAttribute('href', '/admin/purchase-orders');
+  await expect(section.getByRole('link', { name: 'Shipping rates' })).toHaveAttribute('href', '/admin/purchase-orders?rates=open');
   expect(writes.filter(w => w.body && ('rate_per_kg' in w.body || 'rate_currency' in w.body))).toEqual([]);
   // Nor does Store Settings type the shop default any more.
   await expect(page.getByRole('textbox', { name: /Freight Rate per kg|Freight Currency/ })).toHaveCount(0);

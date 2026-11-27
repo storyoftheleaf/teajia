@@ -56,10 +56,11 @@ export function tableDoor(): string {
 
 /**
  * Where "house" goes. The Tea Houses overview while the portfolio is open;
- * until then Visit, the one Tea Houses page that is always there.
+ * until then Advise, so the word never leads to a missing page.
  */
 export function housesDoor(): string {
-  return teaHousesOpen() ? '/tea-houses' : '/tea-houses/visit';
+  // Adrian, 2026-11-27 (4.20): Advise until Tea Houses opens, so nobody lands on a missing page.
+  return teaHousesOpen() ? '/tea-houses' : '/advise';
 }
 
 const READ_LIGHTS = ['/read', '/article', '/craft', '/learn', '/wisdom', '/magazine'] as const;

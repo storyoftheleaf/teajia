@@ -86,7 +86,7 @@ function personSteps(person: PersonReadinessInput): TeaMasterReadinessStep[] {
         ? 'Your name and your story are written.'
         : person.hasProfile
           ? 'Add your public name and a short biography.'
-          : 'Start your Tea Master profile with a name and a short biography.',
+          : 'Start your host profile with a name and a short biography.',
       done: identityDone,
       route: PROFILE_ROUTE,
     },

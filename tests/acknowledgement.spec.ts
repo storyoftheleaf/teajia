@@ -156,8 +156,8 @@ test('the word Adrian granted shows once beneath the name, and only where one ex
   });
   await page.goto('/people/mei');
   const cover = page.getByTestId('profile-cover');
-  await expect(page.getByTestId('profile-granted-word')).toHaveText('Tea master');
-  expect((await cover.innerText()).match(/tea master/gi)?.length).toBe(1);
+  await expect(page.getByTestId('profile-granted-word')).toHaveText('Host');
+  expect((await cover.innerText()).match(/\bhost\b/gi)?.length).toBe(1);
   expect(await cover.innerText()).not.toMatch(/\d/);
   await noHorizontalOverflow(page);
 

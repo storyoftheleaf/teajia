@@ -56,6 +56,7 @@ import { curatePhotoTools } from './mcpTools/curatePhotos';
 import { curateArrivalTools } from './mcpTools/curateArrivals';
 import { orderTrackingTools } from './mcpTools/orderTracking';
 import { priceLinkTools } from './mcpTools/priceLinks';
+import { paymentDetailsTools } from './mcpTools/paymentDetails';
 import { purchaseArrivalTools } from './mcpTools/purchaseArrivals';
 import { curateAttachmentTools } from './mcpTools/curateAttachments';
 import { curateManageModule } from './mcpTools/curateManage';
@@ -67,6 +68,7 @@ import { stockCountTools } from './mcpTools/stockCount';
 import { supplierPhotoTools } from './mcpTools/supplierPhoto';
 import { curateDisplayNameTools } from './mcpTools/curateDisplayNames';
 import { teaPageContentTools } from './mcpTools/teaPageContent';
+import { freightRateTools } from './mcpTools/freightRates';
 import type { CurateReceiptService, HostSeatService, InventoryReceiptService, Launch3Services, StockMovementService, ToolEnv } from './mcpTools/registry';
 import { freightFor, shippingPerGramUsd } from './shippingRate';
 import { accountFreightDefaults } from './productPricing';
@@ -6819,7 +6821,7 @@ const TOOL_DEFS: ToolDefinition[] = [
         default_currency: { type: 'string', description: '3-letter ISO currency code, e.g. AUD.' },
         contact_email: { type: 'string', description: 'Primary contact email for the account.' },
         contact_phone: { type: 'string', description: 'WhatsApp / primary phone number for the account.' },
-        default_shipping_rate_per_kg: { type: 'number', description: 'Shop freight per kg, applied to every tea that has no rate of its own. Quoted in default_shipping_rate_currency and converted to USD live. Folded into the COST basis, so the markup multiplies it. Shop default is 85 Yuan/kg.' },
+        default_shipping_rate_per_kg: { type: 'number', description: 'Shop freight per kg, applied to every tea that has no rate of its own. Quoted in default_shipping_rate_currency and converted to USD live. Passed on at cost: added after the x3, never multiplied. Shop default is 85 Yuan/kg. list_freight_rates shows every rate.' },
         default_shipping_rate_currency: { type: 'string', description: 'Currency the freight rate is quoted in: Yuan, USD, HKD. Must exist in the exchange rate table.' },
         confirm: { type: 'string', description: 'Confirmation token from preview response.' },
       },
@@ -7238,6 +7240,7 @@ const TOOL_MODULES: ToolModule[] = [
   curateArrivalTools,
   orderTrackingTools,
   priceLinkTools,
+  paymentDetailsTools,
   purchaseArrivalTools,
   logisticsTools,
   logisticsTrackingTools,
@@ -7251,6 +7254,7 @@ const TOOL_MODULES: ToolModule[] = [
   supplierPhotoTools,
   curateDisplayNameTools,
   teaPageContentTools,
+  freightRateTools,
 ];
 
 const { defs: MODULE_TOOL_DEFS, handlers: MODULE_TOOL_HANDLERS } = combineToolModules(TOOL_MODULES);

@@ -45,7 +45,7 @@ function PersonCard({ person }: { person: ContributorListItem }) {
       height={180}
       className="!flex-row !items-stretch !justify-start"
       testId="people-card"
-      ariaLabel={`${person.display_name}, ${coverKicker(person.role, person.location_line) || 'tea master'}`}
+      ariaLabel={`${person.display_name}, ${coverKicker(person.role, person.location_line) || 'host'}`}
     >
       <span className="-m-6 flex h-[180px]">
         <span className="relative w-[140px] flex-none overflow-hidden bg-tea-elevated">

@@ -4286,6 +4286,11 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_host_credit_requests_key
   WHERE request_key IS NOT NULL;
 ALTER TABLE host_credit_spend_requests ADD COLUMN release_reason TEXT;
 
+-- 0150_practice_lines.sql
+ALTER TABLE contributors ADD COLUMN practice_since INTEGER CHECK (practice_since IS NULL OR practice_since BETWEEN 1930 AND 2200);
+ALTER TABLE contributors ADD COLUMN practice_drawn TEXT CHECK (practice_drawn IS NULL OR length(practice_drawn) BETWEEN 1 AND 140);
+ALTER TABLE contributors ADD COLUMN practice_doings TEXT CHECK (practice_doings IS NULL OR length(practice_doings) BETWEEN 1 AND 200);
+
 -- 0152_host_credit_owner_fill_and_shortfalls.sql
 -- A8-6: a staff seller cannot award credit on their own. filled_by_staff is
 -- the person, not the shop's owner, whose Fill made the order Filled; the
