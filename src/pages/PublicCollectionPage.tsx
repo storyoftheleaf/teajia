@@ -12,6 +12,7 @@ import {
   type LinkTeaDetailFields, type LinkTeaSource,
 } from '../components/shop/linkTea';
 import { AlcoveModal } from '../components/shop/AlcoveModal';
+import { CurrencySelect } from '../components/shop/CurrencySelect';
 import { TeaLedger, type TeaLedgerGroup } from '../components/shop/TeaLedger';
 import { weighOptions, startingIndex, type WeighOption } from '../components/shop/TeaWeighControl';
 import { useShopPrice } from '../components/shop/shopPrice';
@@ -260,53 +261,52 @@ const CollectionShelf: React.FC<{ data: PublicCollectionResponse } & CartHooks> 
         </div>
       )}
 
-      <div className="max-w-6xl mx-auto px-4 md:px-6 lg:px-10 pt-6 md:pt-10">
-        <nav aria-label="Where you are" className="flex flex-wrap items-center gap-x-2 gap-y-1 label-caps text-tea-text-sec mb-4">
-          <Link to="/shop" className="tap-target hover:text-tea-text transition-colors">{storeName} shop</Link>
-          <span aria-hidden="true" className="text-tea-text-dim">/</span>
-          <span>Made for you</span>
-        </nav>
+      <div className="max-w-6xl mx-auto px-4 md:px-6 lg:px-10 pt-3 md:pt-6">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+          <nav aria-label="Where you are" className="flex flex-wrap items-center gap-x-2 gap-y-1 label-caps text-tea-text-sec">
+            <Link to="/shop" className="tap-target hover:text-tea-text transition-colors">{storeName} shop</Link>
+            <span aria-hidden="true" className="text-tea-text-dim">/</span>
+            <span>Made for you</span>
+          </nav>
+          <CurrencySelect />
+        </div>
 
-        {/* The head is set apart from the shop: a panel of its own, saying who
-            chose these teas. */}
-        <header ref={headRef} className="rounded-md border border-tea-border bg-tea-elevated px-5 py-6 md:px-8 md:py-8" data-testid="collection-head">
-          <p className="label-caps text-tea-gold mb-3">Chosen for you by {curatorName || storeName}</p>
-          <h1 className="h1 text-tea-text mb-3 max-w-[22ch]">{collection.title}</h1>
-          {collection.note && <p className="body-prose text-tea-text-sec italic max-w-[56ch]">{collection.note}</p>}
-          <p className="mt-3 font-sans text-ui-12 text-tea-text-sec">
-            {`${visible.length} ${visible.length === 1 ? 'tea' : 'teas'} from the shop`}
-          </p>
-          <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-3">
-            {signedIn ? (
-              <span className="inline-flex items-center gap-1.5 font-sans text-ui-12 text-tea-text-sec" data-testid="collection-kept">
-                <Check size={13} className="text-tea-gold" /> Kept in your account
-              </span>
-            ) : slug ? (
-              <Link to={authPagePath('signup', `/c/${slug}`)} className="btn-secondary btn-sm" data-testid="collection-account-offer">
-                <Bookmark size={13} /> Keep it in a free account
-              </Link>
-            ) : null}
-            <button
-              type="button"
-              onClick={handleShare}
-              className="tap-target inline-flex items-center gap-1.5 font-sans text-ui-12 text-tea-text-sec hover:text-tea-text transition-colors"
-              aria-label="Share this collection"
-            >
-              {shareState === 'copied'
-                ? (<><Link2 size={13} className="text-tea-gold" /> Link copied</>)
-                : (<><Share2 size={13} /> Share</>)}
-            </button>
-            <Link to="/shop" className="tap-target inline-flex items-center gap-1 font-sans text-ui-12 text-tea-text-sec hover:text-tea-text transition-colors">
-              See the whole shop <ArrowRight size={12} />
-            </Link>
+        {/* The head is set apart from the shop, a panel of its own saying who
+            chose these teas, and kept short so the teas start on the first screen. */}
+        <header ref={headRef} className="flex items-start gap-4 rounded-md border border-tea-border bg-tea-elevated px-4 py-4 md:px-6 md:py-5" data-testid="collection-head">
+          <div className="min-w-0 flex-1">
+            <p className="label-caps text-tea-gold mb-1.5">Chosen for you by {curatorName || storeName}<span className="text-tea-text-sec">{` · ${visible.length} ${visible.length === 1 ? 'tea' : 'teas'}`}</span></p>
+            <h1 className="font-display text-ui-26 leading-[1.1] text-tea-text">{collection.title}</h1>
+            {collection.note && <p className="mt-1.5 font-body text-ui-14 leading-[1.5] text-tea-text-sec italic max-w-[64ch]">{collection.note}</p>}
+            <div className="mt-2 flex flex-wrap items-center gap-x-4 font-sans text-ui-12 text-tea-text-sec">
+              {signedIn ? (
+                <span className="inline-flex items-center gap-1.5" data-testid="collection-kept">
+                  <Check size={13} className="text-tea-gold" /> Kept in your account
+                </span>
+              ) : slug ? (
+                <Link to={authPagePath('signup', `/c/${slug}`)} className="tap-target inline-flex items-center gap-1.5 text-tea-text hover:text-tea-gold transition-colors" data-testid="collection-account-offer">
+                  <Bookmark size={13} /> Keep it in a free account
+                </Link>
+              ) : null}
+              <button
+                type="button"
+                onClick={handleShare}
+                className="tap-target inline-flex items-center gap-1.5 hover:text-tea-text transition-colors"
+                aria-label="Share this collection"
+              >
+                {shareState === 'copied'
+                  ? (<><Link2 size={13} className="text-tea-gold" /> Link copied</>)
+                  : (<><Share2 size={13} /> Share</>)}
+              </button>
+            </div>
           </div>
           {collection.hero_image_url && (
-            <img src={collection.hero_image_url} alt="" className="mt-6 w-full max-h-[46vh] object-cover rounded-md" loading="eager" />
+            <img src={collection.hero_image_url} alt="" className="h-20 w-20 shrink-0 rounded-md object-cover md:h-24 md:w-24" loading="eager" />
           )}
         </header>
       </div>
 
-      <section aria-label="The teas" className="max-w-6xl mx-auto px-4 md:px-6 lg:px-10 pt-4 pb-10">
+      <section aria-label="The teas" className="max-w-6xl mx-auto px-4 md:px-6 lg:px-10 pt-2 pb-10">
         {visible.length === 0 ? (
           <p className="font-body text-ui-15 leading-[1.65] text-tea-text-sec italic py-10 text-center">
             The teas in this collection are currently unavailable.

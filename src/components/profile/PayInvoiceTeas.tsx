@@ -1,33 +1,91 @@
 import { useMemo, useState } from 'react';
-import { ArrowRight } from 'lucide-react';
 import { AlcoveModal } from '../shop/AlcoveModal';
-import { LinkTeaEntry, LinkTeaPhoto, linkTeaInventoryItem, linkTeaMetaLine, useLinkTeaWriting, type LinkTeaSource } from '../shop/linkTea';
+import { LinkTeaEntry, linkTeaInventoryItem, useLinkTeaWriting, type LinkTeaSource } from '../shop/linkTea';
+import { TeaLedger, type TeaLedgerGroup } from '../shop/TeaLedger';
+import type { WeighOption } from '../shop/TeaWeighControl';
+import { useShopPrice } from '../shop/shopPrice';
+import { useAppStore } from '../../lib/store';
+import type { InventoryItem } from '../../types';
 import type { PayLinkTeaLine } from './types';
 
 /**
- * The teas on an invoice, at the top of its pay page, drawn as the private
- * collection link draws them: the photo when there is one, the shop's one line
- * of type and place, the amount and its price, and the opening of the tea's
- * Tea Wisdom writing. A tea opens in the shop's own tea card, to read; paying
- * happens here, so the card carries no order footer. Shown only to a holder of
- * the invoice's own link; the worker decides that before it sends a line.
+ * The teas on an invoice, at the top of its pay page, drawn as the shop draws
+ * them (Adrian, 2026-11-27: "make her tea invoice look like Daniel's"): the
+ * shop's own rows under type headings, with what was bought and its price where
+ * the shop puts its weigh box. A tea opens in the shop's own tea card, to read;
+ * paying happens here, so the card carries no order footer. Shown only to a
+ * holder of the invoice's own link; the worker decides that before it sends a line.
  */
 export function PayInvoiceTeas({ lines }: { lines: readonly PayLinkTeaLine[] }) {
   const [openId, setOpenId] = useState<string | null>(null);
-  const cards = useMemo(() => lines.filter(line => line.product_id).map(line => linkTeaInventoryItem({
-    ...sourceOf(line), ...line, chineseName: line.chinese_name, year: line.year, image: line.image_url,
-  })), [lines]);
-  const byProduct = useMemo(() => new Map(lines.map(line => [line.product_id, line])), [lines]);
+  const shopPrice = useShopPrice();
+  const favoriteTeas = useAppStore(s => s.favoriteTeas);
+  const toggleFavoriteTea = useAppStore(s => s.toggleFavoriteTea);
+  const favoriteIds = useMemo(() => new Set(favoriteTeas), [favoriteTeas]);
+  // One row per tea and amount. The same tea bought as two 100g packs is two
+  // lines on the invoice and one row here reading "2 × 100g" (Adrian,
+  // 2026-11-27). A tea bought in other amounts, or a line with no tea behind
+  // it, gets a row and an id of its own.
+  const rows = useMemo(() => {
+    const packs = new Map<string, { line: PayLinkTeaLine; count: number; totalUsd: number }>();
+    lines.forEach((line, index) => {
+      const key = line.product_id ? `${line.product_id}|${line.unit}|${line.quantity}` : `line-${index}`;
+      const pack = packs.get(key);
+      if (pack) { pack.count += 1; pack.totalUsd += line.line_total_usd; }
+      else packs.set(key, { line, count: 1, totalUsd: line.line_total_usd });
+    });
+    const seen = new Set<string>();
+    return Array.from(packs.values()).map(({ line, count, totalUsd }, index) => {
+      const id = line.product_id && !seen.has(line.product_id) ? line.product_id : `invoice-line-${index}`;
+      if (line.product_id) seen.add(line.product_id);
+      const card = linkTeaInventoryItem({ ...sourceOf(line), ...line, chineseName: line.chinese_name, year: line.year, image: line.image_url });
+      const one = line.unit === 'g' ? `${line.quantity}g` : `${line.quantity} ${line.quantity === 1 ? 'piece' : 'pieces'}`;
+      const amount: WeighOption = {
+        grams: line.quantity * count,
+        totalUsd: Math.round(totalUsd * 100) / 100,
+        label: count > 1 ? `${count} × ${one}` : line.unit === 'g' ? undefined : one,
+      };
+      return { id, line, card: { ...card, id } as InventoryItem, amount };
+    });
+  }, [lines]);
+  const totalUsd = Math.round(lines.reduce((sum, line) => sum + line.line_total_usd, 0) * 100) / 100;
+  // An invoice owes cents, so dollars read to the cent; another currency
+  // reads as the shop quotes it, the near figure.
+  const exact = (usd: number) => (shopPrice.code === 'USD'
+    ? `$${Number.isInteger(usd) ? usd : usd.toFixed(2)}`
+    : shopPrice.symbolTotal(usd));
+  const formatPrice = (usd: number) => (usd === 0 ? 'Free' : exact(usd));
+  const byId = useMemo(() => new Map(rows.map(row => [row.id, row])), [rows]);
+  const groups = useMemo<TeaLedgerGroup[]>(() => {
+    const order: string[] = [];
+    const byType = new Map<string, InventoryItem[]>();
+    for (const row of rows) {
+      const type = row.card.type || 'Tea';
+      if (!byType.has(type)) { byType.set(type, []); order.push(type); }
+      byType.get(type)!.push(row.card);
+    }
+    return order.map(type => ({ type, items: byType.get(type)! }));
+  }, [rows]);
+  const cards = useMemo(() => rows.filter(row => row.line.product_id).map(row => row.card), [rows]);
   if (lines.length === 0) return null;
   return (
-    <section aria-label="What this pays for" className="mt-5 border-t border-tea-border pt-4" data-testid="pay-invoice-teas">
-      <p className="label-caps text-tea-text-dim mb-1">What this pays for</p>
-      <ul className="flex flex-col divide-y divide-tea-border">
-        {lines.map((line, index) => (
-          <PayInvoiceTea key={`${line.product_id ?? line.name}-${index}`} line={line}
-            onOpen={line.product_id ? () => setOpenId(line.product_id) : undefined} />
-        ))}
-      </ul>
+    <section aria-label="What this pays for" data-testid="pay-invoice-teas">
+      <TeaLedger
+        groups={groups}
+        activeType="All"
+        specialFilter="None"
+        tastingCounts={new Map()}
+        priceWeight={50}
+        formatPrice={formatPrice}
+        favoriteIds={favoriteIds}
+        onToggleFavorite={(id, event) => { event.stopPropagation(); const row = byId.get(id); if (row?.line.product_id) toggleFavoriteTea(row.line.product_id); }}
+        onOpenProduct={card => { if (byId.get(card.id)?.line.product_id) setOpenId(card.id); }}
+        weighOptionsFor={card => { const row = byId.get(card.id); return row ? [row.amount] : undefined; }}
+      />
+      <div className="flex items-baseline justify-between gap-4 border-b border-tea-border px-4 py-4 md:px-6" data-testid="pay-invoice-total">
+        <span className="label-caps text-tea-text-sec">Total</span>
+        <span className="font-display text-ui-22 tabular-nums text-tea-text">{exact(totalUsd)}</span>
+      </div>
       {openId && (
         <AlcoveModal
           item={cards.find(card => card.id === openId) ?? null}
@@ -36,7 +94,7 @@ export function PayInvoiceTeas({ lines }: { lines: readonly PayLinkTeaLine[] }) 
           onItemChange={next => setOpenId(next.id)}
           linkFooter={() => null}
           linkAddition={card => {
-            const line = byProduct.get(card.id);
+            const line = byId.get(card.id)?.line;
             return line ? <PayTeaWriting line={line} /> : null;
           }}
         />
@@ -56,52 +114,7 @@ function sourceOf(line: PayLinkTeaLine): LinkTeaSource {
   };
 }
 
-function money(n: number): string {
-  return n === 0 ? 'Free' : `$${(Math.round(n * 100) / 100).toFixed(2)}`;
-}
-
 function PayTeaWriting({ line }: { line: PayLinkTeaLine }) {
   const writing = useLinkTeaWriting(sourceOf(line));
   return <LinkTeaEntry writing={writing} className="alcove-body-section mt-7" />;
-}
-
-function PayInvoiceTea({ line, onOpen }: { line: PayLinkTeaLine; onOpen?: () => void }) {
-  const source = sourceOf(line);
-  const writing = useLinkTeaWriting(source);
-  const meta = linkTeaMetaLine({ ...source, year: line.year });
-  const amount = line.unit === 'g' ? `${line.quantity}g` : `×${line.quantity}`;
-  const body = (
-    <>
-      <LinkTeaPhoto src={line.image_url} className="h-16 w-16 shrink-0 rounded-md" />
-      <span className="block min-w-0 flex-1">
-        <span className="flex items-baseline justify-between gap-3">
-          <span className="min-w-0 font-display text-ui-17 leading-tight text-tea-text">{line.name}</span>
-          <span className="shrink-0 font-body text-ui-14 tabular-nums text-tea-text">{money(line.line_total_usd)}</span>
-        </span>
-        <span className="mt-1 block font-sans text-ui-12 text-tea-text-sec">
-          <span className="tabular-nums">{amount}</span>
-          {meta && <span className="uppercase tracking-[0.04em]"> · {meta}</span>}
-        </span>
-        {writing.lead && (
-          <span className="mt-1.5 block font-body text-ui-13 leading-[1.55] text-tea-text-sec line-clamp-2">{writing.lead}</span>
-        )}
-        {onOpen && (
-          <span className="mt-1 inline-flex items-center gap-1 font-sans text-ui-12 text-tea-text-sec">
-            Open the tea <ArrowRight size={11} aria-hidden="true" />
-          </span>
-        )}
-      </span>
-    </>
-  );
-  return (
-    <li>
-      {onOpen ? (
-        <button type="button" onClick={onOpen} aria-haspopup="dialog" className="flex w-full items-start gap-3 py-3 text-left transition-colors hover:bg-tea-text/5">
-          {body}
-        </button>
-      ) : (
-        <div className="flex items-start gap-3 py-3">{body}</div>
-      )}
-    </li>
-  );
 }

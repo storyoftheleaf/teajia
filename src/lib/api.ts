@@ -5197,7 +5197,7 @@ export const api = {
           is_owner: data?.viewer?.is_owner === true,
           request_status: data?.viewer?.request_status === 'approved' ? 'approved' : data?.viewer?.request_status === 'pending' ? 'pending' : null,
         },
-        invoice: data?.invoice ? { invoice_number: data.invoice.invoice_number ?? null, outstanding_usd: Number(data.invoice.outstanding_usd || 0), lines: Array.isArray(data.invoice.lines) ? data.invoice.lines : [] } : null,
+        invoice: data?.invoice ? { invoice_number: data.invoice.invoice_number ?? null, outstanding_usd: Number(data.invoice.outstanding_usd || 0), lines: Array.isArray(data.invoice.lines) ? data.invoice.lines : [], kept: data.invoice.kept === true } : null,
       };
     },
     requestPayAccess: async (slug: string): Promise<{ status: 'pending' | 'approved'; grant_id: string }> => {

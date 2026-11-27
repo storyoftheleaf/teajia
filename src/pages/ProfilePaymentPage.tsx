@@ -4,6 +4,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { PaymentChooser } from '../components/profile/PaymentChooser';
 import { PayInvoiceTeas } from '../components/profile/PayInvoiceTeas';
+import { PayInvoiceKeep } from '../components/profile/PayInvoiceKeep';
+import { CurrencySelect } from '../components/shop/CurrencySelect';
 import { authPagePath } from '../lib/authNavigation';
 import { buildPaymentPageUrl, isTrackingTokenShaped, normalizeLocalAmount, parsePaymentContext, toPaymentOrderSummary } from '../components/profile/profileDomain';
 import { firstName } from '../components/people/profileFormat';
@@ -193,39 +195,75 @@ export default function ProfilePaymentPage() {
     : visibleCount === 2
       ? 'Two ways. Both come straight to me.'
       : `${visibleCount} ways. All come straight to me.`;
+  const heading = access.contributor.business_name
+    ? <>For tea bought <span className="italic text-tea-readgold">at {access.contributor.business_name}</span></>
+    : <>Pay <span className="italic text-tea-readgold">{access.contributor.display_name}</span></>;
+  const accountLinks = associationRows.length > 0 && (
+    <nav aria-label="Payment account" className="mt-4 flex flex-wrap gap-2">
+      <a href={(() => { const url = new URL(buildPaymentPageUrl(slug, null, 'https://teajia.com', context)); return `${url.pathname}${withToken(url.search, shareToken)}`; })()} className={`tap-target rounded-md border px-3 py-2 text-ui-12 ${!accountSlug ? 'border-tea-gold bg-tea-accent-sub text-tea-text' : 'border-tea-border text-tea-text-sec hover:text-tea-text'}`}>Personal default</a>
+      {associationRows.map(association => {
+        const url = new URL(buildPaymentPageUrl(slug, association.account_slug, 'https://teajia.com', context));
+        return <a key={association.account_id} href={`${url.pathname}${withToken(url.search, shareToken)}`} className={`tap-target rounded-md border px-3 py-2 text-ui-12 ${accountSlug === association.account_slug ? 'border-tea-gold bg-tea-accent-sub text-tea-text' : 'border-tea-border text-tea-text-sec hover:text-tea-text'}`}>{association.account_name}</a>;
+      })}
+    </nav>
+  );
+  const chooser = (
+    <PaymentChooser contributorName={data.contributor.display_name} methods={data.methods} destination={destination} context={context} local={normalizeLocalAmount(data.context?.local)} accountName={data.account?.name} resolution={data.resolution} summary={summary} />
+  );
+  // The same quiet offer the collection link makes: an account is never
+  // needed to read or pay, and joining brings them back to this page.
+  const accountOffer = !access.viewer.signed_in && (
+    <p className="mt-4 border-t border-tea-border pt-4 text-ui-13 text-tea-text-sec" data-testid="pay-account-offer">
+      Want to keep this?{' '}
+      <Link to={authPagePath('signup', `${window.location.pathname}${window.location.search}`)} className="relative text-tea-text underline before:absolute before:-inset-y-3 before:inset-x-0 before:content-['']  decoration-tea-border underline-offset-2 hover:text-tea-gold">Make a free account</Link>
+      {' '}and your teas stay with you. You don’t need one to pay.
+    </p>
+  );
+
+  // An invoice with its teas reads like a collection link (Adrian, 2026-11-27):
+  // a short head, the shop's own tea rows from the first screen (full width,
+  // so each keeps its line of description), and paying under them.
+  const invoiceLines = access.invoice?.lines ?? [];
+  if (invoiceLines.length > 0) {
+    return (
+      <main className="mx-auto w-full max-w-6xl px-4 pb-nav-gap-lg pt-3 text-tea-text md:px-6 md:pt-6 lg:px-10" data-testid="pay-sheet">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+          <nav aria-label="Where you are" className="flex flex-wrap items-center gap-x-2 gap-y-1 label-caps text-tea-text-sec">
+            <a href={profileHref} className="tap-target hover:text-tea-text transition-colors">{access.contributor.display_name}</a>
+            <span aria-hidden="true" className="text-tea-text-dim">/</span>
+            <span>Your invoice</span>
+          </nav>
+          <CurrencySelect />
+        </div>
+        <header className="rounded-md border border-tea-border bg-tea-elevated px-4 py-4 md:px-6 md:py-5">
+          {access.invoice?.invoice_number && (
+            <p className="label-caps text-tea-gold mb-1.5" data-testid="pay-sheet-invoice">Invoice {access.invoice.invoice_number}</p>
+          )}
+          <h1 className="font-display text-ui-26 leading-[1.1] text-tea-text">{heading}</h1>
+          {visibleCount > 0 && <p className="mt-1.5 font-body text-ui-14 italic leading-[1.5] text-tea-text-sec">{waysLine}</p>}
+        </header>
+        <div className="mt-2">
+          <PayInvoiceTeas lines={invoiceLines} />
+          <section aria-label="Pay" className="mt-6 max-w-2xl rounded-md border border-tea-border bg-tea-surface px-4 py-4 md:px-5">
+            {accountLinks}
+            <div className={`${associationRows.length > 0 ? 'mt-4' : ''} [&>div>section:first-child>div:first-child]:mt-0`}>{chooser}</div>
+          </section>
+          <PayInvoiceKeep productIds={Array.from(new Set(invoiceLines.map(line => line.product_id).filter((id): id is string => Boolean(id))))} signedIn={access.viewer.signed_in} slug={slug} token={shareToken} kept={access.invoice?.kept === true} />
+        </div>
+      </main>
+    );
+  }
+
   return (
     <Sheet portrait={access.contributor.portrait_url} closeHref={profileHref} testId="pay-sheet">
-      <h1 className="mt-2 font-display text-ui-26 leading-[1.1] text-tea-text">
-        {access.contributor.business_name
-          ? <>For tea bought <span className="italic text-tea-readgold">at {access.contributor.business_name}</span></>
-          : <>Pay <span className="italic text-tea-readgold">{access.contributor.display_name}</span></>}
-      </h1>
+      <h1 className="mt-2 font-display text-ui-26 leading-[1.1] text-tea-text">{heading}</h1>
       {visibleCount > 0 && <p className="mt-2 font-body text-ui-13 italic leading-[1.45] text-tea-text-sec">{waysLine}</p>}
       {access.invoice?.invoice_number && (
         <p className="mt-1 font-body text-ui-13 italic leading-[1.45] text-tea-text-sec" data-testid="pay-sheet-invoice">Invoice {access.invoice.invoice_number}.</p>
       )}
-      {access.invoice?.lines && <PayInvoiceTeas lines={access.invoice.lines} />}
-      {associationRows.length > 0 && (
-        <nav aria-label="Payment account" className="mt-5 flex flex-wrap gap-2">
-          <a href={(() => { const url = new URL(buildPaymentPageUrl(slug, null, 'https://teajia.com', context)); return `${url.pathname}${withToken(url.search, shareToken)}`; })()} className={`tap-target rounded-md border px-3 py-2 text-ui-12 ${!accountSlug ? 'border-tea-gold bg-tea-accent-sub text-tea-text' : 'border-tea-border text-tea-text-sec hover:text-tea-text'}`}>Personal default</a>
-          {associationRows.map(association => {
-            const url = new URL(buildPaymentPageUrl(slug, association.account_slug, 'https://teajia.com', context));
-            return <a key={association.account_id} href={`${url.pathname}${withToken(url.search, shareToken)}`} className={`tap-target rounded-md border px-3 py-2 text-ui-12 ${accountSlug === association.account_slug ? 'border-tea-gold bg-tea-accent-sub text-tea-text' : 'border-tea-border text-tea-text-sec hover:text-tea-text'}`}>{association.account_name}</a>;
-          })}
-        </nav>
-      )}
-      <div className="mt-6">
-        <PaymentChooser contributorName={data.contributor.display_name} methods={data.methods} destination={destination} context={context} local={normalizeLocalAmount(data.context?.local)} accountName={data.account?.name} resolution={data.resolution} summary={summary} />
-      </div>
-      {/* The same quiet offer the collection link makes: an account is never
-          needed to read or pay, and joining brings them back to this page. */}
-      {!access.viewer.signed_in && (
-        <p className="mt-4 border-t border-tea-border pt-4 text-ui-13 text-tea-text-sec" data-testid="pay-account-offer">
-          Want to keep this?{' '}
-          <Link to={authPagePath('signup', `${window.location.pathname}${window.location.search}`)} className="tap-target text-tea-text underline decoration-tea-border underline-offset-2 hover:text-tea-gold">Make a free account</Link>
-          {' '}and your teas stay with you. You don’t need one to pay.
-        </p>
-      )}
+      {accountLinks}
+      <div className="mt-6">{chooser}</div>
+      {accountOffer}
     </Sheet>
   );
 }

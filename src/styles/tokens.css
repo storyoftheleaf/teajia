@@ -952,11 +952,15 @@ body {
 .bottom-nav-account { padding-right: var(--space-2); }
 .bottom-nav-bar button { min-inline-size: var(--tap-min); }
 .bottom-nav-menu::after, .bottom-nav-account::before { pointer-events: none; }
-.bottom-nav-center { padding-inline: var(--space-1); }
-.bottom-nav-spacer { display: none; }
+/* Equidistant (Adrian, 2026-11-27): no box is wider than what it draws, and an
+   equal spacer sits before, between and after the words of each half. Each
+   word's tap area reaches past its ink on a layer that takes no room. */
+.bottom-nav-center { padding-inline: 0; }
+.bottom-nav-bar .bottom-nav-word, .bottom-nav-bar .bottom-nav-menu, .bottom-nav-bar .bottom-nav-account, .bottom-nav-bar .bottom-nav-center { min-inline-size: 0; }
+.bottom-nav-word::after { content: ''; position: absolute; inset-block: 0; inset-inline: calc(var(--space-2) * -1.25); }
+.bottom-nav-spacer { display: block; flex: 1 1 0; min-inline-size: 0; }
 @media (max-width: 359px) {
   .bottom-nav-bar { inset-inline: var(--space-1); }
-  .bottom-nav-center { padding-inline: 0; }
 }
 /* The Launch 4 words (HOME_BAR_OPEN) are longer: one size smaller under 340px
    wide, Adrian's call of 2026-11-26. The shape of the bar stays the same. */
@@ -967,6 +971,4 @@ body {
   .bottom-nav-label { font-size: var(--fs-ui-15); }
   .bottom-nav-menu { padding-left: calc(var(--space-3) + var(--space-1) / 2); }
   .bottom-nav-account { padding-right: calc(var(--space-3) + var(--space-1) / 2); }
-  .bottom-nav-center { padding-inline: calc(var(--space-1) * 1.5); }
-  .bottom-nav-spacer { display: block; flex: .5 1 0; }
 }
