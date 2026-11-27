@@ -20,7 +20,7 @@ const words = () => (barOn() ? LAUNCH_FOUR : TODAY);
 /** Where each word leads. The Tea Table and the Tea Houses portfolio are shut on both sites, so their words take their open doors. */
 const DOORS: Record<string, string> = {
   Read: '/read', Craft: '/craft', Advise: '/advise', Shop: '/shop',
-  'Tea table': '/events', 'Tea house': '/tea-houses/visit',
+  'Tea table': '/events', 'Tea house': '/advise',
 };
 
 async function mockApi(page: Page) {
@@ -158,9 +158,8 @@ test('Home: today\'s lines, or the four doors and "Come to a table"', async ({ p
     for (const [index, href] of bar.entries()) {
       await doors.nth(index).click();
       await expect(page).toHaveURL(new RegExp(`${href.replace(/\//g, '\\/')}(\\?.*)?$`));
-      // Create follows housesDoor(), so it inherits open question 4.20: with
-      // TEA_HOUSES_OPEN off, /tea-houses/visit is not registered. The other three must land.
-      if (href !== DOORS['Tea house']) await expect(page.getByRole('heading', { name: '404', exact: true })).toHaveCount(0);
+      // Every door lands, Create included: it goes to Advise until Tea Houses opens (4.20).
+      await expect(page.getByRole('heading', { name: '404', exact: true })).toHaveCount(0);
       await page.goto('/');
     }
     const door = page.getByTestId('home-come-to-a-table').getByRole('link');

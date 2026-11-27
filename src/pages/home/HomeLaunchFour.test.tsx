@@ -46,7 +46,7 @@ it('shows the houses only while the portfolio is open and has some', () => {
 
 it('the four doors lead where the bar words lead, and the consult plate leads to Tea Houses once open', () => {
   expect(homeDoorsLaunchFour().map(door => door.to)).toEqual(['/read', tableDoor(), housesDoor(), '/shop']);
-  expect(homeDoorsLaunchFour().map(door => door.to)).toEqual(['/read', '/events', '/tea-houses/visit', '/shop']);
+  expect(homeDoorsLaunchFour().map(door => door.to)).toEqual(['/read', '/events', '/advise', '/shop']);
   expect(consultPlatePath()).toBe('/advise');
   flags.table = true;
   flags.houses = true;

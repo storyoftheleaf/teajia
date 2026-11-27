@@ -34,7 +34,7 @@ export const HOME_LINES_TODAY = [
  * The four doors with the new bar (Adrian, 2026-11-27): today's four words,
  * each with a few plain words beside it, in bar order. Each goes where its
  * bar word goes (navSections.ts), so Deepen follows tableDoor() and Create
- * follows housesDoor(), open question 4.20 included.
+ * follows housesDoor(), which is Advise until Tea Houses opens (4.20).
  */
 export function homeDoorsLaunchFour() {
   return [
