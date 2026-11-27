@@ -10,7 +10,8 @@ import { entryHasBeenTasted, entryIsSample, type TeaCompassEntry } from '../TeaC
 // its Stock record. Nothing here writes, and a sample is never asked to be
 // weighed (Adrian, 2026-11-27: "the sample doesn't need to be weighed").
 
-export type TeaPathStepId = 'arrival' | 'taste' | 'decide' | 'stock' | 'amount' | 'cost' | 'writeup';
+export type TeaPathStepId = 'arrival' | 'taste' | 'decide' | 'stock' | 'amount' | 'cost' | 'writeup'
+  | 'priced' | 'photo' | 'public' | 'entry';
 
 export interface TeaPathStep {
   id: TeaPathStepId;
@@ -29,7 +30,8 @@ export interface TeaPath {
   passed: boolean;
 }
 
-type StockFacts = Pick<Product, 'costAmount' | 'stockGrams' | 'stockVerifiedAt' | 'quantityUnits' | 'description' | 'status'>;
+type StockFacts = Pick<Product, 'costAmount' | 'stockGrams' | 'stockVerifiedAt' | 'quantityUnits' | 'description' | 'status'>
+  & Partial<Pick<Product, 'pricePerGramUSD' | 'imageUrl' | 'isPublic' | 'shownInShop'>>;
 
 export interface TeaPathInput {
   entry: Pick<TeaCompassEntry, 'category' | 'decision' | 'status' | 'sampleState' | 'isSample' | 'tasting'>;
@@ -38,11 +40,14 @@ export interface TeaPathInput {
   arrivalWaiting?: boolean;
   /** The tea's own Stock record, when it has one. */
   stock?: StockFacts | null;
+  /** The tea has an approved Tea Wisdom entry. Left out while that is not
+   *  known yet (the entries load late), and for teaware, which has none. */
+  wisdomEntry?: boolean;
 }
 
 const BOUGHT: ReadonlyArray<LibraryPurchaseState['status']> = ['draft', 'ordered', 'partially_received', 'received'];
 
-export function teaPath({ entry, purchaseStatus, arrivalWaiting = false, stock }: TeaPathInput): TeaPath {
+export function teaPath({ entry, purchaseStatus, arrivalWaiting = false, stock, wisdomEntry }: TeaPathInput): TeaPath {
   const steps: TeaPathStep[] = [];
   const bought = BOUGHT.includes(purchaseStatus ?? 'none') || entry.status === 'incoming' || entry.status === 'in_stock';
   const inStock = !!stock && stock.status !== 'Archived';
@@ -61,11 +66,23 @@ export function teaPath({ entry, purchaseStatus, arrivalWaiting = false, stock }
     steps.push({ id: 'amount', doneLabel: 'Amount known', todoLabel: 'How much is there', done: amountKnown });
     steps.push({ id: 'cost', doneLabel: 'Cost recorded', todoLabel: 'What it cost', done: inStock && stock!.costAmount != null });
     steps.push({ id: 'writeup', doneLabel: 'Written up', todoLabel: 'Write it up', done: inStock && !!stock!.description?.trim() });
+    // Past the write-up, the tea on the site (Adrian, 2026-11-27, the tea
+    // system map's gap 1). A price of zero is a price.
+    steps.push({ id: 'priced', doneLabel: 'Priced', todoLabel: 'Give it a price', done: inStock && stock!.pricePerGramUSD != null });
+    steps.push({ id: 'photo', doneLabel: 'Main photo', todoLabel: 'Add a main photo', done: inStock && !!stock!.imageUrl?.trim() });
+    steps.push({ id: 'public', doneLabel: 'On the site', todoLabel: 'Put it on the site', done: inStock && isOnSite(stock!) });
+    if (wisdomEntry !== undefined && entry.category !== 'teaware') {
+      steps.push({ id: 'entry', doneLabel: 'Tea Wisdom entry', todoLabel: 'Tea Wisdom entry', done: wisdomEntry });
+    }
   }
   return { steps, next: passed ? null : steps.find(step => !step.done) ?? null, passed };
 }
 
-export type WaitingGroupId = 'arrival' | 'taste' | 'decide' | 'stock' | 'amount' | 'cost' | 'writeup';
+function isOnSite(stock: StockFacts): boolean {
+  return stock.isPublic === true && stock.shownInShop === true && stock.status === 'Active';
+}
+
+export type WaitingGroupId = 'arrival' | 'taste' | 'decide' | 'stock' | 'amount' | 'cost' | 'writeup' | 'entry';
 
 export interface WaitingGroup {
   id: WaitingGroupId;
@@ -81,18 +98,21 @@ const GROUP_TITLES: Record<WaitingGroupId, string> = {
   amount: 'In Stock, how much is there?',
   cost: 'In Stock, what did it cost?',
   writeup: 'To write up',
+  entry: 'Public, no Tea Wisdom entry yet',
 };
 
-const GROUP_ORDER: WaitingGroupId[] = ['arrival', 'taste', 'decide', 'stock', 'amount', 'cost', 'writeup'];
+const GROUP_ORDER: WaitingGroupId[] = ['arrival', 'taste', 'decide', 'stock', 'amount', 'cost', 'writeup', 'entry'];
 
 /** What is waiting on Adrian across the Library, each tea once, under its next step.
  *  A tea that is still waiting on its supplier (ordered, on the way) waits on
  *  nobody here, and neither does a tea nobody has decided to taste or buy. */
-export function libraryWaiting({ entries, products, proposals, purchaseStatusFor }: {
+export function libraryWaiting({ entries, products, proposals, purchaseStatusFor, wisdomEntryIds }: {
   entries: readonly TeaCompassEntry[];
   products: readonly Product[];
   proposals: readonly CuratePurchaseReceipt[];
   purchaseStatusFor: (entry: TeaCompassEntry, productId?: string) => LibraryPurchaseState['status'];
+  /** Product ids with an approved Tea Wisdom entry; left out until loaded. */
+  wisdomEntryIds?: ReadonlySet<string>;
 }): WaitingGroup[] {
   const waitingArrivals = new Set(proposals.filter(p => p.status === 'pending' && p.compass_entry_id).map(p => p.compass_entry_id as string));
   const byId = new Map(products.map(product => [product.id, product]));
@@ -103,25 +123,31 @@ export function libraryWaiting({ entries, products, proposals, purchaseStatusFor
     const stock = productId ? byId.get(productId) ?? null : null;
     const purchaseStatus = purchaseStatusFor(entry, productId);
     const arrivalWaiting = waitingArrivals.has(entry.id);
-    const path = teaPath({ entry, purchaseStatus, arrivalWaiting, stock });
+    const wisdomEntry = wisdomEntryIds && productId ? wisdomEntryIds.has(productId) : undefined;
+    const path = teaPath({ entry, purchaseStatus, arrivalWaiting, stock, wisdomEntry });
     const { next } = path;
     if (!next) continue;
-    let group: WaitingGroupId | null = next.id;
+    let group: TeaPathStepId | null = next.id;
     // Untasted teas only wait on Adrian when they are samples in hand.
     if (group === 'taste' && !(entryIsSample(entry) && entry.sampleState !== 'requested')) group = null;
     // A tea no one has tasted or chosen is just in the Library, not waiting.
     if (group === 'decide' && !entryHasBeenTasted(entry)) group = null;
     // Ordered or on the way: the supplier owes the next move, not Adrian.
     if (group === 'stock' && ['ordered', 'partially_received'].includes(purchaseStatus)) group = null;
+    // Price, photo and going public are Adrian's choice for each tea, not
+    // something waiting on him; only a tea already public asks for its entry.
+    if (group === 'priced' || group === 'photo' || group === 'public') group = null;
+    if (group === 'entry' && !(stock && isOnSite(stock))) group = null;
     if (!group) {
       // Bought teas still show their Stock gaps even before they are tasted.
-      const later = path.steps.find(step => !step.done && ['amount', 'cost', 'writeup'].includes(step.id) && !!stock);
+      const later = path.steps.find(step => !step.done && ['amount', 'cost', 'writeup'].includes(step.id) && !!stock)
+        ?? path.steps.find(step => step.id === 'entry' && !step.done && !!stock && isOnSite(stock));
       if (!later) continue;
       group = later.id;
     }
-    const list = groups.get(group) ?? [];
+    const list = groups.get(group as WaitingGroupId) ?? [];
     list.push(entry);
-    groups.set(group, list);
+    groups.set(group as WaitingGroupId, list);
   }
   return GROUP_ORDER.filter(id => groups.has(id)).map(id => ({ id, title: GROUP_TITLES[id], entries: groups.get(id)! }));
 }

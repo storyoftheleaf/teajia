@@ -20,11 +20,11 @@ export function TeaPathLine({ path, actions }: { path: TeaPath; actions: TeaPath
       </li>)}
     </ol>
     {path.passed && <p className="text-ui-12 text-tea-text-sec">Rejected. It stays here with its notes.</p>}
-    {!next && !path.passed && <p className="text-ui-12 text-tea-text-sec">All the way through: in Stock, costed and written up.</p>}
+    {!next && !path.passed && <p className="text-ui-12 text-tea-text-sec">All the way through: in Stock, written up and on the site.</p>}
     {next && <div className="flex min-h-tap flex-wrap items-center justify-between gap-x-3 gap-y-1">
       <span className="text-ui-13 text-tea-text">Next: {next.todoLabel}{action?.hint ? <span className="text-ui-12 text-tea-text-sec"> · {action.hint}</span> : null}</span>
       {action?.to ? <Link to={action.to} className="btn-secondary tap-target">{action.label}</Link>
-        : action?.run ? <button type="button" onClick={action.run} className="btn-secondary tap-target">{action.label}</button> : null}
+        : action?.run && action.label ? <button type="button" onClick={action.run} className="btn-secondary tap-target">{action.label}</button> : null}
     </div>}
   </section>;
 }

@@ -34,6 +34,7 @@ import { LibraryReceiptActions } from './LibraryReceiptActions';
 import { teaPath } from '../curate/teaPath';
 import { TeaPathLine, type TeaPathActions } from '../curate/TeaPathLine';
 import { useWisdomWriteup, wisdomWriteupHint } from '../curate/useWisdomWriteup';
+import { useWisdomEntryIds } from '../curate/useWisdomEntryIds';
 import { TastingSession } from '../tasting/TastingSession';
 import { curateTastingUpdate } from '../../lib/curateTastingSave';
 import type { TastingData } from '../../types';
@@ -90,6 +91,7 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
     given_name: entry?.givenName ?? null, chinese_name: entry?.chineseName ?? null,
     origin_region: entry?.originRegion ?? null, origin_country: entry?.originCountry ?? null, year: entry?.year ?? null,
   }, !!entry && entry.category === 'tea' && !previewEntry);
+  const wisdomEntryIds = useWisdomEntryIds(!!entry && entry.category === 'tea' && !previewEntry);
   if (!entry) return null;
   const stockProductId = sharedStockRecordId(entry, stockProducts.data || []);
   const stockProduct = stockProducts.data?.find(product => product.id === stockProductId);
@@ -125,7 +127,8 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
       : purchaseHref ? { label: 'Open supplier order', run: () => navigate(purchaseHref) }
         : onAcquire && !purchases.isLoading && !purchases.isError ? { label: orderLabel, run: () => onAcquire(entry.id) } : null;
   const arrivalWaiting = (purchases.receiptProposals ?? []).some(receipt => receipt.status === 'pending' && receipt.compass_entry_id === entry.id);
-  const path = teaPath({ entry, purchaseStatus: purchase.status, arrivalWaiting, stock: stockProduct ?? null });
+  const wisdomEntry = wisdomEntryIds && stockProductId ? wisdomEntryIds.has(stockProductId) : undefined;
+  const path = teaPath({ entry, purchaseStatus: purchase.status, arrivalWaiting, stock: stockProduct ?? null, wisdomEntry });
   const storyHref = stockProductId ? `/admin/products/${encodeURIComponent(stockProductId)}/story` : undefined;
   const pathActions: TeaPathActions = {
     arrival: onAcquire ? { label: 'Review arrival', run: () => onAcquire(entry.id) } : undefined,
@@ -138,6 +141,14 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
     writeup: !storyHref ? undefined : wisdom && wisdom.open > 0
       ? { label: 'See what’s needed', run: openStock, hint: wisdomWriteupHint(wisdom) }
       : { label: 'Write it up', to: storyHref, hint: wisdomWriteupHint(wisdom) },
+    priced: stockProductId ? { label: 'Open in Stock', run: openStock } : undefined,
+    photo: stockProductId ? { label: 'Open in Stock', run: openStock } : undefined,
+    public: stockProductId ? { label: 'Open in Stock', run: openStock } : undefined,
+    // The entry is composed by the Tea Wisdom chain from the Wisdom Base
+    // pages; from here Adrian can only see what those pages still need.
+    entry: wisdom && wisdom.open > 0 && stockProductId
+      ? { label: 'See what’s needed', run: openStock, hint: wisdomWriteupHint(wisdom) }
+      : { label: '', hint: wisdom ? 'Pages ready for the Tea Wisdom chain' : undefined },
   };
   const orderCheck = purchases.isError ? 'Couldn’t check orders' : purchases.isLoading ? 'Checking orders…' : '';
   const showPurchaseSummary = sampleReceipts.length > 0 || !!purchaseLabel || !previewEntry;

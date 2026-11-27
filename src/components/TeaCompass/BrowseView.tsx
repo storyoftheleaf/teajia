@@ -22,6 +22,7 @@ import { isUntriaged, entryDisplayTitle, entryIsSample, entryHasBeenTasted, entr
 import type { TeaCompassEntry, BrowseFilter, BrowseSort } from './types';
 import { LibraryFilterSheet } from './LibraryFilterSheet';
 import { libraryWaiting } from '../curate/teaPath';
+import { useWisdomEntryIds } from '../curate/useWisdomEntryIds';
 import { mapAdminProduct } from '../../admin/productAdapter';
 import { ActiveFilterSummary, activeLibraryFilterCount } from './ActiveFilterSummary';
 import { api } from '../../lib/api';
@@ -221,12 +222,14 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
   // Waiting for you (Adrian, 2026-11-27): the teas whose next step is his,
   // each once under that step. A Library tab like the others, never a list
   // above them. Until Stock has been read, nothing is counted as waiting.
+  const wisdomEntryIds = useWisdomEntryIds();
   const waitingGroups = useMemo(() => possessionLoading || possessionError ? [] : libraryWaiting({
     entries: visibleScopeEntries,
     products: waitingProducts,
     proposals: purchases.receiptProposals ?? [],
     purchaseStatusFor: (entry, productId) => purchases.stateFor({ entryId: entry.id, productId: productId ?? entry.draftProductId, chosen: entry.decision === 'selected' }).status,
-  }), [visibleScopeEntries, waitingProducts, purchases, possessionLoading, possessionError]);
+    wisdomEntryIds: wisdomEntryIds ?? undefined,
+  }), [visibleScopeEntries, waitingProducts, purchases, possessionLoading, possessionError, wisdomEntryIds]);
   const waitingIds = useMemo(() => new Set(waitingGroups.flatMap(group => group.entries.map(entry => entry.id))), [waitingGroups]);
   const rejectedEntries = useMemo(() => scopedEntries.filter(libraryEntryRejected), [scopedEntries]);
   const isChosen = React.useCallback((entry: TeaCompassEntry) => libraryEntryChosen(entry, purchases.stateFor({ entryId: entry.id, productId: entry.draftProductId, chosen: entry.decision === 'selected' }).status), [purchases]);

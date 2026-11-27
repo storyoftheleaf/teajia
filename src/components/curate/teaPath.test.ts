@@ -18,7 +18,7 @@ const tasted = { tasting: { score: 8 } } as Partial<TeaCompassEntry>;
 describe('teaPath', () => {
   it('starts a new tea at tasting, then the decision', () => {
     const path = teaPath({ entry: tea() });
-    expect(path.steps.map(s => s.id)).toEqual(['taste', 'decide', 'stock', 'amount', 'cost', 'writeup']);
+    expect(path.steps.map(s => s.id)).toEqual(['taste', 'decide', 'stock', 'amount', 'cost', 'writeup', 'priced', 'photo', 'public']);
     expect(path.next?.id).toBe('taste');
     expect(teaPath({ entry: tea(tasted) }).next?.id).toBe('decide');
   });
@@ -39,7 +39,7 @@ describe('teaPath', () => {
     // A typed zero is a cost.
     expect(teaPath({ entry, stock: stock({ stockGrams: 250, costAmount: 0 }) }).next?.id).toBe('writeup');
     const done = teaPath({ entry, stock: stock({ stockGrams: 250, costAmount: 0, description: 'A bright sheng.' }) });
-    expect(done.next).toBeNull();
+    expect(done.next?.id).toBe('priced');
     expect(done.passed).toBe(false);
   });
 
@@ -98,5 +98,39 @@ describe('libraryWaiting', () => {
   it('shows a bought tea\'s Stock gaps even before it is tasted', () => {
     const groups = run([tea({ id: 'bought', status: 'in_stock' })], [stock({ id: 'p-b', sourceCompassEntryId: 'bought' })]);
     expect(groups).toEqual({ amount: ['bought'] });
+  });
+});
+
+describe('past the write-up', () => {
+  const entry = tea({ ...tasted, decision: 'selected' });
+  const ready = { stockGrams: 250, costAmount: 40, description: 'Written.' };
+  const onSite = { ...ready, pricePerGramUSD: 0.5, imageUrl: 'https://img/x.jpg', isPublic: true, shownInShop: true, status: 'Active' as const };
+
+  it('walks a written-up tea through price, photo and going public', () => {
+    expect(teaPath({ entry, stock: stock(ready) }).next?.id).toBe('priced');
+    // A price of zero is a price.
+    expect(teaPath({ entry, stock: stock({ ...ready, pricePerGramUSD: 0 }) }).next?.id).toBe('photo');
+    expect(teaPath({ entry, stock: stock({ ...ready, pricePerGramUSD: 0.5, imageUrl: 'x' }) }).next?.id).toBe('public');
+    expect(teaPath({ entry, stock: stock({ ...onSite, shownInShop: false }) }).next?.id).toBe('public');
+    expect(teaPath({ entry, stock: stock(onSite) }).next).toBeNull();
+  });
+
+  it('adds the Tea Wisdom entry only once the entries are known', () => {
+    expect(teaPath({ entry, stock: stock(onSite) }).steps.some(s => s.id === 'entry')).toBe(false);
+    expect(teaPath({ entry, stock: stock(onSite), wisdomEntry: false }).next?.id).toBe('entry');
+    expect(teaPath({ entry, stock: stock(onSite), wisdomEntry: true }).next).toBeNull();
+    expect(teaPath({ entry: tea({ ...tasted, decision: 'selected', category: 'teaware' }), stock: stock(onSite), wisdomEntry: false })
+      .steps.some(s => s.id === 'entry')).toBe(false);
+  });
+
+  it('lists public teas without an entry, and never price, photo or going public', () => {
+    const waiting = (over: Partial<Product>, ids?: Set<string>) => libraryWaiting({
+      entries: [entry], products: [stock(over)], proposals: [], purchaseStatusFor: () => 'received', wisdomEntryIds: ids,
+    }).map(group => group.id);
+    expect(waiting(ready, new Set())).toEqual([]);
+    expect(waiting({ ...onSite, isPublic: false }, new Set())).toEqual([]);
+    expect(waiting(onSite, new Set())).toEqual(['entry']);
+    expect(waiting(onSite, new Set(['p-1']))).toEqual([]);
+    expect(waiting(onSite)).toEqual([]);
   });
 });
