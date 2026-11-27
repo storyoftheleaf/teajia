@@ -7,7 +7,8 @@ export async function readVendorStructuredProfile(db: D1Database, scope: Scope, 
   const vendor = await db.prepare('SELECT id, contacts FROM customers WHERE id = ? AND account_id = ?').bind(vendorId, scope.accountId).first<Row>();
   if (!vendor) return null;
   const profile = await db.prepare('SELECT * FROM curate_vendor_profiles WHERE vendor_id = ? AND account_id = ?').bind(vendorId, scope.accountId).first<Row>();
-  return { vendor_id: vendorId, vendor_code: profile?.vendor_code ?? null, contact_people: array(profile?.contact_people), addresses: array(profile?.addresses), contacts: array(vendor.contacts) };
+  const short = await db.prepare('SELECT code FROM curate_vendor_short_codes WHERE vendor_id = ? AND account_id = ?').bind(vendorId, scope.accountId).first<Row>();
+  return { vendor_id: vendorId, vendor_code: profile?.vendor_code ?? null, short_code: short?.code ?? null, contact_people: array(profile?.contact_people), addresses: array(profile?.addresses), contacts: array(vendor.contacts) };
 }
 export async function prepareVendorStructuredProfileWrite(db: D1Database, scope: Scope, vendorId: string, raw: Record<string, unknown>): Promise<{ statements: D1PreparedStatement[] }> {
   const unknown = Object.keys(raw).find(key => !(VENDOR_STRUCTURED_COLUMNS as readonly string[]).includes(key));

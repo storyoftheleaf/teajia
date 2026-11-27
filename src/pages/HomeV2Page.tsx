@@ -9,7 +9,7 @@ import type { ProductImpression } from '../components/shop/ProductImpressions';
 import { useShopPrice } from '../components/shop/shopPrice';
 import { quoteForDisplay } from '../lib/teaPricing';
 import { usePublicProducts } from '../hooks/usePublicProducts';
-import { HOST_TABLE_PATH, useMayHost } from '../hooks/useMayHost';
+import { HOST_TABLE_PATH, useMayHost, useSignedIn } from '../hooks/useMayHost';
 import { useSectionReveal } from '../hooks/useSectionReveal';
 import { LogoText } from '../components/Logos/LogoText';
 import { TYPOGRAPHY_CLASSES } from '../designTokens';
@@ -138,6 +138,8 @@ const HomeV2Page: React.FC = () => {
   // Launch 4's Home (HOME_BAR_OPEN): new opening lines, "Come to a table",
   // and the two strips. Closed, the page is exactly as it was.
   const launchFour = homeBarOpen();
+  // A signed-in person is already connected: no sign-up, sign-in or email ask (W4-1).
+  const signedIn = useSignedIn();
   const tea = useMemo(() => pickTea(Array.isArray(products) ? products : []), [products]);
   // The same quote the shop row and the product page read for 50 g, handling
   // fee and whole-unit rounding included. Multiplying the price per gram by 50
@@ -313,7 +315,7 @@ const HomeV2Page: React.FC = () => {
               Honor the past. Live in the present. Build for the future.
             </p>
           </div>
-          <div className="mt-16 sm:mt-20 w-full max-w-[360px]">
+          {!signedIn && <div className="mt-16 sm:mt-20 w-full max-w-[360px]">
             <p className={`${TYPOGRAPHY_CLASSES.subtitle} tracking-[0.04em] text-tea-text-sec`}>stay connected</p>
             <p className={`${DISPLAY} italic mt-1 text-tea-text`}>it&apos;s nothing without you</p>
             <div className="mt-6">
@@ -324,7 +326,7 @@ const HomeV2Page: React.FC = () => {
               {' · '}
               <Link to="/signin" className="inline-block py-3 -my-3 text-tea-text-sec hover:text-tea-text transition-colors duration-300">Sign in</Link>
             </p>
-          </div>
+          </div>}
           {/* The footer is hidden on this page, so the way out is the panel's last line. */}
           <nav aria-label="More from Teajia" className={`${META} mt-14 pt-7 border-t border-tea-border w-full max-w-[680px] grid grid-cols-3 gap-x-3 gap-y-2 sm:flex sm:flex-wrap sm:justify-center sm:gap-x-6 text-tea-text-sec`}>
             <Link to="/events" className="py-2 hover:text-tea-text transition-colors focus-visible:text-tea-gold">sessions</Link>

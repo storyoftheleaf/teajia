@@ -49,6 +49,9 @@ describe('vendor removal preserves durable sourcing references', () => {
     for (const table of schema.matchAll(/CREATE TABLE(?: IF NOT EXISTS)? (\w+)\s*\(([\s\S]*?)\n\);/g)) {
       // Tags describe the contact itself and intentionally cascade on deletion.
       if (table[1] === 'customer_tags') continue;
+      // A vendor's V code only reserves its number so it is never handed out
+      // again (migration 0155); it must not stop a vendor being removed.
+      if (table[1] === 'curate_vendor_short_codes') continue;
       for (const column of table[2].matchAll(/^\s*(vendor_id|customer_id|contact_customer_id|linked_customer_id|resolved_vendor_customer_id) TEXT/gm)) {
         expect(predicates, `${table[1]}.${column[1]}`).toContain(`FROM ${table[1]} r`);
         expect(VENDOR_DEPENDENCIES[Object.keys(VENDOR_DEPENDENCIES).find(key =>

@@ -1,6 +1,15 @@
 ## 2026-11-27: Every switch from Launches 1 to 5 is on
 
 Adrian chose "All at once, credit too". All sixteen switch constants in `src/lib` are now true (hosting for a few and for anyone, practice lines, Your Table as a page and its place, favourites, the Tea Table, "Does anyone know this tea?", the new bar and Home, host articles, top teas, circles, host assistant keys, the table card, tea houses and tea credit). An env value of 'false' still shuts any one. Tests of the closed state now ask for it with an explicit 'false'. With them: no counts on people and collection pages (Adrian: remove the counts), and no view count in public collection answers; "Serves at tables" under a name on the people list, worked out from who has hosted (Adrian: "the more automated the better"); one "Take it off the table?" before a shared tasting comes off; a host's place section is headed "Your tea space" (Adrian: a tea house holds tea spaces, and anyone can own a space); and host article offers, practice lines, top teas and the tea credit tile show nothing rather than breaking the page when an answer is missing its list.
+## 2026-11-27: Short codes for vendors and teas (V1, V1T12)
+
+Adrian: every vendor and every tea or sample has a short code, so he can say "V1T12" instead of typing the vendor and tea names.
+
+- Every vendor gets V1, V2 ... in the order added, and every tea or sample a number within its vendor, so V1T12 is vendor V1's twelfth tea. The database hands them out (migration `0155_short_codes.sql`: counters in `curate_code_counters`, V codes in `curate_vendor_short_codes`, `tea_compass_entries.vendor_tea_number`, filled by triggers whichever door adds the tea). A number is never handed out twice; a tea moved to another vendor takes that vendor's next number.
+- A code typed in the vendor page's Vendor code field is kept and shown; the V code still finds the vendor.
+- Codes show on each Library tea card, under each vendor's name in the Library, and on the vendor page. Library search and the agent's `curate_find` both read "V1T12", "v1 t12", "V1-T12" and "V1" (`src/lib/shortCodes.ts`).
+- Undo ignores the number the database stamps after a recorded write (`SERVER_STAMPED_COLUMNS` in `worker/src/curateMutations.ts`).
+
 ## 2026-11-27: Vendor faces keep their whole photo, and can be removed
 
 Every face saved on a vendor now keeps the whole photo it was cut from beside it (`customers.face_photo_original`, migration 0153), so the crop button on a face opens the editor on the full picture and you can always zoom back out. A face placed from the tray or picked with the camera keeps its original the same way. Faces saved before this have no original kept; the editor opens on the face itself. Each face tile has a remove button that takes the face off, and Undo puts it back, whole photo included. A face set by an agent clears the old whole photo.

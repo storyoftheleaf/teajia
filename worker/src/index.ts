@@ -8378,6 +8378,8 @@ const handleGetCustomers: Handler = async (request, env) => {
   try {
     result = await env.DB.prepare(`
       SELECT c.*,
+        (SELECT NULLIF(TRIM(vp.vendor_code), '') FROM curate_vendor_profiles vp WHERE vp.vendor_id = c.id AND vp.account_id = c.account_id) as vendor_code,
+        (SELECT sc.code FROM curate_vendor_short_codes sc WHERE sc.vendor_id = c.id AND sc.account_id = c.account_id) as vendor_short_code,
         COUNT(DISTINCT i.id) as order_count,
         COALESCE(SUM(
           (SELECT SUM(ili.quantity * ili.price_at_sale) FROM invoice_line_items ili WHERE ili.invoice_id = i.id)
@@ -12276,13 +12278,21 @@ const handleDeleteStoryPhoto: Handler = async (request, env, params) => {
 // DRAFT (?state=draft) and save it freely; publishing promotes draft -> live and
 // snapshots a version for one-click undo.
 
+// A story whose words live on another page answers to that page's state.
+// Lessons kept Craft's slug ("craft") so its saved words and photos carry
+// over, but it is the public shelf at /read/lessons, not the draft /read/craft
+// piece; reading "craft" as /read/craft refused every visitor with a 404.
+function storyReadPath(slug: string): string {
+  return slug === 'craft' ? '/read/lessons' : `/read/${slug}`;
+}
+
 // GET /api/story-content/:slug?state=published|draft
 const handleGetStoryContent: Handler = async (request, env, params) => {
   const url = new URL(request.url);
   const wantDraft = url.searchParams.get('state') === 'draft';
   // A saved "published" edit is not publication of the Read story itself.
   // The same state that protects its compiled page protects these words.
-  const readPath = `/read/${params.slug}`;
+  const readPath = storyReadPath(params.slug);
   const curated = isCuratedReadPath(readPath);
   if (curated || wantDraft) {
     const refusal = wantDraft
