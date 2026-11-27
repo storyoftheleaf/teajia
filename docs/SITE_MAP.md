@@ -148,6 +148,7 @@ The phone's admin bar carries four of these words per role (`src/components/admi
 | `/admin/compass-playbook` | CompassWithMode | catalog |
 | `/admin/compass-current` | CompassWithMode | catalog |
 | `/admin/capture` | DraftsView | catalog |
+| `/admin/pour` | PourView (pick a tea, type its weight, send the sit) | gather |
 | `/admin/events` | EventsManager | gather |
 | `/admin/events/:id` | EventDetail | gather |
 | `/admin/tasting-events` | TastingEventsList | gather |

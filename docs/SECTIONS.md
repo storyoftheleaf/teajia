@@ -198,7 +198,7 @@ For the new routes, a tab or a view is a step and pushes a history entry. A filt
 | `/wisdom/*` | unchanged address; lights "read" | section only |
 | `/tea-feed` | forwards to `/tea-table` when enabled, otherwise Home | `TEA_TABLE_OPEN` |
 | (none) | `/tea-table`, `/tea-table?show=tastings` or `sessions` (refinement), `/tea-table?before=<date>` (step) | `TEA_TABLE_OPEN` |
-| `/events`, `/event/:slug`, `/event/:slug/recap`, `/sits/casual/:slug`, `/session/:id` | unchanged address; lights "tea table" | section only |
+| `/events`, `/event/:slug`, `/event/:slug/recap`, `/sits/casual/:slug`, `/sit/:code`, `/session/:id` | unchanged address; lights "tea table" | section only |
 | `/people`, `/people/:slug`, `/people/:slug/favorites`, `/people/:slug/pay` | unchanged address; lights "tea table" | section only |
 | `/community` | forwards to `/tea-table` (currently forwards to `/find-a-table`) | proposed |
 | `/advise` | unchanged address; lights "tea house"; design row leads to `/tea-houses/build` | section only |
