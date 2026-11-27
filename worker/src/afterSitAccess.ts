@@ -7,6 +7,7 @@ import { afterSitCredentialFormat, createAfterSitCredential, hashAfterSitCredent
 import { getKeptSetup, namedSetupTeas, saveKeptSetup } from './privateKeptSetups';
 import { eraseKeptSetup } from './privateKeptSetupPhotos';
 import { findPartyLink, findPartyRecap, issuePartyLink, revokePartyLinks, servePartyGuestBook } from './afterSitPartyLinks';
+import { approvedSeatSourceSql, attendeeIdentitySql } from './seatRequest';
 import { servedTeasOf } from './publicSessions';
 import type { PublicProductReader } from './sessionTeas';
 import { readableArticleFor } from './eventDomain';
@@ -50,6 +51,7 @@ async function thanksRefFor(db: D1Database, eventId: string, accountId: string) 
 const LINK_LIFETIME_SECONDS = 14 * 24 * 60 * 60;
 const guestSeat = `
   a.status = 'confirmed' AND a.attended = 1
+  AND ${approvedSeatSourceSql('e', 'a')}
   AND e.lifecycle_status IN ('completed', 'archived') AND shop.status = 'active'`;
 const eventJoins = `
   JOIN events e ON e.id = a.event_id AND e.account_id = a.account_id
@@ -89,7 +91,7 @@ export function findEligibleSeat(db: D1Database, credentialHash: string) {
  */
 export async function issueAfterSitLink(db: D1Database, { attendeeId, eventId, accountId }: {
   attendeeId: string; eventId: string; accountId: string;
-}): Promise<{ credential: string; expires_at: string } | null> {
+}, sharedSit?: { code: string; userId: string }): Promise<{ credential: string; expires_at: string } | null> {
   const scope = [attendeeId, eventId, accountId];
   const credential = createAfterSitCredential();
   const hash = await hashAfterSitCredential(credential);
@@ -99,7 +101,9 @@ export async function issueAfterSitLink(db: D1Database, { attendeeId, eventId, a
   // has keeps working until it expires.
   const eligible = `SELECT a.id, a.event_id, a.account_id, ?, ? FROM event_attendees a
      ${eventJoins}
-     WHERE a.id = ? AND a.event_id = ? AND a.account_id = ? AND ${guestSeat}`;
+     WHERE a.id = ? AND a.event_id = ? AND a.account_id = ? AND ${guestSeat}
+     ${sharedSit ? `AND e.sit_link_code = ? AND ${attendeeIdentitySql('a')}` : ''}`;
+  const eligibilityBinds = sharedSit ? [...scope, sharedSit.code, sharedSit.userId, sharedSit.userId] : scope;
   const [, first, extra] = await db.batch([
     db.prepare(`DELETE FROM after_sit_extra_access WHERE attendee_id = ? AND event_id = ? AND account_id = ?
       AND expires_at <= unixepoch()`).bind(...scope),
@@ -107,10 +111,10 @@ export async function issueAfterSitLink(db: D1Database, { attendeeId, eventId, a
      ${eligible}
      ON CONFLICT(attendee_id, event_id, account_id) DO UPDATE SET
        credential_hash = excluded.credential_hash, expires_at = excluded.expires_at
-     WHERE after_sit_access.expires_at <= unixepoch()`).bind(hash, expiresAt, ...scope),
+     WHERE after_sit_access.expires_at <= unixepoch()`).bind(hash, expiresAt, ...eligibilityBinds),
     db.prepare(`INSERT INTO after_sit_extra_access (attendee_id, event_id, account_id, credential_hash, expires_at)
      ${eligible} AND NOT EXISTS (SELECT 1 FROM after_sit_access held WHERE held.credential_hash = ?)`)
-      .bind(hash, expiresAt, ...scope, hash),
+      .bind(hash, expiresAt, ...eligibilityBinds, hash),
   ]);
   return first.meta?.changes || extra.meta?.changes
     ? { credential, expires_at: new Date(expiresAt * 1000).toISOString() } : null;
