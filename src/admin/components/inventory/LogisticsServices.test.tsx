@@ -3,6 +3,7 @@ import React from 'react';
 vi.mock('./TrackingTask', () => ({ TrackingTask: ({ children }: { children: React.ReactNode }) => <section>{children}</section> }));
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import type { LogisticsService } from '../../../lib/logisticsTypes';
 import { LogisticsServices, serviceRateLabel } from './LogisticsServices';
@@ -10,7 +11,7 @@ const service: LogisticsService = { id: 'service', logistics_company_id: 'contac
 describe('saved logistics services', () => {
   it('shows company services and rates in the dedicated service task', () => {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    const html = renderToStaticMarkup(<QueryClientProvider client={client}><LogisticsServices services={[service, { ...service, id: 'old', name: 'Old service', active: false }]} accountId="shop" busy={false} mutate={async action => { await action(); }}/></QueryClientProvider>);
+    const html = renderToStaticMarkup(<MemoryRouter><QueryClientProvider client={client}><LogisticsServices services={[service, { ...service, id: 'old', name: 'Old service', active: false }]} accountId="shop" busy={false} mutate={async action => { await action(); }}/></QueryClientProvider></MemoryRouter>);
     expect(html).toContain('Logistics services');
     expect(html).toContain('Guangzhou');
     expect(html).toContain('Airmail');
@@ -24,7 +25,7 @@ describe('saved logistics services', () => {
   });
   it('offers My suitcase only until an active one exists', () => {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    const html = renderToStaticMarkup(<QueryClientProvider client={client}><LogisticsServices services={[{ ...service, id: 'bag', name: 'My suitcase', rate: 0 }]} accountId="shop" busy={false} mutate={async action => { await action(); }}/></QueryClientProvider>);
+    const html = renderToStaticMarkup(<MemoryRouter><QueryClientProvider client={client}><LogisticsServices services={[{ ...service, id: 'bag', name: 'My suitcase', rate: 0 }]} accountId="shop" busy={false} mutate={async action => { await action(); }}/></QueryClientProvider></MemoryRouter>);
     expect(html).not.toContain('+ My suitcase');
     expect(html).toContain('0 CNY/kg');
   });

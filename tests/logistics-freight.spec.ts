@@ -68,3 +68,35 @@ test('Logistics holds the shop default and adds My suitcase as an ordinary servi
   await page.waitForTimeout(300);
   await page.screenshot({ path: info.outputPath('logistics-services.png') });
 });
+
+test('a service links to its orders, shipments and teas, and a link opens it again', async ({ page }, info) => {
+  await installCompassHarness(page, { products: [{ id: 'velvet', product_name: 'Velvet Earth', type: 'Dark', stock_grams: 100, freight_service_id: 'air' }] });
+  const line = { id: 'l1', product_id: 'velvet', product_name: 'Velvet Earth', unit: 'g', expected_quantity: 1000, received_quantity: 0, cancelled_quantity: 0, available_quantity: 400, original_cost_amount: null, original_cost_currency: null, image_url: null, source_url: null };
+  const logistics = {
+    orders: [{ purchase_id: 'po-chen', managed: true, receipt_id: 'r1', vendor_name: 'Chen Family', logistics_company_id: 'gz', logistics_company_name: 'Guangzhou Forwarder', inbound_courier: null, inbound_tracking_number: null, logistics_arrived_at: '2026-11-20', lines: [line] }],
+    shipments: [{ id: 'ship-1', service_id: 'air', service_quote: { id: 'air', logistics_company_id: 'gz', logistics_company_name: 'Guangzhou Forwarder', name: 'Airmail', mode: 'air', basis: 'kg', rate: 85, currency: 'Yuan', active: true }, logistics_company_id: 'gz', logistics_company_name: 'Guangzhou Forwarder', mode: 'air', state: 'in_transit', outbound_courier: null, tracking_number: 'AIR-1', eta: '2026-12-04', created_at: '2026-11-25', dispatched_at: '2026-11-26', freight: null, freight_total: null, freight_estimated: true, freight_issue: null, lines: [{ id: 'sl1', shipment_id: 'ship-1', purchase_id: 'po-chen', receipt_line_id: 'l1', product_id: 'velvet', product_name: 'Velvet Earth', unit: 'g', quantity: 600, received_quantity: 0, weight_kg: 0.6, weight_estimated: true, volume_m3: null, volume_estimated: true }] }],
+    addresses: [],
+    services: [{ id: 'air', logistics_company_id: 'gz', logistics_company_name: 'Guangzhou Forwarder', name: 'Airmail', mode: 'air', basis: 'kg', rate: 85, currency: 'Yuan', active: true }],
+  };
+  await page.route('**/api/purchase-orders/tracking', route => route.fulfill({ json: { rows: [] } }));
+  await page.route('**/api/logistics', route => route.fulfill({ json: logistics }));
+  await page.route('**/api/accounts/acct-bali', route => route.fulfill({ json: { id: 'acct-bali', default_shipping_rate_per_kg: 85, default_shipping_rate_currency: 'Yuan' } }));
+
+  // A link to a service opens the services with its connections showing.
+  await page.goto('/admin/purchase-orders?serviceId=air');
+  const links = page.getByTestId('service-connections-air');
+  await expect(links).toBeVisible({ timeout: 20_000 });
+  await expect(page.locator('.logistics-service-row').filter({ hasText: 'Airmail' })).toContainText('1 order, 1 shipment, 1 tea');
+  await expect(links.getByRole('link', { name: 'Chen Family' })).toHaveAttribute('href', '/admin/purchase-orders?purchaseId=po-chen');
+  await expect(links.getByRole('link', { name: 'On the way, due 2026-12-04' })).toHaveAttribute('href', '/admin/purchase-orders?shipmentId=ship-1');
+  await expect(links.getByRole('link', { name: 'Velvet Earth' })).toHaveAttribute('href', '/admin/stock?panel=velvet');
+  await page.waitForTimeout(200);
+  await page.screenshot({ path: info.outputPath('service-connections.png') });
+
+  // Following the shipment link closes the panel and lands on the shipment, which links back.
+  await links.getByRole('link', { name: 'On the way, due 2026-12-04' }).click();
+  await expect(page).toHaveURL(/shipmentId=ship-1/);
+  const card = page.locator('#shipment-card-ship-1');
+  await expect(card.getByTestId('shipment-service-link')).toHaveAttribute('href', '/admin/purchase-orders?serviceId=air');
+  await expect(card.getByRole('link', { name: 'Velvet Earth' })).toHaveAttribute('href', '/admin/stock?panel=velvet');
+});

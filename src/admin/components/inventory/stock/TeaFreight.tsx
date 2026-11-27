@@ -1,4 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
+import { serviceHref, shipmentHref, SHIPMENT_STATE_WORD, teaShipments } from '../logisticsLinks';
 import { Button } from '../../../../components/shared/Button';
 import { api } from '../../../../lib/api';
 import { rateToUsd } from '../../../../lib/currency';
@@ -58,6 +60,7 @@ export function TeaFreight({ product, shopPerKgUsd, rates, costRateToUsd, onChoo
     : product.freightFellBack === 'gone' ? 'Its service is no longer active, so the shop rate is used.'
     : 'Following the shop rate.';
 
+  const onBoard = teaShipments(product.id, data);
   return <>
     <TeaLine label="Travels by">
       <div className="relative flex-1">
@@ -74,6 +77,17 @@ export function TeaFreight({ product, shopPerKgUsd, rates, costRateToUsd, onChoo
         </select>
       </div>
     </TeaLine>
+    {chosen && <TeaLine label="Service">
+      <Link data-testid="tea-freight-service-link" className="tap-target text-tea-gold" to={serviceHref(chosen.id)}>{chosen.logistics_company_name} · {chosen.name}, {serviceRateLabel(chosen)}</Link>
+    </TeaLine>}
+    {onBoard.length > 0 && <TeaLine label="Shipments">
+      <ul data-testid="tea-shipments" className="flex-1 min-w-0 space-y-1">
+        {onBoard.slice(0, 4).map(({ shipment, service }) => <li key={shipment.id} className="flex flex-wrap gap-x-2">
+          <Link className="tap-target text-tea-gold" to={shipmentHref(shipment.id)}>{SHIPMENT_STATE_WORD[shipment.state]}{shipment.eta ? `, due ${shipment.eta}` : ''}</Link>
+          {service ? <Link className="tap-target text-admin-text-dim" to={serviceHref(service.id)}>{shipment.logistics_company_name} · {service.name}</Link> : <span className="text-admin-text-dim">{shipment.logistics_company_name}, no service named</span>}
+        </li>)}
+      </ul>
+    </TeaLine>}
     <TeaLine label="Freight">
       <span data-testid="tea-freight-rate" className="text-admin-text tabular-nums">{usd(shown) ?? '—'} / kg</span>
     </TeaLine>

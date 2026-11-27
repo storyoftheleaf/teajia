@@ -6654,6 +6654,10 @@ body.cart-panel-open .commerce-dock {
 .logistics-service-row { display:flex; flex-wrap:wrap; align-items:center; gap:6px 12px; padding:4px 0; border-bottom:1px solid var(--tea-border); }
 .logistics-service-row>span:first-child { flex:1; min-width:130px; overflow-wrap:anywhere; }
 .logistics-service-row small { display:block; }
+.logistics-service-name { flex:1; min-width:130px; display:block; text-align:left; overflow-wrap:anywhere; }
+.logistics-service-links { flex-basis:100%; display:grid; gap:8px; padding:4px 0 8px; }
+.logistics-service-links ul { margin:0; padding:0; list-style:none; display:grid; gap:2px; }
+.logistics-service-links p { margin:0; }
 .logistics-add-service { justify-self:start; }
 .logistics-service-editor { min-width:0; padding:8px; border:1px solid var(--tea-border); border-radius:4px; background:var(--tea-bg); }
 @media (max-width:640px) {
