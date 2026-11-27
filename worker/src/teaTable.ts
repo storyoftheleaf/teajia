@@ -56,6 +56,7 @@ const json = (value: unknown, status = 200) => Response.json(value, { status, he
 const privateJson = (value: unknown, status = 200) => Response.json(value, { status, headers: { 'Cache-Control': 'private, no-store' } });
 const refuse = (status: number, error: string, code: string) => privateJson({ error, code }, status);
 const notFound = () => refuse(404, 'Not found', 'not_found');
+const closed = () => Response.json({ error: 'Not found' }, { status: 404 });
 export const isTeaTableKind = (value: unknown): value is TeaTableKind => typeof value === 'string' && (KINDS as readonly string[]).includes(value);
 
 // ── The consent gate, as SQL ────────────────────────────────────────────────
@@ -80,17 +81,29 @@ const RECAP_ON_TABLE = `
   ${RECAP_ELIGIBLE}
   AND e.tea_table_at IS NOT NULL AND e.tea_table_hidden_at IS NULL`;
 
-const held = (kind: TeaTableKind, id: string) => `EXISTS (SELECT 1 FROM tea_table_holds th
-  WHERE th.item_kind = '${kind}' AND th.item_id = ${id} AND datetime(th.held_until) > datetime('now'))`;
+const eligibleHold = `datetime(th.held_until) > datetime('now') AND (
+  (th.item_kind = 'tasting' AND EXISTS (${visiblePiece('tasting', 'th.item_id')}))
+  OR (th.item_kind = 'recap' AND EXISTS (${visiblePiece('recap', 'th.item_id')}))
+)`;
 
-type Filter = { before?: string | null; hold?: 'only' | 'without'; ids?: string[]; limit: number };
+type Cursor = { at: string; kind?: TeaTableKind; id?: string };
+type Filter = { before?: Cursor | null; omit?: Array<{ kind: TeaTableKind; id: string }>; ids?: string[]; limit: number };
 
 function where(kind: TeaTableKind, column: string, id: string, filter: Filter, binds: unknown[]): string {
   const parts: string[] = [];
-  if (filter.before) { parts.push(`datetime(${column}) < datetime(?)`); binds.push(filter.before); }
-  if (filter.hold === 'only') parts.push(held(kind, id));
-  if (filter.hold === 'without') parts.push(`NOT ${held(kind, id)}`);
-  if (filter.ids) { parts.push(`${id} IN (${filter.ids.map(() => '?').join(',') || 'NULL'})`); binds.push(...filter.ids); }
+  if (filter.before?.kind) {
+    parts.push(`(datetime(${column}), '${kind}', ${id}) < (datetime(?), ?, ?)`);
+    binds.push(filter.before.at, filter.before.kind, filter.before.id);
+  } else if (filter.before) {
+    parts.push(`datetime(${column}) < datetime(?)`);
+    binds.push(filter.before.at);
+  }
+  const omit = filter.omit?.filter(item => item.kind === kind).map(item => item.id) ?? [];
+  if (omit.length) {
+    parts.push(`${id} NOT IN (${omit.map(() => '?').join(', ')})`);
+    binds.push(...omit);
+  }
+  if (filter.ids) { parts.push(`${id} IN (${filter.ids.map(() => '?').join(', ') || 'NULL'})`); binds.push(...filter.ids); }
   return parts.map(part => ` AND ${part}`).join('');
 }
 
@@ -216,8 +229,13 @@ async function readRecaps(db: D1Database, filter: Filter): Promise<TeaTableRecap
   }));
 }
 
-const newestFirst = (a: TeaTableItem, b: TeaTableItem) =>
-  teaTableMoment(b.at).getTime() - teaTableMoment(a.at).getTime() || teaTableKey(b).localeCompare(teaTableKey(a));
+const newestFirst = (a: TeaTableItem, b: TeaTableItem) => {
+  const time = teaTableMoment(b.at).getTime() - teaTableMoment(a.at).getTime();
+  if (time) return time;
+  const keyA = teaTableKey(a);
+  const keyB = teaTableKey(b);
+  return keyA < keyB ? 1 : keyA > keyB ? -1 : 0;
+};
 
 async function readBoth(db: D1Database, show: TeaTableShow, filter: Filter): Promise<TeaTableItem[]> {
   const [tastings, recaps] = await Promise.all([
@@ -228,16 +246,23 @@ async function readBoth(db: D1Database, show: TeaTableShow, filter: Filter): Pro
 }
 
 /** One page of the table. Held pieces sit above the rest on the first page and are not repeated below. */
-export async function readTeaTable(db: D1Database, show: TeaTableShow, before: string | null): Promise<TeaTablePage> {
+export async function readTeaTable(db: D1Database, show: TeaTableShow, before: Cursor | null): Promise<TeaTablePage> {
+  const { results } = await db.prepare(
+    `SELECT th.item_kind AS kind, th.item_id AS id, th.held_until
+       FROM tea_table_holds th WHERE ${eligibleHold}
+      ORDER BY th.held_until DESC, th.item_kind DESC, th.item_id DESC LIMIT ${MOST_HELD}`,
+  ).all<{ kind: TeaTableKind; id: string; held_until: string }>();
+  const active = (results ?? []).filter(item =>
+    show === 'all' || (show === 'tastings' ? item.kind === 'tasting' : item.kind === 'recap'));
   const [heldItems, rest] = await Promise.all([
-    before ? Promise.resolve([]) : readBoth(db, show, { hold: 'only', limit: MOST_HELD }),
-    readBoth(db, show, { hold: 'without', before, limit: PAGE + 1 }),
+    before || !active.length ? [] : readByIds(db, active),
+    readBoth(db, show, { omit: active, before, limit: PAGE + 1 }),
   ]);
-  let cut = Math.min(rest.length, PAGE);
-  // Pieces put on the table in the same second stay on the same page, so "Earlier" never skips one.
-  while (cut > 0 && cut < rest.length && rest[cut].at === rest[cut - 1].at) cut += 1;
-  const items = rest.slice(0, cut);
-  return { held: heldItems.slice(0, MOST_HELD), items, earlier: rest.length > cut ? items[items.length - 1].at : null };
+  const expires = new Map(active.map(item => [teaTableKey(item), item.held_until]));
+  const held = heldItems.sort(newestFirst).map(item => ({ ...item, held_until: expires.get(teaTableKey(item))! }));
+  const items = rest.slice(0, PAGE);
+  const last = items[items.length - 1];
+  return { held, items, earlier: rest.length > PAGE ? JSON.stringify([last.at, last.kind, last.id]) : null };
 }
 
 /** Pieces still on the table, by kind and id, in the order given. A withdrawn or hidden one is simply missing. */
@@ -307,11 +332,19 @@ export async function holdTeaTablePiece(db: D1Database, userId: string, kind: Te
   }
   const row = await db.prepare(
     `INSERT INTO tea_table_holds (item_kind, item_id, held_by, held_until)
-     SELECT ?1, ?2, ?3, datetime('now', '+' || ?4 || ' days') WHERE EXISTS (${visiblePiece(kind, '?2')})
+     SELECT ?1, ?2, ?3, datetime('now', '+' || ?4 || ' days')
+     WHERE EXISTS (${visiblePiece(kind, '?2')})
+       AND (SELECT COUNT(*) FROM tea_table_holds th
+             WHERE ${eligibleHold} AND (th.item_kind, th.item_id) <> (?1, ?2)) < ${MOST_HELD}
      ON CONFLICT(item_kind, item_id) DO UPDATE SET held_by = excluded.held_by, held_until = excluded.held_until
      RETURNING held_until`,
   ).bind(kind, id, userId, days).first<{ held_until: string }>();
-  if (!row) return refuse(409, 'Only a piece on the Tea Table can be held at the top.', 'not_on_table');
+  if (!row) {
+    const eligible = await db.prepare(visiblePiece(kind, '?')).bind(id).first();
+    return eligible
+      ? refuse(409, 'Six pieces are already held at the top.', 'hold_limit')
+      : refuse(409, 'Only a piece on the Tea Table can be held at the top.', 'not_on_table');
+  }
   return privateJson({ kind, id, held_until: row.held_until });
 }
 
@@ -379,19 +412,29 @@ export async function setTeaTableHidden(db: D1Database, userId: string, kind: Te
   return privateJson({ kind, id, hidden });
 }
 
-function normalBefore(value: string | null): string | null | 'bad' {
+function normalBefore(value: string | null): Cursor | null | 'bad' {
   if (!value) return null;
-  if (value.length > 40) return 'bad';
-  const moment = teaTableMoment(value);
+  if (value.length > 1024) return 'bad';
+  let cursor: Cursor = { at: value };
+  if (value.startsWith('[')) {
+    let parts: unknown;
+    try { parts = JSON.parse(value); } catch { return 'bad'; }
+    if (!Array.isArray(parts) || parts.length !== 3) return 'bad';
+    const [at, kind, id] = parts;
+    if (typeof at !== 'string' || !isTeaTableKind(kind) || typeof id !== 'string' || !id) return 'bad';
+    cursor = { at, kind, id };
+  }
+  if (cursor.at.length > 40) return 'bad';
+  const moment = teaTableMoment(cursor.at);
   if (Number.isNaN(moment.getTime())) return 'bad';
-  return moment.toISOString().slice(0, 19).replace('T', ' ');
+  return { ...cursor, at: moment.toISOString().slice(0, 19).replace('T', ' ') };
 }
 
 // ── Routes ──────────────────────────────────────────────────────────────────
 
 export function teaTableRoutes<E extends TeaTableEnv>(deps: TeaTableDeps<E>): [string, string, Handler<E>][] {
   const signedIn = async (request: Request, env: E): Promise<Person | { error: Response }> => {
-    if (!teaTableOpen(env)) return { error: notFound() };
+    if (!teaTableOpen(env)) return { error: closed() };
     return deps.requireAuthenticatedUser(request, env);
   };
 
@@ -418,7 +461,7 @@ export function teaTableRoutes<E extends TeaTableEnv>(deps: TeaTableDeps<E>): [s
 
   // GET /api/tea-table?show=all|tastings|sessions&before=<moment>. Public, and the same for everyone.
   const list: Handler<E> = async (request, env) => {
-    if (!teaTableOpen(env)) return notFound();
+    if (!teaTableOpen(env)) return closed();
     const url = new URL(request.url);
     const showParam = url.searchParams.get('show') || 'all';
     if (!(TEA_TABLE_SHOWS as readonly string[]).includes(showParam)) return refuse(400, 'Unknown view.', 'validation_failed');

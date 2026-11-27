@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { TYPOGRAPHY_CLASSES as T } from '../../designTokens';
 import { mediaUrl } from '../../lib/mediaUrl';
 import { TEA_HOUSES_TITLE } from '../../lib/teaHouses';
-import { teaHousesApi } from '../../lib/teaHousesApi';
+import { teaHouseFreshRead, teaHousesApi } from '../../lib/teaHousesApi';
 import { TEA_HOUSE_PART_LABELS, type TeaHouseContribution } from '../../lib/teaHousesContract';
 import { SectionSkeleton } from '../../components/shared/SectionSkeleton';
 
@@ -44,35 +44,37 @@ export default function TeaHousePortfolioPage() {
     queryKey: ['tea-houses', 'page', slug],
     queryFn: () => teaHousesApi.page(slug),
     retry: false,
-    staleTime: 1000 * 60,
+    ...teaHouseFreshRead,
   });
+
+  const current = query.isFetchedAfterMount && query.isSuccess && !query.isFetching ? query.data : null;
 
   return (
     <div className="w-full max-w-3xl mx-auto pt-12 pb-16" data-testid="tea-house-page">
       <Helmet>
-        <title>{query.data ? `${query.data.house.name} | ${TEA_HOUSES_TITLE} | Teajia` : `${TEA_HOUSES_TITLE} | Teajia`}</title>
+        <title>{current ? `${current.house.name} | ${TEA_HOUSES_TITLE} | Teajia` : `${TEA_HOUSES_TITLE} | Teajia`}</title>
       </Helmet>
       <Link to="/tea-houses/work" className={`${T.link} tap-target inline-flex items-center`}>{TEA_HOUSES_TITLE}</Link>
 
-      {query.isPending && <SectionSkeleton variant="grid" />}
-      {query.isError && (
+      {(query.isPending || query.isFetching) && <SectionSkeleton variant="grid" />}
+      {query.isError && !query.isFetching && (
         <div className="py-12">
           <p className={`${T.body} text-tea-text-sec`}>This house has no page here.</p>
           <Link to="/tea-houses/visit" className={`${T.link} tap-target inline-flex items-center mt-3`}>Find a tea house to visit</Link>
         </div>
       )}
-      {query.data && (
+      {current && (
         <>
           <header className="mt-6 mb-10">
-            <h1 className={`${T.h1} text-tea-text break-words`}>{query.data.house.name}</h1>
-            {query.data.house.place && <p className={`${T.bodyLight} text-tea-text-dim mt-2`}>{query.data.house.place}</p>}
+            <h1 className={`${T.h1} text-tea-text break-words`}>{current.house.name}</h1>
+            {current.house.place && <p className={`${T.bodyLight} text-tea-text-dim mt-2`}>{current.house.place}</p>}
           </header>
           <div className="flex flex-col gap-12">
-            {query.data.parts.map(part => <PartSection key={part.part} part={part} />)}
+            {current.parts.map(part => <PartSection key={part.part} part={part} />)}
           </div>
           <p className="mt-12">
-            <Link to={`/store/${encodeURIComponent(query.data.house.slug)}`} className={`${T.link} tap-target inline-flex items-center`}>
-              Visit {query.data.house.name}
+            <Link to={`/store/${encodeURIComponent(current.house.slug)}`} className={`${T.link} tap-target inline-flex items-center`}>
+              Visit {current.house.name}
             </Link>
           </p>
         </>

@@ -46,7 +46,15 @@ function response(data: unknown, status = 200) {
 const notFound = () => response({ error: 'Not found' }, 404);
 const alreadyReviewed = () => response({ error: 'This offer has already been reviewed.' }, 409);
 const photoKey = (id: string, photoId: string) => `host-article-offers/${id}/${photoId}.jpg`;
-const photoPath = (id: string, photoId: string) => `/api/article-offers/${id}/photos/${photoId}`;
+const publishedPhotoPath = (id: string, photoId: string) => `/api/articles/${id}/photos/${photoId}`;
+
+export function publishedArticleMediaPath<T>(value: T): T | string {
+  return typeof value === 'string' && /^\/api\/article-offers\/host-article-[^/]+\/photos\/[^/]+$/.test(value)
+    ? value.replace('/api/article-offers/', '/api/articles/')
+    : value;
+}
+
+const closed = () => Response.json({ error: 'Not found' }, { status: 404 });
 const photoIds = (row: OfferRow): string[] => JSON.parse(row.photo_ids);
 
 const OFFER_ROWS = `SELECT o.*, a.slug FROM host_article_offers o
@@ -183,7 +191,7 @@ export function createHostArticleHandlers<Env extends OfferEnv>(access: Access<E
   const { accountId } = access;
 
   async function member(request: Request, env: Env) {
-    if (!hostArticlesOpen(env)) return notFound();
+    if (!hostArticlesOpen(env)) return closed();
     const user = await access.requireUser(request, env);
     if ('error' in user) return user.error;
     const canOffer = await hasHosted(env.DB, user.userId);
@@ -229,7 +237,7 @@ export function createHostArticleHandlers<Env extends OfferEnv>(access: Access<E
   }
 
   async function review(request: Request, env: Env, params: Record<string, string>) {
-    if (!hostArticlesOpen(env)) return notFound();
+    if (!hostArticlesOpen(env)) return closed();
     const denied = await access.requireOwner(request, env);
     if (denied) return denied;
     if (request.method === 'GET') {
@@ -257,7 +265,7 @@ export function createHostArticleHandlers<Env extends OfferEnv>(access: Access<E
     const ids = article.photos.map(photo => photo.id);
     const slugStem = article.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 64).replace(/^-|-$/g, '');
     const slug = `${slugStem || 'article'}-${original.id.slice(ARTICLE_ID_PREFIX.length)}`;
-    const urls = ids.map(id => photoPath(original.id, id));
+    const urls = ids.map(id => publishedPhotoPath(original.id, id));
     const blocks = [
       { type: 'cover', title: article.title, image: urls[0], variant: urls.length ? undefined : 'centered' },
       ...article.body.split(/\n+/).map(text => text.trim()).filter(Boolean).map(text => ({ type: 'paragraph', text })),
@@ -286,18 +294,36 @@ export function createHostArticleHandlers<Env extends OfferEnv>(access: Access<E
   }
 
   async function photo(request: Request, env: Env, params: Record<string, string>) {
-    const open = hostArticlesOpen(env);
-    // A closed flag can reach the worker before the migration does. Published
-    // media remains readable when the intake is closed after publication.
-    if (!open && !await env.DB.prepare("SELECT 1 FROM sqlite_master WHERE name = 'host_article_offers'").first()) return notFound();
+    if (!hostArticlesOpen(env)) return closed();
     const offer = await env.DB.prepare(`${OFFER_ROWS} AND o.id = ?`).bind(accountId, params.id).first<OfferRow>();
     if (!offer || !photoIds(offer).includes(params.photoId)) return notFound();
     if (!offer.slug) {
-      if (!open) return notFound();
       const user = await access.optionalUser(request, env);
       if (!user || (user.userId !== offer.writer_user_id && await access.requireOwner(request, env))) return notFound();
     }
-    const object = await env.ATLAS_BUCKET?.get(photoKey(offer.id, params.photoId));
+    return servePhoto(env, offer.id, params.photoId);
+  }
+
+  async function publishedPhoto(_request: Request, env: Env, params: Record<string, string>) {
+    if (!isHostArticleId(params.id) || !UUID.test(params.id.slice(ARTICLE_ID_PREFIX.length)) || !UUID.test(params.photoId)) {
+      return notFound();
+    }
+    const article = await env.DB.prepare(`SELECT cover_image_url, blocks FROM articles
+      WHERE id = ? AND status = 'published'`)
+      .bind(params.id).first<{ cover_image_url: string | null; blocks: string | null }>();
+    if (!article) return notFound();
+    const path = publishedPhotoPath(params.id, params.photoId);
+    if (publishedArticleMediaPath(article.cover_image_url) === path) return servePhoto(env, params.id, params.photoId);
+    let blocks: unknown;
+    try { blocks = JSON.parse(article.blocks || '[]'); } catch { return notFound(); }
+    const used = Array.isArray(blocks) && blocks.some(block =>
+      (block?.type === 'cover' && publishedArticleMediaPath(block.image) === path) ||
+      (block?.type === 'image' && publishedArticleMediaPath(block.url) === path));
+    return used ? servePhoto(env, params.id, params.photoId) : notFound();
+  }
+
+  async function servePhoto(env: Env, id: string, photoId: string) {
+    const object = await env.ATLAS_BUCKET?.get(photoKey(id, photoId));
     if (!object) return notFound();
     return new Response(object.body, { headers: {
       'Content-Type': 'image/jpeg',
@@ -306,5 +332,5 @@ export function createHostArticleHandlers<Env extends OfferEnv>(access: Access<E
     } });
   }
 
-  return { member, review, photo };
+  return { member, review, photo, publishedPhoto };
 }

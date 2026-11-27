@@ -172,13 +172,13 @@ describe('host article offers', () => {
   });
 
   it('preserves photo order and restores photo privacy when Adrian takes the article down', async () => {
-    const { env } = setup();
+    const { env, db } = setup();
     const offer = await (await call(env, 'host', MINE, draft())).json() as any;
     const edit = form({ action: 'publish', title: 'Edited tea', body: 'Edited words.' }, true);
     edit.append('keep_photo', offer.photos[0]);
     const saved = await (await call(env, 'adrian', `${REVIEW}/${offer.id}`, edit)).json() as any;
     expect(saved.photos).toEqual([expect.any(String), offer.photos[0]]);
-    const publicPaths = saved.photos.map((id: string) => `/api/article-offers/${offer.id}/photos/${id}`);
+    const publicPaths = saved.photos.map((id: string) => `/api/articles/${offer.id}/photos/${id}`);
     const articlePath = `/api/articles/${saved.slug}`;
     const liveArticle = await (await call(env, null, articlePath)).json() as any;
     expect(liveArticle.blocks).toEqual([
@@ -186,9 +186,27 @@ describe('host article offers', () => {
       { type: 'paragraph', text: 'Edited words.' },
       { type: 'image', url: publicPaths[1] },
     ]);
-    for (const path of publicPaths) {
-      expect((await call({ ...env, HOST_ARTICLES_OPEN: 'false' }, null, path)).status).toBe(200);
+    const closed = { ...env, HOST_ARTICLES_OPEN: 'false' };
+    for (const id of saved.photos) {
+      const offerPath = `/api/article-offers/${offer.id}/photos/${id}`;
+      const unknown = await call(closed, null, '/api/absent');
+      const actual = await call({ ...closed, DB: undefined }, null, offerPath);
+      expect(actual.status).toBe(unknown.status);
+      expect([...actual.headers]).toEqual([...unknown.headers]);
+      expect(await actual.json()).toEqual(await unknown.json());
     }
+    for (const path of publicPaths) {
+      expect((await call(closed, null, path)).status).toBe(200);
+    }
+    db.exec(`UPDATE articles
+      SET cover_image_url = replace(cover_image_url, '/api/articles/', '/api/article-offers/'),
+          blocks = replace(blocks, '/api/articles/', '/api/article-offers/')
+      WHERE id = '${offer.id}'`);
+    const legacy = await (await call(closed, null, articlePath)).json() as any;
+    expect(legacy.cover_image_url).toBe(publicPaths[0]);
+    expect(legacy.blocks).toEqual(liveArticle.blocks);
+    expect((await call(closed, null, legacy.cover_image_url)).status).toBe(200);
+
     const adminPath = `/api/admin/articles/${offer.id}`;
     const managed = await (await call(env, 'adrian', adminPath)).json() as any;
     expect((await call(env, 'editor', adminPath)).status).toBe(200);

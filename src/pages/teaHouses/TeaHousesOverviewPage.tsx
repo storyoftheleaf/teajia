@@ -12,7 +12,7 @@ import { useTeaHouseWork } from '../../lib/teaHousesApi';
  */
 export default function TeaHousesOverviewPage() {
   const work = useTeaHouseWork();
-  const hasWork = (work.data?.houses.length ?? 0) > 0;
+  const hasWork = work.isSuccess && work.data.houses.length > 0;
   const doors = [
     ...(hasWork ? [
       { to: '/tea-houses/build', label: 'Build one with me' },

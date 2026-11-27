@@ -42,7 +42,7 @@ export const TEA_TABLE_SHOWS: readonly TeaTableShow[] = ['all', 'tastings', 'ses
 
 /** GET /api/tea-table. `held` sits above the rest on the first page only; `earlier` is the next page's `before`. */
 export interface TeaTablePage {
-  held: TeaTableItem[];
+  held: Array<TeaTableItem & { held_until: string }>;
   items: TeaTableItem[];
   earlier: string | null;
 }

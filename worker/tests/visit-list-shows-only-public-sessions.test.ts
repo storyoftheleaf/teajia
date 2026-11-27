@@ -47,13 +47,22 @@ function seed() {
 }
 
 async function stores(db: SqliteD1) {
-  const response = await request(db, '/api/network/stores');
+  const response = await request(db, '/api/network/stores', { flags: { TEA_HOUSES_OPEN: 'true' } });
   expect(response.status).toBe(200);
   const text = await response.text();
   return { text, rows: JSON.parse(text) as Array<Record<string, unknown>> };
 }
 
 describe('the Visit list reads one directory answer', () => {
+  it('revalidates the directory when portfolio fields are switched off', async () => {
+    const db = seed();
+    const open = await request(db, '/api/network/stores', { flags: { TEA_HOUSES_OPEN: 'true' } });
+    const closed = await request(db, '/api/network/stores', { flags: { TEA_HOUSES_OPEN: 'false' } });
+    for (const response of [open, closed]) expect(response.headers.get('Cache-Control')).toBe('no-cache');
+    expect((await open.json() as any[])[0]).toHaveProperty('next_session');
+    expect((await closed.json() as any[])[0]).not.toHaveProperty('next_session');
+  });
+
   it('keeps the eligibility rules and adds the photograph', async () => {
     const { rows } = await stores(seed());
     expect(rows.map(row => row.slug)).toEqual(['house-a', 'house-b']);

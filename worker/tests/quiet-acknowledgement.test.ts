@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SqliteD1, seedIdentity } from './helpers/sqliteD1';
-import { request } from './helpers/personalSellerPilot';
+import { request as pilotRequest } from './helpers/personalSellerPilot';
 
 // Quiet acknowledgement (CLAUDE.md, third exception; todo/plans/guests-and-tea-masters.md,
 // "Quiet acknowledgement"): only things one person gives another, in words.
@@ -15,6 +15,8 @@ beforeEach(() => vi.stubGlobal('fetch', vi.fn(() => { throw new Error('No extern
 afterEach(() => { databases.splice(0).forEach(db => db.close()); vi.unstubAllGlobals(); });
 
 const SHOP = 'shop';
+const request: typeof pilotRequest = (db, path, options) =>
+  pilotRequest(db, path, { flags: { TEA_TABLE_OPEN: 'true' }, ...options });
 const days = (n: number) => new Date(Date.now() + n * 86_400_000).toISOString().slice(0, 16);
 
 function base() {
@@ -54,6 +56,47 @@ describe('photograph by <first name>', () => {
     const body = await (await request(db, '/api/family/teas/tea/photographs')).json() as { family: Array<Record<string, unknown>> };
     return body.family[0];
   };
+
+  it('answers as an unknown route when photo credit is closed', async () => {
+    const db = setup();
+    const options = { actor: mei, method: 'PUT', body: { credit_name_shown: true } };
+    const closed = await pilotRequest(db, '/api/family/photographs/photo/credit', options);
+    const absent = await pilotRequest(db, '/api/absent', options);
+    expect(closed.status).toBe(absent.status);
+    expect([...closed.headers]).toEqual([...absent.headers]);
+    expect(await closed.json()).toEqual(await absent.json());
+  });
+
+  it('matches the origin/main public response keys with all six flags off', async () => {
+    const db = setup();
+    person(db, 'host', 'Host', true);
+    db.exec(`
+      INSERT INTO events (id, account_id, slug, title, event_date, lifecycle_status, public_visibility, recap_status)
+      VALUES ('sit', '${SHOP}', 'courtyard', 'Tea in the courtyard', '2026-11-20', 'completed', 'public', 'published');
+      INSERT INTO event_post_session (event_id, account_id, session_notes) VALUES ('sit', '${SHOP}', 'Notes');
+      UPDATE member_photographs SET credit_name_shown = 1 WHERE id = 'photo';
+    `);
+    const flags = Object.fromEntries(['TEA_TABLE', 'TEA_HOUSES', 'FAVOURITES', 'YOUR_TABLE_PAGE', 'HOST_ARTICLES', 'TOP_TEAS']
+      .map(flag => [flag + '_OPEN', 'false']));
+    const read = async (path: string) => {
+      const response = await pilotRequest(db, path, { flags });
+      expect(response.status).toBe(200);
+      return await response.json() as any;
+    };
+    const stores = await read('/api/network/stores');
+    const people = await read('/api/people');
+    const recaps = await read('/api/public/sit-recaps/courtyard');
+    const photos = await read('/api/family/teas/tea/photographs');
+    const expectKeys = (value: object, keys: string) => expect(Object.keys(value).sort()).toEqual(keys.split(' ').sort());
+    expectKeys(stores[0], 'id slug name tagline logo_url location_city location_country');
+    expectKeys(people, 'contributors');
+    expectKeys(people.contributors[0], 'id display_name chinese_name role business_name location_line avatar_url card_image_url card_image_focus own_line is_host family_last_active page_tier article_count list_group');
+    expectKeys(recaps, 'recap');
+    expectKeys(recaps.recap, 'slug title event_date people note galleryPhoto teas table guestBook');
+    expectKeys(photos, 'product_id lead placed family');
+    expectKeys(photos.family[0], 'id full_url small_url full_width full_height small_width small_height shape frame author');
+    expect(photos.family[0].author).toBeNull();
+  });
 
   it('starts at no: a photograph already taken carries no name', async () => {
     const db = setup();

@@ -21,9 +21,10 @@ class StorefrontRequestError extends Error {
   }
 }
 
-async function fetchJson<T>(path: string): Promise<T> {
+async function fetchJson<T>(path: string, cache?: RequestCache): Promise<T> {
   try {
     const res = await fetchWithTimeout(`${API_URL}${path}`, {
+      cache,
       headers: { 'Content-Type': 'application/json' },
     });
     let data: any = null;
@@ -131,7 +132,7 @@ export function normalizeProduct(p: any): PublicProduct {
 
 /** List all publicly-visible stores in the Teajia network. */
 export async function fetchNetworkStores(): Promise<Account[]> {
-  const data = await fetchJson<Account[] | { stores?: Account[] }>(`/api/network/stores`);
+  const data = await fetchJson<Account[] | { stores?: Account[] }>(`/api/network/stores`, 'no-cache');
   if (Array.isArray(data)) return data;
   return data?.stores ?? [];
 }

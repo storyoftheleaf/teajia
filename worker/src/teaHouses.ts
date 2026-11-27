@@ -40,6 +40,7 @@ const json = (value: unknown, status = 200) => Response.json(value, { status, he
 const privateJson = (value: unknown, status = 200) => Response.json(value, { status, headers: { 'Cache-Control': 'private, no-store' } });
 const refuse = (status: number, error: string, code: string) => privateJson({ error, code }, status);
 const notFound = () => refuse(404, 'Not found', 'not_found');
+const closed = () => Response.json({ error: 'Not found' }, { status: 404 });
 
 /** The platform owner's account: the one the portfolio belongs to. */
 const OWNER_ACCOUNT_SQL = `SELECT id FROM accounts WHERE is_platform_owner = 1`;
@@ -84,24 +85,30 @@ const summaryOf = (row: HouseRow): TeaHouseSummary => ({
 
 /** The shown houses in his order, each with its parts. */
 async function readShown(db: D1Database, slug?: string): Promise<Array<{ house: HouseRow; parts: TeaHouseContribution[] }>> {
-  const houses = await db.prepare(
-    `SELECT a.id, a.slug, a.name, a.location_city, a.location_country, a.cover_image_url
-       FROM tea_house_pages hp JOIN accounts a ON a.id = hp.house_account_id
-      WHERE ${SHOWN_HOUSE} ${slug ? 'AND a.slug = ?' : ''}
-      ORDER BY hp.position ASC, a.name ASC
-      LIMIT ${MOST_HOUSES}`,
-  ).bind(...(slug ? [slug] : [])).all<HouseRow>();
-  const list = houses.results ?? [];
-  if (!list.length) return [];
-  const parts = await db.prepare(
-    `SELECT c.house_account_id, c.part, c.words, c.photographs
-       FROM tea_house_contributions c
-       JOIN tea_house_pages hp ON hp.house_account_id = c.house_account_id AND hp.account_id = c.account_id
-      WHERE c.house_account_id IN (${list.map(() => '?').join(', ')})`,
-  ).bind(...list.map(house => house.id)).all<PartRow>();
-  const byHouse = new Map<string, PartRow[]>();
-  for (const row of parts.results ?? []) byHouse.set(row.house_account_id, [...(byHouse.get(row.house_account_id) ?? []), row]);
-  return list.map(house => ({ house, parts: contributionsOf(byHouse.get(house.id) ?? []) }));
+  const { results } = await db.prepare(
+    `WITH shown AS (
+       SELECT a.id, a.slug, a.name, a.location_city, a.location_country, a.cover_image_url,
+              hp.account_id, hp.position
+         FROM tea_house_pages hp JOIN accounts a ON a.id = hp.house_account_id
+        WHERE ${SHOWN_HOUSE} ${slug ? 'AND a.slug = ?' : ''}
+        ORDER BY hp.position, a.name, a.id
+        LIMIT ${MOST_HOUSES}
+     )
+     SELECT shown.*, c.house_account_id, c.part, c.words, c.photographs
+       FROM shown JOIN tea_house_contributions c
+         ON c.house_account_id = shown.id AND c.account_id = shown.account_id
+      ORDER BY shown.position, shown.name, shown.id`,
+  ).bind(...(slug ? [slug] : [])).all<HouseRow & PartRow>();
+  const byHouse = new Map<string, { house: HouseRow; parts: PartRow[] }>();
+  for (const row of results ?? []) {
+    const entry = byHouse.get(row.id);
+    if (entry) entry.parts.push(row);
+    else byHouse.set(row.id, { house: row, parts: [row] });
+  }
+  return [...byHouse.values()].flatMap(({ house, parts }) => {
+    const visibleParts = contributionsOf(parts);
+    return visibleParts.length ? [{ house, parts: visibleParts }] : [];
+  });
 }
 
 /** Whether this person is the platform owner, read from the database, never from the token. */
@@ -166,8 +173,9 @@ async function readBody(request: Request): Promise<Record<string, unknown> | nul
 // ── Routes ──────────────────────────────────────────────────────────────────
 
 export function teaHousesRoutes<E extends TeaHousesEnv>(deps: TeaHousesDeps<E>): [string, string, Handler<E>][] {
-  /** The platform owner and the account the portfolio belongs to. Works with the portfolio closed, so his words can be ready first. */
+  /** The platform owner and the account the portfolio belongs to. Available while the portfolio is open. */
   const platformOwner = async (request: Request, env: E): Promise<(Person & { accountId: string }) | { error: Response }> => {
+    if (!teaHousesOpen(env)) return { error: closed() };
     const person = await deps.requireAuthenticatedUser(request, env);
     if ('error' in person) return person;
     if (!(await isPlatformOwner(env.DB, person.userId))) return { error: refuse(403, 'Platform owner access required', 'platform_owner_only') };
@@ -191,7 +199,7 @@ export function teaHousesRoutes<E extends TeaHousesEnv>(deps: TeaHousesDeps<E>):
 
   // GET /api/tea-houses/work: the shown houses, in his order. The same for everyone.
   const work: Handler<E> = async (_request, env) => {
-    if (!teaHousesOpen(env)) return notFound();
+    if (!teaHousesOpen(env)) return closed();
     const shown = await readShown(env.DB);
     const body: TeaHouseWork = {
       houses: shown.map(({ house, parts }) => ({
@@ -204,7 +212,7 @@ export function teaHousesRoutes<E extends TeaHousesEnv>(deps: TeaHousesDeps<E>):
 
   // GET /api/tea-houses/work/:slug: one house's page, his parts in his words.
   const page: Handler<E> = async (_request, env, params) => {
-    if (!teaHousesOpen(env)) return notFound();
+    if (!teaHousesOpen(env)) return closed();
     const [found] = await readShown(env.DB, params.slug);
     if (!found) return notFound();
     const body: TeaHousePage = { house: summaryOf(found.house), parts: found.parts };
@@ -213,7 +221,7 @@ export function teaHousesRoutes<E extends TeaHousesEnv>(deps: TeaHousesDeps<E>):
 
   // GET /api/tea-houses/build: each part he has done, pointing at the houses where he did it.
   const build: Handler<E> = async (_request, env) => {
-    if (!teaHousesOpen(env)) return notFound();
+    if (!teaHousesOpen(env)) return closed();
     const shown = await readShown(env.DB);
     const body: TeaHouseBuild = {
       parts: TEA_HOUSE_PARTS

@@ -314,6 +314,6 @@ function OwnerSection() {
 /** Shown only to the platform owner. Works while the public pages are closed, so the words can be ready first. */
 export function TeaHousePortfolioSection() {
   const platformRole = useAppStore(state => state.platformRole);
-  if (platformRole !== 'platform_owner') return null;
+  if (!teaHousesOpen() || platformRole !== 'platform_owner') return null;
   return <OwnerSection />;
 }

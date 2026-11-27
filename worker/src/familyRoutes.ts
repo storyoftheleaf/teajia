@@ -175,12 +175,12 @@ function shopPhoto(row: AuthoredRow): FamilySharedPhotograph & { author: FamilyA
  * linked only then too, and only when it is published (AUTHOR_COLUMNS). When
  * they did not allow it there is no author at all: no name, no page, no slug.
  */
-function publicPhoto(row: AuthoredRow): FamilySharedPhotograph {
-  const firstName = photographBy(row, row.author_name);
+function publicPhoto(row: AuthoredRow, showCredit: boolean): FamilySharedPhotograph {
+  const firstName = showCredit ? photographBy(row, row.author_name) : null;
   return {
     ...photoParts(row),
     author: firstName ? { name: firstName, page_id: row.page_id ?? null } : null,
-    photograph_by: firstName,
+    ...(showCredit ? { photograph_by: firstName } : {}),
   };
 }
 
@@ -569,6 +569,7 @@ export function familyRoutes<E extends FamilyEnv>(deps: FamilyDeps<E>): [string,
   // yes or no to "photograph by <first name>" wherever the picture is shown large.
   // Starts at no. Only the author can change it; it changes nothing else.
   const creditPhoto: FamilyHandler<E> = async (request, env, params) => {
+    if (!teaTableOpen(env)) return Response.json({ error: 'Not found' }, { status: 404 });
     const person = await deps.requireAuthenticatedUser(request, env);
     if ('error' in person) return person.error;
     const body = await readBody(request);
@@ -639,7 +640,7 @@ export function familyRoutes<E extends FamilyEnv>(deps: FamilyDeps<E>): [string,
       ).bind(journal.id, person.userId)]
       : toTeaTable
         ? [env.DB.prepare(
-          `UPDATE member_tasting_shares SET tea_table_at = datetime('now'), tea_table_sittings = ? WHERE journal_entry_id = ? AND author_user_id = ?`,
+          `UPDATE member_tasting_shares SET tea_table_at = datetime('now'), tea_table_sittings = ? WHERE journal_entry_id = ? AND author_user_id = ? AND tea_table_at IS NULL`,
         ).bind(sittings, journal.id, person.userId)]
         : [];
     const [, photos] = await env.DB.batch([
@@ -690,12 +691,14 @@ export function familyRoutes<E extends FamilyEnv>(deps: FamilyDeps<E>): [string,
     ).bind(product.account_id, product.id).all<PhotoRow & { author_name: string | null; page_id: string | null }>();
     const rows = results ?? [];
     const lead = rows.find(row => row.shop_use === 'lead');
+    const showCredit = teaTableOpen(env);
+    const project = (row: AuthoredRow) => publicPhoto(row, showCredit);
     const body: FamilyTeaPhotographs = {
       product_id: product.id,
-      lead: lead ? publicPhoto(lead) : null,
-      placed: rows.filter(row => row.shop_use === 'placed').map(publicPhoto),
+      lead: lead ? project(lead) : null,
+      placed: rows.filter(row => row.shop_use === 'placed').map(project),
       family: rows.filter(row => row.shop_use !== 'placed' && row.shop_use !== 'lead'
-        && row.removed_by_member_at === null && row.share_state !== 'private').map(publicPhoto),
+        && row.removed_by_member_at === null && row.share_state !== 'private').map(project),
     };
     return json(body);
   };

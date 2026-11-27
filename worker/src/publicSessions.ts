@@ -13,6 +13,7 @@
 //   `included` AND the guest agreed to the public recap (a note's own
 //   `public_recap` yes; a photograph's public-recap permission, the same one
 //   the lead recap photograph uses). Everything else stays with the guests.
+import { teaTableOpen } from '../../src/lib/teaTable';
 import { publicSitProfile, publishedSitRecap } from './publicSitConnections';
 import { privateAttendeeSeatMatch } from './privateSessionReflections';
 import { readSitPhotoRendition, sitPhotoRenditionResponse } from './revocableSitPhotos';
@@ -20,7 +21,7 @@ import { resolveSessionTeas, type PublicProductReader, type PublicSessionTea, ty
 import { GUEST_BOOK_NOTE_LIMIT, prepareGuestBookNote } from './sessionGuestBook';
 import { readSessionServedTeas } from './sessionServedTeas';
 
-type Env = { DB: D1Database; ATLAS_BUCKET?: R2Bucket };
+type Env = { DB: D1Database; ATLAS_BUCKET?: R2Bucket; TEA_TABLE_OPEN?: string };
 type Handler<E> = (request: Request, env: E, params: Record<string, string>) => Promise<Response>;
 type Auth<E> = (request: Request, env: E) => Promise<{ userId: string } | { error: Response }>;
 
@@ -264,12 +265,13 @@ export async function formalSessionCardsFor(db: D1Database, readPublic: PublicPr
 }
 
 /** The sit's recap: the host's words, then each poured tea with what guests attached to it. */
-export async function formalSessionRecap(db: D1Database, readPublic: PublicProductReader, slug: string) {
+export async function formalSessionRecap(db: D1Database, readPublic: PublicProductReader, slug: string, showCredit = false) {
   const event = await readEventBySlug(db, slug);
   if (!event) return null;
   const people = (await peopleOf(db, [event])).get(event.id) ?? [];
   const [teas, photos, notes, pouredWith] = await Promise.all([
-    teasOf(db, readPublic, event), publicGuestPhotos(db, event), publicGuestNotes(db, event), pouredWithOf(db, event),
+    teasOf(db, readPublic, event), publicGuestPhotos(db, event), publicGuestNotes(db, event),
+    showCredit ? pouredWithOf(db, event) : undefined,
   ]);
   const host = hostSignature(people);
   const placed = placeGuestItems(teas, photos, notes);
@@ -277,7 +279,7 @@ export async function formalSessionRecap(db: D1Database, readPublic: PublicProdu
   const writing = event.notes?.trim() ?? '';
   return {
     slug: event.slug, title: event.title, event_date: event.event_date, people,
-    poured_with: pouredWith,
+    ...(pouredWith ? { poured_with: pouredWith } : {}),
     note: writing ? { text: writing, by: host } : null,
     galleryPhoto: images[0] ?? null,
     teas: placed.teas,
@@ -298,7 +300,7 @@ export function publicSessionRoutes<E extends Env>(deps: {
   readPublic: (env: E) => PublicProductReader;
 }): [string, string, Handler<E>][] {
   const recap: Handler<E> = async (_request, env, { slug }) => {
-    const found = await formalSessionRecap(env.DB, deps.readPublic(env), slug);
+    const found = await formalSessionRecap(env.DB, deps.readPublic(env), slug, teaTableOpen(env));
     return found ? json({ recap: found }) : json({ error: 'This recap is unavailable.' }, 404);
   };
 

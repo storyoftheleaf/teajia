@@ -87,10 +87,11 @@ async function expectQuietAndFitting(page: Page) {
 
 test.describe('the Tea Table, closed', () => {
   test.skip(open, 'The Tea Table is open in this run');
-  test('its address, and the old one, lead home', async ({ page }) => {
+  test('its address shows the missing page and the old address leads home', async ({ page }) => {
     await prepare(page, fresh());
     await page.goto('/tea-table');
-    await expect(page).toHaveURL(/\/$/);
+    await expect(page.getByText('Page not found', { exact: true })).toBeVisible();
+    await expect(page).toHaveURL(/\/tea-table$/);
     await page.goto('/tea-feed');
     await expect(page).toHaveURL(/\/$/);
   });
@@ -112,7 +113,8 @@ test.describe('the Tea Table, open', () => {
     await expect(pieces.nth(1).getByRole('link', { name: /Autumn sit/ })).toHaveAttribute('href', '/event/autumn-sit/recap');
     await expect(page.getByTestId('tea-table-day')).toHaveCount(2);
     await expect(page.getByRole('heading', { name: '25 November 2026' })).toBeVisible();
-    await expect(page.getByTestId('tea-table-next-session')).toContainText('Winter sit');
+    await expect(page.getByTestId('tea-table-page')).not.toContainText('Winter sit');
+    await expect(page.getByTestId('tea-table-next-session')).toHaveCount(0);
     // The three views: the table, sessions, people.
     const views = page.getByTestId('tea-table-views');
     await expect(views.getByRole('link', { name: 'Sessions' })).toHaveAttribute('href', '/events');
@@ -136,6 +138,30 @@ test.describe('the Tea Table, open', () => {
     const first = page.getByTestId('tea-table-piece').first();
     await expect(first).toContainText('The long table');
     await expect(held).not.toContainText(/held|pinned|featured/i);
+  });
+
+  test('a hold moves into ordinary time order at expiry while the page stays open', async ({ page }) => {
+    await page.clock.install();
+    const state = fresh();
+    await prepare(page, state);
+    const heldUntil = new Date(Date.now() + 60_000).toISOString();
+    let expired = false;
+    await page.route(/\/api\/tea-table$/, route => {
+      state.requests.push('');
+      return route.fulfill({ json: {
+        held: expired ? [] : [{ ...HELD, held_until: heldUntil }],
+        items: expired ? [TASTING, RECAP, HELD] : [TASTING, RECAP],
+        earlier: null,
+      } });
+    });
+    await page.goto('/tea-table');
+    await expect(page.getByTestId('tea-table-held')).toContainText('The long table');
+    const initialReads = state.requests.length;
+    expired = true;
+    await page.clock.fastForward(61_000);
+    await expect(page.getByTestId('tea-table-held')).toHaveCount(0);
+    await expect(page.getByTestId('tea-table-piece').last()).toContainText('The long table');
+    expect(state.requests.length).toBeGreaterThan(initialReads);
   });
 
   test('"Earlier" is a step: back returns to where you were; the view is a refinement', async ({ page }) => {

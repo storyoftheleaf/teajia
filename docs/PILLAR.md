@@ -2,7 +2,7 @@
 
 > What this site is and how it works, in one read. Written 2026-09-20 from a full survey of the code (four agents, every public and signed-in route, the worker API, the git history of the home page). Linked from the top of `CLAUDE.md` so every session sees it. When the site changes shape, change this file in the same commit; a pillar that lags the code is worse than none.
 
-> **Launch 4 branch status (2026-11-26).** This pillar includes the Launch 4 work in this checkout. The Tea Table, Favourites and Your Table page default to off. Visit, quiet acknowledgement and score privacy have no dedicated Launch 4 switch. The proposed Home and navigation changes are in [SECTIONS.md](SECTIONS.md).
+> **Launch 4 branch status (2026-11-26).** This pillar includes the Launch 4 work in this checkout. The Tea Table, Favourites, Your Table page, Tea Houses portfolio, host article offers and top teas default to off. The Tea Table switch also controls the new credits on the people directory, sit recaps and shop tea photographs. Visit remains available, with house photographs and upcoming sessions behind the Tea Houses switch. Score privacy is always in force. The proposed Home and navigation changes are in [SECTIONS.md](SECTIONS.md).
 
 ## What it is, in three sentences
 

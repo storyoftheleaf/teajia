@@ -10,8 +10,10 @@ import { servePrivateSubjectPhotos } from './privateSubjectPhotos';
 import { createMemberPrivateSitsHandler } from './memberPrivateSits';
 import { afterSitRoutes } from './afterSitAccess';
 import { boughtLineChestState, boughtLineQuantityUnit, keepBoughtLine, type BoughtOrder } from './chestKeep';
+import { teaHousesOpen } from '../../src/lib/teaHouses';
+import { teaTableOpen } from '../../src/lib/teaTable';
 import { firstTableOpen } from '../../src/lib/firstTable';
-import { createHostArticleHandlers, isHostArticleId } from './hostArticleOffers';
+import { createHostArticleHandlers, isHostArticleId, publishedArticleMediaPath } from './hostArticleOffers';
 import { favouritesRoutes } from './favourites';
 import { teaTableRoutes } from './teaTable';
 import { teaHousesRoutes } from './teaHouses';
@@ -238,7 +240,7 @@ import { budgetRefusal } from './d1BudgetResponse';
 import { mergePushedJournal, storedJournalsFor } from './tastingJournalPush';
 import { familyRetryTranscription, familyRoutes, familyTranscribe, type FamilyDeps } from './familyRoutes';
 import { articleWisdomClaimUseRoutes, moveClaimUsesWithBlocks, publicArticleClaimUses } from './articleWisdomClaimUses';
-import { applyFamilyProfileWrite, familyPageAllowsPay, familyPageRoutes, familyPageTierOf, pageWord } from './familyPages'; import { FAMILY_LAST_ACTIVE_COLUMN, FAMILY_PAGE_NOT_HIDDEN_SQL, personTastings } from './familyPersonTastings'; import { PEOPLE_LIST_COLUMNS, arrangePeopleList } from './peopleList'; import { familyMediaVerdict } from './familyMedia';
+import { applyFamilyProfileWrite, familyPageAllowsPay, familyPageRoutes, familyPageTierOf, pageWord } from './familyPages'; import { FAMILY_LAST_ACTIVE_COLUMN, FAMILY_PAGE_NOT_HIDDEN_SQL, personTastings } from './familyPersonTastings'; import { PEOPLE_LIST_COLUMNS, PEOPLE_LIST_POURS_COLUMN, arrangePeopleList } from './peopleList'; import { familyMediaVerdict } from './familyMedia';
 import { normalizeShelfWhatsApp } from '../../shared/shelfContact';
 import { readPersonalTeaMoney } from '../../src/lib/personalTeaMoney';
 import { approvedShelfOfferSql, getOrderableShelfSlug, getPublicShelf, personalInventoryAccessSql, readOfferInput, recordedChestCostSql, shelfContactSql } from './personalShelf';
@@ -23405,13 +23407,13 @@ const handlePlatformUpgradeToLocation: Handler = async (request, env, params) =>
 // private), active, published (or with registration closed), and still ahead. Only its slug, title and
 // date are read: never an address, a map link or a venue guide.
 const handleGetNetworkStores: Handler = async (_request, env) => {
+  const open = teaHousesOpen(env);
   const { results } = await env.DB.prepare(
-    `SELECT a.id, a.slug, a.name, a.tagline, a.logo_url, a.cover_image_url,
-            a.location_city, a.location_country,
-            ne.slug AS next_session_slug, ne.title AS next_session_title,
-            ne.event_date AS next_session_date
+    `SELECT a.id, a.slug, a.name, a.tagline, a.logo_url, a.location_city, a.location_country
+       ${open ? `, a.cover_image_url, ne.slug AS next_session_slug, ne.title AS next_session_title,
+                 ne.event_date AS next_session_date` : ''}
      FROM accounts a
-     LEFT JOIN events ne ON ne.id = (
+     ${open ? `LEFT JOIN events ne ON ne.id = (
        SELECT e.id FROM events e
         WHERE e.account_id = a.id AND e.status = 'active'
           AND ${PUBLIC_EVENT_STORE}
@@ -23419,7 +23421,7 @@ const handleGetNetworkStores: Handler = async (_request, env) => {
           AND e.event_date >= datetime('now')
         ORDER BY e.event_date ASC
         LIMIT 1
-     )
+     )` : ''}
      WHERE a.public_enabled = 1 AND a.status = 'active'
        AND EXISTS (
          SELECT 1 FROM products p
@@ -23427,13 +23429,16 @@ const handleGetNetworkStores: Handler = async (_request, env) => {
        )
      ORDER BY a.is_platform_owner DESC, a.name ASC`
   ).all<Record<string, unknown>>();
-  const stores = (results ?? []).map(({ next_session_slug, next_session_title, next_session_date, ...store }) => ({
+  const stores = !open ? results : (results ?? []).map(({ next_session_slug, next_session_title, next_session_date, ...store }) => ({
     ...store,
     next_session: next_session_slug
       ? { slug: next_session_slug, title: next_session_title, event_date: next_session_date }
       : null,
   }));
-  return cachedJson(stores, 300);
+  const response = json(stores);
+  // The response shape follows a worker flag, so a fresh request must evaluate it.
+  response.headers.set('Cache-Control', 'no-cache');
+  return response;
 };
 
 // GET /api/s/:slug — PUBLIC account profile
@@ -25964,6 +25969,7 @@ const handleGetPublicArticles: Handler = async (request, env) => {
   const results = rows.results.map((r: any) => ({
     ...r,
     tags: r.tags ? JSON.parse(r.tags) : [],
+    cover_image_url: publishedArticleMediaPath(r.cover_image_url),
   }));
   return json(results);
 };
@@ -25993,7 +25999,18 @@ const handleGetPublicArticle: Handler = async (request, env, params) => {
   ).bind(params.slug).first() as Record<string, any> | null;
   if (!row) return json({ error: 'Article not found' }, 404);
 
-  return json({ ...articleToApi(row), wisdom_claim_uses: await publicArticleClaimUses(env.DB, row.id) });
+  const article = articleToApi(row);
+  const blocks = isHostArticleId(row.id) && Array.isArray(article.blocks)
+    ? article.blocks.map((block: Record<string, unknown>) => {
+      if (block?.type === 'cover') return { ...block, image: publishedArticleMediaPath(block.image) };
+      if (block?.type === 'image') return { ...block, url: publishedArticleMediaPath(block.url) };
+      return block;
+    })
+    : article.blocks;
+  return json({
+    ...article, blocks, cover_image_url: publishedArticleMediaPath(row.cover_image_url),
+    wisdom_claim_uses: await publicArticleClaimUses(env.DB, row.id),
+  });
 };
 
 // ── Contributors — Public ─────────────────────────────────────────────────────
@@ -26128,6 +26145,7 @@ const handlePutTopTea: Handler = async (request, env, params) => {
   if (note && note.length > TOP_TEA_NOTE_LIMIT) return json({ error: 'Your words are too long' }, 400);
 
   let productId = current?.product_id ?? null;
+  const otherMakerSlot = params.slot === 'own' ? 'elsewhere' : params.slot === 'elsewhere' ? 'own' : null;
   if (current?.product_id && productField === null) name = current.name;
   if (productField !== null) {
     productId = productField || null;
@@ -26147,6 +26165,19 @@ const handlePutTopTea: Handler = async (request, env, params) => {
   }
   if (!name || name.length > TOP_TEA_NAME_LIMIT) return json({ error: 'Enter a tea name of up to 160 characters' }, 400);
 
+  if (productId && otherMakerSlot) {
+    // The catalogue stores a producer name rather than a contributor ID.
+    // Use it only when the name resolves unambiguously to one person.
+    const { results: makers } = await env.DB.prepare(
+      `SELECT DISTINCT c.user_id FROM products p JOIN contributors c
+         ON LOWER(TRIM(p.producer)) IN (LOWER(TRIM(c.display_name)), LOWER(TRIM(c.chinese_name)))
+        WHERE p.id = ? AND TRIM(p.producer) <> '' AND c.user_id IS NOT NULL LIMIT 2`
+    ).bind(productId).all<{ user_id: string }>();
+    if (makers.length === 1 && (makers[0].user_id === profile.user_id) !== (params.slot === 'own')) {
+      return json({ error: 'Choose the slot that matches the maker listed for this tea.' }, 400);
+    }
+  }
+
   let photoId = current?.photo_id ?? '';
   if (photo) {
     const limit = await enforceDurableLimit(env.PROVIDER_LIMITER, 'PROVIDER_LIMITER', `${profile.user_id}:top-tea-photo`);
@@ -26158,18 +26189,24 @@ const handlePutTopTea: Handler = async (request, env, params) => {
     await env.ATLAS_BUCKET.put(topTeaPhotoKey(photoId), photo.stream(), { httpMetadata: { contentType: photo.type } });
   }
 
+  const otherPick = 'SELECT 1 FROM contributor_top_teas WHERE contributor_id = ? AND slot = ? AND product_id = ?';
+  const pair = [profile.id, otherMakerSlot, productId];
   const saved = await (current
     ? env.DB.prepare(
       `UPDATE contributor_top_teas SET account_id = ?, name = ?, note = ?, photo_id = ?, product_id = ?
-        WHERE contributor_id = ? AND slot = ? AND photo_id = ?`
-    ).bind(profile.account_id, name, note, photoId, productId, profile.id, params.slot, current.photo_id)
+        WHERE contributor_id = ? AND slot = ? AND photo_id = ? AND NOT EXISTS (${otherPick})`
+    ).bind(profile.account_id, name, note, photoId, productId, profile.id, params.slot, current.photo_id, ...pair)
     : env.DB.prepare(
       `INSERT INTO contributor_top_teas (contributor_id, account_id, slot, name, note, photo_id, product_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT(contributor_id, slot) DO NOTHING`
-    ).bind(profile.id, profile.account_id, params.slot, name, note, photoId, productId)
+       SELECT ?, ?, ?, ?, ?, ?, ? WHERE NOT EXISTS (${otherPick})
+       ON CONFLICT(contributor_id, slot) DO NOTHING`
+    ).bind(profile.id, profile.account_id, params.slot, name, note, photoId, productId, ...pair)
   ).run();
   if (!saved.meta.changes) {
     if (photo) await env.ATLAS_BUCKET?.delete(topTeaPhotoKey(photoId)).catch(() => {});
+    if (productId && otherMakerSlot && await env.DB.prepare(otherPick).bind(...pair).first()) {
+      return json({ error: 'Choose a different tea for each maker slot.' }, 409);
+    }
     return json({ error: 'This pick changed. Reopen it and try again.' }, 409);
   }
   if (photo && current) await env.ATLAS_BUCKET?.delete(topTeaPhotoKey(current.photo_id)).catch(() => {});
@@ -26208,8 +26245,9 @@ function firstSentenceOf(text: unknown): string | null {
 }
 
 const handleListPublicContributors: Handler = async (request, env) => {
+  const showCredit = teaTableOpen(env);
   const rows = await env.DB.prepare(
-    `SELECT c.id, c.display_name, c.chinese_name, c.role, c.page_tier, ${FAMILY_LAST_ACTIVE_COLUMN}, ${PEOPLE_LIST_COLUMNS}, c.business_name, c.location_line, c.avatar_url,
+    `SELECT c.id, c.display_name, c.chinese_name, c.role, c.page_tier, ${FAMILY_LAST_ACTIVE_COLUMN}, ${PEOPLE_LIST_COLUMNS}${showCredit ? `, ${PEOPLE_LIST_POURS_COLUMN} AS list_pours` : ''}, c.business_name, c.location_line, c.avatar_url,
             c.now_text, c.beginnings, c.inspirations,
             (SELECT gi.image_url FROM contributor_gallery_images gi
               WHERE gi.contributor_id = c.id
@@ -26255,7 +26293,7 @@ const handleListPublicContributors: Handler = async (request, env) => {
     article_count: Number(row.article_count || 0),
   }));
 
-  return json({ contributors: arrangePeopleList(contributors) });
+  return json({ contributors: arrangePeopleList(contributors, showCredit) });
 };
 
 async function publicPaymentAvailability(env: Env, contributorId: string): Promise<{
@@ -26332,7 +26370,7 @@ const handleGetPublicContributor: Handler = async (request, env, params) => {
     title: article.title,
     subtitle: article.subtitle ?? null,
     published_at: article.published_at,
-    cover_image_url: article.cover_image_url ?? null,
+    cover_image_url: publishedArticleMediaPath(article.cover_image_url ?? null),
     reading_time_mins: article.reading_time_mins ?? null,
     pull_quote: article.pull_quote ?? null,
     quote_anchor: article.pull_quote_subject ? `quote-${article.pull_quote_subject}` : null,
@@ -26352,6 +26390,7 @@ const handleGetPublicContributor: Handler = async (request, env, params) => {
   ).bind(slug).all();
   const pullQuotes = (pullQuotesRes.results as Array<Record<string, any>> ?? []).map(quote => ({
     ...quote,
+    cover_image_url: publishedArticleMediaPath(quote.cover_image_url),
     // pull_quote_subject === slug for every row this query can return, so
     // the anchor is the same "jump to their spot" id on every entry.
     quote_anchor: `quote-${slug}`,
@@ -26375,7 +26414,7 @@ const handleGetPublicContributor: Handler = async (request, env, params) => {
     subtitle: article.subtitle ?? null,
     author_id: article.author_id ?? null,
     published_at: article.published_at,
-    cover_image_url: article.cover_image_url ?? null,
+    cover_image_url: publishedArticleMediaPath(article.cover_image_url ?? null),
     reading_time_mins: article.reading_time_mins ?? null,
     pull_quote: article.pull_quote_subject === slug ? (article.pull_quote ?? null) : null,
     quote_anchor: article.pull_quote_subject === slug && article.pull_quote ? `quote-${slug}` : null,
@@ -32302,6 +32341,7 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/read/editorial-issue', handleGetReadIssue],
   ['GET', '/api/articles',       handleGetPublicArticles],
   ['GET', '/api/articles/:slug', handleGetPublicArticle],
+  ['GET', '/api/articles/:id/photos/:photoId', hostArticleHandlers.publishedPhoto],
 
   // Articles — WordForge integration (credential-derived account)
   ['PUT', '/api/integrations/wordforge/articles/:sourceId', handlePutWordforgeArticle],

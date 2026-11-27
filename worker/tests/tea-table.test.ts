@@ -329,7 +329,80 @@ describe('holding a piece at the top', () => {
   });
 });
 
+describe('placement and hold limits', () => {
+  it('keeps the first placement and its sittings on repeat share', async () => {
+    const { env, db } = setup();
+    const place = '2026-11-13 09:00:00';
+    await shareToTable(env);
+    db.exec(`UPDATE member_tasting_shares SET tea_table_at = '${place}' WHERE journal_entry_id = 'journal-one'`);
+    db.exec(`UPDATE customer_tasting_journal SET tastings = '[{"id":"s1"},{"id":"s2"}]' WHERE id = 'journal-one'`);
+    await shareToTable(env);
+    expect((await table(env)).items[0].at).toBe(place);
+    expect(db.sqlite.prepare('SELECT tea_table_sittings FROM member_tasting_shares WHERE journal_entry_id = ?').get('journal-one'))
+      .toEqual({ tea_table_sittings: '["s1"]' });
+    await ok(env, MEMBER, '/api/tea-table/mine/tasting/journal-one', { method: 'DELETE' });
+    await shareToTable(env);
+    expect((await table(env)).items[0].at).not.toBe(place);
+  });
+
+  it('lists surplus holds already in storage in ordinary order', async () => {
+    const { env, db } = setup();
+    seedRecaps(db, 7);
+    db.exec(`INSERT INTO tea_table_holds (item_kind, item_id, held_by, held_until)
+      SELECT 'recap', id, 'owner', datetime('now', '+1 day') FROM events WHERE id LIKE 'tie-%'`);
+    const page = await table(env);
+    expect(page.held).toHaveLength(6);
+    expect(page.items).toHaveLength(1);
+    expect(new Set(keys(page)).size).toBe(7);
+  });
+
+  it('refuses a seventh hold even with concurrent requests and leaves that piece in ordinary order', async () => {
+    const { env, db } = setup();
+    seedRecaps(db, 7);
+    const requests = Array.from({ length: 7 }, (_, index) =>
+      call(env, HOST, `/api/tea-table/holds/recap/tie-${index}`, { method: 'PUT', body: { days: 3 } }));
+    const responses = await Promise.all(requests);
+    const refused = responses.findIndex(response => response.status === 409);
+    expect(refused).toBeGreaterThanOrEqual(0);
+    expect(await responses[refused].json()).toMatchObject({ error: 'Six pieces are already held at the top.' });
+    const page = await table(env);
+    expect(page.held).toHaveLength(6);
+    expect(page.held.every((item: any) => typeof item.held_until === 'string')).toBe(true);
+    expect(page.items.map((item: any) => item.id)).toEqual([`tie-${refused}`]);
+  });
+});
+
+function seedRecaps(db: SqliteD1, count: number) {
+  const event = db.sqlite.prepare(`INSERT INTO events
+    (id, account_id, slug, title, event_date, lifecycle_status, public_visibility, recap_status, network_discovery, tea_table_at)
+    VALUES (?, ?, ?, 'A sit', '2026-11-01', 'completed', 'public', 'published', 1, '2026-11-16 08:00:00')`);
+  const recap = db.sqlite.prepare('INSERT INTO event_post_session (id, account_id, event_id, session_notes) VALUES (?, ?, ?, ?)');
+  for (let index = 0; index < count; index++) {
+    const id = `tie-${index}`;
+    event.run(id, SHOP, id);
+    recap.run(id, SHOP, id, 'At the table.');
+  }
+}
+
 describe('earlier pages', () => {
+  it('offers every tied piece and the older piece across pages', async () => {
+    const { env, db } = setup();
+    seedRecaps(db, 22);
+    await shareToTable(env);
+    db.exec("UPDATE member_tasting_shares SET tea_table_at = '2026-11-15 08:00:00'");
+    const first = await table(env);
+    expect(first.earlier).toEqual(expect.any(String));
+    const next = await table(env, `?before=${encodeURIComponent(first.earlier)}`);
+    expect(next.earlier).toBeNull();
+    const recaps = Array.from({ length: 22 }, (_, index) => `recap:tie-${index}`).sort().reverse();
+    expect([...keys(first), ...keys(next)]).toEqual([...recaps, 'tasting:journal-one']);
+
+    db.exec("UPDATE member_tasting_shares SET tea_table_at = '2026-11-16 08:00:00'");
+    const mixed = await table(env);
+    const mixedNext = await table(env, `?before=${encodeURIComponent(mixed.earlier)}`);
+    expect([...keys(mixed), ...keys(mixedNext)]).toEqual(['tasting:journal-one', ...recaps]);
+  });
+
   it('walks back in time with "before" and never repeats a piece', async () => {
     const { env, db } = setup();
     await shareToTable(env);

@@ -1307,7 +1307,7 @@ const AppContent = () => {
                   {WisdomPilotPreview && <Route path="/preview/wisdom-pilot/*" element={<ErrorBoundary><Suspense fallback={null}><WisdomPilotPreview /></Suspense></ErrorBoundary>} />}
                 </>)}
                 <Route path="/events" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><EventsPage /></Suspense></ErrorBoundary>} />
-                <Route path="/tea-table" element={teaTableOpen() ? <ErrorBoundary><Suspense fallback={<EmblemLoader />}><TeaTablePage /></Suspense></ErrorBoundary> : <Navigate to="/" replace />} />
+                {teaTableOpen() && <Route path="/tea-table" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><TeaTablePage /></Suspense></ErrorBoundary>} />}
                 <Route path="/tea-feed" element={<Navigate to={teaTableOpen() ? '/tea-table' : '/'} replace />} />
                 <Route path="/event/:slug" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><EventLanding /></Suspense></ErrorBoundary>} />
                 <Route path="/sits/casual/:slug" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><CasualSitRecapPage /></Suspense></ErrorBoundary>} />

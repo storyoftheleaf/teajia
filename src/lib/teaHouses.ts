@@ -5,9 +5,8 @@
 // One switch for the public portfolio: the Overview at /tea-houses, Build at
 // /tea-houses/build, Work at /tea-houses/work and each house's page at
 // /tea-houses/work/:slug, Visit's line to a house's page, and the worker's
-// public routes under /api/tea-houses. The Manage form, where Adrian writes his
-// part in each house, works with the switch off, so the words can be ready
-// before the pages open. Off until Adrian ships Launch 4.
+// public routes under /api/tea-houses. The same switch controls the portfolio
+// in Manage and the extra directory fields. Off until Adrian ships Launch 4.
 //
 // An explicit setting wins over the constant, either way: the site reads
 // VITE_TEA_HOUSES_OPEN ('true' or 'false'), the worker reads the

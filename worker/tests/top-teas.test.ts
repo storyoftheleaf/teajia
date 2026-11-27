@@ -93,6 +93,27 @@ describe('top teas on a person page', () => {
     });
   });
 
+  it.each([['own', 'elsewhere'], ['elsewhere', 'own']])('rejects the same linked tea in %s and %s', async (first, second) => {
+    expect((await save(first, { product_id: 'public-tea' })).status).toBe(200);
+    expect((await save(second, { product_id: 'public-tea' })).status).toBe(409);
+    expect(photos.size).toBe(1);
+    expect((await (await call()).json() as any).picks.map((row: any) => row.slot)).toEqual([first]);
+  });
+
+  it('checks the maker slot when the catalogue identifies a contributor as producer', async () => {
+    db.exec("UPDATE products SET producer = 'Other' WHERE id = 'public-tea'");
+    expect((await save('own', { product_id: 'public-tea' })).status).toBe(400);
+    expect((await save('elsewhere', { product_id: 'public-tea' })).status).toBe(200);
+    db.exec("UPDATE products SET producer = 'Mei' WHERE id = 'public-tea'");
+    expect((await save('elsewhere', {}, false)).status).toBe(400);
+  });
+
+  it('refuses conflicting linked maker slots even when saved concurrently', async () => {
+    const results = await Promise.all([save('own', { product_id: 'public-tea' }), save('elsewhere', { product_id: 'public-tea' })]);
+    expect(results.map(result => result.status).sort()).toEqual([200, 409]);
+    expect(photos.size).toBe(1);
+  });
+
   it('finds public shop teas and drops the link when the shop withdraws a listing', async () => {
     const options = await call(path + '/shop?q=oolong', { user: 'mei-user' });
     expect(options.status).toBe(200);

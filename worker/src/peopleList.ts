@@ -68,8 +68,7 @@ export const PEOPLE_LIST_COLUMNS =
    (SELECT p.small_key FROM member_photographs p
      WHERE p.author_user_id = c.user_id AND p.share_state IN ('page', 'offered')
        AND p.removed_by_member_at IS NULL AND ${PHOTO_NOT_HIDDEN}
-     ORDER BY p.created_at DESC, p.id DESC LIMIT 1) AS list_tasting_photo_key,
-   ${PEOPLE_LIST_POURS_COLUMN} AS list_pours`;
+     ORDER BY p.created_at DESC, p.id DESC LIMIT 1) AS list_tasting_photo_key`;
 
 type Listed = {
   display_name: string;
@@ -111,7 +110,7 @@ const quietScore = (person: Listed) =>
  * The list as the page shows it: only people with a photograph, grouped and
  * ordered, each carrying its group and nothing that says why it sits where it does.
  */
-export function arrangePeopleList<T extends Listed>(people: T[]): Array<Omit<T, 'founding_member' | 'list_pinned_at' | 'list_days_shared' | 'list_shop_picks' | 'list_tasting_photo_key' | 'list_pours'> & { list_group: PeopleListGroup; pours: boolean }> {
+export function arrangePeopleList<T extends Listed>(people: T[], showCredit = false): Array<Omit<T, 'founding_member' | 'list_pinned_at' | 'list_days_shared' | 'list_shop_picks' | 'list_tasting_photo_key' | 'list_pours'> & { list_group: PeopleListGroup; pours?: boolean }> {
   return people
     // A photograph on their page stands first; without one, the newest they shared from a tasting.
     .map(person => (person.card_image_url || person.avatar_url || typeof person.list_tasting_photo_key !== 'string' || !person.list_tasting_photo_key
@@ -129,7 +128,7 @@ export function arrangePeopleList<T extends Listed>(people: T[]): Array<Omit<T, 
       || byName(a.person, b.person))
     .map(({ person, group }) => {
       const { founding_member: _f, list_pinned_at: _p, list_days_shared: _d, list_shop_picks: _s, list_tasting_photo_key: _k, list_pours: pours, ...shown } = person;
-      return { ...shown, list_group: group, pours: Number(pours) === 1 || pours === true };
+      return { ...shown, list_group: group, ...(showCredit ? { pours: Number(pours) === 1 } : {}) };
     });
 }
 

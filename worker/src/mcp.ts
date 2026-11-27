@@ -7231,7 +7231,8 @@ async function logMcpToolCall(env: Env, auth: McpAuth, toolName: string, args: a
 
 async function dispatchTool(env: Env, auth: McpAuth, name: string, args: any) {
   const tool = toolDefFor(name);
-  if (!tool) throw new Error(`Unknown tool: ${name}`);
+  const unavailable = tool && 'unavailable' in tool ? tool.unavailable?.(env, auth) : undefined;
+  if (!tool || unavailable === 'feature_closed') throw new Error(`Unknown tool: ${name}`);
 
   const scope = tool.scope as McpScope;
 
@@ -7254,7 +7255,6 @@ async function dispatchTool(env: Env, auth: McpAuth, name: string, args: any) {
     });
   }
 
-  const unavailable = 'unavailable' in tool && tool.unavailable?.(env, auth);
   if (unavailable) return mcpContent({ error: unavailable });
 
   let result;

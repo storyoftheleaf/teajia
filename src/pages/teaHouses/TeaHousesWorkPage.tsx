@@ -35,7 +35,7 @@ function HouseRow({ house }: { house: TeaHouseWorkItem }) {
 
 export default function TeaHousesWorkPage() {
   const query = useTeaHouseWork();
-  const houses = query.data?.houses ?? [];
+  const houses = query.isSuccess && !query.isFetching ? query.data.houses : [];
   return (
     <div className="w-full max-w-3xl mx-auto pt-12 pb-16" data-testid="tea-houses-work">
       <Helmet><title>{`Work | ${TEA_HOUSES_TITLE} | Teajia`}</title></Helmet>
@@ -43,9 +43,9 @@ export default function TeaHousesWorkPage() {
         <Link to="/tea-houses" className={`${T.label} text-tea-text-dim tap-target inline-flex items-center`}>{TEA_HOUSES_TITLE}</Link>
         <h1 className={`${T.h1} mt-3`}>Houses I have worked on</h1>
       </header>
-      {query.isPending && <SectionSkeleton variant="grid" />}
-      {query.isError && <p className={`${T.body} text-center text-tea-text-sec py-12`}>The houses could not be loaded just now.</p>}
-      {query.isSuccess && houses.length === 0 && (
+      {(query.isPending || query.isFetching) && <SectionSkeleton variant="grid" />}
+      {query.isError && !query.isFetching && <p className={`${T.body} text-center text-tea-text-sec py-12`}>The houses could not be loaded just now.</p>}
+      {query.isSuccess && !query.isFetching && houses.length === 0 && (
         <div className="text-center py-12" data-testid="work-empty">
           <p className={`${T.body} text-tea-text-sec`}>Nothing is shown here yet.</p>
           <Link to="/tea-houses/visit" className={`${T.link} tap-target inline-flex items-center mt-3`}>Find a tea house to visit</Link>

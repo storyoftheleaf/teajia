@@ -6,6 +6,7 @@ import type { Account, NetworkNextSession } from '../types';
 import { fetchNetworkStores } from '../lib/storefrontApi';
 import { SectionSkeleton } from '../components/shared/SectionSkeleton';
 import { TYPOGRAPHY_CLASSES as T } from '../designTokens';
+import { teaHousesOpen } from '../lib/teaHouses';
 import { useTeaHouseWork } from '../lib/teaHousesApi';
 import { teaHousePagePath } from '../lib/teaHousesContract';
 
@@ -40,13 +41,14 @@ function ComingSession({ session }: { session: NetworkNextSession }) {
 
 function HouseRow({ house, hasPortfolio }: { house: Account; hasPortfolio: boolean }) {
   const place = [house.location_city, house.location_country].filter(Boolean).join(', ');
+  const showExtras = teaHousesOpen();
   return (
     <li className="flex flex-col gap-1">
       <Link
         to={`/store/${encodeURIComponent(house.slug)}`}
         className="group flex flex-col sm:flex-row gap-4 p-4 bg-tea-surface border border-tea-border rounded-xl hover:border-tea-gold focus-visible:border-tea-gold transition-colors"
       >
-        {house.cover_image_url && (
+        {showExtras && house.cover_image_url && (
           <img
             src={house.cover_image_url}
             alt=""
@@ -58,7 +60,7 @@ function HouseRow({ house, hasPortfolio }: { house: Account; hasPortfolio: boole
           <h2 className={`${T.h3} text-tea-text break-words`}>{house.name}</h2>
           {place && <p className={`${T.bodyLight} text-tea-text-dim mt-1`}>{place}</p>}
           {house.tagline && <p className={`${T.body} text-tea-text-sec mt-2 break-words`}>{house.tagline}</p>}
-          {house.next_session && <ComingSession session={house.next_session} />}
+          {showExtras && house.next_session && <ComingSession session={house.next_session} />}
         </div>
       </Link>
       {hasPortfolio && (
@@ -78,10 +80,10 @@ export default function TeaHousesVisitPage() {
   const { data: houses = [], isLoading, isError } = useQuery<Account[]>({
     queryKey: ['network', 'stores'],
     queryFn: fetchNetworkStores,
-    staleTime: 1000 * 60 * 5,
+    staleTime: 0,
   });
   const work = useTeaHouseWork();
-  const withPortfolio = new Set((work.data?.houses ?? []).map(house => house.slug));
+  const withPortfolio = new Set((work.isSuccess ? work.data.houses : []).map(house => house.slug));
 
   return (
     <div className="w-full max-w-3xl mx-auto pt-12 pb-16" data-testid="tea-houses-visit">

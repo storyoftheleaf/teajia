@@ -5,6 +5,7 @@ import { CORS } from './shared/media-stub';
 // its own page. Mocked directory of three houses, and of none, on a phone.
 test.use({ viewport: { width: 390, height: 844 } });
 
+const open = process.env.VITE_TEA_HOUSES_OPEN === 'true';
 const ahead = new Date(Date.now() + 5 * 86_400_000).toISOString();
 
 const THREE = [
@@ -51,8 +52,9 @@ test('three houses: name, place, photograph when there is one, the coming sessio
   const bamboo = rows.nth(0);
   await expect(bamboo.getByRole('heading', { name: 'Bamboo House' })).toBeVisible();
   await expect(bamboo.getByText('Ubud, Indonesia')).toBeVisible();
-  await expect(bamboo.locator('img')).toHaveCount(1);
-  await expect(bamboo.getByTestId('house-next-session')).toContainText('Morning oolongs');
+  await expect(bamboo.locator('img')).toHaveCount(open ? 1 : 0);
+  if (open) await expect(bamboo.getByTestId('house-next-session')).toContainText('Morning oolongs');
+  else await expect(bamboo.getByTestId('house-next-session')).toHaveCount(0);
   await expect(bamboo.getByRole('link')).toHaveAttribute('href', '/store/bamboo-house');
 
   const cedar = rows.nth(1);

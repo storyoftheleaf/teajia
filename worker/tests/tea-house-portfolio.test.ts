@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import worker from '../src/index';
 import { SqliteD1, seedIdentity, signedToken } from './helpers/sqliteD1';
 
@@ -88,13 +88,46 @@ describe('a house portfolio is hidden until shown', () => {
     expect(manage.houses.find((house: any) => house.id === 'acc-closed').is_public).toBe(false);
   });
 
-  it('answers nothing publicly while the portfolio is closed, and Manage still works', async () => {
+  it('treats every closed portfolio route as missing, before touching the database', async () => {
     const { env } = setup('false');
+    const closed = { ...env, DB: { prepare: vi.fn(() => { throw new Error('Unexpected database access'); }) } };
+    for (const [method, path] of [
+      ['GET', '/api/tea-houses/work'], ['GET', '/api/tea-houses/work/ubud-house'], ['GET', '/api/tea-houses/build'],
+      ['GET', '/api/admin/tea-houses'], ['PUT', '/api/admin/tea-houses/order'],
+      ['PUT', '/api/admin/tea-houses/acc-ubud/page'], ['PUT', '/api/admin/tea-houses/acc-ubud/parts/room'],
+      ['DELETE', '/api/admin/tea-houses/acc-ubud/parts/room'],
+    ]) {
+      const unknown = await call(closed, ADRIAN, '/api/absent', { method });
+      const actual = await call(closed, ADRIAN, path, { method });
+      expect(actual.status).toBe(unknown.status);
+      expect([...actual.headers]).toEqual([...unknown.headers]);
+      expect(await actual.json()).toEqual(await unknown.json());
+    }
+    expect(closed.DB.prepare).not.toHaveBeenCalled();
+  });
+
+  it('reads eligibility and parts in one statement when the last part is removed during the request', async () => {
+    const { env, db } = setup();
     await say(env, 'acc-ubud', 'room', 'The room.');
     await show(env, 'acc-ubud');
-    for (const path of ['/api/tea-houses/work', '/api/tea-houses/work/ubud-house', '/api/tea-houses/build']) {
-      expect((await call(env, null, path)).status).toBe(404);
-    }
+    const prepare = db.prepare.bind(db);
+    let removed = false;
+    vi.spyOn(db, 'prepare').mockImplementation(sql => {
+      const statement = prepare(sql);
+      if (!removed && sql.includes('FROM tea_house_pages hp')) {
+        const all = statement.all.bind(statement);
+        statement.all = (...args: Parameters<typeof all>) => {
+          const rows = all(...args);
+          db.exec("DELETE FROM tea_house_contributions WHERE house_account_id = 'acc-ubud'");
+          removed = true;
+          return rows;
+        };
+      }
+      return statement;
+    });
+    expect((await ok(env, null, '/api/tea-houses/work/ubud-house')).parts).toHaveLength(1);
+    expect(removed).toBe(true);
+    expect((await call(env, null, '/api/tea-houses/work/ubud-house')).status).toBe(404);
   });
 });
 

@@ -31,6 +31,12 @@ export const teaHousesApi = {
   },
 };
 
+export const teaHouseFreshRead = {
+  staleTime: 0,
+  refetchOnMount: 'always',
+  refetchOnWindowFocus: 'always',
+} as const;
+
 export const TEA_HOUSES_WORK_KEY = ['tea-houses', 'work'] as const;
 
 /** The shown houses in Adrian's order, while the portfolio is open. */
@@ -39,6 +45,6 @@ export function useTeaHouseWork() {
     queryKey: TEA_HOUSES_WORK_KEY,
     queryFn: () => teaHousesApi.work(),
     enabled: teaHousesOpen(),
-    staleTime: 1000 * 60,
+    ...teaHouseFreshRead,
   });
 }

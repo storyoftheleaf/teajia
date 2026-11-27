@@ -5,7 +5,7 @@ import { CORS } from './shared/media-stub';
 // Tea houses as Adrian's portfolio (Launch 4, K5 part two), with mocked
 // routes, on a phone. Closed until Adrian ships Launch 4: with
 // VITE_TEA_HOUSES_OPEN=true on the site these walk a house's page and Work;
-// without it they prove the addresses lead to Visit.
+// without it they prove the portfolio addresses show the missing page.
 test.use({ viewport: { width: 390, height: 844 } });
 
 const open = process.env.VITE_TEA_HOUSES_OPEN === 'true';
@@ -45,17 +45,66 @@ const NOTHING_COUNTED = /\b\d+\s+(houses?|parts?|likes?|views?)\b|curated|master
 test.describe('the tea house portfolio, closed', () => {
   test.skip(open, 'The portfolio is open on this site');
 
-  test('its addresses lead to Visit', async ({ page }) => {
+  test('closed addresses show the missing page and Visit still opens', async ({ page }) => {
     await prepare(page);
     for (const path of ['/tea-houses', '/tea-houses/work', '/tea-houses/work/ubud-house', '/tea-houses/build']) {
       await page.goto(path);
-      await expect(page).toHaveURL(/\/tea-houses\/visit$/);
+      await expect(page.getByText('Page not found', { exact: true })).toBeVisible();
+      expect(new URL(page.url()).pathname).toBe(path);
     }
+    await page.goto('/tea-houses/visit');
+    await expect(page.getByText('Page not found', { exact: true })).toHaveCount(0);
+    await expect(page.getByRole('heading', { name: 'Find a tea house', exact: true })).toBeVisible();
   });
 });
 
 test.describe('the tea house portfolio, open', () => {
   test.skip(!open, 'The portfolio is closed; run with VITE_TEA_HOUSES_OPEN=true');
+
+  test('reopening a house and focusing the page recheck public eligibility', async ({ page }) => {
+    await prepare(page);
+    let publicHouse = true;
+    await page.route(/\/api\/tea-houses\/work\/ubud-house$/, route => publicHouse
+      ? route.fulfill({ headers: CORS, json: PAGE })
+      : route.fulfill({ status: 404, headers: CORS, json: { error: 'Not found' } }));
+    await page.goto('/tea-houses/work');
+    const houseLink = page.getByTestId('work-house').filter({ hasText: 'Ubud House' });
+    await houseLink.click();
+    await expect(page.getByTestId('house-part')).toHaveCount(2);
+    await page.goBack();
+    publicHouse = false;
+    await houseLink.click();
+    await expect(page.getByTestId('house-part')).toHaveCount(0);
+    await expect(page.getByRole('link', { name: 'Find a tea house to visit' })).toBeVisible();
+
+    await page.goBack();
+    publicHouse = true;
+    await houseLink.click();
+    await expect(page.getByTestId('house-part')).toHaveCount(2);
+    publicHouse = false;
+    await page.evaluate(() => window.dispatchEvent(new Event('visibilitychange')));
+    await expect(page.getByRole('link', { name: 'Find a tea house to visit' })).toBeVisible();
+    await expect(page.getByTestId('house-part')).toHaveCount(0);
+  });
+
+  test('Build and Work refresh on focus when a house has been withdrawn', async ({ page }) => {
+    await prepare(page);
+    let publicHouse = true;
+    await page.route(/\/api\/tea-houses\/work$/, route => route.fulfill({
+      headers: CORS, json: publicHouse ? WORK : { houses: [] },
+    }));
+    await page.route(/\/api\/tea-houses\/build$/, route => route.fulfill({
+      headers: CORS, json: { parts: publicHouse ? [{ part: 'room', houses: [UBUD] }] : [] },
+    }));
+    for (const [path, testId, count] of [['work', 'work-house', 2], ['build', 'build-part', 1]] as const) {
+      publicHouse = true;
+      await page.goto(`/tea-houses/${path}`);
+      await expect(page.getByTestId(testId)).toHaveCount(count);
+      publicHouse = false;
+      await page.evaluate(() => window.dispatchEvent(new Event('visibilitychange')));
+      await expect(page.getByTestId(testId)).toHaveCount(0);
+    }
+  });
 
   test('a house page leads with his parts in his words, with photographs, only the parts he named', async ({ page }) => {
     await prepare(page);
