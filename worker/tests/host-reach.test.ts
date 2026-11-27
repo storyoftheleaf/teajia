@@ -255,6 +255,15 @@ describe('J10, the lists', () => {
     }
   });
 
+  it('lists a shop session that names a host, with every switch off, as before', async () => {
+    shopSession('shop-hosted');
+    db.sqlite.prepare(`UPDATE events SET host_user_id = 'adrian' WHERE id = 'shop-hosted'`).run();
+    for (const [anyone, few] of [[false, false], [true, true]]) {
+      const list = (await json(await call('/api/events', { anyone, few }))) as unknown as { slug: string }[];
+      expect(list.map(row => row.slug)).toContain('shop-hosted');
+    }
+  });
+
   it('never lists a host’s first session, even an open one', async () => {
     await setReach('cy', 'listed');
     const made = await json(await makeTable(cy, { door: 'open' }));
