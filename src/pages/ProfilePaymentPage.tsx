@@ -5,6 +5,9 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { PaymentChooser } from '../components/profile/PaymentChooser';
 import { PayInvoiceTeas } from '../components/profile/PayInvoiceTeas';
 import { PayInvoiceKeep } from '../components/profile/PayInvoiceKeep';
+import { PayInvoiceBuyMore } from '../components/profile/PayInvoiceBuyMore';
+import { useOpenLinkTea } from '../components/shop/useOpenLinkTea';
+import type { InventoryItem } from '../types';
 import { CurrencySelect } from '../components/shop/CurrencySelect';
 import { authPagePath } from '../lib/authNavigation';
 import { buildPaymentPageUrl, isTrackingTokenShaped, normalizeLocalAmount, parsePaymentContext, toPaymentOrderSummary } from '../components/profile/profileDomain';
@@ -29,7 +32,11 @@ import { api } from '../lib/api';
 
 const SHARE_TOKEN_PARAM = 't';
 
-export default function ProfilePaymentPage() {
+export default function ProfilePaymentPage({ onAddToCart }: {
+  /** The shop's own Add to cart, so a tea on the invoice can be bought again. */
+  onAddToCart?: (item: InventoryItem, grams: number, totalUsd: number) => void;
+} = {}) {
+  const { open: openLinkTea } = useOpenLinkTea();
   const { slug = '' } = useParams<{ slug: string }>();
   const [search, setSearch] = useSearchParams();
   const navigate = useNavigate();
@@ -243,12 +250,18 @@ export default function ProfilePaymentPage() {
           {visibleCount > 0 && <p className="mt-1.5 font-body text-ui-14 italic leading-[1.5] text-tea-text-sec">{waysLine}</p>}
         </header>
         <div className="mt-2">
-          <PayInvoiceTeas lines={invoiceLines} invoiceNumber={access.invoice?.invoice_number ?? null} />
+          <PayInvoiceTeas lines={invoiceLines} invoiceNumber={access.invoice?.invoice_number ?? null} onAddToCart={onAddToCart} />
           <PayInvoiceKeep productIds={Array.from(new Set(invoiceLines.map(line => line.product_id).filter((id): id is string => Boolean(id))))} signedIn={access.viewer.signed_in} slug={slug} token={shareToken} kept={access.invoice?.kept === true} yoursToSend={access.invoice?.yours_to_send === true} />
           <section aria-label="Pay" className="mt-4 max-w-2xl">
             {accountLinks}
             <div className={associationRows.length > 0 ? 'mt-4' : ''}>{chooser}</div>
           </section>
+          <PayInvoiceBuyMore
+            productIds={invoiceLines.map(line => line.product_id).filter((id): id is string => Boolean(id))}
+            collection={access.invoice?.collection ?? null}
+            onAddToCart={onAddToCart}
+            onOpenTea={openLinkTea}
+          />
         </div>
       </main>
     );

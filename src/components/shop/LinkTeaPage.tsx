@@ -12,8 +12,9 @@ import type { InventoryItem } from '../../types';
  * an invoice's tea keeps the shop's own, to get more of it. A private tea the
  * shop does not list opens from what the link carries, with no footer.
  */
-export function LinkTeaPage({ item, onClose, footer, top }: {
+export function LinkTeaPage({ item, onClose, footer, top, onAddToCart }: {
   item: InventoryItem;
+  onAddToCart?: (item: InventoryItem, grams: number, totalUsd: number) => void;
   onClose: () => void;
   footer?: React.ReactNode;
   top?: React.ReactNode;
@@ -37,7 +38,7 @@ export function LinkTeaPage({ item, onClose, footer, top }: {
       className="fixed inset-0 z-modal overflow-y-auto bg-tea-bg pb-nav-gap"
       data-testid="link-tea-page"
     >
-      <ProductPage link={{ productKey: item.id, fallbackItem: item, top, footer, onBack: onClose }} />
+      <ProductPage onAddToCart={onAddToCart} link={{ productKey: item.id, fallbackItem: item, top, footer, onBack: onClose }} />
     </div>,
     document.body,
   );
