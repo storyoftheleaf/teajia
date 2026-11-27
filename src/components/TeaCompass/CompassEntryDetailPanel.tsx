@@ -31,6 +31,8 @@ import { CreateInventoryRecordAction } from './CreateInventoryRecordAction';
 import { useLedgerStore } from '../../lib/ledgerStore';
 import { useLibraryPurchases, purchaseStateLabel } from '../../lib/libraryPurchaseState';
 import { LibraryReceiptActions } from './LibraryReceiptActions';
+import { teaPath } from '../curate/teaPath';
+import { TeaPathLine, type TeaPathActions } from '../curate/TeaPathLine';
 import { TastingSession } from '../tasting/TastingSession';
 import { curateTastingUpdate } from '../../lib/curateTastingSave';
 import type { TastingData } from '../../types';
@@ -115,6 +117,18 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
       ? { label: stockProduct?.isPublic && stockProduct?.shownInShop ? 'View in Stock' : 'Review Shop listing', run: openStock }
       : purchaseHref ? { label: 'Open supplier order', run: () => navigate(purchaseHref) }
         : onAcquire && !purchases.isLoading && !purchases.isError ? { label: orderLabel, run: () => onAcquire(entry.id) } : null;
+  const arrivalWaiting = (purchases.receiptProposals ?? []).some(receipt => receipt.status === 'pending' && receipt.compass_entry_id === entry.id);
+  const path = teaPath({ entry, purchaseStatus: purchase.status, arrivalWaiting, stock: stockProduct ?? null });
+  const storyHref = stockProductId ? `/admin/products/${encodeURIComponent(stockProductId)}/story` : undefined;
+  const pathActions: TeaPathActions = {
+    arrival: onAcquire ? { label: 'Review arrival', run: () => onAcquire(entry.id) } : undefined,
+    taste: { label: 'Taste', run: () => setTastingOpen(true) },
+    decide: { label: '', hint: 'Want or Reject, above' },
+    stock: { label: '', hint: 'Add to Stock, below' },
+    amount: stockProductId ? { label: 'Open in Stock', run: openStock } : undefined,
+    cost: stockProductId ? { label: 'Open in Stock', run: openStock } : undefined,
+    writeup: storyHref ? { label: 'Write it up', to: storyHref } : undefined,
+  };
   const orderCheck = purchases.isError ? 'Couldn’t check orders' : purchases.isLoading ? 'Checking orders…' : '';
   const showPurchaseSummary = sampleReceipts.length > 0 || !!purchaseLabel || !previewEntry;
   const purchaseSummary = showPurchaseSummary && <div className="flex min-h-tap flex-wrap items-center justify-between gap-x-3 gap-y-1" aria-label="Next step for this tea" role="group">
@@ -187,6 +201,7 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
         <span className="text-ui-12 text-tea-text-dim">{entry.tasting ? 'Tasting recorded' : 'No tasting yet'}</span>
         <button type="button" onClick={() => setTastingOpen(true)} className="tea-record-taste tap-target inline-flex min-h-tap items-center gap-1.5 rounded-md px-3 text-ui-13 font-medium" aria-label="Taste"><TeaCupIcon />Taste</button>
       </div>
+      {!previewEntry && !purchases.isLoading && <TeaPathLine path={path} actions={pathActions} />}
       {purchaseSummary}
       <div role="tablist" aria-label="Tea workspace" className="tea-record-tabs">
         {([['tea', 'Tea'], ['notes', 'Notes'], ['orders', 'Orders'], ['files', 'Files']] as const).map(([key, label]) => <button key={key} role="tab" type="button" aria-selected={activeSection === key} aria-controls={`record-panel-${entry.id}`} className="tap-target min-h-tap text-ui-13" onClick={() => setActiveSection(key)}>{label}</button>)}

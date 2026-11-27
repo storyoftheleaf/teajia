@@ -21,6 +21,8 @@ import { BottomSheet, SheetOption } from '../shared/BottomSheet';
 import { isUntriaged, entryDisplayTitle, entryIsSample, entryHasBeenTasted, entryNeedsTasting } from './types';
 import type { TeaCompassEntry, BrowseFilter, BrowseSort } from './types';
 import { LibraryFilterSheet } from './LibraryFilterSheet';
+import { LibraryWaiting } from '../curate/LibraryWaiting';
+import { mapAdminProduct } from '../../admin/productAdapter';
 import { ActiveFilterSummary, activeLibraryFilterCount } from './ActiveFilterSummary';
 import { api } from '../../lib/api';
 import type { CurateJourney, CurateVisit } from './types';
@@ -196,6 +198,7 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
     return () => { cancelled = true; };
   }, [activeAccountId, possessionRetry]);
 
+  const waitingProducts = useMemo(() => inventoryProducts.map(mapAdminProduct), [inventoryProducts]);
   const entryPossession = useMemo(
     () => buildEntryPossessionMap(entries, inventoryProducts),
     [entries, inventoryProducts],
@@ -561,6 +564,9 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
             2. view controls (how to view it: sort + photo grid)
           "New" was removed here, it duplicated the header "+ NEW" and the
           empty-pane "+ New Entry". Text-only labels per the chrome rule. */}
+      {/* What is waiting on Adrian, above the whole Library, so one list
+          replaces looking in Stock, Orders and each tea (2026-11-27). */}
+      {!searchQuery && !showRejected && <LibraryWaiting entries={visibleScopeEntries} products={waitingProducts} productsLoading={possessionLoading} productsFailed={possessionError} onOpen={(id) => (onOpenDetail ?? onSelectEntry ?? onEditEntry)(id)} />}
       <div data-testid="library-controls" className="library-controls">
         <div className="library-segments">
         {/* Group 1: status filters */}

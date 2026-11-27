@@ -1,3 +1,11 @@
+## 2026-11-27: Bringing a tea in, step 1: where each tea is, and what is waiting for you
+
+The first of five steps agreed with Adrian on the board "Bringing a tea in" (one Bring in door, one tea card, one waiting list). It only reads what is already stored and writes nothing.
+
+- **Waiting for you** sits at the top of Curate's Library (`src/components/curate/LibraryWaiting.tsx`). It lists each tea once, under the step that is Adrian's: arrivals to approve, samples to taste, tasted teas to decide on, chosen teas not yet in Stock, and Stock teas missing their amount, cost or write-up. Teas waiting on a supplier (ordered, on the way, a requested sample) are not listed. Each name opens the tea. More than six in a group fold behind "N more" (`?waiting=`, a refinement).
+- **Where this tea is** on every Library tea (`src/components/curate/TeaPathLine.tsx`): Taste, Want it?, Add to Stock, How much is there, What it cost, Write it up, with an arrival to approve first when one waits. The next step is named with one tap where one exists: Taste, Review arrival (the existing accept card), Open in Stock, Write it up. A sample is never asked to be weighed. A fresh Stock record's zero only counts as an amount once the shelf is checked or the tea sold out.
+- The rules are one function, `teaPath` / `libraryWaiting` in `src/components/curate/teaPath.ts`, tested in `teaPath.test.ts`.
+
 ## 2026-11-26: Launch 5 ready to ship (behind its flags)
 
 Finished on `build/l5-finish`, every part off until Adrian says "ship".
