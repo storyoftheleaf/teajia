@@ -78,6 +78,15 @@ describe('a tea needs only a name', () => {
     expect(row).toMatchObject({ name: 'Old oolong', user_id: 'adrian', account_id: ACCOUNT, status: 'noted', price_amount: null, price_currency: null });
   });
 
+  it('asks "Sample, or bought?" the way the Bring in sheet does, until the call says', async () => {
+    const db = makeDb();
+    const unsaid = await call(db, 'curate_add_tea', { name: 'Old oolong' });
+    expect(unsaid.preview.ask_first).toMatch(/sample that is here, bought/);
+    const sample = await call(db, 'curate_add_tea', { name: 'Old oolong', sample_state: 'received' });
+    expect(sample.preview.ask_first).toBeUndefined();
+    expect(sample.preview.read_back).toMatch(/as a sample that is here/);
+  });
+
   it('does nothing until confirmed', async () => {
     const db = makeDb();
     await call(db, 'curate_add_tea', { name: 'Old oolong' });

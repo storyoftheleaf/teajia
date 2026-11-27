@@ -1,3 +1,15 @@
+## 2026-11-27: The agent asks "Sample, or bought?" too
+
+Intake plan step 5. `curate_add_tea`'s read-back now says what the tea comes in as ("as a sample that is here", "bought, on the way"). When the call has not said, the preview carries `ask_first` with the same question the Library's Bring in sheet asks, and the tool description tells the agent to ask it once (`bringInKind` in `worker/src/mcpTools/curateIntake.ts`).
+
+## 2026-11-27: Add to Stock brings the quote's amount and cost; a tasting takes its leaf off Stock
+
+Intake plan step 4. A new Stock tea still starts empty, because a quote is not a count or a paid cost. Now the Library card offers the supplier quote's grams and cost, with its currency, filled in for Adrian to change or confirm. Save writes the grams as a recount and the cost with its currency (`src/components/curate/StockFromQuote.tsx`). When a tasting of a tea in working Stock is saved, the card asks afterwards, never during the session, how much leaf was used. That amount comes off Stock as a tasting use, and leaving it empty takes nothing (`src/components/curate/LeafUsedAfterTasting.tsx`). Samples are never asked to be weighed.
+
+## 2026-11-27: Talk to a tea in the Library, and talk through several teas at once
+
+Intake plan step 3. Every Library tea card has a mic beside its menu: one tap opens the tea on its Notes tab and starts the recorder there, so a tea already in the Library can be talked to (`src/components/curate/recordOnOpen.ts`). Import has a Talk button (`src/components/curate/ImportTalkButton.tsx`) that writes what is said into the Import text, so one spoken note naming several teas goes through Start import and comes back as separate teas, each waiting to be confirmed. Bring in lists this as "Several teas at once".
+
 ## 2026-11-27: One Bring in sheet asks "Sample, or bought?"
 
 Intake plan step 2. The Library's + now opens Bring in (`src/components/curate/BringInSheet.tsx`, working name). It asks once whether the tea is just noted, a sample that is here, or bought, then how it comes in: New tea (type, talk or photograph the package in Source), New teaware or Import files. A sample opens Source with its received-sample record already open, and bought opens the order record, so nobody has to find the Sample or Order button. Stock's Add tea and the command palette's add product now open this same sheet (`/admin/compass?tab=library&bring=1`), so every tea starts in the Library with its supplier (Adrian, 2026-11-27: one record).

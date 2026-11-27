@@ -909,6 +909,14 @@ const toolWhatsMissing: ToolHandler = async (env, auth, args) => {
   };
 };
 
+/** "Sample, or bought?", as the Library's Bring in sheet asks it (intake
+ *  plan step 5, Adrian 2026-11-27). Null when the call did not say. */
+export function bringInKind(write: Pick<TeaWrite, 'sample' | 'sampleState' | 'bought'>): string | null {
+  if (write.bought) return `bought, ${acquisitionStateSaid(write.bought.state)}`;
+  if (write.sample) return write.sampleState === 'received' || write.sampleState === 'tasted' ? 'as a sample that is here' : 'as a sample asked for';
+  return null;
+}
+
 // ── Tool: curate_add_tea ──────────────────────────────────────────────────────
 
 const toolAddTea: ToolHandler = async (env, auth, args) => {
@@ -931,11 +939,14 @@ const toolAddTea: ToolHandler = async (env, auth, args) => {
   const entryId = crypto.randomUUID();
   const ticket: AddTeaTicket = { kind: 'curate:add_tea', accountId: auth.accountId, userId: auth.userId, entryId, write };
   const token = await issueTicket(env, ticket, auth.tokenId);
+  const comesAs = bringInKind(write);
   return previewEnvelope({
     action: 'curate_add_tea',
-    read_back: `Add "${name}" to Curate${vendor ? ` from ${vendor.name}` : ''}.`,
+    read_back: `Add "${name}" to Curate${vendor ? ` from ${vendor.name}` : ''}${comesAs ? `, ${comesAs}` : ''}.`,
     will_file: lines,
     still_missing: teaMissing({ ...write.values, vendor_name: vendor?.name ?? null }),
+    // The Library's Bring in sheet asks this first; the agent asks the same.
+    ...(comesAs ? {} : { ask_first: `Is ${name} a sample that is here, bought (ordered, on the way or here), or just a note for now?` }),
     ...(same.results?.length ? { already_in_curate_with_this_name: same.results, hint: 'If it is the same tea, use curate_update_tea instead.' } : {}),
   }, token);
 };
@@ -1574,7 +1585,7 @@ const defs: ToolDefinition[] = [
   {
     name: 'curate_add_tea',
     scope: 'stock:write',
-    description: 'Use this when Adrian tells you about a tea he wants in Curate (at a vendor\'s table, a WeChat offer, a friend\'s tea). A name is enough; everything else can come later. When he says how much he bought, pass bought with the quantity and whether it is ordered, on the way, or already here: ordered and on the way wait on the arrivals list for curate_approve_arrival, received goes into stock. Two steps: the first call returns a read-back and a confirmation_token, the second call with confirm commits. Do NOT use for teas you found yourself on a website; those go to curate_suggest_teas.',
+    description: 'Use this when Adrian tells you about a tea he wants in Curate (at a vendor\'s table, a WeChat offer, a friend\'s tea). A name is enough; everything else can come later. When he says how much he bought, pass bought with the quantity and whether it is ordered, on the way, or already here: ordered and on the way wait on the arrivals list for curate_approve_arrival, received goes into stock. A sample is sample_state (received when it is here) and never needs a weight. If he has not said whether it is a sample, bought, or just a note, the preview carries ask_first: ask it once, the way the Library\'s Bring in sheet does, then preview again with the answer (a note needs neither). Two steps: the first call returns a read-back and a confirmation_token, the second call with confirm commits. Do NOT use for teas you found yourself on a website; those go to curate_suggest_teas.',
     inputSchema: {
       type: 'object',
       properties: { name: { type: 'string', description: 'The tea\'s name as Adrian says it, e.g. "2019 Yiwu Gushu".' }, ...TEA_FIELD_PROPS, ...FILING_PROPS },

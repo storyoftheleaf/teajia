@@ -5,6 +5,7 @@ import { useAppStore } from '../../lib/store';
 import { useVoiceRecorder } from '../../hooks/useVoiceRecorder';
 import { saveRecordedTeaNote } from '../../lib/recordedTeaNote';
 import { RecordingAudio } from '../curate/RecordingAudio';
+import { takeRecordRequest } from '../curate/recordOnOpen';
 import type { TeaCompassEntry } from './types';
 import { TEA_TYPES, TEA_FORMS } from '../../wisdom';
 import type { Currency } from '../../admin/types';
@@ -53,6 +54,8 @@ export function RecordVoice({ entryId, compact = false }: { entryId: string; com
     if (capturedContext !== context || useAppStore.getState().activeAccountId !== accountId || (useAppStore.getState().activeUserId ?? 'guest') !== userId) return false;
     return saveRecordedTeaNote(entryId, recording);
   }, context, userId);
+  const { handlePress } = voice;
+  useEffect(() => { if (takeRecordRequest(entryId)) handlePress(); }, [entryId, handlePress]);
   return <div className={compact ? 'contents' : 'space-y-2'}>
     <div className="flex flex-wrap items-center gap-3">
       <button type="button" className="tap-target min-h-tap inline-flex items-center gap-2 text-ui-12 text-tea-text-sec"
