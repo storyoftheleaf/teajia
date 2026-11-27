@@ -702,8 +702,7 @@ describe('worker authorization boundaries', () => {
     const body = await response.json() as any;
 
     expect(response.status).toBe(200);
-    // Only the tools any signed-in person may use (report, give back your own seat) remain.
-    expect(body.result.tools.map((tool: { name: string }) => tool.name).sort()).toEqual(['release_my_seat', 'report']);
+    expect(body.result.tools).toEqual([]);
   });
 
   it('blocks MCP tool calls outside token scope', async () => {
