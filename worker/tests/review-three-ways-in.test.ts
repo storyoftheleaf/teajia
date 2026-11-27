@@ -600,6 +600,24 @@ describe('the Tea Table: the page\'s routes and the launch4 tools', () => {
     expect({ said_stays_on_page: /stays on your page/i.test(said), on_page: result.on_page })
       .toEqual({ said_stays_on_page: result.on_page === true, on_page: result.on_page });
   });
+
+  it('fix A11-8: a tasting the person chose for their page by itself is told it stays there, and it does', async () => {
+    db.sqlite.prepare(`UPDATE member_tasting_shares SET page_alone_at = datetime('now') WHERE journal_entry_id = 'j-hana'`).run();
+    const preview = await call(HOST, 'take_my_tasting_off_tea_table', { id: 'j-hana' });
+    expect(preview.preview.effect).toMatch(/stays on your page/);
+    expect(await call(HOST, 'take_my_tasting_off_tea_table', { confirm: preview.confirmation_token }))
+      .toMatchObject({ committed: true, on_page: true });
+  });
+
+  it('fix A11-6: the tool refuses a shop owner who did not host at the confirm too, and the host still takes the recap off', async () => {
+    const preview = await call(HOST, 'set_my_recap_on_tea_table', { id: 'sit-hana', on_table: true });
+    expect(preview.confirmation_token).toEqual(expect.any(String));
+    expect(await call(OLGA, 'set_my_recap_on_tea_table', { id: 'sit-guest', on_table: false })).toMatchObject({ error: 'not_host' });
+    // A host who leaves the session between preview and confirm is refused at the confirm.
+    db.sqlite.prepare(`DELETE FROM event_contributors WHERE id = 'c-1'`).run();
+    expect(await call(HOST, 'set_my_recap_on_tea_table', { confirm: preview.confirmation_token })).toMatchObject({ error: 'not_host' });
+    expect(onTable('sit-hana')).toBeNull();
+  });
 });
 
 // ── Platform owner: approval and stopping ───────────────────────────────────
@@ -692,5 +710,43 @@ describe('actions with an empty cell in the table', () => {
     };
     const missing = Object.entries(wanted).filter(([, tool]) => !names.includes(tool)).map(([action]) => action);
     expect(missing).toEqual([]);
+  });
+});
+
+// ── Paths the fixes made (todo/review/fixes/tools.md) ───────────────────────
+
+describe('fix: the new paths each fix made hold the page\'s rule', () => {
+  it('A11-1: record_event_rsvp takes no one new at a stopped host\'s table, and a yes previewed before the stop is refused at the confirm', async () => {
+    guest('g-7', 't-ana', 'ana-personal', 'requested');
+    const before = await call(ANA_SHOP, 'approve_event_rsvp', { attendee_id: 'g-7' });
+    expect(before.confirmation_token).toEqual(expect.any(String));
+    stop('ana');
+    expect(await call(ANA_SHOP, 'approve_event_rsvp', { attendee_id: 'g-7', confirm: before.confirmation_token }))
+      .toMatchObject({ error: 'hosting_stopped' });
+    expect(statusOf('g-7')).toBe('requested');
+    expect(await call(ANA_SHOP, 'record_event_rsvp', { event_id: 't-ana', full_name: 'New Guest', email: 'new@guest.test' }))
+      .toMatchObject({ error: 'hosting_stopped' });
+    expect(count(`SELECT COUNT(*) AS n FROM event_attendees WHERE email = 'new@guest.test'`)).toBe(0);
+  });
+
+  it('A11-2 and A11-3: an approved host\'s by-link table copies by link, a day given with a zone is read on the table\'s clock, and the preview names a door it lowered', async () => {
+    db.sqlite.prepare(`UPDATE events SET door = 'link', requires_approval = 0 WHERE id = 't-ana'`).run();
+    const kept = await viaTool(anaKey, 'same_table_again', { table_id: 't-ana', slug: 'ana-link-kept', event_date: '2030-02-01T08:00:00Z' });
+    expect(kept.preview.preview).toMatchObject({ door: 'link', event_date: '2030-02-01T08:00:00.000Z', timezone: 'Asia/Taipei' });
+    expect(kept.preview.preview.effect).not.toMatch(/cannot give/);
+    expect(db.sqlite.prepare(`SELECT door, requires_approval, status, lifecycle_status, event_date FROM events WHERE slug = 'ana-link-kept'`).get())
+      .toEqual({ door: 'link', requires_approval: 0, status: 'active', lifecycle_status: 'published', event_date: '2030-02-01T08:00:00.000Z' });
+    db.sqlite.prepare(`UPDATE users SET host_approved_at = NULL WHERE id = 'ana'`).run();
+    const lowered = await viaTool(ANA_SHOP, 'same_table_again', { table_id: 't-ana', slug: 'ana-link-lowered', event_date: '2030-02-01T16:00' });
+    expect(lowered.preview.preview).toMatchObject({ door: 'request', event_date: '2030-02-01T08:00:00.000Z' });
+    expect(lowered.preview.preview.effect).toMatch(/was by link, a door you cannot give a new table now/);
+    expect(db.sqlite.prepare(`SELECT door, requires_approval FROM events WHERE slug = 'ana-link-lowered'`).get())
+      .toEqual({ door: 'request', requires_approval: 1 });
+    expect(refused(await call(ANA_SHOP, 'same_table_again', { table_id: 't-ana', slug: 'ana-bad', event_date: 'next week' }))).toBe(true);
+  });
+
+  it('A11-12: make_circle asks for the kind in its schema, as the page does', async () => {
+    const def = (await rpc(ANA_SHOP, 'tools/list')).body.result.tools.find((tool: { name: string }) => tool.name === 'make_circle');
+    expect(def.inputSchema.anyOf[0].required).toEqual(['name', 'kind']);
   });
 });

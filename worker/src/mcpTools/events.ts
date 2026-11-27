@@ -88,6 +88,7 @@
 
 import { customerTagList } from '../customerContactHandles';
 import { guestLinkSessions } from '../guestLinkHolders';
+import { accountHostingStopped, HOSTING_STOPPED_SAYS } from '../hostApproval';
 import { SEAT_OF_A_GUEST_STILL_COMING, seatsTakenSql } from '../hostTableGuests';
 import {
   EVENT_TRANSITIONS,
@@ -745,6 +746,8 @@ const recordEventRsvp: ToolHandler = async (env, auth, args) => {
   const key = requiredText('event', args?.event_id ?? args?.slug);
   const event = await loadEvent(env, auth.accountId, key);
   if (!event) return { error: 'event_not_found' };
+  // A stopped host takes no one new, by any way in (A11-1).
+  if (await accountHostingStopped(env.DB, auth.accountId)) return hostingStopped;
 
   if (!confirm) {
     const fullName = requiredText('full_name', args?.full_name, 200);
@@ -933,6 +936,8 @@ const recordEventRsvp: ToolHandler = async (env, auth, args) => {
   };
 };
 
+const hostingStopped = { error: 'hosting_stopped', message: HOSTING_STOPPED_SAYS.seat };
+
 type PartySeatRow = { id: string; full_name: string | null; is_primary: number; seat_status: string };
 
 const approveEventRsvp: ToolHandler = async (env, auth, args) => {
@@ -950,6 +955,9 @@ const approveEventRsvp: ToolHandler = async (env, auth, args) => {
     status: string; guest_requests: string | null; event_title: string;
   }>();
   if (!attendee) return { error: 'attendee_not_found' };
+  // The shop's approve route refuses a stopped host's yes (A11-1); the
+  // preview and the confirm both pass here, so neither seats a guest.
+  if (await accountHostingStopped(env.DB, auth.accountId)) return hostingStopped;
 
   // `event_attendees.account_id` is nullable and some legacy rows carry NULL.
   // reservePartySeats writes `WHERE ... account_id = ?`, so such a row would

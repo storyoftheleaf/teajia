@@ -186,26 +186,31 @@ describe('Launch 3 MCP tools', () => {
     expect(seatState('agent')).toEqual(seatState('web'));
   });
 
-  it('lets an unapproved host duplicate their own table as a draft using the route’s copy path', async () => {
+  it('lets an unapproved host copy their own table, ready to open like a new table, where the shop\'s copy stays a draft', async () => {
     const input = { slug: 'agent-copy', event_date: '2099-12-02T12:00' };
     const args = { table_id: 'agent', ...input };
     expect((await tool('stranger', 'same_table_again', args)).error).toBeTruthy();
     expect((await tool('other', 'same_table_again', args)).error).toBe('table_not_found');
-    const copies = db.sqlite.prepare(`SELECT title, host_user_id, door, status, lifecycle_status, event_date, event_end_date,
+    const copies = db.sqlite.prepare(`SELECT title, host_user_id, door, requires_approval, status, lifecycle_status, event_date, event_end_date,
       address_text, public_visibility, network_discovery FROM events WHERE slug = ?`);
     db.sqlite.exec(`INSERT INTO event_tea_menu (id, account_id, event_id, custom_name, brew_order)
       VALUES ('agent-tea', 'host-account', 'agent', 'Rou Gui', 1), ('web-tea', 'host-account', 'web', 'Rou Gui', 1)`);
-    const ticket = await preview('host', 'same_table_again', args);
+    const said = await tool('host', 'same_table_again', args);
+    expect(said.preview).toMatchObject({ event_date: '2099-12-02T12:00:00.000Z', timezone: 'UTC', door: 'request' });
+    expect(said.preview.effect).toMatch(/published and open by its link at once/);
     expect(copies.get(input.slug)).toBeUndefined();
     await route('host', '/api/admin/events/web/duplicate', 'POST', { ...input, slug: 'web-copy' }, 201);
-    const done = await confirm('host', 'same_table_again', ticket);
-    expect(done).toEqual({ committed: true, action: 'same_table_again', table_id: expect.any(String) });
-    expect(copies.get(input.slug)).toEqual(copies.get('web-copy'));
+    const done = await confirm('host', 'same_table_again', said.confirmation_token);
+    expect(done).toEqual({ committed: true, action: 'same_table_again', table_id: expect.any(String), slug: 'agent-copy', lifecycle_status: 'published' });
     expect(db.sqlite.prepare('SELECT custom_name FROM event_tea_menu WHERE event_id = ?').all(done.table_id))
       .toEqual([{ custom_name: 'Rou Gui' }]);
     expect(db.sqlite.prepare('SELECT id FROM event_attendees WHERE event_id = ?').all(done.table_id)).toEqual([]);
-    expect(copies.get(input.slug)).toMatchObject({ host_user_id: 'host', status: 'draft', lifecycle_status: 'draft',
-      event_end_date: '2099-12-02T13:00', public_visibility: 'unlisted' });
+    // The host's copy is ready to open, on an instant as a new table is stored.
+    expect(copies.get(input.slug)).toMatchObject({ host_user_id: 'host', door: 'request', requires_approval: 1,
+      status: 'active', lifecycle_status: 'published', event_date: '2099-12-02T12:00:00.000Z', public_visibility: 'unlisted' });
+    expect(String((copies.get(input.slug) as { event_end_date: string }).event_end_date)).toMatch(/^2099-12-02T13:00/);
+    // The shop's own copy route is unchanged: a draft its Sessions room publishes.
+    expect(copies.get('web-copy')).toMatchObject({ status: 'draft', lifecycle_status: 'draft', event_date: '2099-12-02T12:00' });
   });
 
   it('lets an unapproved host mark or clear a tasting with the same stored flag as the route', async () => {
