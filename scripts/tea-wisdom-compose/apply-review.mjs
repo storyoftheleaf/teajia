@@ -78,9 +78,11 @@ for (const entry of entries) {
 const out = path.join(ROOT, '.tea-wisdom-review', 'sent-back.json');
 if (!dry) {
   await fs.mkdir(path.dirname(out), { recursive: true });
-  await fs.writeFile(out, `${JSON.stringify(sentBack.map(({ item, kind, note }) => ({ item, kind, note })), null, 2)}\n`);
+  await fs.writeFile(out, `${JSON.stringify(sentBack.map(({ item, kind, note, rule }) => ({ item, kind, note, rule: rule === true })), null, 2)}\n`);
 }
 console.log(`\n${claims.length} section(s) approved, ${entries.length} entr${entries.length === 1 ? 'y' : 'ies'} approved, ${refused} refused, ${sentBack.length} sent back`);
 if (published.length) console.log(`${dry ? 'would become' : 'now'} public: ${published.join(', ')}`);
 if (sentBack.length) console.log(`send-backs: ${path.relative(ROOT, out)}`);
+const rules = sentBack.filter(back => back.rule === true);
+if (rules.length) console.log(`${rules.length} note(s) to write into docs/WISDOM_PAGE_STYLE.md as rules for every page`);
 process.exit(refused ? 1 : 0);

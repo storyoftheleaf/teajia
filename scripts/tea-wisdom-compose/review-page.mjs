@@ -103,10 +103,11 @@ textarea{font:inherit;width:100%;box-sizing:border-box;min-height:64px;padding:8
 .state{font-size:.8rem;color:var(--ink-sec)}
 .bulk{background:var(--gold-soft);border-color:transparent}
 .empty{color:var(--ink-sec)}
+.rule{display:flex;gap:8px;align-items:center;font-size:.9rem;min-height:44px}.rule input{width:20px;height:20px;accent-color:var(--you)}
 </style>
 <div class="wrap">
   <header style="display:grid;gap:8px"><div class="meta">Teajia · Wisdom review · run ${run}</div><h1>Wisdom Review</h1>
-  <p class="sec">Pages first: each section as a reader will see it, with where it comes from. Then the tea entries. Approve, or send back with a note. Your choices save here, and nothing goes live until you say "push".</p></header>
+  <p class="sec">Pages first: each section as a reader will see it, with where it comes from. Then the tea entries. Approve, or send back with a note. Tick \"Make this a rule for every page\" when the note should change how every page is written. Your choices save here, and nothing goes live until you say "push".</p></header>
   <div id="list"></div>
 </div>
 <script id="data" type="application/json">${json}</script>
@@ -121,18 +122,20 @@ textarea{font:inherit;width:100%;box-sizing:border-box;min-height:64px;padding:8
   const controls = new Map();
   const save = async (item, choice, note) => {
     const c = controls.get(item.key); c.ok.setAttribute('aria-pressed', String(choice === 'approve')); c.back.setAttribute('aria-pressed', String(choice === 'send_back'));
-    c.note.hidden = choice !== 'send_back'; if (!db) { c.state.textContent = 'This view cannot save. Tell Claude in chat.'; return; }
+    c.note.hidden = choice !== 'send_back'; c.ruleRow.hidden = choice !== 'send_back'; if (!db) { c.state.textContent = 'This view cannot save. Tell Claude in chat.'; return; }
     c.state.textContent = 'Saving…';
-    try { await db.doc(coll + '/' + item.key).set({ item: item.key, kind: item.kind, choice, note: note || '', scope: item.scope || '', at: new Date().toISOString() }); c.state.textContent = choice === 'approve' ? 'Approved.' : 'Sent back.'; }
+    try { await db.doc(coll + '/' + item.key).set({ item: item.key, kind: item.kind, choice, note: note || '', rule: choice === 'send_back' && c.rule.checked, scope: item.scope || '', at: new Date().toISOString() }); c.state.textContent = choice === 'approve' ? 'Approved.' : (c.rule.checked ? 'Sent back. Becomes a rule for every page.' : 'Sent back.'); }
     catch { c.state.textContent = 'Not saved. Tell Claude in chat.'; }
   };
   const decide = (item) => {
     const box = el('div', { class: 'row' }); const ok = el('button', { class: 'ok', type: 'button', 'aria-pressed': 'false' }, 'Approve');
     const back = el('button', { class: 'back', type: 'button', 'aria-pressed': 'false' }, 'Send back'); const state = el('span', { class: 'state', 'aria-live': 'polite' });
     const note = el('textarea', { id: 'note-' + item.key.replace(/[^a-z0-9]/gi, '-'), placeholder: 'What is wrong, in your words', 'aria-label': 'Note for ' + item.label }); note.hidden = true;
+    const ruleRow = el('label', { class: 'rule' }); const rule = el('input', { type: 'checkbox', id: 'rule-' + item.key.replace(/[^a-z0-9]/gi, '-') }); ruleRow.append(rule, ' Make this a rule for every page'); ruleRow.hidden = true;
+    rule.addEventListener('change', () => save(item, 'send_back', note.value));
     let timer; note.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(() => save(item, 'send_back', note.value), 800); });
     ok.addEventListener('click', () => save(item, 'approve', '')); back.addEventListener('click', () => { save(item, 'send_back', note.value); note.focus(); });
-    box.append(ok, back, state); controls.set(item.key, { ok, back, state, note }); const wrap = el('div', { style: 'display:grid;gap:8px' }); wrap.append(box, note); return wrap;
+    box.append(ok, back, state); controls.set(item.key, { ok, back, state, note, rule, ruleRow }); const wrap = el('div', { style: 'display:grid;gap:8px' }); wrap.append(box, note, ruleRow); return wrap;
   };
   if (!data.items.length) { list.append(el('p', { class: 'empty' }, 'Nothing is waiting for review.')); return; }
   const groups = new Map(); for (const item of data.items) { const g = item.kind === 'entry' ? item.key : item.group; if (!groups.has(g)) groups.set(g, []); groups.get(g).push(item); }
@@ -161,7 +164,7 @@ textarea{font:inherit;width:100%;box-sizing:border-box;min-height:64px;padding:8
     stack.append(card);
   }
   if (!db) return;
-  try { db.collection(coll).onSnapshot(snap => { for (const doc of (snap.docs || [])) { const d = doc.data(); const c = controls.get(d.item); if (!c) continue; c.ok.setAttribute('aria-pressed', String(d.choice === 'approve')); c.back.setAttribute('aria-pressed', String(d.choice === 'send_back')); c.note.hidden = d.choice !== 'send_back'; if (document.activeElement !== c.note) c.note.value = d.note || ''; c.state.textContent = d.choice === 'approve' ? 'Approved.' : 'Sent back.'; } }); } catch {}
+  try { db.collection(coll).onSnapshot(snap => { for (const doc of (snap.docs || [])) { const d = doc.data(); const c = controls.get(d.item); if (!c) continue; c.ok.setAttribute('aria-pressed', String(d.choice === 'approve')); c.back.setAttribute('aria-pressed', String(d.choice === 'send_back')); c.note.hidden = d.choice !== 'send_back'; c.ruleRow.hidden = d.choice !== 'send_back'; c.rule.checked = !!d.rule; if (document.activeElement !== c.note) c.note.value = d.note || ''; c.state.textContent = d.choice === 'approve' ? 'Approved.' : 'Sent back.'; } }); } catch {}
 })();
 </script>
 `;

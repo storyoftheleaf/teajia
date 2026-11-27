@@ -3834,6 +3834,25 @@
       "withdrawn": null
     },
     {
+      "claim_id": "menghai-county:why-people-value-it",
+      "basis": "trade_knowledge",
+      "axis": "place",
+      "listing_eligible": true,
+      "applies_when": {},
+      "attribution": null,
+      "terms": [
+        {
+          "original": "勐海",
+          "pinyin": "Měnghǎi",
+          "gloss": "Menghai"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
       "claim_id": "menghai-county:common-character",
       "axis": "sensory_observation",
       "listing_eligible": false,

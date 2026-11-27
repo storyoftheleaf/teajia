@@ -25,7 +25,8 @@ export const PART: readonly DraftClaim[] = [
     "sourceIds": [
       "teadb-menghai-county"
     ],
-    "reviewState": "approved",
+    "reviewState": "pending",
+    "pendingText": "Menghai raw tea is known for being strong and bitter, compared with the gentler tea of eastern Xishuangbanna. Take that as a broad habit, not a rule. The trees, the maker, the blend, the age and the storage all change what is in the cup.",
     "previousRevisions": [
       {
         "rev": 1,
@@ -45,7 +46,7 @@ export const PART: readonly DraftClaim[] = [
     "claimId": "menghai-county:history",
     "pageId": "menghai-county",
     "sectionKey": "history",
-    "label": "Factory-era importance",
+    "label": "Why the name is so well known",
     "axis": "maker_history",
     "basis": "sourced",
     "listingEligible": false,
@@ -57,7 +58,8 @@ export const PART: readonly DraftClaim[] = [
     "sourceIds": [
       "teadb-menghai-county"
     ],
-    "reviewState": "approved",
+    "reviewState": "pending",
+    "pendingText": "Menghai is known partly because of its tea factory. Menghai Tea Factory was set up in the 1940s, and large-scale pu’er making later moved west to the county. Local leaf went into factory blends, so many well known raw and ripe cakes trace back to Menghai.",
     "previousRevisions": [
       {
         "rev": 1,
@@ -135,10 +137,10 @@ export const PART: readonly DraftClaim[] = [
     "terms": [],
     "rev": null,
     "scope": "",
-    "text": "Menghai Tea Factory was among the Yunnan state factories that brought wet piling into production in 1973. Its 7572 ripe cake, usually dated from 1975, became a reference recipe for the style. The number reads as a recipe: 75 for 1975, 7 for the main leaf grade in the blend, 2 for Menghai.",
+    "text": "Ripe pu’er was first made at scale in the early 1970s, and the Menghai Tea Factory was one of the first two factories to make it. It used a method called wet piling, where damp leaf is heaped and left to ferment. One of its early ripe cakes is still the recipe other ripe teas are measured against, which is a large part of why Menghai’s name carries weight in ripe tea today.",
     "sourceIds": [],
     "reviewState": "draft",
-    "pendingText": "Menghai Tea Factory was among the Yunnan state factories that brought wet piling into production in 1973. Its 7572 ripe cake, usually dated from 1975, became a reference recipe for the style. The number reads as a recipe: 75 for 1975, 7 for the main leaf grade in the blend, 2 for Menghai.",
+    "pendingText": "Ripe pu’er was first made at scale in the early 1970s, and the Menghai Tea Factory was one of the first two factories to make it. It used a method called wet piling, where damp leaf is heaped and left to ferment. One of its early ripe cakes is still the recipe other ripe teas are measured against, which is a large part of why Menghai’s name carries weight in ripe tea today.",
     "previousRevisions": [],
     "pageVisibility": "public"
   },
@@ -158,7 +160,8 @@ export const PART: readonly DraftClaim[] = [
     "sourceIds": [
       "teadb-menghai-county"
     ],
-    "reviewState": "approved",
+    "reviewState": "pending",
+    "pendingText": "Menghai County is the heart of pu’er country in western Xishuangbanna. Nannuo, Bulang, Mengsong, Hekai, Pasha and Bada are separate mountain areas inside it, each with its own tea. They are not other names for Menghai.",
     "previousRevisions": [
       {
         "rev": 1,
@@ -172,6 +175,31 @@ export const PART: readonly DraftClaim[] = [
         ]
       }
     ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "menghai-county:why-people-value-it",
+    "pageId": "menghai-county",
+    "sectionKey": "why-people-value-it",
+    "label": "Why people value Menghai",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {},
+    "terms": [
+      {
+        "original": "勐海",
+        "pinyin": "Měnghǎi",
+        "gloss": "Menghai"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Mostly for its trees and the forest around them. Many of the old tea gardens here sit inside or beside real forest, in a warm, wet climate, and some of the trees are hundreds of years old. That is what people mean when they talk about the mountain character of the tea: strong, with a bitterness that turns sweet and stays in the mouth, especially on the Bulang side. Nannuo is softer and more floral. History adds to the name, because the county became the home of big factory pu’er, but it is the old trees in the forest that tea people come for.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Mostly for its trees and the forest around them. Many of the old tea gardens here sit inside or beside real forest, in a warm, wet climate, and some of the trees are hundreds of years old. That is what people mean when they talk about the mountain character of the tea: strong, with a bitterness that turns sweet and stays in the mouth, especially on the Bulang side. Nannuo is softer and more floral. History adds to the name, because the county became the home of big factory pu’er, but it is the old trees in the forest that tea people come for.",
+    "previousRevisions": [],
     "pageVisibility": "public"
   },
   {
@@ -899,47 +927,6 @@ export const PART: readonly DraftClaim[] = [
         "origin": "approved",
         "scope": "All red tea; Dian Hong where the origin is Yunnan",
         "text": "Red tea is made in four steps, each with a reason. The fresh leaf is withered, spread out until it loses water and goes soft enough to work. It is rolled, twisted and bruised so its juices and enzymes meet and the change can begin. It is left to oxidise in warmth and damp air, and the maker judges it by smell and colour, as the grassy smell turns floral or fruity and the leaf turns reddish brown. Then it is dried with hot air, which ends the change and makes the tea stable. Graded teas are then sorted and blended.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 15)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "red:whole-and-broken",
-    "pageId": "red",
-    "sectionKey": "whole-and-broken",
-    "label": "Whole leaf and broken leaf",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Red"
-    },
-    "terms": [
-      {
-        "original": "工夫红茶",
-        "pinyin": "gōng fu hóng chá",
-        "gloss": "gongfu red tea"
-      },
-      {
-        "original": "红碎茶",
-        "pinyin": "hóng suì chá",
-        "gloss": "broken red tea"
-      }
-    ],
-    "rev": 1,
-    "scope": "All red tea; Dian Hong where the origin is Yunnan",
-    "text": "Red tea is made in two families. Whole-leaf strip tea, called gongfu in Chinese and orthodox in English, is rolled with care and is the choice for slow, attentive brewing. Broken-leaf tea, cut or crushed, gives its colour and strength fast, which is why it fills tea bags and suits milk tea.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "All red tea; Dian Hong where the origin is Yunnan",
-        "text": "Red tea is made in two families. Whole-leaf strip tea, called gongfu in Chinese and orthodox in English, is rolled with care and is the choice for slow, attentive brewing. Broken-leaf tea, cut or crushed, gives its colour and strength fast, which is why it fills tea bags and suits milk tea.",
         "approvedAt": "2026-11-24",
         "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 15)",
         "evidenceIds": []

@@ -50,7 +50,7 @@ A page's id is always the id of its record. If the record row does not exist (st
 
 ## Step 2. Research and draft each missing page (Sonnet, one agent per page)
 
-**Read first:** this file; one approved page of the same kind (`shou.md` for a style, `banzhang.md` for a place, `y562.md` for a named tea); [the claims contract](../_notes/tea-wisdom-claims.md).
+**Read first:** this file; [WISDOM_PAGE_STYLE.md](../WISDOM_PAGE_STYLE.md), the rules for how every page reads, which grow from Adrian's review notes; one approved page of the same kind (`shou.md` for a style, `banzhang.md` for a place, `y562.md` for a named tea); [the claims contract](../_notes/tea-wisdom-claims.md).
 
 **Research method.** It used to live in the vault at `Teajia/Research/tea-wisdom/HOW-TO-RESEARCH.md`; this section now holds it.
 
@@ -88,7 +88,8 @@ Part of: <parent id>     Related: <id>, <id>
 
 - Frontmatter: `id`, `slug` (same as id), `kind`, `label`, `native_name`, `parent`, and `visibility: draft`, all from the table in step 1.
 - One `## Heading {#key}` per claim, built only from "commonly agreed" statements. A style kit has the sections in [the kit template](../../todo/plans/tea-wisdom-all-teas.md#the-kit-template), each saying why and not only what. A place page has where it is, what it is known for, and how it sits in its parent.
-- Write in the house voice: [PRODUCT_DESCRIPTION_STYLE.md](../PRODUCT_DESCRIPTION_STYLE.md). No em-dashes, no superlatives, lining numerals.
+- Write by [WISDOM_PAGE_STYLE.md](../WISDOM_PAGE_STYLE.md) (why people care, few numbers, simple) over the house voice in [PRODUCT_DESCRIPTION_STYLE.md](../PRODUCT_DESCRIPTION_STYLE.md). No em-dashes, no superlatives, lining numerals.
+- Rewriting a page that is already public: keep each section's `{#key}` so its approval history carries on, and change only the text. A section that should go is listed in your report for withdrawal, never deleted. A heading's words are not held for approval (only the text is), so a renamed heading shows on the live page at the next push: rename one only if it still fits the text that is live now.
 - Sections are `trade_knowledge` (own words, no citation) unless a source has been captured into `data/tea-reference/private/translations.json` through the capture workflow. The research note in the vault is where the places are listed.
 
 **Ledger entries:** for every new section, add an entry to `data/tea-reference/claims.json` with `claim_id: "<id>:<key>"`, `basis: "trade_knowledge"`, the `axis` and `applies_when` from the table, `listing_eligible: true` (false for a section that only makes sense on its own page), `attribution: null`, `terms` (Chinese, pinyin, gloss), `status: "draft"`, `current_rev: null`, `revisions: []`, `withdrawn: null`. Write the proposed scope for each claim (what it covers, from "Applies to") into `.tea-wisdom-review/scopes.json` as `{"<id>:<key>": "<scope>"}`; the review page shows it and approval records it.
@@ -104,7 +105,7 @@ Part of: <parent id>     Related: <id>, <id>
 3. Wait for him to say he has reviewed it. Do not poll.
 4. Save his choices: ArtifactData `list` on collection `runs/<run>/decisions` with `out_dir: .tea-wisdom-review/decisions`.
 5. `node scripts/tea-wisdom-compose/apply-review.mjs --decisions .tea-wisdom-review/decisions` approves each section through the claim ledger, makes a draft page public once all its sections are approved (never one whose current text is a legacy import), and rebuilds the pages.
-6. Send-backs are in `.tea-wisdom-review/sent-back.json`. Sort each note (Haiku): **wording** goes back to its step 2 agent with the note; **fact** goes back to research for that statement; **wrong page** means the record or the table above is wrong, so tell Adrian in one line.
+6. Send-backs are in `.tea-wisdom-review/sent-back.json`. A note marked `rule: true` (Adrian ticked "Make this a rule for every page") is written into [WISDOM_PAGE_STYLE.md](../WISDOM_PAGE_STYLE.md) first, as a dated rule in his words with one before/after from the section he sent back; then every waiting page is checked against it. Sort the other notes (Haiku): **wording** goes back to its step 2 agent with the note; **fact** goes back to research for that statement; **wrong page** means the record or the table above is wrong, so tell Adrian in one line.
 
 ## Step 4. Write the entry (Opus)
 
