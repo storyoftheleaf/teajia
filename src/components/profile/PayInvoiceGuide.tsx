@@ -2,16 +2,32 @@ import { Button } from '../shared/Button';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { ArrowRight, Banknote, Bookmark, Check, Coffee, Copy, Repeat } from 'lucide-react';
+import { ArrowRight, Banknote, Bookmark, Check,  Copy, Repeat } from 'lucide-react';
+import { TeaCup } from '../TeaCupIcon';
 import { useAppStore } from '../../lib/store';
 import { authPagePath } from '../../lib/authNavigation';
 import { holdKeepTeaser, type KeepTeaser } from '../../lib/keepTeaser';
+import { holdReturnPlace } from '../../hooks/useReturnPlace';
 import { keepPayInvoice } from '../../lib/payInvoiceKeepApi';
 import { PayInvoiceDiscount } from './PayInvoiceDiscount';
 import { GuideRow, GuideStep as Step } from '../shop/GuideStep';
 
 const KEEP_PARAM = 'keep';
 const TASTE_PARAM = 'choose';
+
+/**
+ * Where a signed-out person on an invoice goes to join: sign-up, showing the
+ * teas they are keeping, and back to this same address (the open tea
+ * included) with the marker that finishes the keep by itself.
+ */
+export function invoiceJoinPath(teaser: Omit<KeepTeaser, 'path'>, also?: string): string {
+  const back = new URLSearchParams(window.location.search);
+  back.set(KEEP_PARAM, '1');
+  if (also) back.set(also, '1');
+  holdKeepTeaser({ ...teaser, path: window.location.pathname });
+  holdReturnPlace();
+  return authPagePath('signup', `${window.location.pathname}?${back.toString()}`);
+}
 
 /**
  * The four pictures under an invoice's head (Adrian, 2026-11-27: the sheet is
@@ -67,13 +83,7 @@ export function PayInvoiceGuide({ slug, token, productIds, teaser, signedIn, kep
   };
 
   // Joining, then back here with the marker: finish what she tapped, once.
-  const join = (also?: string) => {
-    const back = new URLSearchParams(search);
-    back.set(KEEP_PARAM, '1');
-    if (also) back.set(also, '1');
-    holdKeepTeaser({ ...teaser, path: window.location.pathname });
-    navigate(authPagePath('signup', `${window.location.pathname}?${back.toString()}`));
-  };
+  const join = (also?: string) => navigate(invoiceJoinPath(teaser, also));
   const finished = useRef(false);
   useEffect(() => {
     if (finished.current || !signedIn || search.get(KEEP_PARAM) !== '1') return;
@@ -90,7 +100,8 @@ export function PayInvoiceGuide({ slug, token, productIds, teaser, signedIn, kep
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [signedIn, search]);
 
-  const keep = () => { if (!signedIn) join(); else if (!kept) void save(); };
+  // Kept already: the picture opens where her teas now live.
+  const keep = () => { if (!signedIn) join(); else if (kept) navigate('/shop?bought=1'); else void save(); };
   const taste = async () => {
     if (!signedIn) { join(TASTE_PARAM); return; }
     if (!kept && !yoursToSend && !(await save())) return;
@@ -102,7 +113,7 @@ export function PayInvoiceGuide({ slug, token, productIds, teaser, signedIn, kep
     <GuideRow testId="pay-guide" error={error}>
         <Step label={paid ? 'Paid' : 'Pay'} done={paid} lit={at === 'pay'} icon={<Banknote size={20} aria-hidden="true" />} onClick={onPay} testId="pay-guide-pay" />
         <Step label={kept ? 'Kept' : state === 'saving' ? 'Keeping' : 'Keep'} done={kept} lit={at === 'keep'} disabled={yoursToSend || state === 'saving'} icon={<Bookmark size={20} aria-hidden="true" />} onClick={keep} testId="pay-guide-keep" />
-        <Step label="Taste" lit={at === 'taste'} icon={<Coffee size={20} aria-hidden="true" />} onClick={() => { void taste(); }} testId="pay-guide-taste" />
+        <Step label="Taste" lit={at === 'taste'} icon={<TeaCup size={20} aria-hidden="true" />} onClick={() => { void taste(); }} testId="pay-guide-taste" />
         <Step label="Again" icon={<Repeat size={20} aria-hidden="true" />} to={kept ? '/shop?bought=1' : againPath} testId="pay-guide-again" />
     </GuideRow>
   );

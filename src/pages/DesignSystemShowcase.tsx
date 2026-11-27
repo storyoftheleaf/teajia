@@ -6,13 +6,14 @@ import {
   Loader2, AlertCircle, Info, Upload, Edit3,
   Bold, Italic, Underline, Link as LinkIcon, Quote, List as ListIcon,
   Heading1, Heading2, Image as ImageIcon, Calendar, Trash2, MoreHorizontal,
-  Package, BookOpen, Users, User as UserIcon, Coffee, FileText, Mail, Tag,
+  Package, BookOpen, Users, User as UserIcon,  FileText, Mail, Tag,
   Eye, EyeOff, Bell, Star, Home, Compass, ShoppingBag, GraduationCap, Mic,
   Send, QrCode, Sparkles, Globe, Phone, ListChecks, Leaf, Sun, Moon,
   TrendingUp, Circle, Square as SquareIcon, CheckCircle2,
   ScrollText, History, Archive, PanelRight, ExternalLink, Menu, Copy,
   Share2, Download, Heart,
 } from 'lucide-react';
+import { TeaCup } from '../components/TeaCupIcon';
 
 // ─────────────────────────────────────────────────────────────────────────
 // Constants, color tokens, type samples, scales, navigation, accents

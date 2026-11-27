@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Command } from 'cmdk';
 import { useNavigate } from 'react-router-dom';
-import { Search, Leaf, Coffee, Settings, UserCheck, History, FolderOpen, Plus, Sparkles } from 'lucide-react';
+import { Search, Leaf,  Settings, UserCheck, History, FolderOpen, Plus, Sparkles } from 'lucide-react';
+import { TeaCup } from '../../components/TeaCupIcon';
 import { useAppStore } from '../store';
 import { useProducts } from '../hooks/useAdminData';
 import { api } from '../../lib/api';
@@ -199,13 +200,13 @@ export const CommandPalette = ({ onAddProduct, externalOpen, onOpenChange }: { o
                 <Sparkles size={16} className="text-tea-text-sec" /> New tasting event
               </Command.Item>
               <Command.Item onSelect={() => runCommand(() => navigate('/admin/tasting-events'))} className="flex items-center gap-3 px-3 py-3.5 rounded-xl hover:bg-tea-surface cursor-pointer text-tea-text aria-selected:bg-tea-surface aria-selected:text-tea-gold transition-colors font-serif">
-                <Coffee size={16} className="text-tea-text-sec" /> Tasting events
+                <TeaCup size={16} className="text-tea-text-sec" /> Tasting events
               </Command.Item>
               <Command.Item onSelect={() => runCommand(() => navigate('/admin/stock'))} className="flex items-center gap-3 px-3 py-3.5 rounded-xl hover:bg-tea-surface cursor-pointer text-tea-text aria-selected:bg-tea-surface aria-selected:text-tea-gold transition-colors font-serif">
                 <Leaf size={16} className="text-tea-text-sec" /> Tea Glossary
               </Command.Item>
               <Command.Item onSelect={() => runCommand(() => navigate('/admin/stock'))} className="flex items-center gap-3 px-3 py-3.5 rounded-xl hover:bg-tea-surface cursor-pointer text-tea-text aria-selected:bg-tea-surface aria-selected:text-tea-gold transition-colors font-serif">
-                <Coffee size={16} className="text-tea-text-sec" /> Equipment
+                <TeaCup size={16} className="text-tea-text-sec" /> Equipment
               </Command.Item>
             </Command.Group>
 

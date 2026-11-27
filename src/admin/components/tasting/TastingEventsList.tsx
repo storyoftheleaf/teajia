@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, Users, Coffee } from 'lucide-react';
+import { Plus, Users } from 'lucide-react';
+import { TeaCup } from '../../../components/TeaCupIcon';
 import { api } from '../../../lib/api';
 import { STATUS_PILL_BASE, STATUS_PILL_VARIANTS } from '../../constants';
 
@@ -87,7 +88,7 @@ export function TastingEventsList() {
                     </div>
                     <div className="flex items-center gap-4 mt-1.5 text-ui-11 text-tea-text-sec tracking-wide">
                       <span className="flex items-center gap-1">
-                        <Coffee className="w-3 h-3" aria-hidden="true" />
+                        <TeaCup className="w-3 h-3" aria-hidden="true" />
                         {s.tea_count} tea{s.tea_count !== 1 ? 's' : ''}
                       </span>
                       <span className="flex items-center gap-1">

@@ -16,7 +16,7 @@ import { EmblemLoader } from '../components/shared/EmblemLoader';
 import type { InventoryItem } from '../types';
 import type { Product } from '../admin/types';
 import { useAppStore } from '../lib/store';
-import { authPagePath, tastingReturnPath } from '../lib/authNavigation';
+import { tastingReturnPath } from '../lib/authNavigation';
 import { buildPublicProductHref, DEFAULT_PUBLIC_STORE_SLUG, findProductByRouteParam, resolveInventoryStoreSlug } from '../lib/publicProductNavigation';
 import { fetchStore, fetchStoreProduct } from '../lib/storefrontApi';
 import { resolveContactChannels } from '../lib/contact';
@@ -26,7 +26,7 @@ import { useProducts } from '../admin/hooks/useAdminData';
 import { api } from '../lib/api';
 import { TYPOGRAPHY_CLASSES } from '../designTokens';
 import { ProductDetailPageContext } from '../components/shop/ProductDetailLayout';
-import { YoursStrip } from '../components/shop/YoursStrip';
+import { YoursStrip, type YoursStripNav } from '../components/shop/YoursStrip';
 import { boughtTeaItem, boughtTopLine, useMyBoughtTeas } from '../lib/myBoughtTeas';
 
 
@@ -49,8 +49,8 @@ interface ProductPageProps {
     yoursLine?: string;
     /** The sender's words about this tea, shown in that strip. */
     yoursNote?: { text: string | null | undefined; by?: string };
-    /** Added to the address they come back to after joining, so the link finishes what it started (an invoice keeps itself). */
-    joinMarker?: string;
+    /** Where the tea sits among the link's teas, and the arrows to the ones beside it. */
+    yoursNav?: YoursStripNav;
     /** The link's own order footer; null for none; left out, the shop's own for a tea the shop sells, none for a private one. */
     footer?: React.ReactNode;
     onBack: () => void;
@@ -172,13 +172,6 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
    * along the taskbar.
    */
   const [tastingOpensOnNotes, setTastingOpensOnNotes] = useState(false);
-  const joinMarker = link?.joinMarker;
-  const joinSearch = useCallback(() => {
-    if (!joinMarker) return window.location.search;
-    const params = new URLSearchParams(window.location.search);
-    params.set(joinMarker, '1');
-    return `?${params.toString()}`;
-  }, [joinMarker]);
 
   const handleTaste = useCallback((tasteItem: InventoryItem, intent?: 'edit' | 'notes') => {
     setTastingOpensOnNotes(intent === 'notes');
@@ -193,22 +186,12 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
      * sent to a sign-up form mid-session.
      */
     if (!isAuthenticated) {
-      const back = joinMarker ? tastingReturnPath(window.location.pathname, joinSearch()) : tastingReturnPath(window.location.pathname, window.location.search);
+      const back = tastingReturnPath(window.location.pathname, window.location.search);
       navigate(`/signup?returnTo=${encodeURIComponent(back)}`);
       return;
     }
     setTastingItem(tasteItem);
-  }, [isAuthenticated, navigate, joinSearch, joinMarker]);
-
-  // The strip that is theirs: Photo opens the page's own photo door, Keep is
-  // the page's own save. Signed out, either goes through joining and back here.
-  const [photoAsk, setPhotoAsk] = useState(0);
-  const favoriteTeas = useAppStore(state => state.favoriteTeas);
-  const toggleFavoriteTea = useAppStore(state => state.toggleFavoriteTea);
-  const joinThen = useCallback((then: () => void) => {
-    if (isAuthenticated) { then(); return; }
-    navigate(authPagePath('signup', `${window.location.pathname}${joinSearch()}`));
-  }, [isAuthenticated, navigate, joinSearch]);
+  }, [isAuthenticated, navigate]);
 
   // Coming back from joining at "Add your tasting": open the tasting they asked for
   // and take the marker out of the address so a reload does not open it again.
@@ -495,24 +478,8 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
   // frame away from a page that never fully appears, and this one was found
   // sitting at 11% opacity. The route change already carries its own
   // crossfade, so the page itself simply exists.
-  const yoursActs = Boolean(yoursLine && browseItem && item.category === 'tea');
   return (
     <div className="paper-ground w-full">
-      {yoursLine
-        ? (
-          <YoursStrip
-            line={yoursLine}
-            note={link?.yoursNote?.text}
-            noteBy={link?.yoursNote?.by}
-            kept={favoriteTeas.includes(item.id)}
-            {...(yoursActs ? {
-              onTaste: () => handleTaste(item, 'notes'),
-              onPhoto: () => joinThen(() => setPhotoAsk(n => n + 1)),
-              onKeep: () => joinThen(() => toggleFavoriteTea(item.id)),
-            } : {})}
-          />
-        )
-        : link?.top}
       {!link && <Helmet>
         <title>{`${item.name} · Teajia`}</title>
         <meta name="description" content={metaDescription} />
@@ -530,7 +497,10 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
       <ProductDetailPageContext.Provider value={{
         shopHref: sellerStore ? `/store/${encodeURIComponent(sellerStore.slug)}` : shopHref,
         shopName: sellerStore?.name, crumbType: sellerStore ? null : crumbType, selectedBy, onCartClick, cartItemCount,
-        onBack: link?.onBack, photoAsk, yoursActs,
+        onBack: link?.onBack,
+        underNav: yoursLine
+          ? <YoursStrip line={yoursLine} note={link?.yoursNote?.text} noteBy={link?.yoursNote?.by} nav={link?.yoursNav} />
+          : link?.top,
       }}>
         <ProductDetailContent
           key={item.id}

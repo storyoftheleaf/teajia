@@ -5,7 +5,8 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { PaymentChooser } from '../components/profile/PaymentChooser';
 import { PayInvoiceTeas } from '../components/profile/PayInvoiceTeas';
 import { PayInvoiceGift } from '../components/profile/PayInvoiceGift';
-import { PayInvoiceAfter, PayInvoiceGuide } from '../components/profile/PayInvoiceGuide';
+import { PayInvoiceAfter, PayInvoiceGuide, invoiceJoinPath } from '../components/profile/PayInvoiceGuide';
+import { useReturnPlace } from '../hooks/useReturnPlace';
 import type { PayLinkTeaLine } from '../components/profile/types';
 import type { InventoryItem } from '../types';
 import { CurrencySelect } from '../components/shop/CurrencySelect';
@@ -65,6 +66,7 @@ export default function ProfilePaymentPage({ onAddToCart }: {
     refetchOnMount: 'always',
   });
   const access = accessQuery.data;
+  useReturnPlace(Boolean(access?.invoice?.lines?.length) && search.get('choose') !== '1');
   const open = access?.access === 'open';
 
   // An invoice link carries the amount it was sent with. When the invoice has
@@ -281,7 +283,9 @@ export default function ProfilePaymentPage({ onAddToCart }: {
           onTaste={() => { setChoosingTea(true); teaList.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }}
         />
         <div className="mt-2 scroll-mt-4" ref={teaList}>
-          <PayInvoiceTeas lines={invoiceLines} invoiceNumber={access.invoice?.invoice_number ?? null} onAddToCart={onAddToCart} choosing={choosingTea} onChosen={() => setChoosingTea(false)} discount={access.invoice?.discount ?? null} />
+          <PayInvoiceTeas lines={invoiceLines} invoiceNumber={access.invoice?.invoice_number ?? null} onAddToCart={onAddToCart} choosing={choosingTea} onChosen={() => setChoosingTea(false)}
+            onSaveSignedOut={access.viewer.signed_in || access.invoice?.yours_to_send ? undefined : () => navigate(invoiceJoinPath({ from: access.contributor.display_name, teas: keepTeaserTeas(invoiceLines) }))}
+            discount={access.invoice?.discount ?? null} />
           <PayInvoiceAfter kept={access.invoice?.kept === true} yoursToSend={access.invoice?.yours_to_send === true} collection={access.invoice?.collection ?? null}
             slug={slug} token={shareToken}
             discount={access.invoice?.yours_to_send ? { editable: access.invoice.discount_editable === true, percent: access.invoice.discount?.percent ?? null } : undefined}

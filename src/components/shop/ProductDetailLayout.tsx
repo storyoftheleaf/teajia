@@ -1,5 +1,5 @@
 import { ORDERS_PAUSED_MESSAGE } from '../../lib/shopPurchase';
-import { createContext, useContext, useEffect, useRef, useState, type ComponentProps, type ReactNode } from 'react';
+import { createContext, useContext, useRef, useState, type ComponentProps, type ReactNode } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { addProductPhotograph } from '../../lib/familyApi';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -31,10 +31,8 @@ interface ProductPageContextValue {
   cartItemCount: number;
   /** A tea opened over a private link goes back to the link, not to the shop. */
   onBack?: () => void;
-  /** Goes up by one each time the strip that is theirs asks for the photo door. */
-  photoAsk?: number;
-  /** The strip that is theirs already offers Taste and Keep, so the page's own ribbon of the same two stands down. */
-  yoursActs?: boolean;
+  /** The line that belongs to the person the page was opened for, under the page's own bar. */
+  underNav?: ReactNode;
 }
 
 export const ProductDetailPageContext = createContext<ProductPageContextValue>({
@@ -65,7 +63,7 @@ interface ProductDetailLayoutProps {
 export function ProductDetailLayout({
   identity, gallery, actions, facts, factsTitle, history, order, tasting, journal, reading, related, styleReference, teaOrder, modals, soldOut, ownerPreviewNavigation, galleryCaption,
 }: ProductDetailLayoutProps) {
-  const { shopHref, shopName, crumbType, selectedBy, onCartClick, cartItemCount, onBack, photoAsk = 0, yoursActs = false } = useContext(ProductDetailPageContext);
+  const { shopHref, shopName, crumbType, selectedBy, onCartClick, cartItemCount, onBack, underNav } = useContext(ProductDetailPageContext);
   const { item } = identity;
   const hasProductActions = Boolean(actions) && !ownerPreviewNavigation;
   const photos = useTeaFamily(hasProductActions ? item.id : undefined);
@@ -84,13 +82,6 @@ export function ProductDetailLayout({
     },
     onSettled: () => queryClient.invalidateQueries({ queryKey: ['family', 'my-tea', item.id] }),
   });
-  // The strip that is theirs opens this same photo door; it asks only when signed in.
-  const askedPhoto = useRef(photoAsk);
-  useEffect(() => {
-    if (photoAsk === askedPhoto.current) return;
-    askedPhoto.current = photoAsk;
-    input.current?.click();
-  }, [photoAsk]);
   const hasShopPhotos = gallery.allImages.length > 0;
   const hasMemberPhotos = photos.row.length > 0;
   // Only a tea's square gallery carries the family in its thumbnail strip.
@@ -141,6 +132,7 @@ export function ProductDetailLayout({
           <ProductOrderAccess onCartClick={onCartClick} cartItemCount={cartItemCount} />
         </div>}
       </div>}
+      {underNav}
 
       <article className="tea-product-page mx-auto w-full max-w-screen-xl" data-sold-out={soldOut || undefined}>
         <div className="tea-product-layout">
@@ -166,7 +158,7 @@ export function ProductDetailLayout({
             }} />}
             {upload.isError && <span role="alert">{upload.error.message || 'The photo could not be added. Try again.'}</span>}
             <TeaFactsBox facts={visibleFacts} summary={reading?.introduction} title={factsTitle} />
-            {hasProductActions && actions && !yoursActs && <ProductDetailActions {...actions} key={`actions-${item.id}`} />}
+            {hasProductActions && actions && <ProductDetailActions {...actions} key={`actions-${item.id}`} />}
             {item.ordersPaused && <p className="mx-5 my-2 text-ui-13 text-tea-text-sec">{ORDERS_PAUSED_MESSAGE}</p>}
             {reading?.clay && <AlcoveAboutSection reading={{ label: reading.clay.label, sections: [reading.clay] }} variant="page" />}
             {tasting}

@@ -1,5 +1,7 @@
 import { useMemo } from 'react';
-import { ChooseTeaLine } from '../shop/GuideStep';
+import { useState } from 'react';
+import { ChooseTeaLine, ListTasting } from '../shop/GuideStep';
+import { useInventory } from '../../context/InventoryContext';
 import { LinkTeaPage } from '../shop/LinkTeaPage';
 import { useOpenLinkTea } from '../shop/useOpenLinkTea';
 import { linkTeaInventoryItem, type LinkTeaSource } from '../shop/linkTea';
@@ -19,7 +21,7 @@ import type { PayLinkTeaLine } from './types';
  * sell carries none. Shown only to a
  * holder of the invoice's own link; the worker decides that before it sends a line.
  */
-export function PayInvoiceTeas({ lines, invoiceNumber = null, onAddToCart, discount = null, choosing = false, onChosen }: {
+export function PayInvoiceTeas({ lines, invoiceNumber = null, onAddToCart, discount = null, choosing = false, onChosen, onSaveSignedOut }: {
   lines: readonly PayLinkTeaLine[];
   /** A percent off the shop offered, shown as its own line above the total. */
   discount?: { percent: number; amount_usd: number } | null;
@@ -27,22 +29,30 @@ export function PayInvoiceTeas({ lines, invoiceNumber = null, onAddToCart, disco
   /** The guide's Taste was tapped: the next tea opened goes straight to its tasting. */
   choosing?: boolean;
   onChosen?: () => void;
+  /** Signed out, a save first gets them an account; left out when they are signed in. */
+  onSaveSignedOut?: () => void;
   onAddToCart?: (item: InventoryItem, grams: number, totalUsd: number) => void;
 }) {
-  const { openId, open: setOpenId, close: closeTea } = useOpenLinkTea();
+  const { openId, open: setOpenId, move: moveTea, close: closeTea } = useOpenLinkTea();
   const favoriteTeas = useAppStore(s => s.favoriteTeas);
   const toggleFavoriteTea = useAppStore(s => s.toggleFavoriteTea);
-  const favoriteIds = useMemo(() => new Set(favoriteTeas), [favoriteTeas]);
   // One row per invoice line, as the invoice was written: two 100g packs of
   // the same tea are two rows of 100g (Adrian, 2026-11-27). The first row of a
   // tea carries its product id; a second row of the same tea gets an id of its
   // own and opens the same tea.
+  // A tea the shop lists is drawn as the shop draws it: its own name, and its
+  // date inside the save box (Adrian, 2026-11-27), not the invoice's wording.
+  const { inventory } = useInventory();
+  const listed = useMemo(() => new Map(inventory.map(item => [item.id, item])), [inventory]);
+  const [tasting, setTasting] = useState<InventoryItem | null>(null);
   const rows = useMemo(() => {
     const seen = new Set<string>();
     return lines.map((line, index) => {
+      const shop = line.product_id ? listed.get(line.product_id) : undefined;
       const id = line.product_id && !seen.has(line.product_id) ? line.product_id : `invoice-line-${index}`;
       if (line.product_id) seen.add(line.product_id);
-      const card = linkTeaInventoryItem({ ...sourceOf(line), ...line, chineseName: line.chinese_name, year: line.year, image: line.image_url });
+      const drawn = linkTeaInventoryItem({ ...sourceOf(line), ...line, chineseName: line.chinese_name, year: line.year, image: line.image_url });
+      const card = shop ? { ...drawn, name: shop.name, year: shop.year } : drawn;
       const amount: WeighOption = {
         grams: line.quantity,
         totalUsd: Math.round(line.line_total_usd * 100) / 100,
@@ -50,13 +60,15 @@ export function PayInvoiceTeas({ lines, invoiceNumber = null, onAddToCart, disco
       };
       return { id, line, product: card, card: { ...card, id } as InventoryItem, amount };
     });
-  }, [lines]);
+  }, [lines, listed]);
   const totalUsd = Math.round((lines.reduce((sum, line) => sum + line.line_total_usd, 0) - (discount?.amount_usd ?? 0)) * 100) / 100;
   // An invoice owes cents, so dollars read to the cent; another currency
   // reads as the shop quotes it, the near figure.
   const exact = useExactUsd();
   const formatPrice = (usd: number) => (usd === 0 ? 'Free' : exact(usd));
   const byId = useMemo(() => new Map(rows.map(row => [row.id, row])), [rows]);
+  // Saved is the tea's, so every line of a saved tea shows it.
+  const favoriteIds = useMemo(() => new Set(rows.filter(row => row.line.product_id && favoriteTeas.includes(row.line.product_id)).map(row => row.id)), [rows, favoriteTeas]);
   const groups = useMemo<TeaLedgerGroup[]>(() => {
     const order: string[] = [];
     const byType = new Map<string, InventoryItem[]>();
@@ -68,6 +80,11 @@ export function PayInvoiceTeas({ lines, invoiceNumber = null, onAddToCart, disco
     return order.map(type => ({ type, items: byType.get(type)! }));
   }, [rows]);
   const openRow = openId ? byId.get(openId) : undefined;
+  // The arrows on an open tea walk down the list as it is drawn, past any line that opens nothing.
+  const order = useMemo(() => groups.flatMap(group => group.items).filter(card => byId.get(card.id)?.line.product_id), [groups, byId]);
+  const at = openRow ? order.findIndex(card => card.id === openRow.id) : -1;
+  const before = at > 0 ? order[at - 1] : undefined;
+  const after = at >= 0 ? order[at + 1] : undefined;
   if (lines.length === 0) return null;
   return (
     <section aria-label="What this pays for" data-testid="pay-invoice-teas">
@@ -80,11 +97,19 @@ export function PayInvoiceTeas({ lines, invoiceNumber = null, onAddToCart, disco
         priceWeight={50}
         formatPrice={formatPrice}
         favoriteIds={favoriteIds}
-        onToggleFavorite={(id, event) => { event.stopPropagation(); const row = byId.get(id); if (row?.line.product_id) toggleFavoriteTea(row.line.product_id); }}
+        onToggleFavorite={(id, event) => {
+          event.stopPropagation();
+          const productId = byId.get(id)?.line.product_id;
+          if (!productId) return;
+          const saving = !favoriteTeas.includes(productId);
+          toggleFavoriteTea(productId);
+          if (saving) onSaveSignedOut?.();
+        }}
         onOpenProduct={card => {
-          if (!byId.get(card.id)?.line.product_id) return;
-          setOpenId(card.id, choosing ? { taste: '1' } : undefined);
-          onChosen?.();
+          const row = byId.get(card.id);
+          if (!row?.line.product_id) return;
+          if (choosing) { setTasting({ ...row.product, id: row.line.product_id }); onChosen?.(); return; }
+          setOpenId(card.id);
         }}
         weighOptionsFor={card => { const row = byId.get(card.id); return row ? [row.amount] : undefined; }}
       />
@@ -103,13 +128,19 @@ export function PayInvoiceTeas({ lines, invoiceNumber = null, onAddToCart, disco
           <span className="font-display text-ui-22 tabular-nums text-tea-text">{exact(totalUsd)}</span>
         </span>
       </div>
+      <ListTasting tea={tasting} onClose={() => setTasting(null)} />
       {openRow && (
         <LinkTeaPage
           item={openRow.product}
           onClose={closeTea}
           onAddToCart={onAddToCart}
-          yoursLine={['Yours', openRow.amount.label ?? `${openRow.amount.grams}g`, invoiceNumber ? `Invoice ${invoiceNumber}` : null].filter(Boolean).join(' · ')}
-          joinMarker="keep"
+          yoursLine={['Yours', openRow.amount.label ?? `${openRow.amount.grams}g`, invoiceNumber].filter(Boolean).join(' · ')}
+          yoursNav={at >= 0 ? {
+            index: at + 1,
+            count: order.length,
+            onPrev: before ? () => moveTea(before.id) : undefined,
+            onNext: after ? () => moveTea(after.id) : undefined,
+          } : undefined}
         />
       )}
     </section>

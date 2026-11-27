@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { Loader2, Plus, Search, ArrowUpDown, ArrowUp, ArrowDown, Pencil, EyeOff, Sparkles, Coffee, LayoutGrid, LayoutList } from 'lucide-react';
+import { Loader2, Plus, Search, ArrowUpDown, ArrowUp, ArrowDown, Pencil, EyeOff, Sparkles,  LayoutGrid, LayoutList } from 'lucide-react';
+import { TeaCup } from '../../components/TeaCupIcon';
 import { motion } from 'framer-motion';
 import Fuse from 'fuse.js';
 import { Product, Currency, ExchangeRate } from '../types';
@@ -186,7 +187,7 @@ export const TeawareCatalog = ({ products, currency, rates, onAdd, loading, isAd
 
         {sorted.length === 0 ? (
           <div className="flex flex-col items-center text-center max-w-sm mx-auto py-20 px-6">
-            <Coffee size={28} strokeWidth={1.25} className="text-tea-text-dim mb-3" />
+            <TeaCup size={28} strokeWidth={1.25} className="text-tea-text-dim mb-3" />
             <div className="font-display text-ui-17 text-tea-text">No teaware yet</div>
             <p className="text-ui-12 text-tea-text-sec leading-relaxed mt-2">
               Add equipment via the inventory tools or import from a vendor.
@@ -342,7 +343,7 @@ export const TeawareCatalog = ({ products, currency, rates, onAdd, loading, isAd
 
               {sorted.length === 0 && (
                 <div className="flex flex-col items-center text-center max-w-sm mx-auto py-20 px-6">
-                  <Coffee size={28} strokeWidth={1.25} className="text-tea-text-dim mb-3" />
+                  <TeaCup size={28} strokeWidth={1.25} className="text-tea-text-dim mb-3" />
                   <div className="font-display text-ui-17 text-tea-text">Nothing here yet</div>
                 </div>
               )}
