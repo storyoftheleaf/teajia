@@ -27,6 +27,10 @@ beforeEach(async () => {
       ('tasting', 'host@test.dev', 'tea', 'Old Tree Red');
     INSERT INTO contributors (id, account_id, user_id, display_name, is_published, page_tier) VALUES
       ('host-page', 'shop', 'host', 'Host', 1, 'family');
+    -- The token's person hosted the sit: the page and the tool put a recap on the table for its host (A11-6).
+    INSERT INTO contributor_accounts (contributor_id, account_id) VALUES ('host-page', 'shop');
+    INSERT INTO event_contributors (id, account_id, event_id, contributor_id, role, is_public) VALUES
+      ('recap-host', 'shop', 'recap', 'host-page', 'lead_host', 0);
     INSERT INTO member_tasting_shares (journal_entry_id, account_id, product_id, author_user_id, share_state, tea_table_at)
       VALUES ('tasting', 'shop', 'tea', 'host', 'page', datetime('now'));
     INSERT INTO tea_table_keeps (user_id, item_kind, item_id) VALUES ('other', 'tasting', 'tasting');
@@ -185,7 +189,7 @@ describe('Launch 4 MCP tools', () => {
     expect(saved()).toEqual([{ user_id: 'other' }]);
   });
 
-  it('publishes and withdraws a recap only for its host account', async () => {
+  it('publishes and withdraws a recap only for its host, in its own account', async () => {
     const args = { id: 'recap', on_table: true };
     const state = () => db.sqlite.prepare("SELECT tea_table_at AS at FROM events WHERE id = 'recap'").get();
     expect(await call('set_my_recap_on_tea_table', args, 'other')).toMatchObject({ error: 'not_found' });

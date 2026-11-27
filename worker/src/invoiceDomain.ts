@@ -148,13 +148,22 @@ export function paymentTextField(value: unknown, max: number): string | null {
 export interface InvoiceLedgerTotals {
   paid_usd: number;
   claims_pending: number;
+  /**
+   * Tea credit the shop owner approved against this order (host_credit_entries
+   * 'spent'). It settles the order like money received, and is kept apart
+   * from paid_usd, which stays cash only.
+   */
+  credit_usd?: number;
 }
 
 export interface InvoiceMoney {
   total_usd: number;
+  /** Cash: confirmed payments, or the column's word for them. Never tea credit. */
   paid_usd: number;
   outstanding_usd: number;
   claims_pending: number;
+  /** Approved tea credit settling the order; outstanding is net of it. */
+  credit_usd?: number;
 }
 
 export interface LedgerInvoice {
@@ -189,22 +198,50 @@ export async function loadInvoiceLedgerTotals(
   const unique = [...new Set(invoiceIds.filter(Boolean))];
   for (let start = 0; start < unique.length; start += 90) {
     const chunk = unique.slice(start, start + 90);
+    const marks = chunk.map(() => '?').join(', ');
+    // One query still: approved tea credit rides along as its own column.
     const result = await env.DB.prepare(
-      `SELECT invoice_id,
-              SUM(CASE WHEN status = 'confirmed' THEN amount_usd ELSE 0 END) AS paid_usd,
-              SUM(CASE WHEN status = 'claimed' THEN 1 ELSE 0 END) AS claims_pending
-         FROM invoice_payments
-        WHERE invoice_id IN (${chunk.map(() => '?').join(', ')})
+      `SELECT invoice_id, SUM(paid_usd) AS paid_usd, SUM(claims_pending) AS claims_pending, SUM(credit_usd) AS credit_usd
+         FROM (
+           SELECT invoice_id,
+                  CASE WHEN status = 'confirmed' THEN amount_usd ELSE 0 END AS paid_usd,
+                  CASE WHEN status = 'claimed' THEN 1 ELSE 0 END AS claims_pending,
+                  0 AS credit_usd
+             FROM invoice_payments
+            WHERE invoice_id IN (${marks})
+           UNION ALL
+           SELECT invoice_id, 0, 0, amount
+             FROM host_credit_entries
+            WHERE kind = 'spent' AND currency = 'USD' AND invoice_id IN (${marks})
+         )
         GROUP BY invoice_id`
-    ).bind(...chunk).all();
+    ).bind(...chunk, ...chunk).all();
     for (const row of (result.results ?? []) as Array<Record<string, any>>) {
       totals.set(row.invoice_id as string, {
         paid_usd: roundUsd(Number(row.paid_usd || 0)),
         claims_pending: Number(row.claims_pending || 0),
+        credit_usd: roundUsd(Number(row.credit_usd || 0)),
       });
     }
   }
   return totals;
+}
+
+/**
+ * What has settled an order: confirmed cash plus approved tea credit. Every
+ * "is this paid enough to take stock or ship" check reads this, never cash
+ * alone, so an order settled by credit moves on like one paid in cash.
+ */
+export function settledUsd(totals: InvoiceLedgerTotals | undefined): number {
+  return roundUsd((totals?.paid_usd ?? 0) + (totals?.credit_usd ?? 0));
+}
+
+/** The same, as SQL over an invoices alias, for guarded writes that recheck it in the statement. */
+export function settledUsdSql(invoice: string): string {
+  return `(COALESCE((SELECT SUM(sp.amount_usd) FROM invoice_payments sp
+      WHERE sp.invoice_id = ${invoice}.id AND sp.account_id = ${invoice}.account_id AND sp.status = 'confirmed'), 0)
+    + COALESCE((SELECT SUM(sc.amount) FROM host_credit_entries sc
+      WHERE sc.invoice_id = ${invoice}.id AND sc.account_id = ${invoice}.account_id AND sc.kind = 'spent' AND sc.currency = 'USD'), 0))`;
 }
 
 /**
@@ -225,15 +262,19 @@ export function invoiceMoney(
   ledger: InvoiceLedgerTotals | undefined,
 ): InvoiceMoney {
   const total = roundUsd(totalUsd);
+  const credit = roundUsd(ledger?.credit_usd ?? 0);
   let paid = roundUsd(ledger?.paid_usd ?? 0);
-  if (String(paymentStatus || '').toLowerCase() === 'paid' && paid < total - PAYMENT_EPSILON) {
-    paid = total;
+  // The column's 'paid' lifts cash only to what the credit did not settle.
+  const cashDue = Math.max(0, roundUsd(total - credit));
+  if (String(paymentStatus || '').toLowerCase() === 'paid' && paid < cashDue - PAYMENT_EPSILON) {
+    paid = cashDue;
   }
   return {
     total_usd: total,
     paid_usd: paid,
-    outstanding_usd: Math.max(0, roundUsd(total - paid)),
+    outstanding_usd: Math.max(0, roundUsd(total - paid - credit)),
     claims_pending: ledger?.claims_pending ?? 0,
+    credit_usd: credit,
   };
 }
 
@@ -301,7 +342,8 @@ export async function reconcileLedgerWithColumn(
   if (String(invoice.payment_status || '').toLowerCase() !== 'paid') return;
   if (!(invoice.total_usd > 0)) return;
   const ledger = await loadInvoiceLedgerTotals(env, [invoice.id]);
-  const shortfall = roundUsd(invoice.total_usd - (ledger.get(invoice.id)?.paid_usd ?? 0));
+  const totals = ledger.get(invoice.id);
+  const shortfall = roundUsd(invoice.total_usd - (totals?.paid_usd ?? 0) - (totals?.credit_usd ?? 0));
   if (shortfall <= PAYMENT_EPSILON) return;
   const when = invoice.payment_date || new Date().toISOString();
   await env.DB.prepare(
@@ -338,10 +380,13 @@ export async function recomputeInvoicePaymentStatus(
   ]);
   const totals = ledger.get(invoice.id) ?? { paid_usd: 0, claims_pending: 0 };
   const paid = roundUsd(totals.paid_usd);
+  const credit = roundUsd(totals.credit_usd ?? 0);
   const total = invoice.total_usd;
+  // Approved tea credit settles like money received; paid_usd stays cash.
+  const settled = roundUsd(paid + credit);
   const paymentStatus: 'unpaid' | 'partial' | 'paid' =
-    total > 0 && paid >= total - PAYMENT_EPSILON ? 'paid'
-      : paid > 0 ? 'partial'
+    total > 0 && settled >= total - PAYMENT_EPSILON ? 'paid'
+      : settled > 0 ? 'partial'
         : 'unpaid';
   const paymentDate = latest
     ? ((latest.confirmed_at as string | null) || (latest.claimed_at as string | null))
@@ -355,8 +400,9 @@ export async function recomputeInvoicePaymentStatus(
     payment_status: paymentStatus,
     total_usd: total,
     paid_usd: paid,
-    outstanding_usd: Math.max(0, roundUsd(total - paid)),
+    outstanding_usd: Math.max(0, roundUsd(total - settled)),
     claims_pending: totals.claims_pending,
+    credit_usd: credit,
   };
 }
 

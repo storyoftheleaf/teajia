@@ -21,13 +21,13 @@ import { circlesRoutes, publicSeries, seriesForCopy } from './circles';
 import { hostTokensRoutes } from './hostTokens';
 import { teaHousesRoutes } from './teaHouses';
 import { fewHostsOpen } from '../../src/lib/fewHosts';
-import { anyoneMayHost, hostApproved, hostDoorSql, hostDoorsFor, hostingStoppedSql, hostReachOf, hostStanding, isHostReach, listableHostedSessionSql, personalAccountSql, publicSessionHostSql, reachListedSessionSql, setHostApproval, setHostingStopped, setHostReach, type HostReach } from './hostApproval';
+import { accountHostingStopped, anyoneMayHost, HOSTING_STOPPED_SAYS, hostApproved, hostDoorSql, hostDoorsFor, hostingStoppedSql, hostReachOf, hostStanding, isHostReach, listableHostedSessionSql, personalAccountSql, publicSessionHostSql, reachListedSessionSql, setHostApproval, setHostingStopped, setHostReach, type HostReach } from './hostApproval';
 import { HOST_TEA_MEDIA_KEY, isWalkthroughMedia, mayShowWalkthrough, sessionEndsAt, sessionHasEnded, WALKTHROUGH_MEDIA_CACHE } from './sessionWalkthrough';
 import { CONTRIBUTOR_EFFECTIVELY_PUBLISHED_SQL, publicLeadHostSql } from './sessionHost';
 import { areaGivesAwayTheWay, isAreaRefusal, readTableArea } from './hostTableArea';
 import { signedWayPhotoUrl, signWayGuide, WAY_HOST, WAY_SIGNED_SECONDS, wayMediaVerdict } from './wayMedia';
 import { guestLinkSessions, withoutForeignGuestLinks, type GuestLinkCaller } from './guestLinkHolders';
-import { createHostedTable, type HostedTableDoor } from './hostTable';
+import { createHostedTable, tableInstant, tableWallTime, type HostedTableDoor } from './hostTable';
 import { changeHostedTable, hostTableGuests, markWhoCame, ownHostedTable, readTableChange, reviewHostedTableGuestBook, sayNoToGuest, SEAT_OF_A_GUEST_STILL_COMING, seatsTaken, seatsTakenSql, waitingGuest, type OwnHostedTable } from './hostTableGuests';
 import { createsCustomer, linkDoorFullAnswer, looksUpByContact, photoConsentValue, seatContact, seatDoorRule, seatIdFromKey, seatKey, seatRequirement, seatStatusFor, usesSeatKey } from './seatRequest';
 import { guestNotesFor, saveGuestNote } from './hostGuestNotes';
@@ -141,6 +141,8 @@ import {
   loadLedgerInvoice,
   reconcileLedgerWithColumn,
   recomputeInvoicePaymentStatus,
+  settledUsd,
+  settledUsdSql,
   validateRetailInvoiceInput,
   validateShippingCostUsd,
   validatePaymentStatusValue,
@@ -1786,7 +1788,7 @@ function cors(response: Response, origin: string | null): Response {
   headers.delete('Access-Control-Allow-Origin');
   if (origin) headers.set('Access-Control-Allow-Origin', origin);
   headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Teajia-Account');
+  headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Teajia-Account, Idempotency-Key');
   const vary = headers.get('Vary');
   if (!vary?.split(',').some(value => value.trim().toLowerCase() === 'origin')) {
     headers.set('Vary', vary ? `${vary}, Origin` : 'Origin');
@@ -7119,7 +7121,7 @@ const handleShipInvoice: Handler = async (request, env) => {
   if (invoice.shipping_quote_status === 'requested') return restError(409, 'Confirm the shipping charge before dispatch. Tea payment does not cover shipping.', 'shipping_quote_required');
   const priced = await loadLedgerInvoice(env, invoiceId, ctx.accountId);
   const ledger = await loadInvoiceLedgerTotals(env, [invoiceId]);
-  if (!priced || (ledger.get(invoiceId)?.paid_usd ?? 0) < priced.total_usd - PAYMENT_EPSILON) {
+  if (!priced || settledUsd(ledger.get(invoiceId)) < priced.total_usd - PAYMENT_EPSILON) {
     return restError(409, 'The current balance must be paid before shipping', 'balance_due');
   }
   if (invoice.status !== 'Pending') return restError(409, 'The order is not ready to ship', 'not_ready_to_ship');
@@ -7141,8 +7143,7 @@ const handleShipInvoice: Handler = async (request, env) => {
      WHERE id=? AND account_id=? AND status='Pending' AND inventory_deducted=1
        AND COALESCE(shipping_quote_status,'confirmed')!='requested'
        AND fulfillment_claim_token IS NULL
-       AND COALESCE((SELECT SUM(amount_usd) FROM invoice_payments
-         WHERE invoice_id=invoices.id AND account_id=invoices.account_id AND status='confirmed'),0)
+       AND ${settledUsdSql('invoices')}
          >= COALESCE((SELECT SUM(quantity*price_at_sale) FROM invoice_line_items
          WHERE invoice_id=invoices.id AND account_id=invoices.account_id),0)
          + COALESCE(shipping_cost_usd,0) - 0.01`
@@ -14957,21 +14958,50 @@ async function duplicateEvent(env: Env, accountId: string, sourceId: string,
   if (host && !parseEventDateRepresentation(body.event_date)) {
     return restError(400, 'Give a valid date and time for the new table.', 'invalid_event_date');
   }
+  // A host's copy keeps the new-table form's rules (A11-2, A11-3): read
+  // again at the confirm, so a host stopped or unapproved in between gets
+  // exactly what the form would give them now.
+  const access = host ? await hostedTableAccess(env, host.userId) : null;
+  if (host && !access) return fewHostsClosed();
+  if (access?.stopped) return hostingStoppedAnswer('table');
   const source = await env.DB.prepare(`SELECT * FROM events WHERE id = ? AND account_id = ?${host ? ' AND host_user_id = ?' : ''}`)
     .bind(sourceId, accountId, ...(host ? [host.userId] : [])).first();
   if (!source) return json({ error: 'Source event not found' }, 404);
-  if (host?.preview) return json({ ok: true });
+
+  // The shop's copy is a draft its Sessions room publishes. A host has no
+  // such room, so their copy is made ready the way POST /api/me/tables makes
+  // a table: its day on the table's clock as an instant (a day already past
+  // refused), the door the host may give now, active and published.
+  let eventDate = body.event_date;
+  let door = (source.door as string | null) ?? null;
+  let requiresApproval = source.requires_approval !== undefined ? source.requires_approval : 1;
+  let lifecycle = 'draft';
+  if (access) {
+    const timezone = String(source.timezone || 'UTC');
+    const wall = tableWallTime(body.event_date, timezone);
+    if (!wall) return restError(400, 'Give a valid date and time for the new table.', 'invalid_event_date');
+    const instant = tableInstant(wall.date, wall.time, timezone);
+    if ('refused' in instant) return restError(400, instant.refused.error, instant.refused.code);
+    eventDate = instant.toISOString();
+    const asked = (door ?? 'request') as HostedTableDoor;
+    door = access.doors.includes(asked) ? asked : 'request';
+    requiresApproval = door === 'link' ? 0 : 1;
+    lifecycle = 'published';
+    if (host?.preview) {
+      return json({ ok: true, event_date: eventDate, timezone, door, ...(door !== asked ? { door_was: asked } : {}) });
+    }
+  }
 
   const newId = crypto.randomUUID();
-  const duplicateEndDate = duplicateEventEndDate(source.event_date, source.event_end_date, body.event_date);
+  const duplicateEndDate = duplicateEventEndDate(source.event_date, source.event_end_date, eventDate);
 
   const insert = env.DB.prepare(
     `INSERT INTO events (id, account_id, slug, title, subtitle, description, flyer_image_url, event_date, event_end_date,
        location_name, address_text, map_link, guidelines_text, venue_guide, total_capacity, claim_window_minutes,
        timezone, status, session_flow, playlist_url, event_format,
        venue_id, active_space_ids, gathering_type, area_hint, mood_hints, briefing_cards, requires_approval, public_visibility, network_discovery,
-       host_user_id, door, is_tasting, series_id)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+       host_user_id, door, is_tasting, series_id, lifecycle_status)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     newId,
     accountId,
@@ -14980,7 +15010,7 @@ async function duplicateEvent(env: Env, accountId: string, sourceId: string,
     source.subtitle,
     source.description,
     source.flyer_image_url,
-    body.event_date,
+    eventDate,
     duplicateEndDate,
     source.location_name,
     source.address_text,
@@ -14990,6 +15020,7 @@ async function duplicateEvent(env: Env, accountId: string, sourceId: string,
     source.total_capacity,
     source.claim_window_minutes,
     source.timezone,
+    lifecycle === 'published' ? 'active' : 'draft',
     source.session_flow,
     source.playlist_url,
     source.event_format || 'private_tasting',
@@ -14999,15 +15030,16 @@ async function duplicateEvent(env: Env, accountId: string, sourceId: string,
     source.area_hint || null,
     source.mood_hints || null,
     source.briefing_cards || null,
-    source.requires_approval !== undefined ? source.requires_approval : 1,
+    requiresApproval,
     // A copy is never more visible than the session it was made from.
     source.public_visibility ?? 'public',
     source.network_discovery ?? 1,
     source.host_user_id ?? null,
-    source.door ?? null,
+    door,
     source.host_user_id ? (source.is_tasting ?? 0) : 0,
     // Same table again in a circle or series stays in it (Launch 5, M4); NULL while circles are closed.
     seriesForCopy(env, source),
+    lifecycle,
   );
 
   // Keep the draft and its tea menu together if a write fails.
@@ -15032,7 +15064,7 @@ async function duplicateEvent(env: Env, accountId: string, sourceId: string,
 
   const created = await env.DB.prepare('SELECT * FROM events WHERE id = ? AND account_id = ?')
     .bind(newId, accountId).first();
-  return json(created || { id: newId, account_id: accountId, slug: body.slug, event_date: body.event_date }, 201);
+  return json(created || { id: newId, account_id: accountId, slug: body.slug, event_date: eventDate }, 201);
 }
 
 const handleBatchAttendance: Handler = async (request, env, params) => {
@@ -17459,20 +17491,8 @@ function fewHostsAnyoneHosts(env: Env): boolean {
   return anyoneMayHost(env);
 }
 
-const hostingStoppedAnswer = (what: 'table' | 'seat' | 'change') => restError(403, {
-  table: 'New tables are paused on your account. Write to Teajia to talk it over.',
-  seat: 'New seats are paused on your account. Guests already confirmed keep their seats.',
-  change: 'Your tables are paused, so their door and seats stay as they are.',
-}[what], 'hosting_stopped');
+const hostingStoppedAnswer = (what: keyof typeof HOSTING_STOPPED_SAYS) => restError(403, HOSTING_STOPPED_SAYS[what], 'hosting_stopped');
 
-// Whether this account is the private account of a host Adrian stopped. The
-// shop's own Sessions room seats a guest through the same allocator as the
-// host's page, so its yes is refused the same way.
-async function accountHostingStopped(env: Env, accountId: string): Promise<boolean> {
-  const row = await env.DB.prepare(`SELECT ${hostingStoppedSql('a')} AS stopped FROM accounts a WHERE a.id = ?`)
-    .bind(accountId).first<{ stopped: number }>();
-  return Number(row?.stopped) === 1;
-}
 
 // A stopped host (Launch 3, J2) still opens the tables they already host, to
 // see who is coming and to mark who came, with no door to give. Every write
@@ -19619,7 +19639,7 @@ const handleApproveAttendee: Handler = async (request, env, params) => {
   ).bind(params.id, accountId).first() as ApprovalAttendeeRow | null;
 
   if (!attendee) return json({ error: 'Attendee not found' }, 404);
-  if (await accountHostingStopped(env, accountId)) return hostingStoppedAnswer('seat');
+  if (await accountHostingStopped(env.DB, accountId)) return hostingStoppedAnswer('seat');
 
   const body = await request.json() as { approved_guests?: number; message?: string };
   const approvedGuests = body.approved_guests ?? 0;
@@ -20086,7 +20106,7 @@ const handleApproveBatch: Handler = async (request, env, params) => {
   const { accountId } = ctx;
   const guard = await assertEventInAccount(env, params.id, accountId);
   if (guard) return guard;
-  if (await accountHostingStopped(env, accountId)) return hostingStoppedAnswer('seat');
+  if (await accountHostingStopped(env.DB, accountId)) return hostingStoppedAnswer('seat');
 
   const body = await request.json() as {
     attendee_ids: string[];
@@ -25580,13 +25600,17 @@ const handleUseMyTeaCredit: Handler = async (request, env, params) => {
   if (!hostCreditOpen(env)) return json({ error: 'Not found' }, 404);
   const user = await optionalAuthenticatedUser(request, env);
   if (!user) return json({ error: 'Sign in to use your tea credit' }, 401);
-  const held = await useHostCreditOnOrder(env, { hostUserId: user.userId, invoiceId: params.id });
+  // An Idempotency-Key makes a retry return the request it first made (A8-8).
+  const held = await useHostCreditOnOrder(env, {
+    hostUserId: user.userId, invoiceId: params.id, requestKey: request.headers.get('Idempotency-Key'),
+  });
   if ('error' in held) {
     if (held.error === 'closed') return json({ error: 'Not found' }, 404);
     if (held.error === 'not_found') return restError(404, 'Order not found', 'invoice_not_found');
     return restError(409, 'Your credit does not cover any more of this order.', 'host_credit_not_covered');
   }
-  return json({ success: true, request: held }, 201);
+  const { replayed, ...made } = held;
+  return replayed ? json({ success: true, request: made, replayed: true }) : json({ success: true, request: made }, 201);
 };
 
 async function requireHostCreditOwner(
@@ -25651,6 +25675,14 @@ const handleDecideHostCreditSpend: Handler = async (request, env, params) => {
         confirmOverCeiling: body?.confirm_over_ceiling === true,
       })
     : await declineHostCreditSpend(env, { accountId: ctx.accountId, requestId: params.id, approverUserId: ctx.userId });
+  if (decision.ok && decision.settled) {
+    // Credit that settles the order takes its stock, as a confirmed payment does.
+    const { settled, ...answer } = decision;
+    const stock = settled.payment_status === 'paid'
+      ? await applyConfirmedPaymentStock(env, settled.invoice_id, ctx)
+      : { state: 'not_due' as const };
+    return json({ ...answer, stock });
+  }
   if (decision.ok) return json(decision);
   return restError(decision.error === 'not_found' ? 404 : 409, decision.message, `host_credit_${decision.error}`);
 };
@@ -34094,7 +34126,7 @@ const requestHandler = {
     if (request.method === 'OPTIONS') {
       const headers: Record<string, string> = {
         'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Teajia-Account, X-Filename, X-Client-Evidence-Id',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Teajia-Account, X-Filename, X-Client-Evidence-Id, Idempotency-Key',
         'Access-Control-Max-Age': '86400',
         'Vary': 'Origin',
       };

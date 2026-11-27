@@ -347,7 +347,10 @@ describe.each([false, true])('older sessions with switches open = %s', open => {
         '/api/after-sit/guest-book', 'POST', { credential: oldSeatCredential, action, ...extra }, true);
       const book = await bookRequest('read');
       expect(book.status).toBe(200);
-      expect(await book.json()).toMatchObject({ entries: [{ display_name: 'Lin Chen', note: 'Gentle finish' }] });
+      // Other guests read the booking first name, never the surname (A7-1).
+      const entries = await book.json();
+      expect(entries).toMatchObject({ entries: [{ display_name: 'Lin', note: 'Gentle finish' }] });
+      expect(JSON.stringify(entries)).not.toContain('Chen');
       const photos = await bookRequest('photos-read');
       expect(photos.status).toBe(200);
       expect((await photos.json() as { gallery: unknown[] }).gallery).toEqual([{ id: 'legacy-offer', display_name: null, alt_text: 'Tea setup' }]);

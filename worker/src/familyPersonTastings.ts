@@ -18,6 +18,7 @@
  */
 import { isFamilyPhotographShape, readFamilyPhotographFrame, type FamilyPersonPhotograph, type FamilyPersonTasting, type FamilyPersonWord } from '../../src/lib/familyContract';
 import { photographBy } from './photographCredit';
+import { teaTableMoment } from '../../src/lib/teaTableContract';
 
 const MEDIA_PREFIX = 'https://media.teajia.co/';
 const mediaUrl = (key: string) => `${MEDIA_PREFIX}${key}`;
@@ -85,7 +86,37 @@ export function wordsFromSittings(raw: unknown): FamilyPersonWord[] {
   return words.slice(-MAX_NOTES_PER_TEA);
 }
 
-type ShareRow = { product_id: string; journal_entry_id: string; tastings: string | null; at: string | null };
+/**
+ * The words a share agreed to show (A7-3). A share that records which sittings
+ * the writer agreed to (tea_table_sittings, written by the Share step's Tea
+ * Table wording) shows only those sittings, and only notes written by the
+ * moment of sharing, exactly as the Tea Table does (teaTable.ts,
+ * wordsOnTheTable). An older page-only share has no such record and shows the
+ * row's sittings as it always has.
+ */
+export function wordsAsShared(raw: unknown, sittingsAtShare: string | null, sharedAt: string | null): FamilyPersonWord[] {
+  if (sittingsAtShare == null) return wordsFromSittings(raw);
+  let agreed: Set<string>;
+  try {
+    const ids = JSON.parse(sittingsAtShare) as unknown;
+    agreed = new Set(Array.isArray(ids) ? ids.filter((id): id is string => typeof id === 'string') : []);
+  } catch { agreed = new Set(); }
+  let sittings: unknown;
+  try { sittings = typeof raw === 'string' ? JSON.parse(raw) : raw; } catch { return []; }
+  if (!Array.isArray(sittings)) return [];
+  const kept = sittings.filter(sitting => sitting && typeof sitting.id === 'string' && agreed.has(sitting.id));
+  const cutoff = sharedAt ? teaTableMoment(sharedAt).getTime() : Number.NaN;
+  return wordsFromSittings(kept).filter(word => {
+    if (!word.date || Number.isNaN(cutoff)) return true;
+    const written = new Date(word.date).getTime();
+    return Number.isNaN(written) || written <= cutoff;
+  });
+}
+
+type ShareRow = {
+  product_id: string; journal_entry_id: string; tastings: string | null; at: string | null;
+  sittings: string | null; table_at: string | null;
+};
 function storedFrame(text: string | null | undefined) {
   if (!text) return null;
   try { return readFamilyPhotographFrame(JSON.parse(text)) ?? null; } catch { return null; }
@@ -105,7 +136,8 @@ export async function personTastings(db: D1Database, userId: string | null | und
   if (!userId) return [];
   const [shares, photos] = await Promise.all([
     db.prepare(
-      `SELECT s.product_id, s.journal_entry_id, j.tastings, COALESCE(s.shared_at, s.updated_at) AS at
+      `SELECT s.product_id, s.journal_entry_id, j.tastings, COALESCE(s.shared_at, s.updated_at) AS at,
+              s.tea_table_sittings AS sittings, s.tea_table_at AS table_at
          FROM member_tasting_shares s
          JOIN customer_tasting_journal j ON j.id = s.journal_entry_id
         WHERE s.author_user_id = ? AND s.share_state IN ('page', 'offered')
@@ -127,7 +159,7 @@ export async function personTastings(db: D1Database, userId: string | null | und
   for (const share of shares.results ?? []) {
     if (!order.includes(share.product_id)) order.push(share.product_id);
     latest.set(share.product_id, share.at ?? '');
-    words.set(share.product_id, wordsFromSittings(share.tastings));
+    words.set(share.product_id, wordsAsShared(share.tastings, share.sittings, share.table_at));
   }
   const pictures = new Map<string, FamilyPersonPhotograph[]>();
   for (const photo of photos.results ?? []) {
