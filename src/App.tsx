@@ -1307,7 +1307,7 @@ const AppContent = () => {
                 <Route path="/tea-feed" element={<Navigate to={teaTableOpen() ? '/tea-table' : '/'} replace />} />
                 <Route path="/event/:slug" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><EventLanding /></Suspense></ErrorBoundary>} />
                 <Route path="/sits/casual/:slug" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><CasualSitRecapPage /></Suspense></ErrorBoundary>} />
-                <Route path="/sit/:code" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><SitLinkPage /></Suspense></ErrorBoundary>} />
+                <Route path="/sit/:code" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><SitLinkPage onAddToCart={handleAddToCart} /></Suspense></ErrorBoundary>} />
                 <Route path="/after-sit" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><AfterSitPage /></Suspense></ErrorBoundary>} />
                 <Route path="/event/:slug/recap" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><EventRecapPage /></Suspense></ErrorBoundary>} />
                 <Route path="/m/:magicToken" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><GuestManagement /></Suspense></ErrorBoundary>} />

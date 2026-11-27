@@ -3,25 +3,25 @@
 // holding the link sees this. A signed-in person who was there takes their
 // seat with one press and lands on the thank-you page a seated guest already
 // has, where notes, photographs and keeping a tea live.
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Button } from '../components/shared/Button';
 import VenueGuide from '../components/events/VenueGuide';
+import { SessionTeaRow, sessionOfferItem } from '../components/sessions/SessionTeaRow';
+import { LinkTeaPage } from '../components/shop/LinkTeaPage';
+import { useOpenLinkTea } from '../components/shop/useOpenLinkTea';
 import { TYPOGRAPHY_CLASSES } from '../designTokens';
 import { useAuth } from '../hooks/useAuth';
-import { useFocusTrap } from '../hooks/useFocusTrap';
-import { useScrollLock } from '../hooks/useScrollLock';
-import { useStepParam } from '../hooks/useStepParam';
 import { currentSignInToken } from '../lib/api';
 import { holdAfterSitCredential } from '../lib/afterSitAccess';
 import { authPagePath } from '../lib/authNavigation';
-import { mediaUrl } from '../lib/mediaUrl';
 import { joinSit, readSitLink, type SitLink } from '../lib/sitLink';
 import type { PublicSessionTea } from '../../shared/sessionTea';
+import type { InventoryItem } from '../types';
 
 type State = { status: 'loading' | 'missing' | 'error' } | { status: 'ready'; sit: SitLink };
 
-export default function SitLinkPage() {
+export default function SitLinkPage({ onAddToCart }: { onAddToCart?: (item: InventoryItem, grams: number, totalUsd: number) => void }) {
   const { code = '' } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -30,8 +30,6 @@ export default function SitLinkPage() {
   const [joining, setJoining] = useState(false);
   const [refused, setRefused] = useState(false);
   const userId = user?.email ?? null;
-  // An open tea is a step: back closes it, and a link can carry it.
-  const [teaStep, setTeaStep] = useStepParam('tea');
 
   useEffect(() => {
     let current = true;
@@ -88,16 +86,8 @@ export default function SitLinkPage() {
           {state.sit.teas.length > 0 && (
             <section aria-labelledby="sit-teas" className="border-t border-tea-border pt-4">
               <h2 id="sit-teas" className={TYPOGRAPHY_CLASSES.h2}>The teas</h2>
-              <ol className="mt-3 flex flex-col divide-y divide-tea-border">
-                {state.sit.teas.map((tea, index) => (
-                  <Tea key={tea.id ?? index} tea={tea} place={index + 1} onOpen={() => setTeaStep(String(index + 1))} />
-                ))}
-              </ol>
+              <Teas teas={state.sit.teas} onAddToCart={onAddToCart} />
             </section>
-          )}
-          {openTea(state.sit.teas, teaStep) && (
-            <TeaReader teas={state.sit.teas} place={Number(teaStep)}
-              onPlace={place => setTeaStep(String(place), { refine: true })} onClose={() => setTeaStep(null)} />
           )}
           {state.sit.happened && (
             <div className="flex flex-wrap items-center justify-end gap-3 border-t border-tea-border pt-4">
@@ -143,79 +133,36 @@ function Way({ way }: { way: NonNullable<SitLink['way']> }) {
   );
 }
 
-const teaFacts = (tea: PublicSessionTea) => (tea.kind === 'tea' ? [tea.type, tea.year, tea.place].filter(Boolean).join(' · ') : '');
-const teaImage = (tea: PublicSessionTea) => {
-  const product = tea.kind === 'tea' ? tea.offer?.product : undefined;
-  return typeof product?.imageUrl === 'string' ? product.imageUrl : typeof product?.image_url === 'string' ? product.image_url : null;
-};
-const openTea = (teas: PublicSessionTea[], step: string) => (/^[1-9]\d*$/.test(step) ? teas[Number(step) - 1] ?? null : null);
-
-function Tea({ tea, place, onOpen }: { tea: PublicSessionTea; place: number; onOpen: () => void }) {
-  const facts = teaFacts(tea);
-  const image = teaImage(tea);
-  // Led by words: the numeral and the name carry the row, a picture joins only where one exists.
+/**
+ * The teas of the sit, each the shop's own row: its Save box and, where it is
+ * sold, its price. A tea the shop sells opens as the shop's own page over the
+ * link, to read about it, taste it and order it (Adrian, 2026-11-27: "a place
+ * to read about it and buy it and save it").
+ */
+function Teas({ teas, onAddToCart }: { teas: PublicSessionTea[]; onAddToCart?: (item: InventoryItem, grams: number, totalUsd: number) => void }) {
+  const { openId, open, move, close } = useOpenLinkTea();
+  const sold = useMemo(() => teas.flatMap(tea => (tea.kind === 'tea' && tea.offer ? [sessionOfferItem(tea.offer.product)] : [])), [teas]);
+  const at = openId ? sold.findIndex(item => item.id === openId) : -1;
   return (
-    <li>
-      <Button type="button" variant="plain" onClick={onOpen} className="flex w-full items-center gap-4 py-4 text-left">
-        <span aria-hidden="true" className="w-10 shrink-0 font-display text-5xl leading-none text-tea-gold">{place}</span>
-        <span className="flex min-w-0 flex-1 flex-col gap-1">
-          {facts && <span className="text-ui-11 uppercase tracking-widest text-tea-text-sec">{facts}</span>}
-          <span className="break-words font-display text-ui-24 leading-tight text-tea-text">{tea.name}</span>
-        </span>
-        {image && <img src={mediaUrl(image)} alt="" loading="lazy" className="h-14 w-14 shrink-0 rounded-md object-cover" />}
-      </Button>
-    </li>
-  );
-}
-
-/** One tea to a screen: its number, what it is and its name, with its picture behind only where it has one. */
-function TeaReader({ teas, place, onPlace, onClose }: {
-  teas: PublicSessionTea[]; place: number; onPlace: (place: number) => void; onClose: () => void;
-}) {
-  const tea = teas[place - 1];
-  const facts = teaFacts(tea);
-  const image = teaImage(tea);
-  useScrollLock(true);
-  const dialogRef = useFocusTrap<HTMLDivElement>(true);
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [onClose]);
-  return (
-    <div ref={dialogRef} role="dialog" aria-modal="true" aria-label={tea.name} className="fixed inset-0 z-modal flex flex-col bg-tea-bg">
-      {image && (
-        <>
-          <img src={mediaUrl(image)} alt="" className="absolute inset-0 h-full w-full object-cover" />
-          <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-t from-tea-bg via-tea-bg/60 to-transparent" />
-        </>
+    <div className="mt-3">
+      {teas.map((tea, index) => {
+        const item = tea.kind === 'tea' && tea.offer ? sessionOfferItem(tea.offer.product) : null;
+        return <SessionTeaRow key={tea.id ?? index} tea={tea} onOpen={item ? () => open(item.id) : undefined} />;
+      })}
+      {at >= 0 && (
+        <LinkTeaPage
+          item={sold[at]}
+          onClose={close}
+          onAddToCart={onAddToCart}
+          yoursLine="Poured at this sit"
+          yoursNav={{
+            index: at + 1,
+            count: sold.length,
+            onPrev: at > 0 ? () => move(sold[at - 1].id) : undefined,
+            onNext: at < sold.length - 1 ? () => move(sold[at + 1].id) : undefined,
+          }}
+        />
       )}
-      <div className="relative mx-auto flex w-full max-w-xl flex-1 flex-col p-4">
-        <div aria-hidden="true" className="flex gap-1">
-          {teas.map((_, index) => (
-            <span key={index} className={`h-0.5 flex-1 ${index < place ? 'bg-tea-gold' : 'bg-tea-border'}`} />
-          ))}
-        </div>
-        <div className="mt-3">
-          <Button type="button" variant="quiet" size="sm" className="tap-target" onClick={onClose}>The teas</Button>
-        </div>
-        <div className="flex flex-1 flex-col justify-end gap-3 pb-6">
-          <span aria-hidden="true" className={`font-display leading-none text-tea-gold ${image ? 'text-7xl' : 'text-9xl'}`}>{place}</span>
-          <p className="text-ui-11 uppercase tracking-widest text-tea-text-sec">
-            {[`Tea ${place} of ${teas.length}`, facts].filter(Boolean).join(' · ')}
-          </p>
-          <h2 className="break-words font-display text-5xl leading-tight text-tea-text">{tea.name}</h2>
-        </div>
-        <div className="flex flex-wrap items-center justify-between gap-2 pb-nav-gap">
-          <Button type="button" variant="secondary" className="tap-target" disabled={place <= 1} onClick={() => onPlace(place - 1)}>Back</Button>
-          <div className="flex flex-wrap items-center gap-2">
-            {tea.kind === 'tea' && tea.href && <Link to={tea.href} className="btn-secondary tap-target">About this tea</Link>}
-            {place < teas.length
-              ? <Button type="button" className="tap-target" onClick={() => onPlace(place + 1)}>Next</Button>
-              : <Button type="button" className="tap-target" onClick={onClose}>Done</Button>}
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
