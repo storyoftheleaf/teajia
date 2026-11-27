@@ -13,6 +13,7 @@ import {
 } from '../components/shop/linkTea';
 import { LinkTeaPage } from '../components/shop/LinkTeaPage';
 import { useTastingCounts } from '../hooks/useTastingCount';
+import { useInventory } from '../context/InventoryContext';
 import { boughtAmount, useMyBoughtTeas } from '../lib/myBoughtTeas';
 import { holdKeepTeaser } from '../lib/keepTeaser';
 import { holdReturnPlace, useReturnPlace } from '../hooks/useReturnPlace';
@@ -246,6 +247,8 @@ const CollectionShelf: React.FC<{ data: PublicCollectionResponse } & CartHooks> 
   useReturnPlace(true);
   // What they have done with each tea shows on its row, as the shop shows it.
   const tastingCounts = useTastingCounts();
+  const { inventory } = useInventory();
+  const shopListed = useMemo(() => new Set(inventory.map(tea => tea.id)), [inventory]);
   const { byId: boughtById } = useMyBoughtTeas();
   const rowLine = (tea: InventoryItem): string | null => {
     const ordered = publicCart.filter(line => line.id === tea.id).reduce((sum, line) => sum + (line.quantityGrams ?? 0), 0);
@@ -375,10 +378,11 @@ const CollectionShelf: React.FC<{ data: PublicCollectionResponse } & CartHooks> 
           <LinkTeaPage
             item={card}
             onClose={closeLinkTea}
-            // The shop's own bottom bar and cart. Only a tea whose price this
-            // link quoted keeps the link's footer, because the shop's bar
-            // prices by the shop's rule.
-            footer={focused.price_quoted ? (
+            // The shop's own bottom bar and cart. A tea whose price this link
+            // quoted keeps the link's footer, because the shop's bar prices by
+            // the shop's rule, and so does a private tea the shop does not
+            // list, which has no shop bar to show.
+            footer={focused.price_quoted || !shopListed.has(focused.product_id) ? (
               <CardFooter
                 item={focused}
                 ctx={ctx}
