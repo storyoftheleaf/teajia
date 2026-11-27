@@ -3468,10 +3468,10 @@ input[type="number"]::-webkit-outer-spin-button {
   border-right: 1px solid var(--tea-keyline);
 }
 
-/* The staff drawer beside the rail (LeftSidebar), in one of three looks for
-   Adrian to choose from (manageLook.ts; 2026-11-27, "three completely
-   different managed columns"). The word manage no longer folds into the
-   drawer as a tab: each look marks it open in its own small way. */
+/* The staff drawer beside the rail (LeftSidebar), in one of three porcelain
+   looks for Adrian to choose from (manageLook.ts: docked, flush, seamless;
+   2026-11-27). The word manage no longer folds into the drawer as a tab:
+   each look marks it open in its own small way. */
 .nav-drawer { background: var(--tea-surface); }
 .nav-drawer-list { display: flex; flex-direction: column; }
 .nav-drawer-label { display: block; color: var(--tea-text-sec); }
@@ -3553,7 +3553,6 @@ input[type="number"]::-webkit-outer-spin-button {
   border-right: 1px solid rgb(var(--tea-gold-rgb) / 0.22);
 }
 [data-look="flush"] .nav-room ~ .nav-room { border-top: 1px solid var(--tea-border); margin: 0 var(--space-2); }
-[data-look="flush"] .nav-drawer-list > .nav-room:first-of-type { margin: 0 var(--space-2); }
 [data-look="flush"] .nav-room[aria-current="page"] {
   margin: 0;
   padding-inline: var(--space-2);
