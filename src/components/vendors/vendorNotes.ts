@@ -37,3 +37,33 @@ export function structureVendorNotes(notes: string | null | undefined): VendorNo
     return { text: piece };
   });
 }
+
+/** Contact handles a note names ("WeChat Weeee36", "WhatsApp: +62 812…"). */
+export interface NoteContact { channel: 'wechat' | 'whatsapp' | 'line' | 'instagram' | 'telegram'; label: string; handle: string }
+
+const NOTE_CONTACT_PATTERNS: Array<{ channel: NoteContact['channel']; label: string; re: RegExp }> = [
+  { channel: 'wechat', label: 'WeChat', re: /\b(?:we\s?chat|weixin|微信)\s*(?:id)?\s*[:：]?\s*([A-Za-z][A-Za-z0-9_-]{2,40})/i },
+  { channel: 'whatsapp', label: 'WhatsApp', re: /\bwhats\s?app\s*[:：]?\s*(\+?[\d][\d\s-]{6,20}\d)/i },
+  { channel: 'line', label: 'Line', re: /\bline\s*(?:id)?\s*[:：]\s*([A-Za-z0-9._-]{3,40})/i },
+  { channel: 'instagram', label: 'Instagram', re: /\binstagram\s*[:：]?\s*@?([A-Za-z0-9._]{2,30})/i },
+  { channel: 'telegram', label: 'Telegram', re: /\btelegram\s*[:：]?\s*@?([A-Za-z0-9_]{4,32})/i },
+];
+
+/**
+ * Handles written into a vendor's notes that their contacts do not hold yet,
+ * so the page can offer to move each one across with a tap. Only for offering:
+ * nothing is saved until the person taps.
+ */
+export function contactsInNotes(notes: string | null | undefined, existing: Array<{ channel: string; handle: string }>): NoteContact[] {
+  if (!notes?.trim()) return [];
+  const known = new Set(existing.map(c => `${c.channel}:${c.handle.replace(/[\s-]/g, '').toLowerCase()}`));
+  const found: NoteContact[] = [];
+  for (const { channel, label, re } of NOTE_CONTACT_PATTERNS) {
+    const match = notes.match(re);
+    if (!match) continue;
+    const handle = match[1].trim().replace(/[.,;]+$/, '');
+    if (known.has(`${channel}:${handle.replace(/[\s-]/g, '').toLowerCase()}`)) continue;
+    found.push({ channel, label, handle });
+  }
+  return found;
+}

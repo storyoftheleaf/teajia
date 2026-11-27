@@ -1411,11 +1411,6 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                   {filterLabel}
                 </span>
               )}
-              {onNavigate && nextProduct && (
-                <span data-testid="tea-page-next-at" className="text-ui-11 text-tea-gold leading-none mt-1">
-                  Next opens at {section ? sectionLabel(section) : 'the top'}
-                </span>
-              )}
             </div>
             <div className="flex items-center gap-0">
               <button
