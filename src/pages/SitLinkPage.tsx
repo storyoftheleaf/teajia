@@ -69,17 +69,22 @@ export default function SitLinkPage() {
       )}
       {state.status === 'ready' && (
         <>
-          <header>
-            <h1 className={`${TYPOGRAPHY_CLASSES.h1} break-words`}>{state.sit.title}</h1>
-            <time dateTime={state.sit.date} className={TYPOGRAPHY_CLASSES.bodyLight}>{sitDay(state.sit)}</time>
+          <header className="flex flex-col gap-3 pt-6">
+            <p className="text-ui-11 uppercase tracking-widest text-tea-text-sec">
+              <time dateTime={state.sit.date}>{sitDay(state.sit)}</time>
+              {state.sit.way?.place && <> · {state.sit.way.place}</>}
+            </p>
+            <h1 className="break-words font-display text-5xl leading-tight text-tea-text">{state.sit.title}</h1>
           </header>
-          {state.sit.note && <p className={`${TYPOGRAPHY_CLASSES.body} whitespace-pre-wrap break-words`}>{state.sit.note}</p>}
+          {state.sit.note && (
+            <p className="whitespace-pre-wrap break-words font-display text-ui-20 italic leading-relaxed text-tea-text">{state.sit.note}</p>
+          )}
           {state.sit.way && <Way way={state.sit.way} />}
           {state.sit.teas.length > 0 && (
             <section aria-labelledby="sit-teas" className="border-t border-tea-border pt-4">
               <h2 id="sit-teas" className={TYPOGRAPHY_CLASSES.h2}>The teas</h2>
               <ol className="mt-3 flex flex-col divide-y divide-tea-border">
-                {state.sit.teas.map((tea, index) => <Tea key={tea.id ?? index} tea={tea} />)}
+                {state.sit.teas.map((tea, index) => <Tea key={tea.id ?? index} tea={tea} place={index + 1} />)}
               </ol>
             </section>
           )}
@@ -127,26 +132,26 @@ function Way({ way }: { way: NonNullable<SitLink['way']> }) {
   );
 }
 
-function Tea({ tea }: { tea: PublicSessionTea }) {
+function Tea({ tea, place }: { tea: PublicSessionTea; place: number }) {
   const product = tea.kind === 'tea' ? tea.offer?.product : undefined;
   const image = typeof product?.imageUrl === 'string' ? product.imageUrl : typeof product?.image_url === 'string' ? product.image_url : null;
-  const facts = tea.kind === 'tea' ? [tea.year, tea.type, tea.place].filter(Boolean).join(' · ') : '';
+  const facts = tea.kind === 'tea' ? [tea.type, tea.year, tea.place].filter(Boolean).join(' · ') : '';
+  // Led by words: the numeral and the name carry the row, a picture joins only where one exists.
   const body = (
-    <span className="flex min-w-0 flex-1 flex-col">
-      <span className={`${TYPOGRAPHY_CLASSES.h3} break-words`}>{tea.name}</span>
-      {facts && <span className={TYPOGRAPHY_CLASSES.bodyLight}>{facts}</span>}
-    </span>
+    <>
+      <span aria-hidden="true" className="w-10 shrink-0 font-display text-5xl leading-none text-tea-gold">{place}</span>
+      <span className="flex min-w-0 flex-1 flex-col gap-1">
+        {facts && <span className="text-ui-11 uppercase tracking-widest text-tea-text-sec">{facts}</span>}
+        <span className="break-words font-display text-ui-24 leading-tight text-tea-text">{tea.name}</span>
+      </span>
+      {image && <img src={mediaUrl(image)} alt="" loading="lazy" className="h-14 w-14 shrink-0 rounded-md object-cover" />}
+    </>
   );
   return (
-    <li className="py-3">
-      {tea.kind === 'tea' && tea.href ? (
-        <Link to={tea.href} className="flex items-center gap-3 tap-target">
-          {image && <img src={mediaUrl(image)} alt="" loading="lazy" className="h-14 w-14 shrink-0 rounded-md object-cover" />}
-          {body}
-        </Link>
-      ) : (
-        <div className="flex items-center gap-3">{body}</div>
-      )}
+    <li className="py-4">
+      {tea.kind === 'tea' && tea.href
+        ? <Link to={tea.href} className="flex items-center gap-4 tap-target">{body}</Link>
+        : <div className="flex items-center gap-4">{body}</div>}
     </li>
   );
 }
