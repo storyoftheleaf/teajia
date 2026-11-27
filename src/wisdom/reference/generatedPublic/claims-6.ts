@@ -882,9 +882,9 @@ export const PART: readonly PublicClaim[] = [
       "sample": "Regional convention reported in specialist writing about Menghai County"
     },
     "terms": [],
-    "rev": 2,
+    "rev": 3,
     "scope": "Menghai County",
-    "text": "Menghai raw pu’er has a reputation for strength and bitterness, set against the gentler teas of eastern Xishuangbanna. Treat that as a regional convention rather than a rule: tree age, craft, blend, age and storage all make large differences within the county.",
+    "text": "Menghai’s forceful reputation belongs mostly to its Bulang side, where raw pu’er is strong and bitter at first, then turns sweet and stays. Nannuo is softer and more floral, so the county is not one taste, and a strong Menghai set against a gentler east is a trade convention more than a rule. Tree age, craft, blend and storage change the cup a great deal within every mountain.",
     "sourceIds": [
       "teadb-menghai-county"
     ],

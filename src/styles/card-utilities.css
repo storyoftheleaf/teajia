@@ -5554,8 +5554,9 @@ body.cart-panel-open .commerce-dock {
 
 /* Unified Library console: views inside a single panel, tools immediately below. */
 .library-controls { display: grid; grid-template-columns: minmax(0,1fr); gap: 0; padding: 4px; border: 1px solid var(--tea-border); border-radius: 7px; background: var(--tea-surface); }
-.library-controls .library-segments { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 2px; padding: 2px; border: 1px solid var(--tea-border); border-radius: 5px; background: var(--tea-bg); }
-.library-controls .library-segments > button { min-width: 0; padding: 0 3px; gap: 4px; justify-content: center; white-space: nowrap; border-radius: 3px; }
+.library-controls .library-segments { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(max-content,1fr); gap: 2px; padding: 2px; border: 1px solid var(--tea-border); border-radius: 5px; background: var(--tea-bg); }
+.library-controls .library-segments > button { min-width: 0; padding: 0 8px; gap: 6px; justify-content: center; white-space: nowrap; border-radius: 3px; }
+.library-controls .library-segments > button .library-segment-dot { width: calc(var(--space-1) * 1.5); height: calc(var(--space-1) * 1.5); border-radius: 999px; background: var(--tea-gold); flex: none; }
 .library-controls .library-segments > button[aria-pressed='true'] { background: var(--tea-elevated); box-shadow: none; color: var(--tea-text); }
 .library-controls .library-tools { width: 100%; display: flex; flex-wrap: wrap; gap: 4px 8px; justify-content: flex-start; padding: 0 3px; }
 .library-controls .library-tools > button { display: inline-flex; align-items: center; gap: 5px; min-height: var(--tap-min); padding: 0 5px; }

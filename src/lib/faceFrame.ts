@@ -103,18 +103,18 @@ export async function findFace(image: HTMLImageElement, timeoutMs = 4000): Promi
 
 /**
  * The frame to open on, in percent of the photo (react-easy-crop's
- * `initialCroppedAreaPercentages`): the frame's shape, about two and a half
- * faces tall so head and shoulders show, the face a little above centre, kept
- * inside the photo. A face already filling the photo gives the whole photo.
+ * `initialCroppedAreaPercentages`): as much of the photo as the frame's shape
+ * holds, slid so the face sits as near the middle as the photo allows. It
+ * never zooms in: Adrian, 2026-11-27, "If I drop it in, it should be as
+ * zoomed out as possible ... only if I zoom it in and out should it do that."
+ * A square photo in a square frame is kept whole.
  */
 export function faceFramePercent(face: FaceBox, natural: { width: number; height: number }, aspect = 1): PixelCrop {
   const W = natural.width, H = natural.height;
-  let height = Math.max(face.height, face.width) * 2.4;
-  let width = height * aspect;
-  const fit = Math.min(1, W / width, H / height);
-  width *= fit; height *= fit;
+  const width = Math.min(W, H * aspect);
+  const height = width / aspect;
   const cx = face.x + face.width / 2;
-  const cy = face.y + face.height / 2 + height * 0.08;
+  const cy = face.y + face.height / 2;
   const x = Math.min(Math.max(0, cx - width / 2), W - width);
   const y = Math.min(Math.max(0, cy - height / 2), H - height);
   return { x: (x / W) * 100, y: (y / H) * 100, width: (width / W) * 100, height: (height / H) * 100 };
