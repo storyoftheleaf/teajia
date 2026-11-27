@@ -1,0 +1,37 @@
+name: Merge danger
+
+# Every PR states how risky it is, so Adrian only has to look closely at the
+# ones that can't be undone (Matt Pocock, "Fixing the PR Bottleneck", AI
+# Engineer Paris 2026: review the one-way doors, skim the two-way ones).
+#
+# Reads the PR description and one script: no npm, a few seconds of runner
+# time. Fails when the "Merge danger" section is missing, and holds a one-way
+# door until the owner-approved label is on the PR. The "Door:" line decides it; the rules for which door
+# a change is live in CODING_STANDARDS.md (rule 9) and the review-pr skill.
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize, labeled, unlabeled]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: merge-danger-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  merge-danger:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          sparse-checkout: scripts/merge-danger-check.sh
+          sparse-checkout-cone-mode: false
+
+      - name: Check the Merge danger section
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+          APPROVED: ${{ contains(github.event.pull_request.labels.*.name, 'owner-approved') }}
+        run: bash scripts/merge-danger-check.sh
