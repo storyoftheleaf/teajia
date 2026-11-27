@@ -286,7 +286,7 @@ test.describe('Curate Library decisions and retrieval', () => {
     );
     await page.getByRole('button', { name: 'Edit details for River Stone', exact: true }).filter({ visible: true }).click();
     await page.getByRole('button', { name: 'Add to Stock' }).click();
-    await expect(page.getByText('Could not create Inventory record: Compass entry not found', { exact: true })).toBeVisible();
+    await expect(page.getByText('Could not add to Stock: Compass entry not found', { exact: true })).toBeVisible();
     expect(await page.evaluate(async () => {
       // @ts-expect-error Vite source import.
       const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
