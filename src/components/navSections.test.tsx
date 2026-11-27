@@ -174,4 +174,13 @@ describe('with the new bar on', () => {
     expect(barSectionActive(table, '/events-old', 'HOME')).toBe(false);
     expect(barSectionActive(houses, '/storefront', 'HOME')).toBe(false);
   });
+
+  it('a tea opened from an invoice sheet or a collection lights Shop, as in the shop', () => {
+    const words = barSections(true);
+    const lit = (path: string, search: string) => words.filter(w => barSectionActive(w, path, 'EVENTS', search)).map(w => w.id);
+    expect(lit('/people/adrian/pay', '?reference=TJB-1&tea=abc')).toEqual(['shop']);
+    expect(lit('/c/tias-teas', '?tea=abc')).toEqual(['shop']);
+    expect(lit('/people/adrian/pay', '?reference=TJB-1')).toEqual(['table']);
+    expect(lit('/people/adrian', '?tea=abc')).toEqual(['table']);
+  });
 });
