@@ -1,6 +1,9 @@
 ## 2026-11-27: Every switch from Launches 1 to 5 is on
 
 Adrian chose "All at once, credit too". All sixteen switch constants in `src/lib` are now true (hosting for a few and for anyone, practice lines, Your Table as a page and its place, favourites, the Tea Table, "Does anyone know this tea?", the new bar and Home, host articles, top teas, circles, host assistant keys, the table card, tea houses and tea credit). An env value of 'false' still shuts any one. Tests of the closed state now ask for it with an explicit 'false'. With them: no counts on people and collection pages (Adrian: remove the counts), and no view count in public collection answers; "Serves at tables" under a name on the people list, worked out from who has hosted (Adrian: "the more automated the better"); one "Take it off the table?" before a shared tasting comes off; a host's place section is headed "Where you serve" as a working name; and host article offers, practice lines, top teas and the tea credit tile show nothing rather than breaking the page when an answer is missing its list.
+## 2026-11-27: Vendor faces keep their whole photo, and can be removed
+
+Every face saved on a vendor now keeps the whole photo it was cut from beside it (`customers.face_photo_original`, migration 0153), so the crop button on a face opens the editor on the full picture and you can always zoom back out. A face placed from the tray or picked with the camera keeps its original the same way. Faces saved before this have no original kept; the editor opens on the face itself. Each face tile has a remove button that takes the face off, and Undo puts it back, whole photo included. A face set by an agent clears the old whole photo.
 
 ## 2026-11-27: Craft leaves the bar; Read gets Stories, Lessons and Wisdom
 

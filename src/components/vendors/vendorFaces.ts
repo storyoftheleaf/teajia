@@ -23,6 +23,7 @@ import { prepareFacePhoto } from './facePhotoFile';
 
 export interface VendorPhotoFields {
   face_photo?: string | null;
+  face_photo_original?: string | null;
   storefront_photo?: string | null;
   business_card_photo?: string | null;
 }
@@ -53,6 +54,8 @@ export interface FaceVendor {
   photo?: string;
   /** True only when the photo is the vendor's own face. */
   hasFace: boolean;
+  /** The whole photo the face was cut from, when it was kept. */
+  original?: string;
 }
 
 export function toFaceVendor(row: VendorPhotoFields & {
@@ -66,6 +69,7 @@ export function toFaceVendor(row: VendorPhotoFields & {
     country: row.country || undefined,
     photo: vendorFacePhoto(row),
     hasFace: !!row.face_photo,
+    original: row.face_photo ? row.face_photo_original || undefined : undefined,
   };
 }
 
@@ -124,21 +128,41 @@ export async function squareOnFace(file: File, size = 800): Promise<Blob> {
   }
 }
 
+/** The two photos a vendor's face is: the framed square, and the whole photo it came from. */
+export interface SavedFace { face: string; original: string | null }
+
+async function uploadJpeg(blob: Blob, filename: string, expectedAuth?: ApiRequestInit['expectedAuth']): Promise<string> {
+  const url = await api.uploadImage(new File([blob], filename, { type: 'image/jpeg' }), { filename, expectedAuth });
+  if (!url) throw new Error('The photo upload returned no address.');
+  return url;
+}
+
 /**
- * Upload a face and save it on the vendor. Squared on the face and kept
- * small: it is only ever shown as a face, and vendor photos are often taken
- * on a slow connection. `framed` means the photo editor already framed it.
- * Returns the stored URL.
+ * Upload a face and save it on the vendor. The framed square is what every
+ * list shows (kept small: vendor photos are often taken on a slow
+ * connection); the whole photo is kept beside it, so the face can always be
+ * reframed in and out again (Adrian, 2026-11-27).
+ *
+ * `framed` means the photo editor already framed `file`. `original` is the
+ * whole photo it came from: a File to upload, a stored URL to keep, or
+ * omitted when `file` itself is the whole photo.
  */
 export async function saveVendorFace(
-  vendorId: string, file: File | Blob, expectedAuth?: ApiRequestInit['expectedAuth'], options?: { framed?: boolean },
-): Promise<string> {
-  const squared = options?.framed ? file : await squareOnFace(await prepareFacePhoto(file as File));
-  const upload = new File([squared], 'vendor-face.jpg', { type: 'image/jpeg' });
-  const url = await api.uploadImage(upload, { filename: 'vendor-face.jpg', expectedAuth });
-  if (!url) throw new Error('The photo upload returned no address.');
-  await api.customers.update(vendorId, { face_photo: url }, expectedAuth);
-  return url;
+  vendorId: string, file: File | Blob, expectedAuth?: ApiRequestInit['expectedAuth'],
+  options?: { framed?: boolean; original?: File | Blob | string | null },
+): Promise<SavedFace> {
+  const readable = options?.framed ? file : await prepareFacePhoto(file as File);
+  const whole = options?.original === undefined ? (options?.framed ? null : readable) : options.original;
+  const squared = options?.framed ? file : await squareOnFace(readable as File);
+  const face = await uploadJpeg(squared, 'vendor-face.jpg', expectedAuth);
+  let original: string | null = null;
+  if (typeof whole === 'string') original = whole;
+  else if (whole) {
+    const photo = whole instanceof File ? await prepareFacePhoto(whole) : new File([whole], 'original.jpg', { type: whole.type || 'image/jpeg' });
+    original = await uploadJpeg(await compressImage(photo, 2400, 0.85), 'vendor-face-original.jpg', expectedAuth);
+  }
+  await api.customers.update(vendorId, { face_photo: face, face_photo_original: original }, expectedAuth);
+  return { face, original };
 }
 
 /** After a face is saved: every list and profile that shows the vendor refreshes. */
@@ -191,6 +215,13 @@ export function suggestVendorForFile(fileName: string, vendors: FaceVendor[]): F
 }
 
 /** Put a face back the way it was (an undo), or clear it when there was none. */
-export async function restoreVendorFace(vendorId: string, previous: string | null, expectedAuth?: ApiRequestInit['expectedAuth']): Promise<void> {
-  await api.customers.update(vendorId, { face_photo: previous }, expectedAuth);
+export async function restoreVendorFace(
+  vendorId: string, previous: string | null, expectedAuth?: ApiRequestInit['expectedAuth'], previousOriginal: string | null = null,
+): Promise<void> {
+  await api.customers.update(vendorId, { face_photo: previous, face_photo_original: previous ? previousOriginal : null }, expectedAuth);
+}
+
+/** Take a vendor's face off (both photos); the shop photo or initials show again. */
+export async function removeVendorFace(vendorId: string, expectedAuth?: ApiRequestInit['expectedAuth']): Promise<void> {
+  await api.customers.update(vendorId, { face_photo: null, face_photo_original: null }, expectedAuth);
 }
