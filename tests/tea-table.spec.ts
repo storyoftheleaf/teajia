@@ -197,6 +197,8 @@ test.describe('the Tea Table, open', () => {
     const own = page.getByTestId('tea-table-piece').first();
     await expect(own.getByTestId('tea-table-report')).toHaveCount(0);
     await own.getByTestId('tea-table-take-off').click();
+    await expect(own.getByText('Take it off the table?')).toBeVisible();
+    await own.getByTestId('tea-table-take-off-yes').click();
     await expect(page.getByTestId('tea-table-piece')).toHaveCount(1);
     expect(state.tookOff).toEqual(['journal-1']);
     await expectQuietAndFitting(page);

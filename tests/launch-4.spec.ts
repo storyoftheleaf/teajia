@@ -241,6 +241,7 @@ for (const size of SIZES) {
         await mei.page.goto('/tea-table');
         const piece = teaTablePiece(mei.page, MEI_TEA);
         await piece.getByTestId('tea-table-take-off').click();
+        await piece.getByTestId('tea-table-take-off-yes').click();
         await expect(mei.page.getByTestId('tea-table-page')).not.toContainText(MEI_TEA);
       });
       await clean(mei, 'take off');
