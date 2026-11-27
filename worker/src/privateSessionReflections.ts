@@ -1,16 +1,12 @@
+import { approvedSeatSourceSql, attendeeIdentitySql } from './seatRequest';
+
 type Scope = { accountId: string; userId: string };
 
 export const privateAttendeeSeatMatch = `
     a.account_id = ? AND a.status = 'confirmed' AND a.attended = 1
     AND EXISTS (SELECT 1 FROM events e WHERE e.id = a.event_id AND e.account_id = a.account_id
-      AND e.lifecycle_status IN ('completed', 'archived'))
-    AND (a.user_id = ? OR (
-      a.user_id IS NULL
-      AND EXISTS (SELECT 1 FROM users u WHERE u.id = ? AND u.email_verified_at IS NOT NULL
-        AND lower(trim(u.email)) = lower(trim(a.email)))
-      AND 1 = (SELECT count(*) FROM event_attendees other WHERE other.event_id = a.event_id
-        AND other.account_id = a.account_id AND lower(trim(other.email)) = lower(trim(a.email)))
-    ))
+      AND e.lifecycle_status IN ('completed', 'archived') AND ${approvedSeatSourceSql('e', 'a')})
+    AND ${attendeeIdentitySql('a')}
 `;
 
 export const privateAttendeeMatch = `a.magic_token = ? AND ${privateAttendeeSeatMatch}`;

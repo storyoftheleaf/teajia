@@ -1,8 +1,4 @@
-// A sit, opened by its one link (Adrian, 2026-11-27): the teas that were
-// poured, the host's note and, until the day is over, the way in. Anyone
-// holding the link sees this. A signed-in person who was there takes their
-// seat with one press and lands on the thank-you page a seated guest already
-// has, where notes, photographs and keeping a tea live.
+// A host's shared sit. Scheduled guests sign in to use their approved seat.
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Button } from '../components/shared/Button';
@@ -20,26 +16,34 @@ import { joinSit, readSitLink, type SitLink } from '../lib/sitLink';
 import type { PublicSessionTea } from '../../shared/sessionTea';
 import type { InventoryItem } from '../types';
 
-type State = { status: 'loading' | 'missing' | 'error' } | { status: 'ready'; sit: SitLink };
+type Loaded = { status: 'missing' | 'error' } | { status: 'approval'; rsvpPath: string | null } | { status: 'ready'; sit: SitLink };
 
 export default function SitLinkPage({ onAddToCart }: { onAddToCart?: (item: InventoryItem, grams: number, totalUsd: number) => void }) {
   const { code = '' } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [state, setState] = useState<State>({ status: 'loading' });
+  const [loaded, setLoaded] = useState<{ key: string; result: Loaded } | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [joining, setJoining] = useState(false);
   const [refused, setRefused] = useState(false);
   const userId = user?.email ?? null;
+  const key = JSON.stringify([code, attempt, userId]);
+  const state = loaded?.key === key ? loaded.result : { status: 'loading' as const };
 
   useEffect(() => {
     let current = true;
     readSitLink(code, currentSignInToken()).then(
-      sit => { if (current) setState(sit ? { status: 'ready', sit } : { status: 'missing' }); },
-      () => { if (current) setState({ status: 'error' }); },
+      sit => {
+        if (!current) return;
+        const result = !sit ? { status: 'missing' as const }
+          : sit.access === 'approval' ? { status: 'approval' as const, rsvpPath: sit.rsvp_path }
+          : { status: 'ready' as const, sit };
+        setLoaded({ key, result });
+      },
+      () => { if (current) setLoaded({ key, result: { status: 'error' } }); },
     );
     return () => { current = false; };
-  }, [code, attempt, userId]);
+  }, [code, key]);
 
   async function takeSeat() {
     const token = currentSignInToken();
@@ -48,6 +52,7 @@ export default function SitLinkPage({ onAddToCart }: { onAddToCart?: (item: Inve
     setRefused(false);
     const credential = await joinSit(code, token).catch(() => null);
     setJoining(false);
+    if (token !== currentSignInToken()) return;
     if (!credential) { setRefused(true); return; }
     holdAfterSitCredential(credential);
     navigate('/after-sit');
@@ -65,11 +70,26 @@ export default function SitLinkPage({ onAddToCart }: { onAddToCart?: (item: Inve
       {state.status === 'error' && (
         <div className="flex flex-wrap items-center gap-2">
           <p role="alert" className={TYPOGRAPHY_CLASSES.body}>Couldn’t open the sit.</p>
-          <Button variant="secondary" type="button" className="tap-target" onClick={() => {
-            setState({ status: 'loading' });
-            setAttempt(value => value + 1);
-          }}>Try again</Button>
+          <Button variant="secondary" type="button" className="tap-target" onClick={() => setAttempt(value => value + 1)}>Try again</Button>
         </div>
+      )}
+      {state.status === 'approval' && (
+        <>
+          <h1 className={TYPOGRAPHY_CLASSES.h1}>Private tea sit</h1>
+          <p className={TYPOGRAPHY_CLASSES.body}>
+            {userId ? 'Your host needs to confirm your seat before you can open the sit.' : 'Sign in to open the sit with your confirmed seat.'}
+            {userId && !state.rsvpPath && ' Ask your host about your seat.'}
+          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            {!userId && (
+              <Link to={authPagePath('signin', `/sit/${encodeURIComponent(code)}`)} className="btn-primary tap-target">Sign in</Link>
+            )}
+            {state.rsvpPath && <Link to={state.rsvpPath} className="btn-secondary tap-target">Open RSVP</Link>}
+            {userId && (
+              <Button variant="quiet" type="button" className="tap-target" onClick={() => setAttempt(value => value + 1)}>Check again</Button>
+            )}
+          </div>
+        </>
       )}
       {state.status === 'ready' && (
         <>
@@ -90,7 +110,7 @@ export default function SitLinkPage({ onAddToCart }: { onAddToCart?: (item: Inve
               <Teas teas={state.sit.teas} onAddToCart={onAddToCart} />
             </section>
           )}
-          {state.sit.happened && (
+          {state.sit.happened && (state.sit.access === 'casual' || state.sit.seated) && (
             <div className="flex flex-wrap items-center justify-end gap-3 border-t border-tea-border pt-4">
               {refused && <p role="alert" className={`${TYPOGRAPHY_CLASSES.bodyLight} flex-1`}>Ask your host about this sit.</p>}
               {userId ? (
