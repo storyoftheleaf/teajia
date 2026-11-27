@@ -26,7 +26,7 @@ import { housesDoor, tableDoor } from '../../components/navSections';
 export const HOME_LINES_TODAY = [
   { accent: 'Source', rest: ' your tea.', to: '/shop' },
   { accent: 'Discover', rest: ' the stories.', to: '/read' },
-  { accent: 'Deepen', rest: ' your practice.', to: '/craft' },
+  { accent: 'Deepen', rest: ' your practice.', to: '/read/lessons' },
   { accent: 'Create', rest: ' the spaces to share.', to: '/advise' },
 ] as const;
 

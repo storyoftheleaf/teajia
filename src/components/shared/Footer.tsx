@@ -6,7 +6,7 @@ import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 
 const links: { label: string; to?: string; href?: string }[] = [
   { label: 'Read', to: '/read' },
-  { label: 'Craft', to: '/craft' },
+  { label: 'Lessons', to: '/read/lessons' },
   { label: 'Shop', to: '/shop' },
   { label: 'Advise', to: '/advise' },
   { label: 'People', to: PUBLIC_REFERENCE_ROUTES.people },

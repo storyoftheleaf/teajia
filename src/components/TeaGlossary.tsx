@@ -6,12 +6,15 @@ interface TeaGlossaryProps {
   initialTermCount?: number;
   onExpandClick?: () => void;
   isFullView?: boolean;
+  /** The page around it already names the glossary (the Wisdom Base's Glossary tab). */
+  hideHeader?: boolean;
 }
 
 export const TeaGlossary: React.FC<TeaGlossaryProps> = ({
   initialTermCount,
   onExpandClick,
   isFullView = false,
+  hideHeader = false,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<GlossaryCategory | 'all'>('all');
@@ -83,7 +86,7 @@ export const TeaGlossary: React.FC<TeaGlossaryProps> = ({
   return (
     <div className="w-full">
       {/* Header */}
-      {isFullView && (
+      {isFullView && !hideHeader && (
         <div className="mb-10">
           <h2 className="font-serif text-3xl md:text-4xl text-tea-text mb-3">
             Tea Glossary
@@ -119,8 +122,8 @@ export const TeaGlossary: React.FC<TeaGlossaryProps> = ({
       </div>
 
       {/* Category Filters, refined pills */}
-      <div className="relative z-0 mb-5 overflow-x-auto hide-scrollbar">
-        <div className="flex gap-1.5 pb-1">
+      <div className="relative z-0 mb-5">
+        <div className="flex flex-wrap gap-1.5 pb-1">
           {categoryButtons.map((cat) => (
             <button
               key={cat.id}

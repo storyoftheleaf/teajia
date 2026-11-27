@@ -3,7 +3,7 @@ import type { ObservedPalate } from './evolution';
 
 /* ───────────────────────────────────────────────────────────────────────────
    Recommendations, turn the profile into a few tailored next steps with a
-   plain "why this" line. v1 routes to the section surfaces (/craft, /shop,
+   plain "why this" line. v1 routes to the section surfaces (/read/lessons, /wisdom, /read, /shop,
    journal) with personalized framing matched to level + flavor + brewing;
    per-article and per-product deep links can slot in later behind the same
    shape (see docs/TEA_DISCOVERY.md Phase 2).
@@ -39,21 +39,21 @@ export function recommend(profile: TeaDiscoveryProfile, observed?: ObservedPalat
       kind: 'learn',
       title: 'Start with the foundations',
       rationale: 'The leaf, the water, and your first good cup, built for where you are now.',
-      to: '/craft',
+      to: '/read/lessons',
     });
   } else if (profile.level === 'practicing') {
     recs.push({
       kind: 'learn',
       title: 'Flavor & origins',
       rationale: 'You already brew at home. Go deeper into why terroir and processing taste the way they do.',
-      to: '/craft',
+      to: '/wisdom/regions',
     });
   } else {
     recs.push({
       kind: 'learn',
       title: 'The deeper craft',
       rationale: 'Ceremony, aging, and the long view, for a practice that’s already serious.',
-      to: '/craft',
+      to: '/read',
     });
   }
 

@@ -147,9 +147,9 @@ export default function AboutPage() {
           </p>
         </div>
         <div className="bg-tea-surface border border-tea-border rounded-xl p-5">
-          <h3 className="h3 mb-2">Craft</h3>
+          <h3 className="h3 mb-2">Tea Wisdom</h3>
           <p className="body-light">
-            A practitioner toolkit. Courses, glossary, videos, journeys, and shared wisdom built from real experience. Not internet summaries, knowledge passed down through practice.
+            A public reference of what a tea is: plants, places, producers, marks, styles, named teas and a glossary of terms. Held once, true for everyone, and built from real experience.
           </p>
         </div>
         <div className="bg-tea-surface border border-tea-border rounded-xl p-5">

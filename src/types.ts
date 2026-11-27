@@ -959,7 +959,7 @@ export interface Resource {
 }
 
 // Navigation Types
-export type Section = 'HOME' | 'MAGAZINE' | 'LEARN' | 'SHOP' | 'OFFERINGS' | 'EVENTS' | 'YOUR_TABLE' | 'ABOUT';
+export type Section = 'HOME' | 'MAGAZINE' | 'SHOP' | 'OFFERINGS' | 'EVENTS' | 'YOUR_TABLE' | 'ABOUT';
 export type MainNavSection = Exclude<Section, 'HOME' | 'YOUR_TABLE'>;
 export type UtilitySection = Extract<Section, 'YOUR_TABLE'>;
 
