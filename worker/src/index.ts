@@ -30226,7 +30226,7 @@ async function upsertSavedCollection(
   ).bind(userId, collectionId).first() as { id: string; source: string } | null;
   if (existing) {
     // Only upgrade saved→received; never the reverse. Always refresh via_slug + updated_at.
-    const nextSource = existing.source === 'received' ? 'received' : source;
+    const nextSource = existing.source === 'made' || existing.source === 'received' ? existing.source : source;
     await env.DB.prepare(
       `UPDATE saved_collections SET source = ?, via_slug = COALESCE(?, via_slug), updated_at = ? WHERE id = ?`
     ).bind(nextSource, slug, now, existing.id).run();
@@ -30334,10 +30334,92 @@ const handleUnsaveCollection: Handler = async (request, env, params) => {
   if (authErr) return authErr;
   const claims = parseToken(isAuthed(request)!);
   if (!claims) return json({ error: 'Invalid token' }, 401);
-  await env.DB.prepare(
-    `DELETE FROM saved_collections WHERE user_id = ? AND collection_id = ?`
-  ).bind(claims.sub, params.id).run();
+  // Removing one you made takes its link down too, so it stops working for anyone you sent it to.
+  const made = await env.DB.prepare(
+    `SELECT 1 FROM saved_collections sc JOIN collections c ON c.id = sc.collection_id
+      WHERE sc.user_id = ? AND sc.collection_id = ? AND sc.source = 'made' AND c.curator_user_id = ?`
+  ).bind(claims.sub, params.id, claims.sub).first();
+  const now = new Date().toISOString();
+  await env.DB.batch([
+    ...(made ? [
+      env.DB.prepare(`UPDATE collection_publications SET unpublished_at = ? WHERE collection_id = ? AND unpublished_at IS NULL`).bind(now, params.id),
+      env.DB.prepare(`UPDATE collections SET status = 'archived', updated_at = ? WHERE id = ?`).bind(now, params.id),
+    ] : []),
+    env.DB.prepare(`DELETE FROM saved_collections WHERE user_id = ? AND collection_id = ?`).bind(claims.sub, params.id),
+  ]);
   return json({ ok: true });
+};
+
+// POST /api/me/collections/make { title, note?, product_ids[] } — anyone signed in
+// makes a collection from shop teas and gets its link (Adrian, 2026-11-27: a tea
+// master tells someone what to buy by sending a collection). It lives in the shop
+// that sells the teas, carries the maker's name, and leaves prices blank so the
+// shop's own price applies. It lands on the maker's shelf as 'made'.
+const MADE_COLLECTION_MAX_TEAS = 40;
+const MADE_COLLECTIONS_PER_DAY = 20;
+const handleMakeCollection: Handler = async (request, env) => {
+  const authErr = await requireAuth(request, env);
+  if (authErr) return authErr;
+  const claims = parseToken(isAuthed(request)!);
+  if (!claims) return json({ error: 'Invalid token' }, 401);
+  const body = await request.json().catch(() => ({})) as { title?: unknown; note?: unknown; product_ids?: unknown };
+  const title = typeof body.title === 'string' ? body.title.trim().slice(0, 120) : '';
+  if (!title) return json({ error: 'Give the collection a name' }, 400);
+  const note = typeof body.note === 'string' && body.note.trim() ? body.note.trim().slice(0, 2000) : null;
+  const wanted = Array.isArray(body.product_ids)
+    ? Array.from(new Set(body.product_ids.filter((id): id is string => typeof id === 'string' && id.length > 0)))
+    : [];
+  if (!wanted.length) return json({ error: 'Choose at least one tea' }, 400);
+  if (wanted.length > MADE_COLLECTION_MAX_TEAS) return json({ error: `A collection holds up to ${MADE_COLLECTION_MAX_TEAS} teas` }, 400);
+
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const recent = await env.DB.prepare(
+    `SELECT COUNT(*) AS n FROM saved_collections WHERE user_id = ? AND source = 'made' AND created_at > ?`
+  ).bind(claims.sub, since).first() as { n: number } | null;
+  if ((recent?.n ?? 0) >= MADE_COLLECTIONS_PER_DAY) return json({ error: 'That is a lot of collections for one day. Try again tomorrow.' }, 429);
+
+  // Only teas the shop sells to anyone can go in, all from one shop.
+  const placeholders = wanted.map(() => '?').join(',');
+  const { results } = await env.DB.prepare(
+    `SELECT p.id, p.account_id FROM products p WHERE p.id IN (${placeholders}) AND ${PUBLIC_REQUEST_PRODUCT}`
+  ).bind(...wanted).all() as { results: Array<{ id: string; account_id: string }> };
+  const found = new Map((results ?? []).map(row => [row.id, row.account_id]));
+  const teas = wanted.filter(id => found.has(id));
+  if (!teas.length) return json({ error: 'None of these teas are in the shop now' }, 400);
+  const accountId = found.get(teas[0])!;
+  if (teas.some(id => found.get(id) !== accountId)) return json({ error: 'Make a collection from one shop at a time' }, 400);
+
+  const user = await env.DB.prepare(`SELECT name, username FROM users WHERE id = ?`).bind(claims.sub)
+    .first() as { name: string | null; username: string | null } | null;
+  const makerName = (user?.name || user?.username || '').trim() || null;
+
+  let slug = '';
+  for (let attempt = 0; attempt < 5 && !slug; attempt++) {
+    const candidate = buildCollectionSlug(title);
+    const taken = await env.DB.prepare(`SELECT 1 FROM collection_publications WHERE slug = ?`).bind(candidate).first();
+    if (!taken) slug = candidate;
+  }
+  if (!slug) return json({ error: 'Slug generation failed' }, 500);
+
+  const id = newId('col');
+  const now = new Date().toISOString();
+  await env.DB.batch([
+    env.DB.prepare(
+      `INSERT INTO collections (id, account_id, title, note, status, created_by_user_id, curator_user_id, curator_display_name, created_at, updated_at)
+       VALUES (?, ?, ?, ?, 'active', ?, ?, ?, ?, ?)`
+    ).bind(id, accountId, title, note, claims.sub, claims.sub, makerName, now, now),
+    ...teas.map((productId, index) => env.DB.prepare(
+      `INSERT INTO collection_items (id, collection_id, product_id, position, recommended_quantity, recommended_price_usd)
+       VALUES (?, ?, ?, ?, NULL, NULL)`
+    ).bind(newId('ci'), id, productId, index + 1)),
+    env.DB.prepare(
+      `INSERT INTO collection_publications (id, collection_id, target_type, slug, created_by_user_id) VALUES (?, ?, 'person', ?, ?)`
+    ).bind(newId('pub'), id, slug, claims.sub),
+    env.DB.prepare(
+      `INSERT INTO saved_collections (id, user_id, collection_id, via_slug, source, created_at, updated_at) VALUES (?, ?, ?, ?, 'made', ?, ?)`
+    ).bind(newId('sc'), claims.sub, id, slug, now, now),
+  ]);
+  return json({ id, slug, item_count: teas.length, left_out: wanted.length - teas.length }, 201);
 };
 
 // Public — recipient confirms their picks from a collection. No auth; link-gated
@@ -33493,6 +33575,7 @@ const routes: [string, string, Handler][] = [
   ['GET',    '/api/me/collections', handleListMyCollections],
   ['POST',   '/api/me/collections/save', handleSaveCollection],
   ['POST',   '/api/me/collections/received', handleReceiveCollection],
+  ['POST',   '/api/me/collections/make', handleMakeCollection],
   ['DELETE', '/api/me/collections/:id', handleUnsaveCollection],
 
   // Invoices — edit items
