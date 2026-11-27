@@ -141,7 +141,17 @@ function Way({ way }: { way: NonNullable<SitLink['way']> }) {
  */
 function Teas({ teas, onAddToCart }: { teas: PublicSessionTea[]; onAddToCart?: (item: InventoryItem, grams: number, totalUsd: number) => void }) {
   const { openId, open, move, close } = useOpenLinkTea();
-  const sold = useMemo(() => teas.flatMap(tea => (tea.kind === 'tea' && tea.offer ? [sessionOfferItem(tea.offer.product)] : [])), [teas]);
+  // One entry per product: a tea poured twice is one page, so the arrows never step onto the page already open.
+  const sold = useMemo(() => {
+    const seen = new Set<string>();
+    return teas.flatMap(tea => {
+      if (tea.kind !== 'tea' || !tea.offer) return [];
+      const item = sessionOfferItem(tea.offer.product);
+      if (seen.has(item.id)) return [];
+      seen.add(item.id);
+      return [item];
+    });
+  }, [teas]);
   const at = openId ? sold.findIndex(item => item.id === openId) : -1;
   return (
     <div className="mt-3">
