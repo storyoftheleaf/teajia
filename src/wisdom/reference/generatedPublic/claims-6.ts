@@ -3,6 +3,117 @@ import type { PublicClaim } from '../claims';
 
 export const PART: readonly PublicClaim[] = [
   {
+    "claimId": "li-shan:why-people-value-it",
+    "pageId": "li-shan",
+    "sectionKey": "why-people-value-it",
+    "label": "Why people value Li Shan tea",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "li shan"
+      ]
+    },
+    "terms": [
+      {
+        "original": "梨山",
+        "pinyin": "Líshān",
+        "gloss": "Li Shan; Pear Mountain"
+      },
+      {
+        "original": "高山茶",
+        "pinyin": "gāoshān chá",
+        "gloss": "high mountain tea"
+      }
+    ],
+    "rev": 1,
+    "scope": "The high mountain oolong style and conditions of Li Shan, as sellers and growers describe it",
+    "text": "Li Shan is valued for cold. At this height the nights are cool, mist and cloud sit on the slopes, there is little direct sun, and frost or snow can reach the gardens in winter. Leaves grow slowly, come out thick and soft, and are said to carry more sweetness and less bitterness. The usual tea is a lightly oxidised, ball-rolled high mountain oolong, most often from the Qing Xin cultivar. Sellers describe it as sweet, thick in the mouth and clean, with a fresh green finish. The cold also limits how often it can be picked: spring and autumn crops are usual, and the coldest gardens may give only two or three harvests a year or skip winter. That, with the cost of working steep ground at this height, is why it is priced high.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "lincang:common-character",
+    "pageId": "lincang",
+    "sectionKey": "common-character",
+    "label": "A broad regional tendency",
+    "axis": "sensory_observation",
+    "basis": "sourced",
+    "listingEligible": false,
+    "appliesWhen": {},
+    "attribution": {
+      "sourceId": "teadb-lincang",
+      "sourceRole": "specialist_editorial",
+      "sample": "Regional convention reported in specialist writing about Lincang"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Lincang",
+    "text": "Young single-origin Lincang sheng is often described as green, firm, and bitter. This reputation is useful as a starting point only: Lincang is a large prefecture, and material from its counties, mountains, and villages should not be collapsed into one tasting profile.",
+    "sourceIds": [
+      "teadb-lincang"
+    ],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "lincang:history",
+    "pageId": "lincang",
+    "sectionKey": "history",
+    "label": "History beyond single origins",
+    "axis": "place",
+    "basis": "sourced",
+    "listingEligible": false,
+    "appliesWhen": {},
+    "terms": [],
+    "rev": 1,
+    "scope": "Lincang",
+    "text": "Lincang has a smaller public archive of famous aged single-origin teas than Yiwu or Menghai. Older blended productions, especially those associated with Xiaguan, nevertheless provide a historical thread, even when the exact origin of their base material cannot be reconstructed.",
+    "sourceIds": [
+      "teadb-lincang"
+    ],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "lincang:scope",
+    "pageId": "lincang",
+    "sectionKey": "scope",
+    "label": "Northern Pu’er country",
+    "axis": "place",
+    "basis": "sourced",
+    "listingEligible": false,
+    "appliesWhen": {},
+    "terms": [],
+    "rev": 1,
+    "scope": "Lincang",
+    "text": "Lincang lies north of Pu’er Prefecture and against Myanmar to the west. Its tea geography includes Mengku, Yongde, Fengqing, Bangdong, Bingdao, and Xigui, with repeated place names such as Daxueshan making precise labels especially important.",
+    "sourceIds": [
+      "teadb-lincang"
+    ],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "liu-an:ageing",
+    "pageId": "liu-an",
+    "sectionKey": "ageing",
+    "label": "Keeping and ageing Liu An",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Dark",
+      "origin_includes": [
+        "anhui"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Liu An basket tea style kit",
+    "text": "Liu An is said to improve with years in its basket, turning mellower, rounder and redder in the cup. Young tea has an edge of charcoal or smoke that settles with age. Keep it dry, clean, away from smells and direct sun, in wrapping that breathes, not sealed airtight.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
     "claimId": "liu-an:basket",
     "pageId": "liu-an",
     "sectionKey": "basket",
@@ -823,138 +934,6 @@ export const PART: readonly PublicClaim[] = [
     "rev": 2,
     "scope": "Menghai County",
     "text": "Menghai’s fame also comes from its factory. Menghai Tea Factory was founded in the 1940s, and as pu’er grew into a large state industry the county’s leaf went into factory blends, so many benchmark raw and ripe cakes trace back to Menghai.",
-    "sourceIds": [
-      "teadb-menghai-county"
-    ],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "menghai-county:mengsong-naka",
-    "pageId": "menghai-county",
-    "sectionKey": "mengsong-naka",
-    "label": "Mengsong and Naka",
-    "axis": "place",
-    "basis": "sourced",
-    "listingEligible": true,
-    "appliesWhen": {
-      "origin_includes": [
-        "mengsong"
-      ],
-      "name_includes": [
-        "naka"
-      ]
-    },
-    "terms": [
-      {
-        "original": "勐宋",
-        "pinyin": "Měngsòng",
-        "gloss": "Mengsong township"
-      },
-      {
-        "original": "那卡",
-        "pinyin": "Nàkǎ",
-        "gloss": "Naka village"
-      }
-    ],
-    "rev": 1,
-    "scope": "Naka village in Mengsong, Menghai County",
-    "text": "Naka is a village in Mengsong, one of Menghai County’s tea-growing areas.",
-    "sourceIds": [
-      "teadb-menghai-county"
-    ],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "menghai-county:old-gardens",
-    "pageId": "menghai-county",
-    "sectionKey": "old-gardens",
-    "label": "Old trees, left to grow",
-    "axis": "place",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "origin_includes": [
-        "menghai"
-      ]
-    },
-    "terms": [
-      {
-        "original": "古茶园",
-        "pinyin": "gǔ cháyuán",
-        "gloss": "old tea garden"
-      }
-    ],
-    "rev": 1,
-    "scope": "How the old-tree gardens of Menghai County are generally kept, as against plantation bushes; not a statement about any single tea's garden.",
-    "text": "What sets the old Menghai gardens apart is how they are kept. The trees are allowed to grow tall, with little pruning, and farmers use little or no fertiliser or spray. They give far less leaf than pruned plantation bushes, which are picked again and again through the season. People who buy old-garden Menghai tea are paying for that slow, low-yield leaf, and it is why the same mountain can taste so different from its plantation tea.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "menghai-county:peoples",
-    "pageId": "menghai-county",
-    "sectionKey": "peoples",
-    "label": "Who tends the mountains",
-    "axis": "place",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "origin_includes": [
-        "menghai"
-      ]
-    },
-    "terms": [
-      {
-        "original": "布朗族",
-        "pinyin": "Bùlǎngzú",
-        "gloss": "Bulang people"
-      },
-      {
-        "original": "拉祜族",
-        "pinyin": "Lāhùzú",
-        "gloss": "Lahu people"
-      },
-      {
-        "original": "哈尼族",
-        "pinyin": "Hānízú",
-        "gloss": "Hani people"
-      }
-    ],
-    "rev": 1,
-    "scope": "Which peoples are tied to Bulang, Nannuo and Mengsong within Menghai County; not every garden or village.",
-    "text": "Menghai’s tea mountains are not one community. Bulang Mountain is the home of the Bulang people, and the Bulang are widely credited as some of the first to grow and make tea here. Nannuo is mostly tended by Hani families today (the Aini branch), although the Bulang are said to have planted its earliest trees. In Mengsong, most of the old gardens were planted by Lahu villagers. Who planted and who picks shapes each mountain’s gardens and its tea, so a mountain name is a better guide to a cup than the county name.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "menghai-county:ripe-origins",
-    "pageId": "menghai-county",
-    "sectionKey": "ripe-origins",
-    "label": "Where ripe pu’er began",
-    "axis": "maker_history",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {},
-    "terms": [],
-    "rev": 1,
-    "scope": "Menghai County",
-    "text": "Ripe pu’er was born in the early 1970s, when Yunnan’s state factories learned to speed up ageing by wet piling the leaf, and Menghai Tea Factory was one of the first to master it. Its 7572 cake became the benchmark ripe recipe, the cup other ripe teas are still judged against. The number reads as the recipe itself: 75 for the year it was first made, 7 for the main leaf grade in the blend, 2 for Menghai.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "menghai-county:scope",
-    "pageId": "menghai-county",
-    "sectionKey": "scope",
-    "label": "Western Xishuangbanna",
-    "axis": "place",
-    "basis": "sourced",
-    "listingEligible": false,
-    "appliesWhen": {},
-    "terms": [],
-    "rev": 2,
-    "scope": "Menghai County",
-    "text": "Menghai County is the core of pu’er country in western Xishuangbanna. Nannuo, Bulang, Mengsong, Hekai, Pasha and Bada are distinct mountain areas within it, each with its own tea, not interchangeable names for Menghai.",
     "sourceIds": [
       "teadb-menghai-county"
     ],

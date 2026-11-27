@@ -351,6 +351,132 @@ export const PART: readonly PublicClaim[] = [
     "reviewState": "approved"
   },
   {
+    "claimId": "gong-ting:appearance",
+    "pageId": "gong-ting",
+    "sectionKey": "appearance",
+    "label": "Reading the leaf",
+    "axis": "grade",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "grade": "gong-ting",
+      "form": "Loose"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "gong-ting",
+    "text": "Dry Gong Ting is tight, straight and fine, thick with golden down on the buds, and carries no stray stems. Because so little of a batch qualifies, it is the scarcest and usually the dearest ripe grade.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "gong-ting:common-impressions",
+    "pageId": "gong-ting",
+    "sectionKey": "common-impressions",
+    "label": "What people often notice",
+    "axis": "sensory_observation",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "grade": "gong-ting",
+      "form": "Loose"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "gong-ting",
+    "text": "People often notice a smooth, soft and sweet cup with a deep red liquor. Next to coarser grades it is lighter in body and gives fewer good steeps, and a very fine young Gong Ting can show a green or bitter edge. Its small leaf gives up flavour quickly, so short pours suit it.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "gong-ting:definition",
+    "pageId": "gong-ting",
+    "sectionKey": "definition",
+    "label": "What Gong Ting means",
+    "axis": "grade",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "grade": "gong-ting",
+      "form": "Loose"
+    },
+    "terms": [
+      {
+        "original": "宫廷",
+        "pinyin": "gōngtíng",
+        "gloss": "palace; used as a grade name"
+      }
+    ],
+    "rev": 1,
+    "scope": "Loose ripe pu’er grading",
+    "text": "Gong Ting is the finest grade of loose ripe pu’er, sorted out for its small leaf and high share of buds. In the market it sits one step above special grade.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "gong-ting:grade-and-quality",
+    "pageId": "gong-ting",
+    "sectionKey": "grade-and-quality",
+    "label": "Grade is not quality",
+    "axis": "terminology",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "grade": "gong-ting",
+      "form": "Loose"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "gong-ting",
+    "text": "A grade describes leaf size and the style of the cup, not how good the tea is. A well made coarser grade can drink better than a poorly made Gong Ting, and where each grade line falls differs from one maker to the next.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "gong-ting:name-on-the-label",
+    "pageId": "gong-ting",
+    "sectionKey": "name-on-the-label",
+    "label": "A grade, and a selling word",
+    "axis": "terminology",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "grade": "gong-ting",
+      "form": "Loose"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "gong-ting",
+    "text": "Gong Ting is a modern market name, not an old court grade: the trade dates it to Menghai in the late 1990s, and ripe tea itself only began in the 1970s. The Menghai standard grades loose ripe tea only, so Gong Ting printed on a cake or brick is a selling word, not a grade.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "gong-ting:other-names",
+    "pageId": "gong-ting",
+    "sectionKey": "other-names",
+    "label": "Other names and other teas",
+    "axis": "terminology",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "grade": "gong-ting",
+      "form": "Loose"
+    },
+    "terms": [
+      {
+        "original": "宫廷",
+        "pinyin": "gōngtíng",
+        "gloss": "palace; Palace Grade"
+      }
+    ],
+    "rev": 1,
+    "scope": "gong-ting",
+    "text": "Gong Ting is also written Gongting and sold in English as Palace Grade. The older record of the word notes that it is also used for the finest bud and leaf of aged Taiwanese oolong, so the name is not limited to ripe pu’er. That oolong use rests on one record and has not been checked against other places.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
     "claimId": "greater-yiwu:common-character",
     "pageId": "greater-yiwu",
     "sectionKey": "common-character",
@@ -812,140 +938,6 @@ export const PART: readonly PublicClaim[] = [
     "rev": 1,
     "scope": "Guangzhou and Fangcun as a tea trading centre; not a statement about where tea is grown",
     "text": "Guangdong's weight in tea comes as much from its ports and markets as from its gardens. Guangzhou has been a gateway for tea leaving China, and its Fangcun market is described as the largest tea trading centre in the south, with thousands of shops and merchants from many provinces, Hong Kong and Taiwan. Pu'er in particular moves through Guangzhou, and for most of the last century its main buyers were in Hong Kong and Taiwan. A tea sold in Guangzhou is therefore not a tea grown in Guangdong.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "guangdong:where-it-is",
-    "pageId": "guangdong",
-    "sectionKey": "where-it-is",
-    "label": "Where Guangdong is",
-    "axis": "place",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "origin_includes": [
-        "guangdong"
-      ]
-    },
-    "terms": [
-      {
-        "original": "广东",
-        "pinyin": "Guǎngdōng",
-        "gloss": "Guangdong"
-      },
-      {
-        "original": "广州",
-        "pinyin": "Guǎngzhōu",
-        "gloss": "Guangzhou"
-      }
-    ],
-    "rev": 1,
-    "scope": "Guangdong as a province: position, climate, where tea is grown",
-    "text": "Guangdong is a large province on the south coast of China, built around the Pearl River Delta. Its capital is Guangzhou, the old Canton, and Hong Kong and Macao sit beside it. The climate is hot and humid, with a rainy season and a drier one. Tea is grown mostly in the hills of the east and the north, away from the delta.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "guangdong:yingde-black",
-    "pageId": "guangdong",
-    "sectionKey": "yingde-black",
-    "label": "Yingde black tea",
-    "axis": "place",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "origin_includes": [
-        "guangdong"
-      ]
-    },
-    "terms": [
-      {
-        "original": "英德红茶",
-        "pinyin": "Yīngdé hóngchá",
-        "gloss": "Yingde black tea"
-      }
-    ],
-    "rev": 1,
-    "scope": "Yingde black tea only; not Guangdong's other teas",
-    "text": "Yingde, north of Guangzhou, makes the province's black tea. It is a young style by Chinese standards: machine production began in the late 1950s, and much of it has been sold abroad. Writers describe it as sweet, with a cocoa or chocolate note, and a malty, slightly peppery finish. It is not a mountain tea in the way Phoenix oolong is, and it should not be read as a fact about the province's other teas.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "guangxi:hengzhou-jasmine",
-    "pageId": "guangxi",
-    "sectionKey": "hengzhou-jasmine",
-    "label": "Hengzhou jasmine tea",
-    "axis": "place",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "origin_includes": [
-        "guangxi"
-      ]
-    },
-    "terms": [
-      {
-        "original": "横州",
-        "pinyin": "Héngzhōu",
-        "gloss": "Hengzhou"
-      },
-      {
-        "original": "茉莉花茶",
-        "pinyin": "mòlìhuā chá",
-        "gloss": "jasmine tea"
-      }
-    ],
-    "rev": 1,
-    "scope": "Hengzhou jasmine scenting and flower growing; not Guangxi's other teas",
-    "text": "The other tea Guangxi is known for is jasmine tea from Hengzhou, a county-level city. Hengzhou is described as the largest jasmine growing area in China, and a very large part of the country's jasmine flowers are picked there, which is why so much scented tea starts from its flowers. This is a scented tea of a different kind from Liu Bao, and the two share nothing but the province.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "guangxi:known-for-liu-bao",
-    "pageId": "guangxi",
-    "sectionKey": "known-for-liu-bao",
-    "label": "What Guangxi is known for in dark tea",
-    "axis": "place",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "origin_includes": [
-        "guangxi"
-      ]
-    },
-    "terms": [
-      {
-        "original": "六堡茶",
-        "pinyin": "Liùbǎo chá",
-        "gloss": "Liu Bao tea"
-      }
-    ],
-    "rev": 1,
-    "scope": "Guangxi's reputation for Liu Bao only; the style itself is on liu-bao",
-    "text": "Guangxi is known above all for Liu Bao, a dark tea the trade values for how it ages. It matters to buyers as the one famous dark tea of the south, made for the hot, humid life of Chinese workers in Southeast Asia, and Wuzhou has grown it into a large industry with its own protected name. The style, its making and its aged stock are on the Liu Bao page, so this page does not repeat them.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "guangxi:land-and-climate",
-    "pageId": "guangxi",
-    "sectionKey": "land-and-climate",
-    "label": "What the land gives the tea",
-    "axis": "place",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "origin_includes": [
-        "guangxi"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Climate and setting of the Wuzhou area, as the trade links them to Liu Bao ageing; not the whole province",
-    "text": "Wuzhou sits near the Tropic of Cancer, with a warm, wet, subtropical monsoon climate, plenty of rain, and hills and forest all around. People in the trade link this damp, steady warmth to the way Liu Bao ages slowly in cool storehouses, because the microbes that shape a dark tea like it. The soils are acidic, and the trade sees the setting as part of why Liu Bao is made here and not simply anywhere.",
     "sourceIds": [],
     "reviewState": "approved"
   }

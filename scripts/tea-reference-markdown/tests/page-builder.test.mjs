@@ -305,6 +305,7 @@ test('validates every canonical Markdown file but generates only the approved, r
     'fujian',
     'fujian-white',
     'gaba',
+    'gong-ting',
     'greater-yiwu',
     'green',
     'guangdong',

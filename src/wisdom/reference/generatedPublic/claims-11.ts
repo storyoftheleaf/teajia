@@ -3,6 +3,129 @@ import type { PublicClaim } from '../claims';
 
 export const PART: readonly PublicClaim[] = [
   {
+    "claimId": "wuzhou:river-port",
+    "pageId": "wuzhou",
+    "sectionKey": "river-port",
+    "label": "The river port",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "wuzhou"
+      ]
+    },
+    "terms": [
+      {
+        "original": "梧州",
+        "pinyin": "Wúzhōu",
+        "gloss": "Wuzhou"
+      },
+      {
+        "original": "六堡茶",
+        "pinyin": "Liùbǎo chá",
+        "gloss": "Liu Bao tea"
+      },
+      {
+        "original": "苍梧",
+        "pinyin": "Cāngwú",
+        "gloss": "Cangwu County"
+      },
+      {
+        "original": "西江",
+        "pinyin": "Xījiāng",
+        "gloss": "Xi River"
+      }
+    ],
+    "rev": 1,
+    "scope": "Wuzhou as a river port and gateway to the coast",
+    "text": "Wuzhou is the gate between Guangxi and the coast. Goods from the hills of eastern Guangxi came down the rivers to its port and went on by water to Guangzhou, Hong Kong and the sea. It was opened to foreign trade as a treaty port in 1897, and it is still described as the main river port of Guangxi. For tea this meant a simple thing: leaf made in the hills had to reach Wuzhou to reach the world.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "wuzhou:where-it-is",
+    "pageId": "wuzhou",
+    "sectionKey": "where-it-is",
+    "label": "Where Wuzhou is",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "wuzhou"
+      ]
+    },
+    "terms": [
+      {
+        "original": "梧州",
+        "pinyin": "Wúzhōu",
+        "gloss": "Wuzhou"
+      },
+      {
+        "original": "六堡茶",
+        "pinyin": "Liùbǎo chá",
+        "gloss": "Liu Bao tea"
+      },
+      {
+        "original": "苍梧",
+        "pinyin": "Cāngwú",
+        "gloss": "Cangwu County"
+      },
+      {
+        "original": "西江",
+        "pinyin": "Xījiāng",
+        "gloss": "Xi River"
+      }
+    ],
+    "rev": 1,
+    "scope": "Wuzhou's position in Guangxi and on the rivers",
+    "text": "Wuzhou is a city in the east of Guangxi, right on the border with Guangdong. It stands where the Xi and Gui rivers meet, and the stretch of river below the meeting is the road down to Guangzhou. The city has been a river town for more than two thousand years, and that position, not its own tea fields, is the reason it matters in tea.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "y562:designers",
+    "pageId": "y562",
+    "sectionKey": "designers",
+    "label": "A tiger and a hand-painted carton",
+    "axis": "named_tea_history",
+    "basis": "sourced",
+    "listingEligible": true,
+    "appliesWhen": {
+      "named_tea": "y562"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Jixing Y562 export tea and its documented historical versions.",
+    "text": "Designer Yin Huize recalled taking hand-painted cartons to the spring Canton Fair with his colleague Tang Zheng. Buyers placed orders from the samples. Tang drew on an openwork jade tiger pendant for the Jixing mark. Yin framed the lettering on the black box with patterns inspired by Chinese lacquerware. The design later appeared on a miniature 15 g carton that airlines gave to passengers.",
+    "sourceIds": [
+      "puer-magazine-export-cartons",
+      "puer-magazine-jixing-design"
+    ],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "y562:export-trade",
+    "pageId": "y562",
+    "sectionKey": "export-trade",
+    "label": "The box was part of the tea’s story",
+    "axis": "named_tea_history",
+    "basis": "sourced",
+    "listingEligible": true,
+    "appliesWhen": {
+      "named_tea": "y562"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Jixing Y562 export tea and its documented historical versions.",
+    "text": "Much of Yunnan’s loose pu’er once travelled in bulk. In Japan, importers repacked it under their own labels. In 1980, Yunnan brought packaging and tea export designers together so a box could reach a shop counter carrying the province’s own brand. Y562 had Chinese lettering on the front and the English name “Superior Yunnan Pu-erh Tea” on the back. Its companion in the range was Y671, the “little yellow box.”",
+    "sourceIds": [
+      "puer-magazine-export-cartons"
+    ],
+    "reviewState": "approved"
+  },
+  {
     "claimId": "y562:little-black-box",
     "pageId": "y562",
     "sectionKey": "little-black-box",
@@ -835,120 +958,6 @@ export const PART: readonly PublicClaim[] = [
     "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
     "text": "Yunnan white follows the white tea way: the leaf is withered and then dried, never heated to stop its change and never rolled. The withering is done indoors or in shade rather than in hot midday sun, and the leaf is then dried by air, without the final low bake that Fujian white tea usually gets. A longer or darker wither gives a darker, redder cup. It is sold loose and pressed, in the cake, coin and brick shapes of pu’er.",
     "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "yunnan-white:moonlight-white",
-    "pageId": "yunnan-white",
-    "sectionKey": "moonlight-white",
-    "label": "Moonlight White",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "White",
-      "origin_includes": [
-        "yunnan"
-      ],
-      "name_includes": [
-        "moonlight"
-      ]
-    },
-    "terms": [
-      {
-        "original": "月光白",
-        "pinyin": "yuè guāng bái",
-        "gloss": "Moonlight White"
-      }
-    ],
-    "rev": 1,
-    "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
-    "text": "Moonlight White, yue guang bai, is the best-known Yunnan white. Its home is Jinggu County in Pu’er City, and the Jinggu tea is made from the Jinggu Da Bai Cha variety, whose mother tree grows in Yangta village; other Yunnan makers use the name too. Two explanations are given for the name: the look of the leaf, dark on top and silver beneath, like the moon in a dark sky, and a story that it was picked or withered by moonlight.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "yunnan-white:yabao",
-    "pageId": "yunnan-white",
-    "sectionKey": "yabao",
-    "label": "Yabao",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "White",
-      "origin_includes": [
-        "yunnan"
-      ],
-      "name_includes": [
-        "yabao"
-      ]
-    },
-    "terms": [
-      {
-        "original": "芽苞",
-        "pinyin": "yá bāo",
-        "gloss": "bud"
-      }
-    ],
-    "rev": 1,
-    "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
-    "text": "Yabao is made from the buds of wild-growing or old trees in south-west Yunnan, picked in late winter or early spring before they open and sun-dried with little else done to them. It is mostly sold as white tea. Which plant the buds come from is not settled: some are said to be from a wild tea species, not the cultivated tea plant.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "yunnan:geographic-frame",
-    "pageId": "yunnan",
-    "sectionKey": "geographic-frame",
-    "label": "The geographic frame",
-    "axis": "place",
-    "basis": "sourced",
-    "listingEligible": false,
-    "appliesWhen": {},
-    "terms": [],
-    "rev": 1,
-    "scope": "Yunnan Pu’er Regions",
-    "text": "Pu’er is unusually place-bound for a broad tea family. Yunnan is the central geographic frame, while comparable processing outside the province does not by itself make a tea Yunnan Pu’er.",
-    "sourceIds": [
-      "teadb-yunnan-overview"
-    ],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "yunnan:reading-labels",
-    "pageId": "yunnan",
-    "sectionKey": "reading-labels",
-    "label": "Read labels with care",
-    "axis": "place",
-    "basis": "sourced",
-    "listingEligible": false,
-    "appliesWhen": {},
-    "terms": [],
-    "rev": 1,
-    "scope": "Yunnan Pu’er Regions",
-    "text": "Regional schemes are editorial aids rather than a single settled ladder. Boundaries, spellings, and the prominence given to one place over another vary, and famous names also function as commercial language. A place label is useful context, not proof of a tea’s exact origin.",
-    "sourceIds": [
-      "teadb-yunnan-overview"
-    ],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "yunnan:regional-map",
-    "pageId": "yunnan",
-    "sectionKey": "regional-map",
-    "label": "A map of regions",
-    "axis": "place",
-    "basis": "sourced",
-    "listingEligible": false,
-    "appliesWhen": {},
-    "terms": [],
-    "rev": 1,
-    "scope": "Yunnan Pu’er Regions",
-    "text": "Reference maps commonly begin with Xishuangbanna, Pu’er Prefecture, and Lincang, then move toward counties, mountain areas, villages, and local names. Xishuangbanna is often divided into eastern and western tea areas, while other production extends through Yunnan beyond those best-known centers.",
-    "sourceIds": [
-      "teadb-yunnan-overview"
-    ],
     "reviewState": "approved"
   }
 ];

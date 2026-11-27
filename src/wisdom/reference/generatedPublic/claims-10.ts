@@ -3,6 +3,130 @@ import type { PublicClaim } from '../claims';
 
 export const PART: readonly PublicClaim[] = [
   {
+    "claimId": "three-cranes:reading-the-label",
+    "pageId": "three-cranes",
+    "sectionKey": "reading-the-label",
+    "label": "What the mark tells a buyer, and what it does not",
+    "axis": "terminology",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "grade": "three-cranes"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "What a buyer can and cannot learn from the Three Cranes name on a Liu Bao label; the meaning of the numeric codes is not covered.",
+    "text": "The mark tells a buyer who made the tea: Wuzhou Tea Factory, working in its own warehouses. Sellers also treat it as a sign of consistent factory making, which is a reputation and not a measure of any one tea. It does not say how old the tea is, which leaf it holds or how it is stored. Those come from the rest of the label: the harvest year and the year of packing, which are often printed as a pair, and a grade number such as third grade. The four or five digit codes that follow the brand name on many labels are recipe or batch numbers. What each digit stands for is not established here, so the number is best read as a lookup against the seller's own description.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "tieguanyin:ageing",
+    "pageId": "tieguanyin",
+    "sectionKey": "ageing",
+    "label": "Keeping and ageing Tieguanyin",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "anxi"
+      ]
+    },
+    "terms": [
+      {
+        "original": "老铁",
+        "pinyin": "lǎo tiě",
+        "gloss": "old Tie"
+      }
+    ],
+    "rev": 1,
+    "scope": "Oolong from Anxi; osmanthus only on teas named for it",
+    "text": "Light, low-roast Tieguanyin is for drinking fresh and goes stale fast; the heavier charcoal-roasted kind is steadier and is the kind kept for years. Freshly roasted tea tastes of fire and is rested, months or years, until the fire settles. With age the tea softens: the fire fades, the liquor deepens, the body grows rounder and smoother and less sharp, and well-aged roasted tea often shows a soft fruity sourness. Keep it sealed, dry, dark and cool, away from strong smells, and look at it now and then; roasted tea does not need the refrigerator, which is for the light style.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "tieguanyin:brewing",
+    "pageId": "tieguanyin",
+    "sectionKey": "brewing",
+    "label": "Brewing Tieguanyin",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "anxi"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Oolong from Anxi; osmanthus only on teas named for it",
+    "text": "Tieguanyin is usually brewed gongfu style with water at or near the boil, about 95 to 100°C; the light green style is often taken a little cooler, about 85 to 95°C. Use about 4 to 8 grams of leaf in a 100 to 150 ml gaiwan or pot, about a third full. A quick rinse, poured off at once, is common. Steeps start short, about 10 to 30 seconds, and grow a few seconds longer each round, and a good Tieguanyin gives about six to eight. In a larger pot, use about 2.5 to 5 grams for 240 to 350 ml and steep two to three minutes.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "tieguanyin:common-impressions",
+    "pageId": "tieguanyin",
+    "sectionKey": "common-impressions",
+    "label": "What people often notice",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "anxi"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Oolong from Anxi; osmanthus only on teas named for it",
+    "text": "In the light style: orchid and other flowers, a fresh, clean cup and a sweet aftertaste. In the roasted style: toast and charcoal, caramel or honey, stone or dried fruit, nuts, and a liquor that runs from gold to amber.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "tieguanyin:definition",
+    "pageId": "tieguanyin",
+    "sectionKey": "definition",
+    "label": "What Tieguanyin is",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "anxi"
+      ]
+    },
+    "terms": [
+      {
+        "original": "铁观音",
+        "pinyin": "tiě guānyīn",
+        "gloss": "iron Guanyin"
+      },
+      {
+        "original": "安溪",
+        "pinyin": "ānxī",
+        "gloss": "Anxi"
+      },
+      {
+        "original": "西坪",
+        "pinyin": "xīpíng",
+        "gloss": "Xiping"
+      }
+    ],
+    "rev": 1,
+    "scope": "Oolong from Anxi; osmanthus only on teas named for it",
+    "text": "Tieguanyin is the name of a tea cultivar and of the oolong made from it. The tea comes from Anxi County in southern Fujian, where the name is protected as Anxi Tieguanyin, and the trade names Xiping township in Anxi as the place it began; Gande is another of the best-known Anxi townships. The name joins iron and Guanyin, the bodhisattva of mercy. The finished leaf is usually rolled into tight balls that open slowly in the cup. Outside Anxi, in Taiwan above all, the name can mean a way of making the tea rather than the plant.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
     "claimId": "tieguanyin:grades",
     "pageId": "tieguanyin",
     "sectionKey": "grades",
@@ -834,129 +958,6 @@ export const PART: readonly PublicClaim[] = [
     "scope": "What the word Wuzhou does and does not tell a buyer on a Liu Bao label",
     "text": "Wuzhou on a label names a city and its tea area, not a single maker. A Liu Bao sold as Wuzhou can come from a farm in Cangwu, from a factory in the city, or from one of the other counties around it, and the word alone does not say which. Liubao or Cangwu is the narrower claim and points to the original home of the tea. The Wuzhou Tea Factory is one maker in the city and has its own page, so its history is not the history of every Wuzhou tea.",
     "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "wuzhou:river-port",
-    "pageId": "wuzhou",
-    "sectionKey": "river-port",
-    "label": "The river port",
-    "axis": "place",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "origin_includes": [
-        "wuzhou"
-      ]
-    },
-    "terms": [
-      {
-        "original": "梧州",
-        "pinyin": "Wúzhōu",
-        "gloss": "Wuzhou"
-      },
-      {
-        "original": "六堡茶",
-        "pinyin": "Liùbǎo chá",
-        "gloss": "Liu Bao tea"
-      },
-      {
-        "original": "苍梧",
-        "pinyin": "Cāngwú",
-        "gloss": "Cangwu County"
-      },
-      {
-        "original": "西江",
-        "pinyin": "Xījiāng",
-        "gloss": "Xi River"
-      }
-    ],
-    "rev": 1,
-    "scope": "Wuzhou as a river port and gateway to the coast",
-    "text": "Wuzhou is the gate between Guangxi and the coast. Goods from the hills of eastern Guangxi came down the rivers to its port and went on by water to Guangzhou, Hong Kong and the sea. It was opened to foreign trade as a treaty port in 1897, and it is still described as the main river port of Guangxi. For tea this meant a simple thing: leaf made in the hills had to reach Wuzhou to reach the world.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "wuzhou:where-it-is",
-    "pageId": "wuzhou",
-    "sectionKey": "where-it-is",
-    "label": "Where Wuzhou is",
-    "axis": "place",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "origin_includes": [
-        "wuzhou"
-      ]
-    },
-    "terms": [
-      {
-        "original": "梧州",
-        "pinyin": "Wúzhōu",
-        "gloss": "Wuzhou"
-      },
-      {
-        "original": "六堡茶",
-        "pinyin": "Liùbǎo chá",
-        "gloss": "Liu Bao tea"
-      },
-      {
-        "original": "苍梧",
-        "pinyin": "Cāngwú",
-        "gloss": "Cangwu County"
-      },
-      {
-        "original": "西江",
-        "pinyin": "Xījiāng",
-        "gloss": "Xi River"
-      }
-    ],
-    "rev": 1,
-    "scope": "Wuzhou's position in Guangxi and on the rivers",
-    "text": "Wuzhou is a city in the east of Guangxi, right on the border with Guangdong. It stands where the Xi and Gui rivers meet, and the stretch of river below the meeting is the road down to Guangzhou. The city has been a river town for more than two thousand years, and that position, not its own tea fields, is the reason it matters in tea.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "y562:designers",
-    "pageId": "y562",
-    "sectionKey": "designers",
-    "label": "A tiger and a hand-painted carton",
-    "axis": "named_tea_history",
-    "basis": "sourced",
-    "listingEligible": true,
-    "appliesWhen": {
-      "named_tea": "y562"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Jixing Y562 export tea and its documented historical versions.",
-    "text": "Designer Yin Huize recalled taking hand-painted cartons to the spring Canton Fair with his colleague Tang Zheng. Buyers placed orders from the samples. Tang drew on an openwork jade tiger pendant for the Jixing mark. Yin framed the lettering on the black box with patterns inspired by Chinese lacquerware. The design later appeared on a miniature 15 g carton that airlines gave to passengers.",
-    "sourceIds": [
-      "puer-magazine-export-cartons",
-      "puer-magazine-jixing-design"
-    ],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "y562:export-trade",
-    "pageId": "y562",
-    "sectionKey": "export-trade",
-    "label": "The box was part of the tea’s story",
-    "axis": "named_tea_history",
-    "basis": "sourced",
-    "listingEligible": true,
-    "appliesWhen": {
-      "named_tea": "y562"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Jixing Y562 export tea and its documented historical versions.",
-    "text": "Much of Yunnan’s loose pu’er once travelled in bulk. In Japan, importers repacked it under their own labels. In 1980, Yunnan brought packaging and tea export designers together so a box could reach a shop counter carrying the province’s own brand. Y562 had Chinese lettering on the front and the English name “Superior Yunnan Pu-erh Tea” on the back. Its companion in the range was Y671, the “little yellow box.”",
-    "sourceIds": [
-      "puer-magazine-export-cartons"
-    ],
     "reviewState": "approved"
   }
 ];

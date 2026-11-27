@@ -3,6 +3,138 @@ import type { PublicClaim } from '../claims';
 
 export const PART: readonly PublicClaim[] = [
   {
+    "claimId": "menghai-county:mengsong-naka",
+    "pageId": "menghai-county",
+    "sectionKey": "mengsong-naka",
+    "label": "Mengsong and Naka",
+    "axis": "place",
+    "basis": "sourced",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "mengsong"
+      ],
+      "name_includes": [
+        "naka"
+      ]
+    },
+    "terms": [
+      {
+        "original": "勐宋",
+        "pinyin": "Měngsòng",
+        "gloss": "Mengsong township"
+      },
+      {
+        "original": "那卡",
+        "pinyin": "Nàkǎ",
+        "gloss": "Naka village"
+      }
+    ],
+    "rev": 1,
+    "scope": "Naka village in Mengsong, Menghai County",
+    "text": "Naka is a village in Mengsong, one of Menghai County’s tea-growing areas.",
+    "sourceIds": [
+      "teadb-menghai-county"
+    ],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "menghai-county:old-gardens",
+    "pageId": "menghai-county",
+    "sectionKey": "old-gardens",
+    "label": "Old trees, left to grow",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "menghai"
+      ]
+    },
+    "terms": [
+      {
+        "original": "古茶园",
+        "pinyin": "gǔ cháyuán",
+        "gloss": "old tea garden"
+      }
+    ],
+    "rev": 1,
+    "scope": "How the old-tree gardens of Menghai County are generally kept, as against plantation bushes; not a statement about any single tea's garden.",
+    "text": "What sets the old Menghai gardens apart is how they are kept. The trees are allowed to grow tall, with little pruning, and farmers use little or no fertiliser or spray. They give far less leaf than pruned plantation bushes, which are picked again and again through the season. People who buy old-garden Menghai tea are paying for that slow, low-yield leaf, and it is why the same mountain can taste so different from its plantation tea.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "menghai-county:peoples",
+    "pageId": "menghai-county",
+    "sectionKey": "peoples",
+    "label": "Who tends the mountains",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "menghai"
+      ]
+    },
+    "terms": [
+      {
+        "original": "布朗族",
+        "pinyin": "Bùlǎngzú",
+        "gloss": "Bulang people"
+      },
+      {
+        "original": "拉祜族",
+        "pinyin": "Lāhùzú",
+        "gloss": "Lahu people"
+      },
+      {
+        "original": "哈尼族",
+        "pinyin": "Hānízú",
+        "gloss": "Hani people"
+      }
+    ],
+    "rev": 1,
+    "scope": "Which peoples are tied to Bulang, Nannuo and Mengsong within Menghai County; not every garden or village.",
+    "text": "Menghai’s tea mountains are not one community. Bulang Mountain is the home of the Bulang people, and the Bulang are widely credited as some of the first to grow and make tea here. Nannuo is mostly tended by Hani families today (the Aini branch), although the Bulang are said to have planted its earliest trees. In Mengsong, most of the old gardens were planted by Lahu villagers. Who planted and who picks shapes each mountain’s gardens and its tea, so a mountain name is a better guide to a cup than the county name.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "menghai-county:ripe-origins",
+    "pageId": "menghai-county",
+    "sectionKey": "ripe-origins",
+    "label": "Where ripe pu’er began",
+    "axis": "maker_history",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {},
+    "terms": [],
+    "rev": 1,
+    "scope": "Menghai County",
+    "text": "Ripe pu’er was born in the early 1970s, when Yunnan’s state factories learned to speed up ageing by wet piling the leaf, and Menghai Tea Factory was one of the first to master it. Its 7572 cake became the benchmark ripe recipe, the cup other ripe teas are still judged against. The number reads as the recipe itself: 75 for the year it was first made, 7 for the main leaf grade in the blend, 2 for Menghai.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "menghai-county:scope",
+    "pageId": "menghai-county",
+    "sectionKey": "scope",
+    "label": "Western Xishuangbanna",
+    "axis": "place",
+    "basis": "sourced",
+    "listingEligible": false,
+    "appliesWhen": {},
+    "terms": [],
+    "rev": 2,
+    "scope": "Menghai County",
+    "text": "Menghai County is the core of pu’er country in western Xishuangbanna. Nannuo, Bulang, Mengsong, Hekai, Pasha and Bada are distinct mountain areas within it, each with its own tea, not interchangeable names for Menghai.",
+    "sourceIds": [
+      "teadb-menghai-county"
+    ],
+    "reviewState": "approved"
+  },
+  {
     "claimId": "menghai-county:why-people-value-it",
     "pageId": "menghai-county",
     "sectionKey": "why-people-value-it",
@@ -805,132 +937,6 @@ export const PART: readonly PublicClaim[] = [
     "rev": 1,
     "scope": "Where the Phoenix Mountain range lies and what a Phoenix Mountain label refers to.",
     "text": "Phoenix Mountain, Fenghuang Shan, is a mountain range in Fenghuang town, in Chao'an district of Chaozhou, in eastern Guangdong. It is the high ground of the Chaoshan region, with its top peak rising to about 1,500 metres. Tea grows on its slopes from low foothills up to roughly 1,100 metres, and the name on a tea label usually means this range as a whole rather than one village.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "phoenix-mountain:wudong-and-villages",
-    "pageId": "phoenix-mountain",
-    "sectionKey": "wudong-and-villages",
-    "label": "Wudong and the other gardens",
-    "axis": "place",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "origin_includes": [
-        "phoenix mountain"
-      ]
-    },
-    "terms": [
-      {
-        "original": "乌岽",
-        "pinyin": "Wūdōng",
-        "gloss": "Wudong"
-      },
-      {
-        "original": "大庵",
-        "pinyin": "Dà'ān",
-        "gloss": "Da'an"
-      },
-      {
-        "original": "石古坪",
-        "pinyin": "Shígǔpíng",
-        "gloss": "Shiguping"
-      }
-    ],
-    "rev": 1,
-    "scope": "Wudong and the named gardens of Phoenix Mountain; village character is not settled.",
-    "text": "Wudong, the high ridge around the top of the range, is the part named most often as the heart of the mountain, and its high gardens are the ones the trade prices highest. Wudong village sits high on the ridge, with gardens near and above 900 metres. Da'an, lower on gentler slopes in Fengxi, is known for the largest old tea garden on the mountain. Other villages such as Shiguping, Lizipping and Guantou are also named, and each is said to give its own character, though little of that is written down plainly. A village name on a tea tells you more about where it grew than the mountain name does.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "puer:history",
-    "pageId": "puer",
-    "sectionKey": "history",
-    "label": "Trade and continuity",
-    "axis": "type",
-    "basis": "sourced",
-    "listingEligible": false,
-    "appliesWhen": {},
-    "terms": [],
-    "rev": 1,
-    "scope": "Pu’er",
-    "text": "Tea moved from Yunnan toward Tibet and farther markets along trading networks that are often grouped under the Tea Horse Road. That commerce supported mountain production, market towns, and enduring links between tea-growing communities and distant drinkers.",
-    "sourceIds": [
-      "ctma-puer-history-2021"
-    ],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "puer:identity",
-    "pageId": "puer",
-    "sectionKey": "identity",
-    "label": "A tea rooted in Yunnan",
-    "axis": "type",
-    "basis": "sourced",
-    "listingEligible": false,
-    "appliesWhen": {},
-    "terms": [],
-    "rev": 1,
-    "scope": "Pu’er",
-    "text": "Pu’er belongs to Yunnan’s long tea history. The name now gathers a family of teas whose identity is tied not only to manufacture, but also to material, place, and the traditions that developed around them.",
-    "sourceIds": [
-      "ctma-puer-history-2021"
-    ],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "puer:modern-family",
-    "pageId": "puer",
-    "sectionKey": "modern-family",
-    "label": "The modern family",
-    "axis": "type",
-    "basis": "sourced",
-    "listingEligible": false,
-    "appliesWhen": {},
-    "terms": [],
-    "rev": 1,
-    "scope": "Pu’er",
-    "text": "Modern Pu’er includes sheng and shou. Their processing paths differ, but both sit within a twentieth-century industry that restored tea gardens, expanded production, and developed distinct forms for domestic and export markets.",
-    "sourceIds": [
-      "ctma-puer-history-2021"
-    ],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "qimen:how-keemun-began",
-    "pageId": "qimen",
-    "sectionKey": "how-keemun-began",
-    "label": "How Keemun began",
-    "axis": "place",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "origin_includes": [
-        "qimen"
-      ]
-    },
-    "terms": [
-      {
-        "original": "胡元龙",
-        "pinyin": "Hú Yuánlóng",
-        "gloss": "Hu Yuanlong, usually named as Keemun's founder"
-      },
-      {
-        "original": "余干臣",
-        "pinyin": "Yú Gànchén",
-        "gloss": "Yu Gancheng, tea merchant sometimes given the credit"
-      },
-      {
-        "original": "日顺",
-        "pinyin": "Rìshùn",
-        "gloss": "Rishun, name of the tea factory"
-      }
-    ],
-    "rev": 1,
-    "scope": "How Keemun began in Qimen in the late Qing, and the disputed founder",
-    "text": "Before the 1870s Qimen made green tea. Red tea was made there from about 1875, using methods carried in from Fujian, by way of Jiangxi in most tellings, after green tea sales fell. Hu Yuanlong, a local man who set up the Rishun tea factory, is the name most often given as the founder. Another account gives the credit to the tea merchant Yu Gancheng, who opened buying stations in Qimen. The accounts disagree and the exact order of events is not established. What is agreed is the period, the late Qing dynasty, and that Western buyers were looking for the tea within a few years.",
     "sourceIds": [],
     "reviewState": "approved"
   }

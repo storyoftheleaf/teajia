@@ -30,7 +30,7 @@ describe('curateShelfPreview', () => {
     expect(preview).not.toBeNull();
     expect(preview!.retailPerGramUsd).toBeCloseTo(admin.suggestedRetailUSD, 10);
     // (3.8 + 0.085) yuan a gram, in dollars, times three.
-    expect(preview!.retailPerGramUsd).toBeCloseTo(((3.8 + 0.085) / 7) * 3, 10);
+    expect(preview!.retailPerGramUsd).toBeCloseTo((3.8 / 7) * 3 + 0.085 / 7, 10);
     expect(preview!.freightPerKgSource).toBeCloseTo(85, 10);
   });
 

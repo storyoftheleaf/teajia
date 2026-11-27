@@ -22,7 +22,7 @@ const defaults: FreightDefaults = { shopPerKgUsd: 85 / 7, services, shipments: {
 // 700 yuan for 1,000 g: 0.10 USD a gram before freight.
 const tea = { id: 'yiwu', type: 'Sheng', form: 'Loose', cost_amount: 700, cost_currency: 'Yuan', quantity_purchased: 1000, shipping_rate_per_kg: null, fixed_retail_price_usd: null, stock_grams: 100 };
 const retail = (extra: Record<string, unknown>) => addPricingFields({ ...tea, ...extra }, rates, defaults).retail_price_per_gram_usd;
-const at = (freightPerKgUsd: number) => Math.round((0.1 + freightPerKgUsd / 1000) * 3 * 100) / 100;
+const at = (freightPerKgUsd: number) => Math.round((0.1 * 3 + freightPerKgUsd / 1000) * 100) / 100; // leaf x3, freight at cost
 
 describe('freight from the logistics service', () => {
   it('keeps the shop rate for a tea with no service, so no price moves until one is picked', () => {

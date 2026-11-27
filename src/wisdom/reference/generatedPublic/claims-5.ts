@@ -3,6 +3,140 @@ import type { PublicClaim } from '../claims';
 
 export const PART: readonly PublicClaim[] = [
   {
+    "claimId": "guangdong:where-it-is",
+    "pageId": "guangdong",
+    "sectionKey": "where-it-is",
+    "label": "Where Guangdong is",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "origin_includes": [
+        "guangdong"
+      ]
+    },
+    "terms": [
+      {
+        "original": "广东",
+        "pinyin": "Guǎngdōng",
+        "gloss": "Guangdong"
+      },
+      {
+        "original": "广州",
+        "pinyin": "Guǎngzhōu",
+        "gloss": "Guangzhou"
+      }
+    ],
+    "rev": 1,
+    "scope": "Guangdong as a province: position, climate, where tea is grown",
+    "text": "Guangdong is a large province on the south coast of China, built around the Pearl River Delta. Its capital is Guangzhou, the old Canton, and Hong Kong and Macao sit beside it. The climate is hot and humid, with a rainy season and a drier one. Tea is grown mostly in the hills of the east and the north, away from the delta.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "guangdong:yingde-black",
+    "pageId": "guangdong",
+    "sectionKey": "yingde-black",
+    "label": "Yingde black tea",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "guangdong"
+      ]
+    },
+    "terms": [
+      {
+        "original": "英德红茶",
+        "pinyin": "Yīngdé hóngchá",
+        "gloss": "Yingde black tea"
+      }
+    ],
+    "rev": 1,
+    "scope": "Yingde black tea only; not Guangdong's other teas",
+    "text": "Yingde, north of Guangzhou, makes the province's black tea. It is a young style by Chinese standards: machine production began in the late 1950s, and much of it has been sold abroad. Writers describe it as sweet, with a cocoa or chocolate note, and a malty, slightly peppery finish. It is not a mountain tea in the way Phoenix oolong is, and it should not be read as a fact about the province's other teas.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "guangxi:hengzhou-jasmine",
+    "pageId": "guangxi",
+    "sectionKey": "hengzhou-jasmine",
+    "label": "Hengzhou jasmine tea",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "origin_includes": [
+        "guangxi"
+      ]
+    },
+    "terms": [
+      {
+        "original": "横州",
+        "pinyin": "Héngzhōu",
+        "gloss": "Hengzhou"
+      },
+      {
+        "original": "茉莉花茶",
+        "pinyin": "mòlìhuā chá",
+        "gloss": "jasmine tea"
+      }
+    ],
+    "rev": 1,
+    "scope": "Hengzhou jasmine scenting and flower growing; not Guangxi's other teas",
+    "text": "The other tea Guangxi is known for is jasmine tea from Hengzhou, a county-level city. Hengzhou is described as the largest jasmine growing area in China, and a very large part of the country's jasmine flowers are picked there, which is why so much scented tea starts from its flowers. This is a scented tea of a different kind from Liu Bao, and the two share nothing but the province.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "guangxi:known-for-liu-bao",
+    "pageId": "guangxi",
+    "sectionKey": "known-for-liu-bao",
+    "label": "What Guangxi is known for in dark tea",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "guangxi"
+      ]
+    },
+    "terms": [
+      {
+        "original": "六堡茶",
+        "pinyin": "Liùbǎo chá",
+        "gloss": "Liu Bao tea"
+      }
+    ],
+    "rev": 1,
+    "scope": "Guangxi's reputation for Liu Bao only; the style itself is on liu-bao",
+    "text": "Guangxi is known above all for Liu Bao, a dark tea the trade values for how it ages. It matters to buyers as the one famous dark tea of the south, made for the hot, humid life of Chinese workers in Southeast Asia, and Wuzhou has grown it into a large industry with its own protected name. The style, its making and its aged stock are on the Liu Bao page, so this page does not repeat them.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "guangxi:land-and-climate",
+    "pageId": "guangxi",
+    "sectionKey": "land-and-climate",
+    "label": "What the land gives the tea",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "guangxi"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Climate and setting of the Wuzhou area, as the trade links them to Liu Bao ageing; not the whole province",
+    "text": "Wuzhou sits near the Tropic of Cancer, with a warm, wet, subtropical monsoon climate, plenty of rain, and hills and forest all around. People in the trade link this damp, steady warmth to the way Liu Bao ages slowly in cool storehouses, because the microbes that shape a dark tea like it. The soils are acidic, and the trade sees the setting as part of why Liu Bao is made here and not simply anywhere.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
     "claimId": "guangxi:on-a-label",
     "pageId": "guangxi",
     "sectionKey": "on-a-label",
@@ -820,117 +954,6 @@ export const PART: readonly PublicClaim[] = [
     "rev": 1,
     "scope": "Li Shan as a tea area in central Taiwan and the altitude its gardens are quoted at",
     "text": "Li Shan, which means Pear Mountain, is a high mountain area in the middle of Taiwan, on the Central Cross-Island Highway. It is a tea area and also a town, with orchards of pears, peaches and apples around it. The tea gardens are the highest in Taiwan, at roughly 1,800 to 2,500 metres, though places quote the range differently and some start as low as about 1,450. On a tea record the name covers the whole area, and a garden or sub-area inside it, such as Hua Gang, is the finer place.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "li-shan:why-people-value-it",
-    "pageId": "li-shan",
-    "sectionKey": "why-people-value-it",
-    "label": "Why people value Li Shan tea",
-    "axis": "place",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "origin_includes": [
-        "li shan"
-      ]
-    },
-    "terms": [
-      {
-        "original": "梨山",
-        "pinyin": "Líshān",
-        "gloss": "Li Shan; Pear Mountain"
-      },
-      {
-        "original": "高山茶",
-        "pinyin": "gāoshān chá",
-        "gloss": "high mountain tea"
-      }
-    ],
-    "rev": 1,
-    "scope": "The high mountain oolong style and conditions of Li Shan, as sellers and growers describe it",
-    "text": "Li Shan is valued for cold. At this height the nights are cool, mist and cloud sit on the slopes, there is little direct sun, and frost or snow can reach the gardens in winter. Leaves grow slowly, come out thick and soft, and are said to carry more sweetness and less bitterness. The usual tea is a lightly oxidised, ball-rolled high mountain oolong, most often from the Qing Xin cultivar. Sellers describe it as sweet, thick in the mouth and clean, with a fresh green finish. The cold also limits how often it can be picked: spring and autumn crops are usual, and the coldest gardens may give only two or three harvests a year or skip winter. That, with the cost of working steep ground at this height, is why it is priced high.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "lincang:common-character",
-    "pageId": "lincang",
-    "sectionKey": "common-character",
-    "label": "A broad regional tendency",
-    "axis": "sensory_observation",
-    "basis": "sourced",
-    "listingEligible": false,
-    "appliesWhen": {},
-    "attribution": {
-      "sourceId": "teadb-lincang",
-      "sourceRole": "specialist_editorial",
-      "sample": "Regional convention reported in specialist writing about Lincang"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Lincang",
-    "text": "Young single-origin Lincang sheng is often described as green, firm, and bitter. This reputation is useful as a starting point only: Lincang is a large prefecture, and material from its counties, mountains, and villages should not be collapsed into one tasting profile.",
-    "sourceIds": [
-      "teadb-lincang"
-    ],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "lincang:history",
-    "pageId": "lincang",
-    "sectionKey": "history",
-    "label": "History beyond single origins",
-    "axis": "place",
-    "basis": "sourced",
-    "listingEligible": false,
-    "appliesWhen": {},
-    "terms": [],
-    "rev": 1,
-    "scope": "Lincang",
-    "text": "Lincang has a smaller public archive of famous aged single-origin teas than Yiwu or Menghai. Older blended productions, especially those associated with Xiaguan, nevertheless provide a historical thread, even when the exact origin of their base material cannot be reconstructed.",
-    "sourceIds": [
-      "teadb-lincang"
-    ],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "lincang:scope",
-    "pageId": "lincang",
-    "sectionKey": "scope",
-    "label": "Northern Pu’er country",
-    "axis": "place",
-    "basis": "sourced",
-    "listingEligible": false,
-    "appliesWhen": {},
-    "terms": [],
-    "rev": 1,
-    "scope": "Lincang",
-    "text": "Lincang lies north of Pu’er Prefecture and against Myanmar to the west. Its tea geography includes Mengku, Yongde, Fengqing, Bangdong, Bingdao, and Xigui, with repeated place names such as Daxueshan making precise labels especially important.",
-    "sourceIds": [
-      "teadb-lincang"
-    ],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "liu-an:ageing",
-    "pageId": "liu-an",
-    "sectionKey": "ageing",
-    "label": "Keeping and ageing Liu An",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "anhui"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Liu An basket tea style kit",
-    "text": "Liu An is said to improve with years in its basket, turning mellower, rounder and redder in the cup. Young tea has an edge of charcoal or smoke that settles with age. Keep it dry, clean, away from smells and direct sun, in wrapping that breathes, not sealed airtight.",
     "sourceIds": [],
     "reviewState": "approved"
   }

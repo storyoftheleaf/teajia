@@ -9,7 +9,7 @@ export const PART: readonly DraftReferencePage[] = [
     "slug": "gong-ting",
     "kind": "leaf_grade",
     "label": "Gong Ting",
-    "visibility": "draft",
+    "visibility": "public",
     "nativeName": "宫廷",
     "parentId": "shou",
     "sourceIds": [],

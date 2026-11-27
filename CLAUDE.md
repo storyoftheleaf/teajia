@@ -18,6 +18,9 @@ last_reviewed: 2026-11-03
 All tea knowledge (types, places, grades, marks, processes, producers, named teas) lives in the one Wisdom Base at /wisdom: the records in `data/tea-wisdom-source/` and the written pages in `data/tea-reference/pages/`, joined by shared id. Never start a second library, store or set of pages for it. Before posting or composing a tea, check what it needs in the Wisdom Base and write that first. How: [docs/TEA_WISDOM_BASE.md](docs/TEA_WISDOM_BASE.md#one-wisdom-base-two-layers-read-this-before-adding-anything). A new tea's path from Curate to its entry, step by step with each agent's model and never-list: [docs/agents/TEA-WISDOM-AGENTS.md](docs/agents/TEA-WISDOM-AGENTS.md), run with `/tea-wisdom`.
 Run `node scripts/tea-wisdom-compose/needs.mjs` (or read the Wisdom Base list on the tea in Curate) before composing.
 
+## The tea system map
+How a tea moves from Curate to the shop, the invoice and after the cup, with each step's screen, tools, owner doc and gaps: [docs/agents/TEA-SYSTEM-MAP.md](docs/agents/TEA-SYSTEM-MAP.md). Change its row in the same commit as any change to a step.
+
 ## Tea UI reference
 
 Reuse the shared card, panel summary, and tasting parts documented in [the design system](docs/DESIGN_SYSTEM.md#tea-cards-detail-panels-and-tasting). The interactive reference runs locally at `/preview/tea-ui/`.
@@ -73,7 +76,7 @@ Read `docs/COLOR_RULES.md` before writing any component styles. Full detail: [do
 
 ## Money — detail in [docs/claude/money.md](docs/claude/money.md)
 Read that file before touching pricing, cost, currency, freight or any product INSERT. The gotchas:
-- **Freight:** 85 Yuan/kg is the shop rate, a setting on the account (`accounts.default_shipping_rate_per_kg`), inside the ×3. Arithmetic lives only in `worker/src/shippingRate.ts`. NULL = follow the level above; a number (zero included) is obeyed. Teaware is the one true zero.
+- **Freight:** 85 Yuan/kg is the shop rate, a setting on the account (`accounts.default_shipping_rate_per_kg`), passed on at cost: price = leaf cost ×3 + freight (Adrian, 2026-11-27). Arithmetic lives only in `worker/src/shippingRate.ts`. NULL = follow the level above; a number (zero included) is obeyed. Teaware is the one true zero.
 - **Exchange rates:** `exchange_rates` in D1 is the only table, refreshed daily, retried hourly, never emptied. A missing rate is never 1 — decline and show a dash. Currency aliases (CNY = `Yuan`, TWD = `NT`) live once in `src/lib/currency.ts`; canonicalise, never uppercase.
 - **Markup:** `SHOP_MARKUP_MULTIPLIER` in `worker/src/markup.ts` = 3. A default is read at use time, never copied into rows. No bare `2.5` in `worker/src` outside `markup.ts`.
 - Every product INSERT names the money columns (or goes through `nameProductColumns`) — the table defaults are wrong.

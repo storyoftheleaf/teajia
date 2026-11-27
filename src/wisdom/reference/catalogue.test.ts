@@ -195,6 +195,7 @@ describe('sellable Tea Reference catalogue', () => {
       'fujian',
       'fujian-white',
       'gaba',
+      'gong-ting',
       'greater-yiwu',
       'green',
       'guangdong',

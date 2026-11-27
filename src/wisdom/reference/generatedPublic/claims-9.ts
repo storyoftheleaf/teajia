@@ -3,6 +3,128 @@ import type { PublicClaim } from '../claims';
 
 export const PART: readonly PublicClaim[] = [
   {
+    "claimId": "shou:piling-1973",
+    "pageId": "shou",
+    "sectionKey": "piling-1973",
+    "label": "Yunnan learns the pile",
+    "axis": "process",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Shou"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Yunnan state factories, 1973 to 1975",
+    "text": "In 1973 a team of seven from the Kunming, Menghai and Xiaguan factories went to the Guangzhou tea factory to learn its wet piling. Guangzhou piled with warm water. In Kunming’s cooler, drier air that failed, and Kunming succeeded in 1974 with cold water, sending about ten tonnes to Hong Kong that year. Menghai and Xiaguan each worked out their own ways, and by 1975 Menghai’s method had settled into the ripe pu’er made today.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "shou:piling-history",
+    "pageId": "shou",
+    "sectionKey": "piling-history",
+    "label": "How piling came to be",
+    "axis": "process",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Shou"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Trade history before 1973",
+    "text": "Before 1949, pu’er already reached Hong Kong and Guangzhou red in the cup. Leaf was packed damp into bamboo baskets, the caravan journey could take a year, and merchants kept the tea for years more before selling it. When faster transport brought fresher tea in the 1950s, those drinkers missed the old taste, and the trade set out to hurry it. In Macau and Hong Kong, Lu Zhuxun sprinkled leaf with water to speed its change. From 1959 the Guangdong tea company in Guangzhou developed a faster fermentation, often blending Yunnan leaf with Guangdong leaf. Yunnan had its own beginnings too: dampening leaf for its pressed jin cha, and in 1958 a steam method at Xiaguan that cut fermentation to about fifteen days.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "shou:piling-today",
+    "pageId": "shou",
+    "sectionKey": "piling-today",
+    "label": "Piling today",
+    "axis": "process",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Shou"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Current factory practice in general",
+    "text": "Most traditional factories still pile on cement floors or in tiled pits, seasoned over years of use; a new floor is first broken in with wetted tea dust until it darkens and stops smelling. Some newer makers pile off the floor on perforated steel to keep the leaf cleaner. A pile can be a hundred kilograms or twenty tonnes, and each maker decides how far to take it: a lighter fermentation keeps some of the raw leaf’s liveliness, a heavier one gives a thicker, darker cup, and taken too far the leaf turns hard and charred.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "shou:wet-piling",
+    "pageId": "shou",
+    "sectionKey": "wet-piling",
+    "label": "Wet piling",
+    "axis": "process",
+    "basis": "sourced",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Shou"
+    },
+    "terms": [
+      {
+        "original": "渥堆",
+        "pinyin": "wò duī",
+        "gloss": "wet piling"
+      }
+    ],
+    "rev": 2,
+    "scope": "The wet-pile process in general",
+    "text": "Ripe pu’er is made by fermenting tea leaves in a damp pile, a process called wet piling. Sun-dried leaf is wetted and heaped so that heat, moisture and microbes can work on it. The heat comes from the microbes themselves, so the pile is covered to hold it in, then turned about once a week to spread it and let air in. It is kept below about 65°C, because hotter than that the leaf starts to char. After one to two months the leaf is dried. Yunnan’s state factories brought the method into production in 1973, after a joint team studied faster piling in Guangdong.",
+    "sourceIds": [
+      "white2tea-ripe-puer"
+    ],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "sichuan-dark:ageing",
+    "pageId": "sichuan-dark",
+    "sectionKey": "ageing",
+    "label": "Keeping and ageing Sichuan border tea",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Dark",
+      "origin_includes": [
+        "sichuan"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Sichuan border tea style kit",
+    "text": "Sichuan border tea is kept for years, and the trade values older bricks more. With age the liquor turns redder and the cup grows milder and rounder, and a medicinal edge often appears, which sellers read as a sign of good storage. Keep the brick dry, clean and away from strong smells and direct sun. Do not drink a brick that smells musty or shows mould. How fast it changes depends on storage, and the trade does not agree on one best way to keep it.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "sichuan-dark:brewing",
+    "pageId": "sichuan-dark",
+    "sectionKey": "brewing",
+    "label": "Brewing Sichuan border tea",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Dark",
+      "origin_includes": [
+        "sichuan"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Sichuan border tea style kit",
+    "text": "Break a few pieces from the edge of the brick, rinse them with boiling water and pour that off at once. Then use boiling water and plenty of leaf. The leaf is coarse and gives up its flavour slowly, so people brew it two ways. Some steep it in short gongfu pours, a little longer each time. Others use long steeps while the pot is still hot, or simmer the leaf for several minutes in a pot, which is the traditional way on the plateau.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
     "claimId": "sichuan-dark:butter-tea",
     "pageId": "sichuan-dark",
     "sectionKey": "butter-tea",
@@ -830,130 +952,6 @@ export const PART: readonly PublicClaim[] = [
     "rev": 1,
     "scope": "Three Cranes as the trademark of Wuzhou Tea Factory; says nothing about any single tea.",
     "text": "Three Cranes, also written San He, is the trademark of Wuzhou Tea Factory in Guangxi, the largest maker of Liu Bao. It is a brand of one factory. It is not a type of tea, a grade of leaf or a village, and other makers of Liu Bao do not use it. The story of the name, and of the factory behind it, is on the San He Liu Bao page.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "three-cranes:reading-the-label",
-    "pageId": "three-cranes",
-    "sectionKey": "reading-the-label",
-    "label": "What the mark tells a buyer, and what it does not",
-    "axis": "terminology",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "grade": "three-cranes"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "What a buyer can and cannot learn from the Three Cranes name on a Liu Bao label; the meaning of the numeric codes is not covered.",
-    "text": "The mark tells a buyer who made the tea: Wuzhou Tea Factory, working in its own warehouses. Sellers also treat it as a sign of consistent factory making, which is a reputation and not a measure of any one tea. It does not say how old the tea is, which leaf it holds or how it is stored. Those come from the rest of the label: the harvest year and the year of packing, which are often printed as a pair, and a grade number such as third grade. The four or five digit codes that follow the brand name on many labels are recipe or batch numbers. What each digit stands for is not established here, so the number is best read as a lookup against the seller's own description.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "tieguanyin:ageing",
-    "pageId": "tieguanyin",
-    "sectionKey": "ageing",
-    "label": "Keeping and ageing Tieguanyin",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "origin_includes": [
-        "anxi"
-      ]
-    },
-    "terms": [
-      {
-        "original": "老铁",
-        "pinyin": "lǎo tiě",
-        "gloss": "old Tie"
-      }
-    ],
-    "rev": 1,
-    "scope": "Oolong from Anxi; osmanthus only on teas named for it",
-    "text": "Light, low-roast Tieguanyin is for drinking fresh and goes stale fast; the heavier charcoal-roasted kind is steadier and is the kind kept for years. Freshly roasted tea tastes of fire and is rested, months or years, until the fire settles. With age the tea softens: the fire fades, the liquor deepens, the body grows rounder and smoother and less sharp, and well-aged roasted tea often shows a soft fruity sourness. Keep it sealed, dry, dark and cool, away from strong smells, and look at it now and then; roasted tea does not need the refrigerator, which is for the light style.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "tieguanyin:brewing",
-    "pageId": "tieguanyin",
-    "sectionKey": "brewing",
-    "label": "Brewing Tieguanyin",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "origin_includes": [
-        "anxi"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Oolong from Anxi; osmanthus only on teas named for it",
-    "text": "Tieguanyin is usually brewed gongfu style with water at or near the boil, about 95 to 100°C; the light green style is often taken a little cooler, about 85 to 95°C. Use about 4 to 8 grams of leaf in a 100 to 150 ml gaiwan or pot, about a third full. A quick rinse, poured off at once, is common. Steeps start short, about 10 to 30 seconds, and grow a few seconds longer each round, and a good Tieguanyin gives about six to eight. In a larger pot, use about 2.5 to 5 grams for 240 to 350 ml and steep two to three minutes.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "tieguanyin:common-impressions",
-    "pageId": "tieguanyin",
-    "sectionKey": "common-impressions",
-    "label": "What people often notice",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "origin_includes": [
-        "anxi"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Oolong from Anxi; osmanthus only on teas named for it",
-    "text": "In the light style: orchid and other flowers, a fresh, clean cup and a sweet aftertaste. In the roasted style: toast and charcoal, caramel or honey, stone or dried fruit, nuts, and a liquor that runs from gold to amber.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "tieguanyin:definition",
-    "pageId": "tieguanyin",
-    "sectionKey": "definition",
-    "label": "What Tieguanyin is",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "origin_includes": [
-        "anxi"
-      ]
-    },
-    "terms": [
-      {
-        "original": "铁观音",
-        "pinyin": "tiě guānyīn",
-        "gloss": "iron Guanyin"
-      },
-      {
-        "original": "安溪",
-        "pinyin": "ānxī",
-        "gloss": "Anxi"
-      },
-      {
-        "original": "西坪",
-        "pinyin": "xīpíng",
-        "gloss": "Xiping"
-      }
-    ],
-    "rev": 1,
-    "scope": "Oolong from Anxi; osmanthus only on teas named for it",
-    "text": "Tieguanyin is the name of a tea cultivar and of the oolong made from it. The tea comes from Anxi County in southern Fujian, where the name is protected as Anxi Tieguanyin, and the trade names Xiping township in Anxi as the place it began; Gande is another of the best-known Anxi townships. The name joins iron and Guanyin, the bodhisattva of mercy. The finished leaf is usually rolled into tight balls that open slowly in the cup. Outside Anxi, in Taiwan above all, the name can mean a way of making the tea rather than the plant.",
     "sourceIds": [],
     "reviewState": "approved"
   }

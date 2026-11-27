@@ -3,6 +3,132 @@ import type { PublicClaim } from '../claims';
 
 export const PART: readonly PublicClaim[] = [
   {
+    "claimId": "phoenix-mountain:wudong-and-villages",
+    "pageId": "phoenix-mountain",
+    "sectionKey": "wudong-and-villages",
+    "label": "Wudong and the other gardens",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "phoenix mountain"
+      ]
+    },
+    "terms": [
+      {
+        "original": "乌岽",
+        "pinyin": "Wūdōng",
+        "gloss": "Wudong"
+      },
+      {
+        "original": "大庵",
+        "pinyin": "Dà'ān",
+        "gloss": "Da'an"
+      },
+      {
+        "original": "石古坪",
+        "pinyin": "Shígǔpíng",
+        "gloss": "Shiguping"
+      }
+    ],
+    "rev": 1,
+    "scope": "Wudong and the named gardens of Phoenix Mountain; village character is not settled.",
+    "text": "Wudong, the high ridge around the top of the range, is the part named most often as the heart of the mountain, and its high gardens are the ones the trade prices highest. Wudong village sits high on the ridge, with gardens near and above 900 metres. Da'an, lower on gentler slopes in Fengxi, is known for the largest old tea garden on the mountain. Other villages such as Shiguping, Lizipping and Guantou are also named, and each is said to give its own character, though little of that is written down plainly. A village name on a tea tells you more about where it grew than the mountain name does.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "puer:history",
+    "pageId": "puer",
+    "sectionKey": "history",
+    "label": "Trade and continuity",
+    "axis": "type",
+    "basis": "sourced",
+    "listingEligible": false,
+    "appliesWhen": {},
+    "terms": [],
+    "rev": 1,
+    "scope": "Pu’er",
+    "text": "Tea moved from Yunnan toward Tibet and farther markets along trading networks that are often grouped under the Tea Horse Road. That commerce supported mountain production, market towns, and enduring links between tea-growing communities and distant drinkers.",
+    "sourceIds": [
+      "ctma-puer-history-2021"
+    ],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "puer:identity",
+    "pageId": "puer",
+    "sectionKey": "identity",
+    "label": "A tea rooted in Yunnan",
+    "axis": "type",
+    "basis": "sourced",
+    "listingEligible": false,
+    "appliesWhen": {},
+    "terms": [],
+    "rev": 1,
+    "scope": "Pu’er",
+    "text": "Pu’er belongs to Yunnan’s long tea history. The name now gathers a family of teas whose identity is tied not only to manufacture, but also to material, place, and the traditions that developed around them.",
+    "sourceIds": [
+      "ctma-puer-history-2021"
+    ],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "puer:modern-family",
+    "pageId": "puer",
+    "sectionKey": "modern-family",
+    "label": "The modern family",
+    "axis": "type",
+    "basis": "sourced",
+    "listingEligible": false,
+    "appliesWhen": {},
+    "terms": [],
+    "rev": 1,
+    "scope": "Pu’er",
+    "text": "Modern Pu’er includes sheng and shou. Their processing paths differ, but both sit within a twentieth-century industry that restored tea gardens, expanded production, and developed distinct forms for domestic and export markets.",
+    "sourceIds": [
+      "ctma-puer-history-2021"
+    ],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "qimen:how-keemun-began",
+    "pageId": "qimen",
+    "sectionKey": "how-keemun-began",
+    "label": "How Keemun began",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "qimen"
+      ]
+    },
+    "terms": [
+      {
+        "original": "胡元龙",
+        "pinyin": "Hú Yuánlóng",
+        "gloss": "Hu Yuanlong, usually named as Keemun's founder"
+      },
+      {
+        "original": "余干臣",
+        "pinyin": "Yú Gànchén",
+        "gloss": "Yu Gancheng, tea merchant sometimes given the credit"
+      },
+      {
+        "original": "日顺",
+        "pinyin": "Rìshùn",
+        "gloss": "Rishun, name of the tea factory"
+      }
+    ],
+    "rev": 1,
+    "scope": "How Keemun began in Qimen in the late Qing, and the disputed founder",
+    "text": "Before the 1870s Qimen made green tea. Red tea was made there from about 1875, using methods carried in from Fujian, by way of Jiangxi in most tellings, after green tea sales fell. Hu Yuanlong, a local man who set up the Rishun tea factory, is the name most often given as the founder. Another account gives the credit to the tea merchant Yu Gancheng, who opened buying stations in Qimen. The accounts disagree and the exact order of events is not established. What is agreed is the period, the late Qing dynasty, and that Western buyers were looking for the tea within a few years.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
     "claimId": "qimen:known-for",
     "pageId": "qimen",
     "sectionKey": "known-for",
@@ -823,128 +949,6 @@ export const PART: readonly PublicClaim[] = [
     "rev": 1,
     "scope": "The aged ripe style, not any lot",
     "text": "A smooth, deep cup with woody, date-like or medicinal notes, which the trade calls aged aroma.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "shou:piling-1973",
-    "pageId": "shou",
-    "sectionKey": "piling-1973",
-    "label": "Yunnan learns the pile",
-    "axis": "process",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Shou"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Yunnan state factories, 1973 to 1975",
-    "text": "In 1973 a team of seven from the Kunming, Menghai and Xiaguan factories went to the Guangzhou tea factory to learn its wet piling. Guangzhou piled with warm water. In Kunming’s cooler, drier air that failed, and Kunming succeeded in 1974 with cold water, sending about ten tonnes to Hong Kong that year. Menghai and Xiaguan each worked out their own ways, and by 1975 Menghai’s method had settled into the ripe pu’er made today.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "shou:piling-history",
-    "pageId": "shou",
-    "sectionKey": "piling-history",
-    "label": "How piling came to be",
-    "axis": "process",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Shou"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Trade history before 1973",
-    "text": "Before 1949, pu’er already reached Hong Kong and Guangzhou red in the cup. Leaf was packed damp into bamboo baskets, the caravan journey could take a year, and merchants kept the tea for years more before selling it. When faster transport brought fresher tea in the 1950s, those drinkers missed the old taste, and the trade set out to hurry it. In Macau and Hong Kong, Lu Zhuxun sprinkled leaf with water to speed its change. From 1959 the Guangdong tea company in Guangzhou developed a faster fermentation, often blending Yunnan leaf with Guangdong leaf. Yunnan had its own beginnings too: dampening leaf for its pressed jin cha, and in 1958 a steam method at Xiaguan that cut fermentation to about fifteen days.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "shou:piling-today",
-    "pageId": "shou",
-    "sectionKey": "piling-today",
-    "label": "Piling today",
-    "axis": "process",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Shou"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Current factory practice in general",
-    "text": "Most traditional factories still pile on cement floors or in tiled pits, seasoned over years of use; a new floor is first broken in with wetted tea dust until it darkens and stops smelling. Some newer makers pile off the floor on perforated steel to keep the leaf cleaner. A pile can be a hundred kilograms or twenty tonnes, and each maker decides how far to take it: a lighter fermentation keeps some of the raw leaf’s liveliness, a heavier one gives a thicker, darker cup, and taken too far the leaf turns hard and charred.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "shou:wet-piling",
-    "pageId": "shou",
-    "sectionKey": "wet-piling",
-    "label": "Wet piling",
-    "axis": "process",
-    "basis": "sourced",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Shou"
-    },
-    "terms": [
-      {
-        "original": "渥堆",
-        "pinyin": "wò duī",
-        "gloss": "wet piling"
-      }
-    ],
-    "rev": 2,
-    "scope": "The wet-pile process in general",
-    "text": "Ripe pu’er is made by fermenting tea leaves in a damp pile, a process called wet piling. Sun-dried leaf is wetted and heaped so that heat, moisture and microbes can work on it. The heat comes from the microbes themselves, so the pile is covered to hold it in, then turned about once a week to spread it and let air in. It is kept below about 65°C, because hotter than that the leaf starts to char. After one to two months the leaf is dried. Yunnan’s state factories brought the method into production in 1973, after a joint team studied faster piling in Guangdong.",
-    "sourceIds": [
-      "white2tea-ripe-puer"
-    ],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "sichuan-dark:ageing",
-    "pageId": "sichuan-dark",
-    "sectionKey": "ageing",
-    "label": "Keeping and ageing Sichuan border tea",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "sichuan"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Sichuan border tea style kit",
-    "text": "Sichuan border tea is kept for years, and the trade values older bricks more. With age the liquor turns redder and the cup grows milder and rounder, and a medicinal edge often appears, which sellers read as a sign of good storage. Keep the brick dry, clean and away from strong smells and direct sun. Do not drink a brick that smells musty or shows mould. How fast it changes depends on storage, and the trade does not agree on one best way to keep it.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "sichuan-dark:brewing",
-    "pageId": "sichuan-dark",
-    "sectionKey": "brewing",
-    "label": "Brewing Sichuan border tea",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "sichuan"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Sichuan border tea style kit",
-    "text": "Break a few pieces from the edge of the brick, rinse them with boiling water and pour that off at once. Then use boiling water and plenty of leaf. The leaf is coarse and gives up its flavour slowly, so people brew it two ways. Some steep it in short gongfu pours, a little longer each time. Others use long steeps while the pot is still hot, or simmer the leaf for several minutes in a pot, which is the traditional way on the plateau.",
     "sourceIds": [],
     "reviewState": "approved"
   }

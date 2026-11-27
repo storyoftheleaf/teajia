@@ -387,7 +387,8 @@ export const PART: readonly DraftClaim[] = [
     "basis": "trade_knowledge",
     "listingEligible": false,
     "appliesWhen": {
-      "grade": "gong-ting"
+      "grade": "gong-ting",
+      "form": "Loose"
     },
     "terms": [],
     "rev": 1,
@@ -406,7 +407,7 @@ export const PART: readonly DraftClaim[] = [
         "evidenceIds": []
       }
     ],
-    "pageVisibility": "draft"
+    "pageVisibility": "public"
   },
   {
     "claimId": "gong-ting:common-impressions",
@@ -417,7 +418,8 @@ export const PART: readonly DraftClaim[] = [
     "basis": "trade_knowledge",
     "listingEligible": false,
     "appliesWhen": {
-      "grade": "gong-ting"
+      "grade": "gong-ting",
+      "form": "Loose"
     },
     "terms": [],
     "rev": 1,
@@ -436,7 +438,7 @@ export const PART: readonly DraftClaim[] = [
         "evidenceIds": []
       }
     ],
-    "pageVisibility": "draft"
+    "pageVisibility": "public"
   },
   {
     "claimId": "gong-ting:definition",
@@ -447,7 +449,8 @@ export const PART: readonly DraftClaim[] = [
     "basis": "trade_knowledge",
     "listingEligible": true,
     "appliesWhen": {
-      "grade": "gong-ting"
+      "grade": "gong-ting",
+      "form": "Loose"
     },
     "terms": [
       {
@@ -456,7 +459,7 @@ export const PART: readonly DraftClaim[] = [
         "gloss": "palace; used as a grade name"
       }
     ],
-    "rev": 2,
+    "rev": 1,
     "scope": "Loose ripe pu’er grading",
     "text": "Gong Ting is the finest grade of loose ripe pu’er, sorted out for its small leaf and high share of buds. In the market it sits one step above special grade.",
     "sourceIds": [],
@@ -464,16 +467,6 @@ export const PART: readonly DraftClaim[] = [
     "previousRevisions": [
       {
         "rev": 1,
-        "origin": "legacy_import",
-        "legacyRef": "marks:gong-ting",
-        "scope": "General grade designation, used on shou pu’er and aged Taiwanese oolong",
-        "text": "A 'palace' or 'imperial court' designation for the highest grade classification within a tea's production, indicating the finest bud or tip material. Seen on shou pu-erh (finest bud material) and on aged Taiwanese oolong (finest buds and leaves).",
-        "approvedAt": "2026-11-23",
-        "reason": "Imported from the legacy marks corpus",
-        "evidenceIds": []
-      },
-      {
-        "rev": 2,
         "origin": "approved",
         "scope": "Loose ripe pu’er grading",
         "text": "Gong Ting is the finest grade of loose ripe pu’er, sorted out for its small leaf and high share of buds. In the market it sits one step above special grade.",
@@ -482,7 +475,7 @@ export const PART: readonly DraftClaim[] = [
         "evidenceIds": []
       }
     ],
-    "pageVisibility": "draft"
+    "pageVisibility": "public"
   },
   {
     "claimId": "gong-ting:grade-and-quality",
@@ -493,7 +486,8 @@ export const PART: readonly DraftClaim[] = [
     "basis": "trade_knowledge",
     "listingEligible": false,
     "appliesWhen": {
-      "grade": "gong-ting"
+      "grade": "gong-ting",
+      "form": "Loose"
     },
     "terms": [],
     "rev": 1,
@@ -512,7 +506,7 @@ export const PART: readonly DraftClaim[] = [
         "evidenceIds": []
       }
     ],
-    "pageVisibility": "draft"
+    "pageVisibility": "public"
   },
   {
     "claimId": "gong-ting:name-on-the-label",
@@ -523,7 +517,8 @@ export const PART: readonly DraftClaim[] = [
     "basis": "trade_knowledge",
     "listingEligible": false,
     "appliesWhen": {
-      "grade": "gong-ting"
+      "grade": "gong-ting",
+      "form": "Loose"
     },
     "terms": [],
     "rev": 1,
@@ -542,7 +537,7 @@ export const PART: readonly DraftClaim[] = [
         "evidenceIds": []
       }
     ],
-    "pageVisibility": "draft"
+    "pageVisibility": "public"
   },
   {
     "claimId": "gong-ting:other-names",
@@ -553,7 +548,8 @@ export const PART: readonly DraftClaim[] = [
     "basis": "trade_knowledge",
     "listingEligible": false,
     "appliesWhen": {
-      "grade": "gong-ting"
+      "grade": "gong-ting",
+      "form": "Loose"
     },
     "terms": [
       {
@@ -578,7 +574,7 @@ export const PART: readonly DraftClaim[] = [
         "evidenceIds": []
       }
     ],
-    "pageVisibility": "draft"
+    "pageVisibility": "public"
   },
   {
     "claimId": "gongjian:among-three-tips",
