@@ -1,0 +1,81 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-27T00:13:34.864Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "66fba2fb-e53e-4600-8963-e277516d0261",
+    "name": "1980s Aged Lao Banzhang",
+    "chineseName": "八十年代老班章",
+    "type": "Sheng Puer",
+    "form": "Loose",
+    "year": 1980,
+    "origin": "Banzhang, Yunnan, China",
+    "stockGrams": null,
+    "pricePerGramUsd": null,
+    "tags": []
+  },
+  "entry": {
+    "productId": "66fba2fb-e53e-4600-8963-e277516d0261",
+    "paragraphs": [
+      {
+        "layer": "place",
+        "text": "This leaf comes from [Banzhang](banzhang:where-it-is), a group of tea villages on Bulang Mountain in the south of Menghai County, Xishuangbanna. The name covers more than one settlement. Lao Banzhang is the old village, and [Xin Banzhang](banzhang:old-and-new) was founded by people who moved out of it. The old village's tea sells for far more."
+      },
+      {
+        "layer": "age",
+        "text": "It is [raw pu’er](sheng:identity) from 1980, kept loose rather than pressed. Raw pu’er begins as [maocha](sheng:making), the sun-dried rough tea, and is never put through shou’s fast fermentation, so it changes slowly in [storage](sheng:aging), and the store it was kept in is part of its history. After forty-six years it is well past the ten or twenty years the trade counts as [aged](sheng:ageing)."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Young raw pu’er takes water a little off the boil, about 85 to 95°C, because hotter water draws out more of its bitterness; an aged one takes 95°C to boiling. A common start is about 7 grams to 100 ml and a quick rinse of a few seconds, then a first steep of ten to fifteen seconds, adding a few seconds each round. A good raw tea gives eight to ten cups or more."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "aged Sheng Pu’er",
+      "text": "A smoother, thicker, sweeter cup with woody, herbal and camphor notes and something of dried dates or dark fruit."
+    },
+    "missing": [
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "banzhang:where-it-is",
+      "rev": 1
+    },
+    {
+      "claimId": "banzhang:old-and-new",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:identity",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:making",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:aging",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:ageing",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:notice-aged",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-27T00:36:09.606Z"
+}

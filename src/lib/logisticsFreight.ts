@@ -1,4 +1,4 @@
-/** Shipment accounting only. These estimates never change the shop's retail freight rate. */
+/** Shipment accounting, and since migration 0148 the freight of a tea that names its logistics service (src/lib/freightSource.ts). A tea with no service keeps the shop rate. */
 export type PackedItemKind = 'loose_tea' | 'pressed_tea' | 'gaiwan' | 'cup' | 'teapot' | 'other';
 export interface LogisticsFreightInput {
   basis: 'kg' | 'm3' | 'fixed';

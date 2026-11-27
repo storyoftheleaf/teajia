@@ -15,7 +15,8 @@ last_reviewed: 2026-11-03
 > **Documentation hub:** start at [docs/INDEX.md](docs/INDEX.md). Architecture in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Current state in [docs/STATE_OF_THE_SITE.md](docs/STATE_OF_THE_SITE.md). What's next in [docs/CONSOLIDATED_DIRECTION.md](docs/CONSOLIDATED_DIRECTION.md) (the single directional list; per-track build queues in [docs/tracks/](docs/tracks/)). What shipped in [docs/CHANGELOG.md](docs/CHANGELOG.md).
 
 ## The Wisdom Base is one place (Adrian, 2026-11-27)
-All tea knowledge (types, places, grades, marks, processes, producers, named teas) lives in the one Wisdom Base at /wisdom: the records in `data/tea-wisdom-source/` and the written pages in `data/tea-reference/pages/`, joined by shared id. Never start a second library, store or set of pages for it. Before posting or composing a tea, check what it needs in the Wisdom Base and write that first. How: [docs/TEA_WISDOM_BASE.md](docs/TEA_WISDOM_BASE.md#one-wisdom-base-two-layers-read-this-before-adding-anything).
+All tea knowledge (types, places, grades, marks, processes, producers, named teas) lives in the one Wisdom Base at /wisdom: the records in `data/tea-wisdom-source/` and the written pages in `data/tea-reference/pages/`, joined by shared id. Never start a second library, store or set of pages for it. Before posting or composing a tea, check what it needs in the Wisdom Base and write that first. How: [docs/TEA_WISDOM_BASE.md](docs/TEA_WISDOM_BASE.md#one-wisdom-base-two-layers-read-this-before-adding-anything). A new tea's path from Curate to its entry, step by step with each agent's model and never-list: [docs/agents/TEA-WISDOM-AGENTS.md](docs/agents/TEA-WISDOM-AGENTS.md), run with `/tea-wisdom`.
+Run `node scripts/tea-wisdom-compose/needs.mjs` (or read the Wisdom Base list on the tea in Curate) before composing.
 
 ## Tea UI reference
 

@@ -143,6 +143,8 @@ export function buildProductUpdatePayload(field: keyof Product, value: any): Rec
        that rate from then on; a typed 0 is Adrian saying this one ships free.
        See worker/src/shippingRate.ts. */
     case 'shippingRatePerKg': return { shipping_rate_per_kg: enteredNumber(value) };
+    // The logistics service it travels by, or none: src/lib/freightSource.ts.
+    case 'freightServiceId': return { freight_service_id: value || null };
     case 'quantityPurchased': return { quantity_purchased: enteredNumber(value) };
     case 'lowStockThreshold': return { low_stock_threshold: enteredNumber(value) };
     case 'costCurrency': return { cost_currency: value };

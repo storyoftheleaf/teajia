@@ -1,0 +1,78 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-27T00:17:55.802Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "ba5a1e02-ac6f-4c5c-81bd-aed428034809",
+    "name": "Yiwu Wild White Tea",
+    "chineseName": "易武野生白茶",
+    "type": "White",
+    "form": "Loose",
+    "year": 2015,
+    "origin": "Yiwu, Yunnan, China",
+    "stockGrams": null,
+    "pricePerGramUsd": null,
+    "tags": []
+  },
+  "entry": {
+    "productId": "ba5a1e02-ac6f-4c5c-81bd-aed428034809",
+    "paragraphs": [
+      {
+        "layer": "type",
+        "text": "A loose [Yunnan white](yunnan-white:definition) from Yiwu, made in 2015 from Yunnan’s large-leaf tea plants rather than the smaller bush cultivars of Fujian. It follows the [white tea](white:definition) way of making: the leaf is [withered and then dried by air](yunnan-white:making), never heated to stop its change and never rolled, so it keeps its natural shape."
+      },
+      {
+        "layer": "age",
+        "text": "Made in 2015, this leaf is eleven years old. Yunnan white is [a recent tea in the market](yunnan-white:history), and there is [no agreed view of how long it should be kept](yunnan-white:ageing): some prefer it within a few years, while others keep it for years."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Yunnan white is brewed gently, as a white tea is, in a gaiwan or small pot, and it gives many infusions; the leaf holds up well."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "aged white tea",
+      "text": "Honey, dried fruit or jujube, something herbal and woody, a rounder, thicker body and a darker, redder liquor, with less lift in the aroma than a young tea."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "yunnan-white:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "white:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "yunnan-white:making",
+      "rev": 1
+    },
+    {
+      "claimId": "yunnan-white:history",
+      "rev": 1
+    },
+    {
+      "claimId": "yunnan-white:ageing",
+      "rev": 1
+    },
+    {
+      "claimId": "yunnan-white:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "white:notice-aged",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-27T00:36:12.127Z"
+}

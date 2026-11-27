@@ -236,7 +236,7 @@ export const PART: readonly PublicClaim[] = [
     "claimId": "menghai-county:history",
     "pageId": "menghai-county",
     "sectionKey": "history",
-    "label": "Factory-era importance",
+    "label": "Why the name is so well known",
     "axis": "maker_history",
     "basis": "sourced",
     "listingEligible": false,

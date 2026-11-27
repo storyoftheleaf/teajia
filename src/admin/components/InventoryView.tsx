@@ -40,7 +40,7 @@ import { Product } from '../types';
 import { shopRateInCurrency } from '../../lib/shippingRate';
 import { rateToUsd } from '../../lib/currency';
 import { QrCodeModal } from './QrCodeModal';
-import { useRates, useShopFreightDefault } from '../hooks/useAdminData';
+import { useRates, useShopFreightDefault, teaFallbackFreightUsd } from '../hooks/useAdminData';
 import { useToast } from './Toast';
 import { useAppStore } from '../store';
 import { useAppStore as useCustomerAppStore } from '../../lib/store';
@@ -1182,7 +1182,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         if (product.id !== id) return product;
         const { pieceWeightG, ...otherChanges } = changes;
         const updated = { ...product, ...otherChanges, ...('pieceWeightG' in changes ? { pieceWeightG: pieceWeightG ?? undefined } : {}) };
-        const pricing = formPricingPreview(updated, ratesRef.current, shopFreightRef.current);
+        const pricing = formPricingPreview(updated, ratesRef.current, teaFallbackFreightUsd(updated, shopFreightRef.current));
         return pricing.calculatedPerGram === null ? updated : { ...updated, pricePerGramUSD: pricing.calculatedPerGram };
       }));
       setLastSavedAt(Date.now());
@@ -1230,7 +1230,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         const nextCurrency = String(field === 'costCurrency' ? value : p.costCurrency) || 'USD';
         const freight = isTeaware ? 0
           : (field === 'shippingRatePerKg' ? enteredNumber(value) : p.shippingRatePerKg)
-            ?? shopRateInCurrency(shopFreightRef.current, rateToUsd(ratesRef.current, nextCurrency));
+            ?? shopRateInCurrency(teaFallbackFreightUsd(updated, shopFreightRef.current), rateToUsd(ratesRef.current, nextCurrency));
         if (freight === null) return updated;
         const calc = calculatePricing(
           field === 'costAmount' ? enteredNumber(value) : p.costAmount,
@@ -2848,7 +2848,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             onMovementRecorded={handleMovementRecorded}
             onOpenSource={stableOpenSupplier}
             groupActions={(label, items) => <SupplierActionsMenu phone label={label} items={items} onRename={renameSupplier} onAssign={setUnknownSupplierProducts} onDetails={stableOpenSupplier} />}
-            tools={product => <PhoneTeaTools product={product} onSavePricing={changes => handleFormPricingUpdate(product.id, changes)} onSaveChange={async (field, value) => { await handleProductUpdate(product.id, field, value, { throwOnError: true }); }} onTaste={() => setPersonalTastingProduct(product)} onJournal={() => navigate(`/account/journal?tea=${encodeURIComponent(product.id)}`)} onHistory={() => stableStockHistory(product.id, product.productName)} onDelete={() => { setDeleteTarget({ id: product.id, name: product.givenName || product.productName }); setDeleteInput(''); }} onEdit={() => stableOpenPanel(product)} onCount={trigger => stableStockMovement(product, trigger)} costRateToUsd={costRateToUsd} shopFreightPerKgUsd={shopFreight.perKgUsd} />}
+            tools={product => <PhoneTeaTools product={product} onSavePricing={changes => handleFormPricingUpdate(product.id, changes)} onSaveChange={async (field, value) => { await handleProductUpdate(product.id, field, value, { throwOnError: true }); }} onTaste={() => setPersonalTastingProduct(product)} onJournal={() => navigate(`/account/journal?tea=${encodeURIComponent(product.id)}`)} onHistory={() => stableStockHistory(product.id, product.productName)} onDelete={() => { setDeleteTarget({ id: product.id, name: product.givenName || product.productName }); setDeleteInput(''); }} onEdit={() => stableOpenPanel(product)} onCount={trigger => stableStockMovement(product, trigger)} costRateToUsd={costRateToUsd} shopFreightPerKgUsd={teaFallbackFreightUsd(product, shopFreight.perKgUsd)} />}
             sortKey={(inventorySortConfig[0]?.key as PhoneSortKey | undefined) ?? null}
             sortDir={inventorySortConfig[0]?.direction ?? 'asc'}
             onSort={(col) => {
@@ -2990,7 +2990,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                   focusedCol={focusedCell?.row === globalIdx ? (focusedCell.col ?? null) : null}
                                   isEditMode={isEditMode}
                                   costRateToUsd={costRateToUsd}
-                                  shopFreightPerKgUsd={shopFreight.perKgUsd}
+                                  shopFreightPerKgUsd={teaFallbackFreightUsd(product, shopFreight.perKgUsd)}
                                   visibleCols={renderCols}
                                   splitViewCols={renderSplitCols}
                                   splitView={splitView}
@@ -3091,7 +3091,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                               focusedCol={focusedCell?.row === globalIdx ? (focusedCell.col ?? null) : null}
                               isEditMode={isEditMode}
                               costRateToUsd={costRateToUsd}
-                              shopFreightPerKgUsd={shopFreight.perKgUsd}
+                              shopFreightPerKgUsd={teaFallbackFreightUsd(product, shopFreight.perKgUsd)}
                               visibleCols={renderCols}
                               splitViewCols={renderSplitCols}
                               splitView={splitView}

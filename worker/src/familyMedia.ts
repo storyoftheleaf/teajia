@@ -52,6 +52,25 @@ async function validSignature(secret: string | undefined, key: string, params: U
   return diff === 0;
 }
 
+/**
+ * A family photograph the public may see: on show (shared to a page or
+ * offered, not taken off by its author), of a public tea in an open shop, and
+ * hidden by the shop neither itself, nor with its tasting, nor with its
+ * author's page. The media door serves exactly these, so anything that points
+ * the public at a photograph (the people list's portrait) uses this too.
+ * Needs the member_photographs row aliased `p`.
+ */
+export const FAMILY_PHOTO_PUBLIC_SQL = `p.removed_by_member_at IS NULL
+  AND p.share_state IN ('page', 'offered')
+  AND EXISTS (SELECT 1 FROM products lot JOIN accounts a ON a.id = lot.account_id
+               WHERE lot.id = p.product_id AND lot.account_id = p.account_id
+                 AND lot.is_public = 1 AND lot.shown_in_shop = 1 AND lot.status IN ('Active', 'Sold Out')
+                 AND a.status = 'active' AND a.public_enabled = 1)
+  AND NOT EXISTS (SELECT 1 FROM family_hides h WHERE h.account_id = p.account_id AND h.target_kind = 'photograph' AND h.target_id = p.id)
+  AND ${PHOTO_TASTING_NOT_HIDDEN}
+  AND NOT EXISTS (SELECT 1 FROM family_hides h JOIN contributors hc ON hc.id = h.target_id
+                   WHERE h.account_id = p.account_id AND h.target_kind = 'page' AND hc.user_id = p.author_user_id)`;
+
 export type FamilyMediaVerdict = 'not-family' | 'public' | 'signed' | 'refused';
 
 export async function familyMediaVerdict(
@@ -68,17 +87,7 @@ export async function familyMediaVerdict(
   }
   const row = await db.prepare(
     `SELECT 1 AS ok FROM member_photographs p
-       JOIN products lot ON lot.id = p.product_id AND lot.account_id = p.account_id
-       JOIN accounts a ON a.id = lot.account_id
-      WHERE lot.is_public = 1 AND lot.shown_in_shop = 1 AND lot.status IN ('Active', 'Sold Out')
-        AND a.status = 'active' AND a.public_enabled = 1
-        AND (p.full_key = ?1 OR p.small_key = ?1)
-        AND p.removed_by_member_at IS NULL
-        AND p.share_state IN ('page', 'offered')
-        AND NOT EXISTS (SELECT 1 FROM family_hides h WHERE h.account_id = p.account_id AND h.target_kind = 'photograph' AND h.target_id = p.id)
-        AND ${PHOTO_TASTING_NOT_HIDDEN}
-        AND NOT EXISTS (SELECT 1 FROM family_hides h JOIN contributors hc ON hc.id = h.target_id
-                         WHERE h.account_id = p.account_id AND h.target_kind = 'page' AND hc.user_id = p.author_user_id)`,
+      WHERE (p.full_key = ?1 OR p.small_key = ?1) AND ${FAMILY_PHOTO_PUBLIC_SQL}`,
   ).bind(key).first();
   return row ? 'public' : 'refused';
 }

@@ -3,7 +3,7 @@ import { BottomSheet } from '../../../../components/shared/BottomSheet';
 import { TYPOGRAPHY_CLASSES as T } from '../../../../designTokens';
 import { TEA_FORMS, INVENTORY_TEA_TYPES, NON_TEA_TYPES, inventoryTeaType } from '../../../../wisdom/vocabulary';
 import { SHOP_MARKUP_MULTIPLIER } from '../../../../lib/markup';
-import { useRates, useShopFreightDefault } from '../../../hooks/useAdminData';
+import { useRates, useShopFreightDefault, teaFallbackFreightUsd } from '../../../hooks/useAdminData';
 import { enteredNumber } from '../../../productUpdatePayload';
 import type { Product } from '../../../types';
 import { formPricingPreview } from './formPricingModel';
@@ -32,7 +32,7 @@ export function FormPricingSheet({ product, onSave, onClose }: { product: Produc
   const basisGrams = enteredNumber(purchaseGrams);
   const paid = enteredNumber(cost);
   const draft = { ...product, type, form: form as Product['form'], soldInWholeUnits: wholeOnly, pieceWeightG: pieceWeight, costAmount: paid, quantityPurchased: basisGrams };
-  const preview = formPricingPreview(draft, rates, freight.perKgUsd);
+  const preview = formPricingPreview(draft, rates, teaFallbackFreightUsd(product, freight.perKgUsd));
   async function save() {
     if (savingRef.current) return;
     setError('');

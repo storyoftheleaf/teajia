@@ -53,6 +53,24 @@ function matchIn<T extends Named>(index: Array<{ key: string; entry: T }>, names
   return null;
 }
 
+/** Every entry the names carry, each once, longest alias first. */
+function matchAllIn<T extends Named>(index: Array<{ key: string; entry: T }>, names: Array<string | null | undefined>): T[] {
+  const keys = names.map(name => (name ? matchKey(name) : '')).filter(Boolean);
+  const found: T[] = [];
+  for (const { key, entry } of index) {
+    if (!found.includes(entry) && keys.some(candidate => containsWholeToken(candidate, key))) found.push(entry);
+  }
+  return found;
+}
+
+/**
+ * The same name matching over any list of named things (Wisdom pages, ways of
+ * making), so a new list never needs a matcher of its own.
+ */
+export function matchNamedIn<T extends Named>(entries: readonly T[], ...names: Array<string | null | undefined>): T[] {
+  return matchAllIn(buildIndex([...entries]), names);
+}
+
 const PRODUCER_INDEX = buildIndex(PRODUCERS);
 const STYLE_INDEX = buildIndex(STYLES);
 const MARK_INDEX = buildIndex(MARKS);
@@ -73,6 +91,12 @@ export const matchStyle = (...names: Array<string | null | undefined>): Style | 
 
 /** The recipe number, seal or label a tea's names carry. */
 export const matchMark = (...names: Array<string | null | undefined>): Mark | null => matchIn(MARK_INDEX, names);
+
+/** Every recipe number, seal, label or grade word a tea's names carry. */
+export const matchMarks = (...names: Array<string | null | undefined>): Mark[] => matchAllIn(MARK_INDEX, names);
+
+/** Every factory, house or brand a tea's names carry. */
+export const matchProducers = (...names: Array<string | null | undefined>): Producer[] => matchAllIn(PRODUCER_INDEX, names);
 
 /** Marks a producer is known for, resolved to entries we hold. */
 export const marksOf = (producer: Producer): Mark[] =>

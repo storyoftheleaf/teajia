@@ -1,0 +1,70 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-27T00:15:20.838Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "e01c590b-b8b4-4d44-93b2-3ecde1161e13",
+    "name": "1990 Old Tea Stem Loose",
+    "chineseName": "1990老茶梗",
+    "type": "Dark",
+    "form": "Loose Leaf",
+    "year": 1990,
+    "origin": "China",
+    "stockGrams": null,
+    "pricePerGramUsd": null,
+    "tags": []
+  },
+  "entry": {
+    "productId": "e01c590b-b8b4-4d44-93b2-3ecde1161e13",
+    "paragraphs": [
+      {
+        "layer": "type",
+        "text": "A [dark tea](dark:definition) from China, made in 1990 and kept loose rather than pressed. After the leaf was heated and rolled, it was left to change in warmth and moisture, where microbes and the leaf's own chemistry slowly darkened it. Most dark tea was pressed into bricks, cakes and logs so it could survive months on the road as [border tea](dark:why) to Tibet, Mongolia and the north west, but some is still sold loose, as this one is."
+      },
+      {
+        "layer": "age",
+        "text": "Dark tea is made to be kept, and the trade [values it more with age](dark:ageing). This one is thirty-six years old. How far it has changed depends on how it was stored. The trade does not agree on one way: some keep dark tea cool and dry for a slow, clean change, others warmer and more humid for a faster one."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Dark tea takes boiling water. Its leaf is mature and dense, so it gives up its flavour slowly and is hard to overbrew. Rinse it first with boiling water and pour that off within seconds: the rinse wakes the leaf and washes off dust and any stale smell from storage, and an old tea may take a second rinse. In a small pot use plenty of leaf, about 7 grams to 120 ml, then steep very briefly at first and a little longer each time; a good dark tea gives many cups."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "dark tea",
+      "text": "A smooth, mellow cup with low bitterness and a deep red colour, often sweet and woody or earthy, sometimes with herbal or medicinal notes. A young dark tea can still smell of the pile or of storage; an aged one is usually redder, sweeter and thicker."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "dark:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "dark:why",
+      "rev": 1
+    },
+    {
+      "claimId": "dark:ageing",
+      "rev": 1
+    },
+    {
+      "claimId": "dark:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "dark:common-impressions",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-27T00:36:12.441Z"
+}

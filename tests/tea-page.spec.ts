@@ -12,7 +12,7 @@ function token() {
 const base = {
   form: 'Loose', given_name: '', chinese_name: '', origin_country: 'China', cost_per_gram_usd: 0.1,
   cost_amount: 50, low_stock_threshold: 20, tasting_notes: [], image_url: '', status: 'Active', vendor: 'Lin',
-  cost_currency: 'USD', quantity_purchased: 100, shipping_rate_per_kg: 0, fixed_retail_price_usd: null, can_reorder: 0,
+  cost_currency: 'USD', quantity_purchased: 100, shipping_rate_per_kg: null, fixed_retail_price_usd: null, can_reorder: 0,
   is_public: 0, shown_in_shop: 0, is_featured: 0, is_sample: 0, is_personal: 0, stock_verified_at: null,
   inventory_purpose: 'working', tasting_source: 'owner',
 };
@@ -38,13 +38,17 @@ async function install(page: Page) {
   await page.route('**/api/auth/refresh', r => r.fulfill({ json: { token: jwt } }));
   await page.route('**/api/products', r => r.fulfill({ json: products }));
   await page.route('**/api/products/*/events', r => r.fulfill({ json: [] }));
-  await page.route('**/api/rates', r => r.fulfill({ json: [] }));
+  await page.route('**/api/rates', r => r.fulfill({ json: [{ currency: 'USD', rate_to_usd: 1 }] }));
   await page.route('**/api/accounts/acct', r => r.fulfill({ json: { id: 'acct', name: 'Test', slug: 'test' } }));
   await page.route('**/api/inventory/summaries', r => r.fulfill({ json: { summaries: [] } }));
   for (const endpoint of ['batches', 'inventory/receipts', 'admin/events', 'compass/incoming', 'user/favorites', 'tea-discovery', 'tasting-journal', 'notes', 'customers']) {
     await page.route(`**/api/${endpoint}**`, r => r.fulfill({ json: [] }));
   }
   await page.route('**/api/compass/entries**', r => r.fulfill({ json: { entries: [] } }));
+  // Freight rates live with the logistics companies' services, not on the tea.
+  await page.route('**/api/logistics', r => r.fulfill({ json: { orders: [], shipments: [], addresses: [], services: [
+    { id: 'air', logistics_company_id: 'co', logistics_company_name: 'Guangzhou', name: 'Airmail', mode: 'air', basis: 'kg', rate: 2, currency: 'USD', active: true },
+  ] } }));
 }
 
 test.beforeEach(async ({ isMobile }) => {
@@ -70,6 +74,19 @@ test('the tea page reads in editing order and Next keeps the part you are on', a
   await expect(tea.getByRole('combobox', { name: 'Form' })).toHaveValue('Loose');
   await page.waitForTimeout(400);
   await page.screenshot({ path: testInfo.outputPath('tea-page-top.png') });
+
+  // The tea only names the service it travels by; each says the price it gives before it is
+  // picked: Liu Bao costs 0.50 a gram, so Airmail at 2 dollars a kilo sells at 1.51. Nothing
+  // on the tea edits a freight price: the rates are set in Logistics.
+  const freight = tea.getByRole('combobox', { name: 'Travels by' });
+  await expect(freight).toHaveValue('');
+  await expect(freight.locator('option')).toHaveText(['Shop rate', 'Guangzhou · Airmail, $1.51 a gram']);
+  await expect(tea.getByRole('spinbutton', { name: /freight/i })).toHaveCount(0);
+  await expect(tea.getByRole('button', { name: 'Rates are set in Logistics' })).toBeVisible();
+  const saved = page.waitForRequest(r => r.url().includes('/api/products/liu-bao/commercial') && r.method() === 'PUT');
+  await page.route('**/api/products/liu-bao/commercial', r => r.fulfill({ json: { success: true } }));
+  await freight.selectOption('air');
+  expect((await saved).postDataJSON()).toEqual({ freight_service_id: 'air' });
 
   await page.getByRole('navigation', { name: 'Parts of this tea' }).getByRole('button', { name: 'Price' }).click();
   await expect(page.getByTestId('tea-page-next-at')).toHaveText('Next opens at Price');
