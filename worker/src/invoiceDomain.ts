@@ -1,3 +1,4 @@
+import { isDiscountLine } from './invoiceDiscount';
 import { canonicalCurrency } from './teaMasterSales';
 export interface ConfirmedInvoiceLineInput {
   quantity: number;
@@ -496,7 +497,10 @@ export function validateRetailInvoiceInput(input: unknown): RetailInvoiceInput {
     if (typeof line.price_at_sale !== 'number') {
       throw new RangeError(`lineItems[${index}].price_at_sale must be a number`);
     }
-    requireNonNegative(`lineItems[${index}].price_at_sale`, line.price_at_sale);
+    // The one negative line an invoice may carry is its discount (invoiceDiscount.ts).
+    if (!isDiscountLine({ product_id: productId, custom_name: customName, price_at_sale: line.price_at_sale })) {
+      requireNonNegative(`lineItems[${index}].price_at_sale`, line.price_at_sale);
+    }
     if(line.quantity_unit!==undefined&&!['g','unit'].includes(String(line.quantity_unit)))throw new RangeError('Invalid line quantity unit');
     return { product_id: productId, custom_name: customName, quantity: line.quantity, price_at_sale: line.price_at_sale,...(line.quantity_unit?{quantity_unit:line.quantity_unit as 'g'|'unit'}:{}) };
   });

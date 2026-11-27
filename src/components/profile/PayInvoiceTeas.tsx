@@ -18,8 +18,10 @@ import type { PayLinkTeaLine } from './types';
  * sell carries none. Shown only to a
  * holder of the invoice's own link; the worker decides that before it sends a line.
  */
-export function PayInvoiceTeas({ lines, invoiceNumber = null, onAddToCart }: {
+export function PayInvoiceTeas({ lines, invoiceNumber = null, onAddToCart, discount = null }: {
   lines: readonly PayLinkTeaLine[];
+  /** A percent off the shop offered, shown as its own line above the total. */
+  discount?: { percent: number; amount_usd: number } | null;
   invoiceNumber?: string | null;
   onAddToCart?: (item: InventoryItem, grams: number, totalUsd: number) => void;
 }) {
@@ -46,7 +48,7 @@ export function PayInvoiceTeas({ lines, invoiceNumber = null, onAddToCart }: {
       return { id, line, product: card, card: { ...card, id } as InventoryItem, amount };
     });
   }, [lines]);
-  const totalUsd = Math.round(lines.reduce((sum, line) => sum + line.line_total_usd, 0) * 100) / 100;
+  const totalUsd = Math.round((lines.reduce((sum, line) => sum + line.line_total_usd, 0) - (discount?.amount_usd ?? 0)) * 100) / 100;
   // An invoice owes cents, so dollars read to the cent; another currency
   // reads as the shop quotes it, the near figure.
   const exact = (usd: number) => (shopPrice.code === 'USD'
@@ -80,6 +82,12 @@ export function PayInvoiceTeas({ lines, invoiceNumber = null, onAddToCart }: {
         onOpenProduct={card => { if (byId.get(card.id)?.line.product_id) setOpenId(card.id); }}
         weighOptionsFor={card => { const row = byId.get(card.id); return row ? [row.amount] : undefined; }}
       />
+      {discount && discount.amount_usd > 0 && (
+        <div className="flex items-baseline justify-between gap-4 border-b border-tea-border px-4 py-3 md:px-6" data-testid="pay-invoice-discount">
+          <span className="label-caps text-tea-gold">{discount.percent}% off</span>
+          <span className="font-display text-ui-18 tabular-nums text-tea-gold">−{exact(discount.amount_usd)}</span>
+        </div>
+      )}
       <div className="flex items-baseline justify-between gap-4 border-b border-tea-border px-4 py-4 md:px-6" data-testid="pay-invoice-total">
         <span className="label-caps text-tea-text-sec">Total</span>
         <span className="font-display text-ui-22 tabular-nums text-tea-text">{exact(totalUsd)}</span>
