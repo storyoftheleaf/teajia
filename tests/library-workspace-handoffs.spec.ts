@@ -99,12 +99,12 @@ test.describe('Library workspace handoffs', () => {
     expect((await sourceState(page))?.description).toBe('Edited description with a clear origin and harvest.');
     await noOverflow(page);
     await record(page).getByTestId('tea-record-scroll').evaluate(element => { element.scrollTop = element.scrollHeight; });
-    await record(page).getByRole('button', { name: 'Create Inventory record', exact: true }).scrollIntoViewIfNeeded();
+    await record(page).getByRole('button', { name: 'Add to Stock', exact: true }).scrollIntoViewIfNeeded();
     await page.screenshot({ path: `/tmp/library-workspace-${info.project.name.includes('Mobile') ? 'phone393' : 'desktop'}-record-footer.png`, fullPage: false, animations: 'disabled' });
     expect((await header.boundingBox())!.y).toBeCloseTo(headerBox!.y, 0);
     await expect(record(page).getByRole('textbox', { name: 'Add a note', exact: true })).not.toBeInViewport();
     if (info.project.name.includes('Mobile')) {
-      const footerAction = await record(page).getByRole('button', { name: 'Create Inventory record', exact: true }).boundingBox();
+      const footerAction = await record(page).getByRole('button', { name: 'Add to Stock', exact: true }).boundingBox();
       // The open sheet hides the page from the accessibility tree, so find the bar by its markup.
       const bottomNav = await page.locator('nav[aria-label="Main navigation"]').filter({ visible: true }).boundingBox();
       expect(footerAction).not.toBeNull();
@@ -139,7 +139,7 @@ test.describe('Library workspace handoffs', () => {
   test('explicit promotion leaves the active Library and retains its same shared record under Transferred', async ({ page }) => {
     await openLibrary(page);
     await row(page).getByRole('button', { name: 'Edit details for Cloud Peak', exact: true }).click();
-    await record(page).getByRole('button', { name: 'Create Inventory record', exact: true }).click();
+    await record(page).getByRole('button', { name: 'Add to Stock', exact: true }).click();
     await expect.poll(() => compassCreatedProducts(page).length).toBe(1);
     await expect.poll(async () => (await sourceState(page))?.draftProductId).toBe(`product-${entryId}`);
     await closeRecord(page);
@@ -152,7 +152,7 @@ test.describe('Library workspace handoffs', () => {
     await row(page).getByRole('button', { name: 'Edit details for Cloud Peak', exact: true }).click();
     await openRecordSection(page, 'Source material');
     await expect(record(page).getByRole('textbox', { name: 'Notes', exact: true })).toHaveValue(sourceEntry.notes);
-    await expect(record(page).getByRole('button', { name: /View in Inventory/ })).toBeVisible();
+    await expect(record(page).getByRole('button', { name: /View in Stock/ })).toBeVisible();
     await expect(record(page).getByRole('region', { name: 'Tea photos' }).getByAltText('Photo 1').first()).toBeVisible();
     await noOverflow(page);
   });
