@@ -7,6 +7,7 @@ import { Button } from '../shared/Button';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import { api } from '../../lib/api';
 import { HostTableLinks } from './HostTableLinks';
+import { PourLink, pourDay } from './PourLink';
 import type { HostedTableDoor } from '../../lib/hostingApi';
 import {
   DOOR_WORDS, TABLE_AREA_HINT, doorOf, doorWords, hostSmallText, hostTableQueryKey, hostText, tableWhen, type HostTablePartProps,
@@ -43,6 +44,7 @@ export function HostTableHeader({ tableId, detail }: HostTablePartProps) {
       <div className="flex flex-wrap items-center gap-2">
         <Button type="button" variant="secondary" className="tap-target" onClick={() => void copyLink()}>Copy link</Button>
         <a className="btn-secondary tap-target" href={whatsapp} target="_blank" rel="noreferrer">Send in WhatsApp</a>
+        <PourLink day={pourDay(table.event_date, table.timezone)} />
       </div>
       {feedback && <p className={hostSmallText} role="status">{feedback}</p>}
       <HostTableLinks tableId={tableId} detail={detail} only={['card']} />
