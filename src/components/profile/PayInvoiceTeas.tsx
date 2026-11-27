@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { LinkTeaPage, LinkTeaTop } from '../shop/LinkTeaPage';
+import { useOpenLinkTea } from '../shop/useOpenLinkTea';
 import { linkTeaInventoryItem, type LinkTeaSource } from '../shop/linkTea';
 import { TeaLedger, type TeaLedgerGroup } from '../shop/TeaLedger';
 import type { WeighOption } from '../shop/TeaWeighControl';
@@ -12,12 +13,13 @@ import type { PayLinkTeaLine } from './types';
  * The teas on an invoice, at the top of its pay page, drawn as the shop draws
  * them (Adrian, 2026-11-27: "make her tea invoice look like Daniel's"): the
  * shop's own rows under type headings, with what was bought and its price where
- * the shop puts its weigh box. A tea opens in the shop's own tea card, to read;
- * paying happens here, so the card carries no order footer. Shown only to a
+ * the shop puts its weigh box. A tea opens in the shop's own tea page with the
+ * shop's own order footer, to get more of it; a private tea the shop does not
+ * sell carries none. Shown only to a
  * holder of the invoice's own link; the worker decides that before it sends a line.
  */
 export function PayInvoiceTeas({ lines, invoiceNumber = null }: { lines: readonly PayLinkTeaLine[]; invoiceNumber?: string | null }) {
-  const [openId, setOpenId] = useState<string | null>(null);
+  const { openId, open: setOpenId, close: closeTea } = useOpenLinkTea();
   const shopPrice = useShopPrice();
   const favoriteTeas = useAppStore(s => s.favoriteTeas);
   const toggleFavoriteTea = useAppStore(s => s.toggleFavoriteTea);
@@ -81,7 +83,7 @@ export function PayInvoiceTeas({ lines, invoiceNumber = null }: { lines: readonl
       {openRow && (
         <LinkTeaPage
           item={openRow.product}
-          onClose={() => setOpenId(null)}
+          onClose={closeTea}
           top={<LinkTeaTop line={[invoiceNumber ? `On your invoice ${invoiceNumber}` : 'On your invoice', openRow.amount.label ?? `${openRow.amount.grams}g`].join(' · ')} />}
         />
       )}
