@@ -1,6 +1,6 @@
 ## 2026-11-27: Payment details for agents
 
-`set_my_payment_details` (`worker/src/mcpTools/paymentDetails.ts`, signed-in) saves pasted bank or Wise details on the caller's OWN profile, the same row the profile's paste box writes, so their invoices get a pay link. The preview hides all but the last four digits of each number, the ticket keeps only a hash of the paste (the confirm sends it again), and the audit row records fields, never values. Pasting again under the same label replaces that row. Guard: `worker/tests/payment-details-tool.test.ts`.
+`set_my_payment_details` (`worker/src/mcpTools/paymentDetails.ts`, `sales:write`) saves pasted bank or Wise details on the caller's OWN profile, the same row the profile's paste box writes, so their invoices get a pay link. The preview hides all but the last four digits of each number, the ticket keeps only a hash of the paste (the confirm sends it again), and the audit row records fields, never values. Pasting again under the same label replaces that row. Guard: `worker/tests/payment-details-tool.test.ts`.
 
 
 ## 2026-11-27: Bringing a tea in, step 1: where each tea is, and what is waiting for you

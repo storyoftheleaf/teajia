@@ -147,7 +147,7 @@ export const paymentDetailsTools: ToolModule = {
   area: 'payment-details',
   defs: [
     {
-      name: 'set_my_payment_details', scope: 'signed-in',
+      name: 'set_my_payment_details', scope: 'sales:write',
       description: 'Save how people pay you (bank or Wise details, pasted as the bank gives them) on your OWN profile, so your invoices get a pay link. Only ever your own profile. Two steps: the preview hides all but the last four digits of each number; confirm by sending the same details again with the token, only after the person agrees.',
       inputSchema: {
         type: 'object',
