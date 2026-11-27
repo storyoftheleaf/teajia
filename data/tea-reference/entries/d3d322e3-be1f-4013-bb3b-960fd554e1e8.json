@@ -1,6 +1,6 @@
 {
   "status": "approved",
-  "composedAt": "2026-11-25T15:44:33.334Z",
+  "composedAt": "2026-11-27T03:57:16.973Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -11,26 +11,20 @@
     "form": "Loose",
     "year": null,
     "origin": "Hsinchu, Taiwan",
-    "stockGrams": 200,
-    "pricePerGramUsd": 1.75,
-    "tags": [
-      "muscatel",
-      "ripe peach",
-      "honey",
-      "dried rose",
-      "warm spice"
-    ]
+    "stockGrams": null,
+    "pricePerGramUsd": null,
+    "tags": []
   },
   "entry": {
     "productId": "d3d322e3-be1f-4013-bb3b-960fd554e1e8",
     "paragraphs": [
       {
         "layer": "place",
-        "text": "This loose leaf is an [Oriental Beauty](taiwan-oolong:oriental-beauty) from Hsinchu, in northern Taiwan. Hsinchu County and neighbouring Miaoli are where the style is mainly made. The tea starts on the bush: a small green leafhopper bites the buds and leaves, and that bite begins the leaf's change before it is ever picked. That is why growers keep insecticide off these fields. The pick comes in early summer."
+        "text": "This tea comes from [Hsinchu](hsinchu:where-it-is), a hill county in the north west of Taiwan, where the style grows on low to middling ground rather than on the high mountains of the island's centre. Tea here is largely a [Hakka](hsinchu:hakka) trade, and many farms have passed down through families since the Japanese period. The record names the county and not a township; within it, the trade most often names [Emei and Beipu](hsinchu:tea-townships)."
       },
       {
         "layer": "type",
-        "text": "Most [Taiwan oolong](taiwan-oolong:definition) is lightly to moderately oxidised. This style is taken much further, close to red tea, at the far end of the [oolong](oolong:definition) range. Its older name is Pengfeng tea, which means bragging tea."
+        "text": "[Oriental Beauty](taiwan-oolong:oriental-beauty) depends on a [small green leafhopper](hsinchu:summer-leafhopper) that feeds on the young shoots in summer. Its bite starts the leaf's change while it is still on the bush, so growers keep insecticide off these gardens. The bud and the next two leaves are picked by hand. The leaf is then [oxidised](oolong:definition) much further than other Taiwan oolong, close to red tea, before it is dried. In Hsinchu it also has an older folk name, [pengfeng cha](hsinchu:oriental-beauty-names), braggart's tea."
       }
     ],
     "brewing": {
@@ -43,7 +37,6 @@
       "text": "In light high mountain tea: a sweet, floral cup, often creamy or buttery, with little bitterness and a long sweet aftertaste. In roasted Dong Ding: caramel, ripe fruit, nuts and a toasted aroma. In Baozhong: floral notes and a clear, bright liquor. In Oriental Beauty: ripe fruit and honey, with little bitterness."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "The year it was made: unlocks the age paragraph",
       "A voice note from you on this lot",
       "Photos"
@@ -51,15 +44,31 @@
   },
   "claimUses": [
     {
+      "claimId": "hsinchu:where-it-is",
+      "rev": 1
+    },
+    {
+      "claimId": "hsinchu:hakka",
+      "rev": 1
+    },
+    {
+      "claimId": "hsinchu:tea-townships",
+      "rev": 1
+    },
+    {
       "claimId": "taiwan-oolong:oriental-beauty",
       "rev": 1
     },
     {
-      "claimId": "taiwan-oolong:definition",
+      "claimId": "hsinchu:summer-leafhopper",
       "rev": 1
     },
     {
       "claimId": "oolong:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "hsinchu:oriental-beauty-names",
       "rev": 1
     },
     {
@@ -73,5 +82,5 @@
   ],
   "problems": [],
   "unsupported": [],
-  "approvedAt": "2026-11-25T23:18:43.637Z"
+  "approvedAt": "2026-11-27T04:17:08.025Z"
 }

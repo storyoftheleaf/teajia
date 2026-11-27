@@ -98,6 +98,8 @@ export interface ToolEnv {
   curateReceipts?: CurateReceiptService;
   inventoryReceipts?: InventoryReceiptService;
   stockMovements?: StockMovementService;
+  /** An invoice's pay link, from resolveInvoicePayment in index.ts. Null when there is none to give. */
+  invoicePayLinks?: { payUrl: (accountId: string, invoiceId: string) => Promise<string | null> };
 }
 
 /** The scopes a module may ask for. Mirrors MCP_SCOPES in mcp.ts. */

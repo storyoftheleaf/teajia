@@ -1,6 +1,6 @@
 # Tea Wisdom handoff: launching new teas
 
-Read this first, then work from it. Update the "State" and "Open" sections in the same commit as any change you make, so the next agent starts from the truth. Last updated 2026-11-27 (evening).
+Read this first, then work from it. Update the "State" and "Open" sections in the same commit as any change you make, so the next agent starts from the truth. Last updated 2026-11-27 (late evening).
 
 ## Start here
 
@@ -11,32 +11,34 @@ Read this first, then work from it. Update the "State" and "Open" sections in th
 
 Models (Adrian kept this split on 2026-11-27): Sonnet researches and writes Wisdom pages; Opus writes and checks each tea's entry; Sonnet fixes flags; Haiku sorts review notes.
 
-## State (measured on main, 2026-11-27)
+## State (measured on main, 2026-11-27, late)
 
-- 209 approved tea entries, live in the site code. An entry shows to visitors only when its tea is public and active.
-- 40 Wisdom Base pages. New today: Banzhang, Bulang Mountain, Jingmai, Kunlu Mountain, tea heads. A place page shows publicly only once a public tea links it.
-- The new-tea check (`wisdomNeeds()`), the Curate fold and grade matching in the composer are live.
+- 213 approved tea entries, live in the site code (98 rewritten on 2026-11-27 with the new pages). An entry shows to visitors only when its tea is public and active.
+- 85 Wisdom Base pages: 66 public, 7 reference topics kept as drafts by rule (the four factories, Hengfengyuan, the Menghai route, the Xishuangbanna list, Yunnan mountain names), 12 thin drafts held for more research.
+- Batch 1 and 2 (45 pages and new Yiwu and Menghai place sections) were researched by Sonnet, one agent per page. Adrian asked Claude to decide the review, so Claude approved 187 sections where the research met the bar (5+ places, 3 agreeing); the ledger says so on each.
+- Palace Grade (`gong-ting`) is public (PR storyoftheleaf/teajia#585). Its claims apply only to form Loose.
+- The three Huang Wei invoice teas have approved entries. Menghai Tender-Bud Palace is Loose in the shop; the 1980s Guogai Bing has no direct mountain origin (Adrian: a medicinal-flavoured cake), so its origin stays blank.
+- Records fixed to the sources: Lishan's region is Taichung and Alishan's is Chiayi (record names kept so their ids and links stay the same); Gong Jin is a selling name, not a grade, maker not established; Zhong Cha Pai is eight zhong around a central cha; the bare word "Menghai" is no longer a Menghai Tea Factory match word.
+- Research notes for every page: project files `tea-wisdom/research/<id>.md`.
 
 ## Open
 
-1. Kits now come only through the chain (PR storyoftheleaf/teajia#580, merged 2026-11-27).
-2. Menghai County rewrite and 8 more sections wait on the Wisdom Review page for Adrian's approval.
-3. Palace Grade (`gong-ting`): ready to publish on branch `claude/project-thread-5yn5tp` (legacy revision dropped, every claim limited to `form: Loose`, page public, tests updated). Merges on Adrian's yes. Because of the Loose limit, a tea gets Gong Ting text only when its shop record says Loose.
-4. Pages still needed (record only, no write-up): Hengfengyuan, Golden Bull, Xinghai Tea Factory, Taiwan as a place. Greater Yiwu and Menghai County have no place claims an entry can use, so Yiwu and Menghai teas get no place paragraph.
-5. Liao Fu (5 teas): parked by Adrian. Do not compose.
+1. Thin pages held as drafts, to research again before review: Golden Bull, Xinghai Tea Factory, Zhudong, 7572, Blue Seal Green Label, Yellow Label, Yi Ji, Gongjian, Zhen Pin, Red Seal, Gong Jin, Tongqinghao. Teas that need them (Precious Tieguanyin, Anhua Yi Ji, 7572 Menghai, Gongjian) keep draft entries until they pass.
+2. 15 teas were recomposed but the new text did not pass, so their earlier approved entry stays live: 11 still flagged after two writes (taste words such as "thick" or "honey" in the story, "best"), and 4 that lean on the held thin pages. The new drafts were not kept; recompose after the fixes.
+3. Qiaorui (producer record): almost certainly a misreading of Nanqiao Ruigong. No page; Adrian decides whether to drop the record.
+4. Liao Fu and Jia Ji: parked by Adrian. Do not compose.
+5. Still with no origin: 1990s Pu'er Tea Brick. Not covered by any page: Bamboo tube (process), China and Japan as whole countries, and the shop's own named teas.
 6. Seven near-empty records (`cvb`, `red bag`, `High Mountain`, `Organic High Mountain`, `Gaba High Mountain`, `Gaba Gigh Mountain`, `Gaba Taiwan`): Adrian decides fill or archive.
 7. Shop records that contradict themselves (report, never change without Adrian's yes): Fire oolong (year 1979, notes say 1983, $0.04/g); Taiwan Aged Green (1950 vs 1970); Tie Guan Yin 1970 and 1995 (lore says 1988); Dancong Ancient Spirit (1950 vs 1970); Miracle Fate (1,800 g vs 180 g); Bamboo Tube Shou listed as a brick.
-
-## Teas waiting on the shop record (2026-11-27)
-
-Three Huang Wei shou teas went live for an invoice to a friend, with no Wisdom entry yet and empty descriptions. Measured with `needs.mjs` on main at 21ffc77:
-
-- `f8be36d6` Menghai Pre-Qingming Tender-Bud Palace Tea (勐海明前嫩芽宫廷): style and Menghai covered; Gong Ting found from the Chinese name; form is empty, so it needs Loose on the record (Adrian's word) for the Palace Grade text to apply. Ready to compose once Palace Grade is merged and the form is set.
-- `262a3bcf` 1990s Pu'er Tea Brick and `e4531569` 1980s Guogai Bing (八十年代锅盖饼茶): style covered, no origin recorded. Compose after Adrian gives the origin (never guess it from the vendor or the name). "Guogai" (锅盖, pot lid) has no record of its own.
+8. Curate "Write it up" step (PR 586 in the intake thread) reads `wisdomNeeds()`, so these pages now count there with no further change.
 
 ## Traps
 
-- `needs.mjs` lists Menghai Tea Factory as a producer for any tea with "Menghai" in its name, because "Menghai" is one of the factory's match words. A county name is not a maker: skip that line unless the record names the factory.
+- Never recompose the seven teas whose wording Adrian reviewed line by line (`worker/src/wisdomWordingReview.json`: Y562 Black Box, Naka Gushu, Yiwu Gushu, Ripe Puerh Brick 1990, Pasha Village, Aged Northern Vietnam, Xiniu Tang Gushu). A rewrite breaks that review.
+- Recomposing a tea replaces its approved entry with a draft. Before shipping, restore from main any entry that did not pass, or the tea loses its live text.
+- A county name is not a maker. "Menghai" was removed from the Menghai Tea Factory match words on 2026-11-27; do not add a bare place word to a producer's alt names again.
+- Reference topic pages (`kind: reference_topic`, which includes every producer page) must stay `visibility: draft`; the builder refuses them public. Their approved claims still feed entries.
+- The composer runs in the cloud too: the `claude` CLI is installed there, about 30 seconds a tea, six in parallel is fine.
 
 - Several sessions share this repo. Push with a temporary index on top of `origin/main` (`git read-tree origin/main`, add only your files, `git commit-tree`, push `"${C}:refs/heads/main"`; in zsh write `${C}`). Never commit `.claude/launch.json`.
 - The Edit tool refuses files in another worktree. Assemble in a scratch copy instead (`git archive origin/main`, symlink `node_modules`).

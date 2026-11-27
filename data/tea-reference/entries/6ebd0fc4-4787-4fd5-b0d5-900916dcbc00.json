@@ -1,6 +1,6 @@
 {
   "status": "approved",
-  "composedAt": "2026-11-25T15:42:46.771Z",
+  "composedAt": "2026-11-27T03:54:56.540Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -11,26 +11,20 @@
     "form": "Loose",
     "year": 1970,
     "origin": "Guangxi, China",
-    "stockGrams": 200,
-    "pricePerGramUsd": 2.38,
-    "tags": [
-      "deep betel nut",
-      "aged camphor",
-      "sweet earth",
-      "cooling menthol",
-      "dried herbs"
-    ]
+    "stockGrams": null,
+    "pricePerGramUsd": null,
+    "tags": []
   },
   "entry": {
     "productId": "6ebd0fc4-4787-4fd5-b0d5-900916dcbc00",
     "paragraphs": [
       {
-        "layer": "type",
-        "text": "A loose [Liu Bao](liu-bao:definition) from Guangxi, dated 1970. Like every [dark tea](dark:definition), its leaf was heaped after it was made so that warmth, moisture and microbes could slowly darken it, and then it was packed away to age. It comes from the [lean decades](liu-bao:history) after war and blockade cut the river trade, when the planned economy changed who could buy and sell tea."
+        "layer": "place",
+        "text": "A loose leaf [dark tea](dark:definition) from Guangxi, made in 1970 and sold as Liu Bao. Guangxi on a label [names a region, not a style](guangxi:on-a-label), though a dark tea from the province is most often this one: [Liu Bao](liu-bao:definition), named for the town of Liubao where it began. Like every dark tea, its leaf was piled after it was made so that warmth, moisture and microbes would darken it, then packed and left to age."
       },
       {
         "layer": "age",
-        "text": "At fifty-six years it is long past the ten after which the trade counts a Liu Bao as [aged](liu-bao:age-aged). Liu Bao this old is mostly [old stock](liu-bao:old-stock), left in warehouses after the Malaysian tin mines declined. Such tea is hard to date, so the trade reads its age from the basket, the labels and the papers packed with it."
+        "text": "At fifty-six years it sits far past the ten that the trade counts as [aged](liu-bao:age-aged), and how it was stored matters as much as how long. Liu Bao this old is [mostly stock](liu-bao:old-stock) that sat in Malaysia or Hong Kong after the mining trade ended. Because such tea is hard to date, the trade reads its age from the basket, the labels and the papers packed with it."
       }
     ],
     "brewing": {
@@ -43,22 +37,21 @@
       "text": "A deep red, thick cup with woody, herbal and betel nut notes; tea several decades old is often described with ginseng and camphor."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "A voice note from you on this lot",
       "Photos"
     ]
   },
   "claimUses": [
     {
-      "claimId": "liu-bao:definition",
-      "rev": 1
-    },
-    {
       "claimId": "dark:definition",
       "rev": 1
     },
     {
-      "claimId": "liu-bao:history",
+      "claimId": "guangxi:on-a-label",
+      "rev": 1
+    },
+    {
+      "claimId": "liu-bao:definition",
       "rev": 1
     },
     {
@@ -80,5 +73,5 @@
   ],
   "problems": [],
   "unsupported": [],
-  "approvedAt": "2026-11-25T23:18:46.378Z"
+  "approvedAt": "2026-11-27T04:16:59.149Z"
 }

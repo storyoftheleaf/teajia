@@ -1,6 +1,6 @@
 {
   "status": "approved",
-  "composedAt": "2026-11-25T15:41:24.151Z",
+  "composedAt": "2026-11-27T03:52:17.591Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -11,29 +11,24 @@
     "form": "Rolled",
     "year": 2024,
     "origin": "Nantou, Taiwan",
-    "stockGrams": 0,
-    "pricePerGramUsd": 0.8,
-    "tags": [
-      "ripe tropical fruit",
-      "warm honey",
-      "roasted grain",
-      "smooth sweetness"
-    ]
+    "stockGrams": null,
+    "pricePerGramUsd": null,
+    "tags": []
   },
   "entry": {
     "productId": "f956eb25-cdc3-4cf3-8a15-86a9e731b3f7",
     "paragraphs": [
       {
-        "layer": "type",
-        "text": "An oolong from Nantou, in Taiwan, made in 2024. [GABA oolong](gaba:definition) names a way of making tea rather than a plant or a place. The method was found in Japan in 1987, and Taiwan's tea research station [adapted it to oolong](gaba:history), after which it spread among the island's makers."
+        "layer": "place",
+        "text": "This oolong was grown in [Nantou](nantou:where-it-is), the county in the middle of Taiwan and the only one that does not touch the sea. It holds more than half of the island's tea plantings, and its tea country is [divided by height](nantou:altitude-bands), from low hills to cool, misty gardens above about a thousand metres. The county name alone does not say which of those belts a tea grew in."
       },
       {
         "layer": "type",
-        "text": "For hours before it is made in the usual way for [Taiwan oolong](taiwan-oolong:definition), the fresh leaf is kept [without oxygen](gaba:making), in a sealed chamber filled with nitrogen or drawn to a vacuum. With no air, the leaf turns its glutamic acid into GABA and cannot break it down again, so the amino acid builds up. Taiwan's method alternates rounds without oxygen with rounds in air instead of one long spell."
+        "text": "The leaf was made as [GABA oolong](gaba:definition), which names a way of making tea, not a plant or a place. The fresh leaf is held for some hours [without oxygen](gaba:making), and Taiwan's method alternates those rounds with rounds in air. With no oxygen, the leaf turns its glutamic acid into GABA and cannot break it down again, so the GABA builds up. After that it is made like any [oolong](oolong:definition): withered and tossed, fixed, rolled and dried. The method was [found in Japan](gaba:history) in 1987, and Taiwan's tea research station adapted it to oolong."
       },
       {
         "layer": "age",
-        "text": "At two years this is a young tea. Taiwan's [lao cha](taiwan-oolong:ageing) tradition keeps well roasted oolong for years, and those who name a figure count an oolong as old only after ten to thirty."
+        "text": "At two years it is a young tea. In Taiwan's tradition of keeping [old tea](taiwan-oolong:ageing), those who give a figure for when an oolong becomes old put it between ten and thirty years."
       }
     ],
     "brewing": {
@@ -46,27 +41,34 @@
       "text": "Ripe, dried or stewed fruit such as apricot, honeyed sweetness, a smooth, round body, and little bitterness or astringency; often brown sugar or roasted grain, sometimes wood or spice, and a light fruity sourness."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "A voice note from you on this lot",
       "Photos"
     ]
   },
   "claimUses": [
     {
+      "claimId": "nantou:where-it-is",
+      "rev": 1
+    },
+    {
+      "claimId": "nantou:altitude-bands",
+      "rev": 1
+    },
+    {
       "claimId": "gaba:definition",
-      "rev": 1
-    },
-    {
-      "claimId": "gaba:history",
-      "rev": 1
-    },
-    {
-      "claimId": "taiwan-oolong:definition",
       "rev": 1
     },
     {
       "claimId": "gaba:making",
       "rev": 2
+    },
+    {
+      "claimId": "oolong:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "gaba:history",
+      "rev": 1
     },
     {
       "claimId": "taiwan-oolong:ageing",
@@ -83,5 +85,5 @@
   ],
   "problems": [],
   "unsupported": [],
-  "approvedAt": "2026-11-25T23:18:43.934Z"
+  "approvedAt": "2026-11-27T04:16:50.142Z"
 }

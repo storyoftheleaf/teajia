@@ -1,6 +1,6 @@
 {
   "status": "approved",
-  "composedAt": "2026-11-26T04:44:54.698Z",
+  "composedAt": "2026-11-27T03:58:42.546Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -11,25 +11,20 @@
     "form": "Loose",
     "year": 1980,
     "origin": "Taiwan",
-    "stockGrams": 0,
-    "pricePerGramUsd": 2.43,
-    "tags": [
-      "aged sweetness",
-      "dried grain",
-      "subtle floral",
-      "warm wood"
-    ]
+    "stockGrams": null,
+    "pricePerGramUsd": null,
+    "tags": []
   },
   "entry": {
     "productId": "3ea36161-f438-4956-bc50-9d4dfab9f891",
     "paragraphs": [
       {
-        "layer": "lot",
-        "text": "A loose [Taiwan oolong](taiwan-oolong:definition) made in 1980 and lightly oxidised when it was fresh. It belongs to the island's long line of oolong, whose plants and craft came over from Fujian."
+        "layer": "age",
+        "text": "An [oolong](oolong:definition) from Taiwan, dated 1980 and kept as loose leaf for forty-six years. The island has its own tradition of keeping oolong, called [lao cha](taiwan-oolong:ageing), old tea. Leaf chosen for keeping is stored cool, dry, dark and sealed, and the keeper roasts it again at low heat from time to time to drive out the moisture it takes in. No standard says when an oolong becomes old. Those who give a figure put it between ten and thirty years, and this tea has passed both."
       },
       {
-        "layer": "age",
-        "text": "At forty-six years it sits deep inside what Taiwan calls [lao cha](taiwan-oolong:ageing), old tea, the tradition of keeping oolong for years. No standard fixes when an oolong becomes old. Those who give a figure put it somewhere between ten and thirty years, and this tea is sixteen years past the far end of that range. Keepers store the leaf cool, dry, dark and sealed, and roast it again at low heat from time to time to drive out the moisture it takes in."
+        "layer": "place",
+        "text": "The record names only [Taiwan](taiwan:on-a-label), not a mountain or township, so it tells you where the leaf grew and nothing about height, cultivar or style. [Taiwan oolong](taiwan-oolong:definition) began with settlers from Fujian, who brought the plants and the craft, and in the nineteenth century the island sold its oolong abroad as [Formosa Oolong](taiwan-oolong:history)."
       }
     ],
     "brewing": {
@@ -42,18 +37,29 @@
       "text": "A smooth, mellow, thick cup with little astringency, often plum or prune, sometimes something like medicinal herbs or ginseng, and an amber to red-brown liquor."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "A voice note from you on this lot",
       "Photos"
     ]
   },
   "claimUses": [
     {
-      "claimId": "taiwan-oolong:definition",
+      "claimId": "oolong:definition",
       "rev": 1
     },
     {
       "claimId": "taiwan-oolong:ageing",
+      "rev": 1
+    },
+    {
+      "claimId": "taiwan:on-a-label",
+      "rev": 1
+    },
+    {
+      "claimId": "taiwan-oolong:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "taiwan-oolong:history",
       "rev": 1
     },
     {
@@ -67,5 +73,5 @@
   ],
   "problems": [],
   "unsupported": [],
-  "approvedAt": "2026-11-26T04:48:23.099Z"
+  "approvedAt": "2026-11-27T04:17:14.475Z"
 }

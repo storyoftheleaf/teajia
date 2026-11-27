@@ -54,6 +54,7 @@ import { curateSupplyTools } from './mcpTools/curateSupply';
 import { curatePhotoTools } from './mcpTools/curatePhotos';
 import { curateArrivalTools } from './mcpTools/curateArrivals';
 import { orderTrackingTools } from './mcpTools/orderTracking';
+import { priceLinkTools } from './mcpTools/priceLinks';
 import { purchaseArrivalTools } from './mcpTools/purchaseArrivals';
 import { curateAttachmentTools } from './mcpTools/curateAttachments';
 import { curateManageModule } from './mcpTools/curateManage';
@@ -65,7 +66,7 @@ import { stockCountTools } from './mcpTools/stockCount';
 import { supplierPhotoTools } from './mcpTools/supplierPhoto';
 import { curateDisplayNameTools } from './mcpTools/curateDisplayNames';
 import { teaPageContentTools } from './mcpTools/teaPageContent';
-import type { CurateReceiptService, HostSeatService, InventoryReceiptService, Launch3Services, StockMovementService } from './mcpTools/registry';
+import type { CurateReceiptService, HostSeatService, InventoryReceiptService, Launch3Services, StockMovementService, ToolEnv } from './mcpTools/registry';
 import { freightFor, shippingPerGramUsd } from './shippingRate';
 import { accountFreightDefaults } from './productPricing';
 import { isShopOwner, tastingWithoutScores } from './publicScores';
@@ -131,6 +132,7 @@ type Env = {
   curateReceipts?: CurateReceiptService;
   inventoryReceipts?: InventoryReceiptService;
   stockMovements?: StockMovementService;
+  invoicePayLinks?: ToolEnv['invoicePayLinks'];
   hostSeats?: HostSeatService;
   launch3?: Launch3Services;
   JWT_SECRET: string;
@@ -7227,6 +7229,7 @@ const TOOL_MODULES: ToolModule[] = [
   curatePhotoTools,
   curateArrivalTools,
   orderTrackingTools,
+  priceLinkTools,
   purchaseArrivalTools,
   logisticsTools,
   logisticsTrackingTools,

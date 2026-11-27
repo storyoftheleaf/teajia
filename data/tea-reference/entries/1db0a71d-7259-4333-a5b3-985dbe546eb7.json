@@ -1,6 +1,6 @@
 {
   "status": "approved",
-  "composedAt": "2026-11-25T15:44:10.186Z",
+  "composedAt": "2026-11-27T03:59:09.454Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -11,25 +11,24 @@
     "form": "Cake",
     "year": "1980s",
     "origin": "Yiwu, Yunnan, China",
-    "stockGrams": 700,
-    "pricePerGramUsd": 0.55,
-    "tags": [
-      "light honey",
-      "floral earth",
-      "smooth sweetness",
-      "gentle camphor"
-    ]
+    "stockGrams": null,
+    "pricePerGramUsd": null,
+    "tags": []
   },
   "entry": {
     "productId": "1db0a71d-7259-4333-a5b3-985dbe546eb7",
     "paragraphs": [
       {
-        "layer": "lot",
-        "text": "A cake of [ripe pu’er](shou:definition) from Yiwu, in Yunnan, made from small-leaf tea trees, which grow scattered among the large-leaf trees behind most of the area’s tea. The leaf went through the [wet pile](shou:wet-piling) and was pressed in the 1980s, within the style’s first two decades: Yunnan’s factories only brought the pile into production in 1973."
+        "layer": "place",
+        "text": "This cake's leaf comes from [Yiwu](greater-yiwu:where-it-is), in the north of Mengla County in Xishuangbanna, east of the Lancang River. It is one of the old Six Famous Tea Mountains, and its town has long been where tea from the surrounding villages is gathered and processed."
       },
       {
         "layer": "age",
-        "text": "At more than forty years it sits well inside what the trade counts as [aged ripe pu’er](shou:age-aged). The leaf keeps changing slowly with the air and moisture around it, so storage has shaped this cake as much as the years have."
+        "text": "The cake dates from the 1980s. At about forty-one years, it sits well inside what the trade counts as [aged ripe pu’er](shou:age-aged). The leaf keeps changing slowly with the air and moisture around it, so how it was kept matters as much as how long."
+      },
+      {
+        "layer": "type",
+        "text": "The leaf was made into [ripe pu’er](shou:definition). It was heaped warm and damp so that it could be drunk soon after making instead of after years of waiting, then pressed into a cake. Yunnan's factories first brought [wet piling](shou:wet-piling) into production in 1973, so this tea comes from the method's first two decades."
       }
     ],
     "brewing": {
@@ -42,12 +41,19 @@
       "text": "A smooth, deep cup with woody, date-like or medicinal notes, which the trade calls aged aroma."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "A voice note from you on this lot",
       "Photos"
     ]
   },
   "claimUses": [
+    {
+      "claimId": "greater-yiwu:where-it-is",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:age-aged",
+      "rev": 1
+    },
     {
       "claimId": "shou:definition",
       "rev": 1
@@ -55,10 +61,6 @@
     {
       "claimId": "shou:wet-piling",
       "rev": 2
-    },
-    {
-      "claimId": "shou:age-aged",
-      "rev": 1
     },
     {
       "claimId": "shou:brewing-pressed",
@@ -75,5 +77,5 @@
   ],
   "problems": [],
   "unsupported": [],
-  "approvedAt": "2026-11-25T23:18:48.931Z"
+  "approvedAt": "2026-11-27T04:17:16.997Z"
 }

@@ -34239,6 +34239,25 @@ const requestHandler = {
           receiveImport: (scope, line, key) => receiveFinalizedImportLine(env, scope, line, key),
         },
         stockMovements: { apply: (scope, productId, input) => applyStockMovement(env, scope, productId, input) },
+        // draft_invoice's pay link: the same one the admin's Share pay link gives.
+        invoicePayLinks: {
+          payUrl: async (accountId, invoiceId) => {
+            const row = await env.DB.prepare(
+              `SELECT id, account_id, invoice_number, status, payment_status, display_currency,
+                      payment_recipient_user_id, sold_by_user_id, shipping_cost_usd
+                 FROM invoices WHERE id = ? AND account_id = ? AND deleted_at IS NULL`
+            ).bind(invoiceId, accountId).first<Record<string, any>>();
+            if (!row) return null;
+            const payment = await resolveInvoicePayment(env, {
+              id: String(row.id), account_id: String(row.account_id),
+              invoice_number: row.invoice_number ?? null, status: row.status ?? null,
+              payment_status: row.payment_status ?? null, display_currency: row.display_currency ?? null,
+              payment_recipient_user_id: row.payment_recipient_user_id ?? null, sold_by_user_id: row.sold_by_user_id ?? null,
+              shipping_cost_usd: Number(row.shipping_cost_usd || 0),
+            });
+            return payment.pay_url ?? null;
+          },
+        },
         // A host's yes over MCP takes the admin approval's own reservation (Launch 2, H12).
         hostSeats: { reservationFor: (attendee, guests) => buildApprovalReservation(env, attendee as unknown as ApprovalAttendeeRow, guests) },
         launch3: {

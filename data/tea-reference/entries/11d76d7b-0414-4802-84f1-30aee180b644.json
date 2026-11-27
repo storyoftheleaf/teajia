@@ -1,6 +1,6 @@
 {
   "status": "approved",
-  "composedAt": "2026-11-25T15:40:55.771Z",
+  "composedAt": "2026-11-27T03:58:28.322Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -11,22 +11,20 @@
     "form": "Cake",
     "year": null,
     "origin": "Yiwu, Yunnan, China",
-    "stockGrams": 4998,
-    "pricePerGramUsd": 0.23,
-    "tags": [
-      "Osmanthus"
-    ]
+    "stockGrams": null,
+    "pricePerGramUsd": null,
+    "tags": []
   },
   "entry": {
     "productId": "11d76d7b-0414-4802-84f1-30aee180b644",
     "paragraphs": [
       {
-        "layer": "lot",
-        "text": "This cake holds leaf from Yiwu, in Yunnan, taken through the [ripe pu’er](shou:definition) process and pressed once its fermentation was done. Ripe pu’er was devised to give, in weeks, what Hong Kong and Guangdong drinkers had known from raw pu’er kept for years, so a ripe cake is ready to drink soon after it is made rather than after a long wait."
+        "layer": "place",
+        "text": "This cake's leaf comes from [Yiwu](greater-yiwu:where-it-is), in the north of Mengla County in Xishuangbanna, on the east side of the Lancang River. It is one of the old Six Famous Tea Mountains, and its town has long been the place where tea from the surrounding villages is gathered and processed."
       },
       {
         "layer": "type",
-        "text": "The fermentation is [wet piling](shou:wet-piling): sun-dried leaf is wetted and heaped so heat, moisture and microbes can work on it. The microbes make the heat themselves, so the pile is covered to hold it in, then turned about once a week to spread it and let air in. It is kept below about 65°C, because hotter than that the leaf begins to char, and after one to two months the leaf is dried."
+        "text": "The leaf was made into [ripe pu’er](shou:definition), a method developed to give in weeks what raw pu’er takes years of keeping to become. In [wet piling](shou:wet-piling) the sun-dried leaf is wetted and heaped, and the microbes working in it make their own heat. The pile is covered to hold that heat in and turned about once a week to spread it and let air through. It is kept below about 65°C, because any hotter and the leaf begins to char. After one to two months the leaf is dried, and this lot was then pressed into a cake."
       }
     ],
     "brewing": {
@@ -39,13 +37,16 @@
       "text": "A smooth, sweet cup with earthy or woody notes. A young ripe tea can carry a faint smell of the pile, which fades with airing or in the first steeps."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "The year it was made: unlocks the age paragraph",
       "A voice note from you on this lot",
       "Photos"
     ]
   },
   "claimUses": [
+    {
+      "claimId": "greater-yiwu:where-it-is",
+      "rev": 1
+    },
     {
       "claimId": "shou:definition",
       "rev": 1
@@ -69,5 +70,5 @@
   ],
   "problems": [],
   "unsupported": [],
-  "approvedAt": "2026-11-25T23:18:46.943Z"
+  "approvedAt": "2026-11-27T04:17:13.836Z"
 }

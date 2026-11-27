@@ -55,11 +55,10 @@ export const MARKS: Mark[] = [
     "altNames": [
       "Tribute Gold"
     ],
-    "producerId": "qiaorui",
     "appliesToTypes": [
       "Shou"
     ],
-    "description": "A tribute-grade classification ('gong', historically tea produced for imperial tribute) combined with a gold-brick ('jin zhuan') designation emphasizing prestige, used on a brick-pressed shou pu-erh."
+    "description": "A selling name seen on brick-pressed shou pu-erh, not a recognised grade. Its meaning and first maker are not established."
   },
   {
     "id": "gong-ting",
@@ -189,6 +188,6 @@ export const MARKS: Mark[] = [
     "appliesToTypes": [
       "Shou"
     ],
-    "description": "The iconic brand of the China National Tea Corporation, marked by an eight-pointed 'zhong' character surrounded by a red circle. Appears on teas from multiple state-run and later privatized factories across decades."
+    "description": "The brand of the China National Tea Corporation, marked by eight red 'zhong' characters set in a ring around a central 'cha'. Appears on teas from multiple state-run and later privatized factories across decades."
   }
 ];

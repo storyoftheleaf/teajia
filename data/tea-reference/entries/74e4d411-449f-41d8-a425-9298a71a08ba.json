@@ -1,6 +1,6 @@
 {
   "status": "approved",
-  "composedAt": "2026-11-24T12:34:39.692Z",
+  "composedAt": "2026-11-27T03:52:43.140Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -11,7 +11,7 @@
     "form": "Loose",
     "year": 2024,
     "origin": "Wuyi Mountains, Fujian, China",
-    "stockGrams": 0,
+    "stockGrams": null,
     "pricePerGramUsd": null,
     "tags": []
   },
@@ -20,11 +20,15 @@
     "paragraphs": [
       {
         "layer": "type",
-        "text": "[Meizhan](yancha:meizhan) is a Fujian cultivar that came from Anxi. This leaf grew in the Wuyi Mountains and was made as [Wuyi rock tea](yancha:definition), a name only tea from that area may carry. Meizhan is less well known than Rougui and Shui Xian, and it is not one of the four famous bushes of Wuyi. Like other rock tea, it was twisted into long strips and finished over charcoal. The [roast](yancha:making) is given in several rounds with weeks or months of rest between them, which dries the leaf so it keeps."
+        "text": "[Meizhan](yancha:meizhan) (梅占) is a Fujian cultivar that came from Anxi, and this leaf was grown and made as [Wuyi rock tea](yancha:definition) in the Wuyi Mountains. It is less known than Rougui and Shui Xian, and it is not one of the four famous bushes of the range. As rock tea, the leaf is twisted into long strips and finished with a [charcoal roast](yancha:making) given in several rounds with rests between them, which dries the tea so it keeps."
+      },
+      {
+        "layer": "place",
+        "text": "The bushes of this area grow in [thin, stony ground](wuyi-mountains:nature) among cliffs and ravines, where rain is heavy, mist is common and the soil drains fast. The record names the range but not a zone, so it does not say how close to the [true rock core](wuyi-mountains:zones) this leaf grew."
       },
       {
         "layer": "age",
-        "text": "This tea was made in 2024, so it is two years old. Rock tea is labelled by its [roast level](yancha:roast-levels), and the heavier the roast, the longer a tea is said to stay good. Stored tea is kept sealed, dry and cool, because damp is what makes it [go green again](yancha:ageing)."
+        "text": "Picked in 2024, the tea is two years old. Rock tea with a medium or full roast is the kind [kept for years](yancha:ageing), and the heavier the roast, the longer it is said to stay good, provided it is kept sealed, dry and cool."
       }
     ],
     "brewing": {
@@ -37,7 +41,6 @@
       "text": "Roast and stone fruit, a mineral, rocky texture and a long, sweet, mouth-watering finish. Light roast is bright and floral, medium roast fruity and rounded, full roast charcoal, wood and roasted nuts. Da Hong Pao is often floral, Rougui spicy with cinnamon, young Shui Xian sweet and smooth, and old-bush Shui Xian woody and mossy."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "A voice note from you on this lot",
       "Photos"
     ]
@@ -56,7 +59,11 @@
       "rev": 1
     },
     {
-      "claimId": "yancha:roast-levels",
+      "claimId": "wuyi-mountains:nature",
+      "rev": 1
+    },
+    {
+      "claimId": "wuyi-mountains:zones",
       "rev": 1
     },
     {
@@ -74,5 +81,5 @@
   ],
   "problems": [],
   "unsupported": [],
-  "approvedAt": "2026-11-24T13:33:41.410Z"
+  "approvedAt": "2026-11-27T04:16:51.711Z"
 }
