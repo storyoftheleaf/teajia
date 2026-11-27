@@ -614,20 +614,25 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
             type="button"
             onClick={() => { setShowRejected(false); setBrowseFilter(opt.value); }}
             aria-pressed={!showRejected && browseFilter === opt.value}
+            aria-label={`${opt.label} ${opt.count}`}
             className={`tap-target inline-flex min-h-tap items-center gap-2 rounded-md border px-3 py-2 text-ui-12 transition-colors ${
               !showRejected && browseFilter === opt.value
                 ? 'border-tea-gold/30 bg-tea-accent-sub text-tea-text'
                 : 'border-tea-border bg-tea-bg text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text'
             }`}
           >
+            {/* No numbers on the tabs (Adrian, 2026-11-27: "just a little
+                dot"). Waiting shows a dot when something waits; the count
+                stays in the name a screen reader hears. */}
             <span>{opt.label}</span>
-            <span className="text-ui-12 text-tea-text-dim tabular-nums">{opt.count}</span>
+            <span className="sr-only"> {opt.count}</span>
+            {opt.value === 'waiting' && opt.count > 0 && <span aria-hidden="true" data-testid="library-waiting-dot" className="library-segment-dot" />}
           </button>
         ))}
 
-        <button type="button" onClick={() => setShowRejected(!showRejected)} aria-pressed={showRejected}
+        <button type="button" onClick={() => setShowRejected(!showRejected)} aria-pressed={showRejected} aria-label={`Rejected ${rejectedEntries.length}`}
           className={`tap-target inline-flex min-h-tap items-center gap-2 rounded-md border px-3 py-2 text-ui-12 ${showRejected ? 'border-tea-gold bg-tea-accent-sub text-tea-text' : 'border-tea-border bg-tea-bg text-tea-text-sec'}`}>
-          <span>Rejected</span><span className="tabular-nums">{rejectedEntries.length}</span>
+          <span>Rejected</span><span className="sr-only"> {rejectedEntries.length}</span>
         </button>
 
         </div>
