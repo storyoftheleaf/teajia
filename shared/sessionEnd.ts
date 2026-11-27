@@ -99,3 +99,30 @@ export function sessionMoment(session: SessionTimes, now = Date.now()): SessionM
 export function sessionCancelled(session: Pick<SessionTimes, 'lifecycle_status' | 'status'>): boolean {
   return session.lifecycle_status === 'cancelled' || session.status === 'cancelled';
 }
+
+/**
+ * A sit sent by its own link (worker/src/pourSit.ts) shows the way in to
+ * anyone holding the link, so it closes by the calendar alone: at the end of
+ * the day the sit ends on, on the sit's own clock, whatever state the sit is
+ * in. Null when the date cannot be read; a cancelled sit shows no way at all.
+ */
+export function sitWayEndsAt(session: SessionTimes): number | null {
+  if (sessionCancelled(session)) return 0;
+  const end = sessionEndsAt(session);
+  if (end === null) return null;
+  const zone = typeof session.timezone === 'string' && session.timezone.trim() ? session.timezone.trim() : 'UTC';
+  let day: string;
+  try {
+    day = new Intl.DateTimeFormat('en-CA', { timeZone: zone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(end - 1));
+  } catch {
+    return end;
+  }
+  const start = sessionInstant(day, zone);
+  return start ? start.at + 24 * HOUR_MS : end;
+}
+
+/** Whether the way in of a sit sent by link is still shown. */
+export function sitWayOpen(session: SessionTimes, now = Date.now()): boolean {
+  const end = sitWayEndsAt(session);
+  return end !== null && now < end;
+}

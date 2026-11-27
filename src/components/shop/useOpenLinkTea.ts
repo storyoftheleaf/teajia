@@ -12,12 +12,17 @@ export function useOpenLinkTea() {
   const navigate = useNavigate();
   const openedHere = useRef(false);
   const openId = params.get('tea');
-  const open = (teaId: string, also?: Record<string, string>) => {
+  const open = (teaId: string) => {
     const next = new URLSearchParams(params);
     next.set('tea', teaId);
-    for (const [key, value] of Object.entries(also ?? {})) next.set(key, value);
     openedHere.current = true;
     setParams(next);
+  };
+  // Arrow to a neighbouring tea: the same step, so Back still closes to the list.
+  const move = (teaId: string) => {
+    const next = new URLSearchParams(params);
+    next.set('tea', teaId);
+    setParams(next, { replace: true }); // history: refine
   };
   const close = () => {
     if (openedHere.current) {
@@ -29,5 +34,5 @@ export function useOpenLinkTea() {
     next.delete('tea');
     setParams(next, { replace: true });
   };
-  return { openId, open, close };
+  return { openId, open, move, close };
 }
