@@ -1,16 +1,13 @@
 import { Button } from '../shared/Button';
 import { useEffect, useRef, useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { ArrowRight, Banknote, Bookmark, Check, Copy, Repeat } from 'lucide-react';
-import { TeaCup } from '../TeaCupIcon';
-import { useAppStore } from '../../lib/store';
+import { ArrowRight, Check, Copy } from 'lucide-react';
 import { authPagePath } from '../../lib/authNavigation';
 import { holdKeepTeaser, type KeepTeaser } from '../../lib/keepTeaser';
 import { holdReturnPlace } from '../../hooks/useReturnPlace';
 import { keepPayInvoice } from '../../lib/payInvoiceKeepApi';
 import { PayInvoiceDiscount } from './PayInvoiceDiscount';
-import { GuideRow, GuideStep as Step } from '../shop/GuideStep';
 
 const KEEP_PARAM = 'keep';
 const TASTE_PARAM = 'choose';
@@ -20,103 +17,57 @@ const TASTE_PARAM = 'choose';
  * teas they are keeping, and back to this same address (the open tea
  * included) with the marker that finishes the keep by itself.
  */
-export function invoiceJoinPath(teaser: Omit<KeepTeaser, 'path'>, also?: string): string {
+export function invoiceJoinPath(teaser: Omit<KeepTeaser, 'path'>): string {
   const back = new URLSearchParams(window.location.search);
   back.set(KEEP_PARAM, '1');
-  if (also) back.set(also, '1');
   holdKeepTeaser({ ...teaser, path: window.location.pathname });
   holdReturnPlace();
   return authPagePath('signup', `${window.location.pathname}?${back.toString()}`);
 }
 
 /**
- * The four pictures under an invoice's head (Adrian, 2026-11-27: the sheet is
- * the way into the site, "visual guide, not reading paragraphs"): Pay, Keep,
- * Taste, Again. They are in the order the days go, the one she is at is lit,
- * and each is a button. Keep puts the invoice in her account and its teas in
- * her saved teas; signed out it goes through joining, which shows the teas she
- * is keeping, and finishes by itself on the way back. Taste asks which tea and
- * opens its tasting on the shop's own page. Again is her teas in the shop.
- * The words are placeholders until Adrian names them.
- *
- * The shop that sent the invoice sees the same pictures and never keeps its
- * own invoice (PayInvoiceAfter gives it the link to copy).
+ * Keeping an invoice: it goes into the person's account, so its teas show as
+ * theirs in the shop. There is no button for it (Adrian, 2026-11-27, "it is
+ * simply the shop"): saving any of its teas keeps the invoice too. Signed
+ * out, that save goes through joining, which shows the teas, and the keep
+ * finishes by itself on the way back. The shop that sent the invoice never
+ * keeps its own.
  */
-export function PayInvoiceGuide({ slug, token, productIds, teaser, signedIn, kept: keptAtLoad, paid, yoursToSend = false, againPath, onPay, onTaste }: {
+export function useInvoiceKeep({ slug, token, signedIn, kept, yoursToSend = false }: {
   slug: string;
   token: string | null;
-  productIds: string[];
-  teaser: Omit<KeepTeaser, 'path'>;
   signedIn: boolean;
   kept: boolean;
-  paid: boolean;
   yoursToSend?: boolean;
-  /** Where Again goes before she has kept anything: the collection the teas came from, or the shop. */
-  againPath: string;
-  onPay: () => void;
-  onTaste: () => void;
-}) {
+}): () => void {
   const [search, setSearch] = useSearchParams();
-  const navigate = useNavigate();
-  const toggleFavoriteTea = useAppStore(s => s.toggleFavoriteTea);
   const queryClient = useQueryClient();
-  const [state, setState] = useState<'idle' | 'saving' | 'kept' | 'error'>(keptAtLoad ? 'kept' : 'idle');
-  const [error, setError] = useState<string | null>(null);
-  const kept = state === 'kept';
-
-  const save = async (): Promise<boolean> => {
-    if (!token || yoursToSend) return false;
-    setState('saving');
-    setError(null);
-    try {
-      await keepPayInvoice(slug, token);
-      void queryClient.invalidateQueries({ queryKey: ['me', 'bought-teas'] });
-      void queryClient.invalidateQueries({ queryKey: ['profile', slug, 'pay-access'] });
-      productIds.filter(id => !useAppStore.getState().favoriteTeas.includes(id)).forEach(id => toggleFavoriteTea(id));
-      setState('kept');
-      return true;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'That did not save. Try again.');
-      setState('error');
-      return false;
-    }
+  const busy = useRef(false);
+  const keep = () => {
+    if (!token || !signedIn || kept || yoursToSend || busy.current) return;
+    busy.current = true;
+    void keepPayInvoice(slug, token)
+      .then(() => {
+        void queryClient.invalidateQueries({ queryKey: ['me', 'bought-teas'] });
+        void queryClient.invalidateQueries({ queryKey: ['profile', slug, 'pay-access'] });
+      })
+      // Nothing to show: the save itself held, and the next save tries again.
+      .catch(() => undefined)
+      .finally(() => { busy.current = false; });
   };
-
-  // Joining, then back here with the marker: finish what she tapped, once.
-  const join = (also?: string) => navigate(invoiceJoinPath(teaser, also));
+  // Back from joining with the marker: finish the keep, once.
   const finished = useRef(false);
   useEffect(() => {
     if (finished.current || !signedIn || search.get(KEEP_PARAM) !== '1') return;
     finished.current = true;
-    const choose = search.get(TASTE_PARAM) === '1';
     const next = new URLSearchParams(search);
     next.delete(KEEP_PARAM);
     next.delete(TASTE_PARAM);
     setSearch(next, { replace: true });
-    void (async () => {
-      const ok = keptAtLoad || yoursToSend || await save();
-      if (ok && choose) onTaste();
-    })();
+    keep();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [signedIn, search]);
-
-  // Kept already: the picture opens where her teas now live.
-  const keep = () => { if (!signedIn) join(); else if (kept) navigate('/shop?bought=1'); else void save(); };
-  const taste = async () => {
-    if (!signedIn) { join(TASTE_PARAM); return; }
-    if (!kept && !yoursToSend && !(await save())) return;
-    onTaste();
-  };
-  const at = !paid ? 'pay' : !kept && !yoursToSend ? 'keep' : 'taste';
-
-  return (
-    <GuideRow testId="pay-guide" error={error}>
-        <Step label={paid ? 'Paid' : 'Pay'} done={paid} lit={at === 'pay'} icon={<Banknote size={20} aria-hidden="true" />} onClick={onPay} testId="pay-guide-pay" />
-        <Step label={kept ? 'Kept' : state === 'saving' ? 'Keeping' : 'Keep'} done={kept} lit={at === 'keep'} disabled={yoursToSend || state === 'saving'} icon={<Bookmark size={20} aria-hidden="true" />} onClick={keep} testId="pay-guide-keep" />
-        <Step label="Taste" lit={at === 'taste'} icon={<TeaCup size={20} aria-hidden="true" />} onClick={() => { void taste(); }} testId="pay-guide-taste" />
-        <Step label="Again" icon={<Repeat size={20} aria-hidden="true" />} to={kept ? '/shop?bought=1' : againPath} testId="pay-guide-again" />
-    </GuideRow>
-  );
+  return keep;
 }
 
 /**

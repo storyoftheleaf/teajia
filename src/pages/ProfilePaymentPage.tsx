@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { PaymentChooser } from '../components/profile/PaymentChooser';
 import { PayInvoiceTeas } from '../components/profile/PayInvoiceTeas';
 import { PayInvoiceGift } from '../components/profile/PayInvoiceGift';
-import { PayInvoiceAfter, PayInvoiceGuide, invoiceJoinPath } from '../components/profile/PayInvoiceGuide';
+import { PayInvoiceAfter, invoiceJoinPath, useInvoiceKeep } from '../components/profile/PayInvoiceGuide';
 import { useReturnPlace } from '../hooks/useReturnPlace';
 import type { PayLinkTeaLine } from '../components/profile/types';
 import type { InventoryItem } from '../types';
@@ -38,9 +38,6 @@ export default function ProfilePaymentPage({ onAddToCart }: {
   onAddToCart?: (item: InventoryItem, grams: number, totalUsd: number) => void;
 } = {}) {
   // The guide's Pay and Taste point at these two parts of the sheet.
-  const paySection = useRef<HTMLElement>(null);
-  const teaList = useRef<HTMLDivElement>(null);
-  const [choosingTea, setChoosingTea] = useState(false);
   const { slug = '' } = useParams<{ slug: string }>();
   const [search, setSearch] = useSearchParams();
   const navigate = useNavigate();
@@ -66,7 +63,11 @@ export default function ProfilePaymentPage({ onAddToCart }: {
     refetchOnMount: 'always',
   });
   const access = accessQuery.data;
-  useReturnPlace(Boolean(access?.invoice?.lines?.length) && search.get('choose') !== '1');
+  useReturnPlace(Boolean(access?.invoice?.lines?.length));
+  const keepInvoice = useInvoiceKeep({
+    slug, token: shareToken, signedIn: access?.viewer.signed_in === true,
+    kept: access?.invoice?.kept === true, yoursToSend: access?.invoice?.yours_to_send === true,
+  });
   const open = access?.access === 'open';
 
   // An invoice link carries the amount it was sent with. When the invoice has
@@ -269,28 +270,15 @@ export default function ProfilePaymentPage({ onAddToCart }: {
           {visibleCount > 0 && <p className="mt-1.5 font-body text-ui-14 italic leading-[1.5] text-tea-text-sec">{waysLine}</p>}
           <PayInvoiceGift from={firstName(access.contributor.display_name)} discount={access.invoice?.discount} />
         </header>
-        <PayInvoiceGuide
-          slug={slug}
-          token={shareToken}
-          productIds={Array.from(new Set(invoiceLines.map(line => line.product_id).filter((id): id is string => Boolean(id))))}
-          teaser={{ from: access.contributor.display_name, teas: keepTeaserTeas(invoiceLines) }}
-          signedIn={access.viewer.signed_in}
-          kept={access.invoice?.kept === true}
-          paid={access.invoice?.settled === true}
-          yoursToSend={access.invoice?.yours_to_send === true}
-          againPath={access.invoice?.collection?.path ?? '/shop'}
-          onPay={() => paySection.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-          onTaste={() => { setChoosingTea(true); teaList.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }}
-        />
-        <div className="mt-2 scroll-mt-4" ref={teaList}>
-          <PayInvoiceTeas lines={invoiceLines} invoiceNumber={access.invoice?.invoice_number ?? null} onAddToCart={onAddToCart} choosing={choosingTea} onChosen={() => setChoosingTea(false)}
-            onSaveSignedOut={access.viewer.signed_in || access.invoice?.yours_to_send ? undefined : () => navigate(invoiceJoinPath({ from: access.contributor.display_name, teas: keepTeaserTeas(invoiceLines) }))}
+        <div className="mt-2">
+          <PayInvoiceTeas lines={invoiceLines} invoiceNumber={access.invoice?.invoice_number ?? null} onAddToCart={onAddToCart} 
+            onSave={access.invoice?.yours_to_send ? undefined : access.viewer.signed_in ? keepInvoice : () => navigate(invoiceJoinPath({ from: access.contributor.display_name, teas: keepTeaserTeas(invoiceLines) }))}
             discount={access.invoice?.discount ?? null} />
           <PayInvoiceAfter kept={access.invoice?.kept === true} yoursToSend={access.invoice?.yours_to_send === true} collection={access.invoice?.collection ?? null}
             slug={slug} token={shareToken}
             discount={access.invoice?.yours_to_send ? { editable: access.invoice.discount_editable === true, percent: access.invoice.discount?.percent ?? null } : undefined}
             onDiscountChanged={() => queryClient.invalidateQueries({ queryKey: ['profile', slug, 'pay-access'] })} />
-          <section aria-label="Pay" className="mt-4 max-w-2xl scroll-mt-4" ref={paySection}>
+          <section aria-label="Pay" className="mt-4 max-w-2xl">
             {accountLinks}
             <div className={associationRows.length > 0 ? 'mt-4' : ''}>{chooser}</div>
           </section>
