@@ -133,7 +133,7 @@ export function buildManageItems(f: ManageListFlags): ManageItem[] {
         // Tasting notes guests wrote, waiting to be published.
         { id: 'guest-notes', path: '/admin/tasting-notes', label: 'Guest notes' },
         { id: 'wisdom', path: '/admin/wisdom', label: 'Wisdom' },
-        ...(owner ? [{ id: 'contributors', path: ADMIN_CONNECTION_ROUTES.teaMasters, label: 'Tea Masters' }] : []),
+        ...(owner ? [{ id: 'contributors', path: ADMIN_CONNECTION_ROUTES.teaMasters, label: 'Hosts' }] : []),
       ],
     },
     // Running the shop. An access manager who is not an owner may open Members

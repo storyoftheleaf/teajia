@@ -9,7 +9,7 @@ describe('PublicIdentityLinks', () => {
       <PublicIdentityLinks contributorSlug="rayi" shelfSlug="rayi-shelf" subjectName="Rayi" />,
     );
 
-    expect(html).toContain('Rayi’s Tea Master profile');
+    expect(html).toContain('Rayi’s host profile');
     expect(html).toContain('href="/people/rayi"');
     expect(html).toContain('Rayi’s personal shelf');
     expect(html).toContain('href="/u/rayi-shelf"');

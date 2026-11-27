@@ -100,7 +100,7 @@ export const AdoptionQueue: React.FC<AdoptionQueueProps> = ({ embedded = false }
       {!error && entries && entries.length === 0 && (
         <p className="font-body italic text-ui-14 text-tea-text-sec leading-[1.7]">
           {filter === 'pending'
-            ? 'Nothing is waiting. Tea Masters will appear here when they offer a profile up for the network.'
+            ? 'Nothing is waiting. Hosts will appear here when they offer a profile up for the network.'
             : filter === 'adopted'
             ? 'No profiles have been adopted yet. Adopted teas appear in every partner\'s catalog.'
             : 'No profiles have been declined. Declined originators can revise and re-suggest.'}

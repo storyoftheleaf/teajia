@@ -252,7 +252,7 @@ export const FAMILY_PAGE_TIERS: readonly FamilyPageTier[] = ['family', 'creator'
 export const FAMILY_PAGE_WORDS: Record<FamilyPageTier, string> = {
   family: 'Teajia family',
   creator: 'Tea creator',
-  master: 'Tea master',
+  master: 'Host',
 };
 
 /**
