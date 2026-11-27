@@ -3491,16 +3491,15 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 .nav-drawer-rule {
   display: block;
-  height: 1px;
   margin: var(--space-1) var(--space-2);
-  background: var(--tea-border);
+  border-top: 1px solid var(--tea-border);
 }
 .nav-room {
   position: relative;
   display: flex;
   align-items: center;
   gap: 7px;
-  min-height: 32px;
+  min-height: var(--control-h);
   padding: 0 var(--space-2);
   border-radius: var(--radius-control);
   font-family: var(--font-sans);
@@ -3510,8 +3509,8 @@ input[type="number"]::-webkit-outer-spin-button {
   transition: color 150ms ease, background-color 150ms ease;
 }
 .nav-room-glyph {
-  width: 15px;
-  height: 15px;
+  width: var(--space-4);
+  height: var(--space-4);
   flex-shrink: 0;
 }
 .nav-room:hover { color: var(--tea-text); background: color-mix(in srgb, var(--tea-elevated) 55%, transparent); }
@@ -3572,7 +3571,6 @@ input[type="number"]::-webkit-outer-spin-button {
 .rail-stacked {
   display: block;
   width: min-content;
-  line-height: 1.02;
   text-align: center;
 }
 
