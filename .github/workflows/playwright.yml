@@ -79,7 +79,7 @@ jobs:
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
-          fetch-depth: ${{ github.event_name == 'pull_request' && 0 || 2 }}
+          fetch-depth: 2
       - id: decide
         env:
           GH_TOKEN: ${{ github.token }}
@@ -93,7 +93,9 @@ jobs:
           # both of which run the full e2e job).
           if [ "${{ github.event_name }}" = pull_request ]; then
             why="pull request"
-            files="$(git diff --name-only "origin/${{ github.base_ref }}...HEAD")"
+            # A pull_request checkout is GitHub's merge of the PR into its
+            # base, so the first parent is the base and the diff is the PR.
+            files="$(git diff --name-only HEAD^1 HEAD)"
             if [ -n "$files" ] && ! printf '%s\n' "$files" | grep -qvE '^([^/]*\.md|docs/.*|todo/.*)$'; then
               run=false; why="pull request changes only prose (*.md, docs/, todo/)"
             fi
