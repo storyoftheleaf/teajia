@@ -167,8 +167,12 @@ export const calculatePricing = (
   // 4. Convert to USD
   const trueCostUSD = (rateToUSD && rateToUSD > 0) ? costPerUnitSource / rateToUSD : 0;
 
-  // 5. Suggested Retail (3x Markup)
-  const suggestedRetailUSD = trueCostUSD * SHOP_MARKUP_MULTIPLIER;
+  // 5. Suggested Retail: the leaf times the markup, plus freight at cost.
+  // Freight is passed on, not marked up (Adrian, 2026-11-27); the worker's
+  // productPricing.ts prices the shelf the same way.
+  const goodsPerUnitUSD = quantity > 0 ? (costAmount / quantity) / rateToUSD : 0;
+  const freightPerUnitUSD = trueCostUSD - goodsPerUnitUSD;
+  const suggestedRetailUSD = goodsPerUnitUSD * SHOP_MARKUP_MULTIPLIER + freightPerUnitUSD;
 
   return {
     totalShipping,

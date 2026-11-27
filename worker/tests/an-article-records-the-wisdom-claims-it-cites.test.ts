@@ -115,15 +115,16 @@ describe('article Wisdom claim uses', () => {
     ]);
     expect(admin.articles[0].claim_ids).toEqual(['gong-ting:common-impressions', 'gong-ting:definition', 'special-grade:definition']);
 
+    // Gong Ting is public, so a reader sees the published article that cites it, never the draft.
     const reader = await (await call(env, 'GET', '/api/wisdom/claim-uses/articles?page_id=gong-ting', null)).json() as any;
-    expect(reader.articles).toEqual([]);
+    expect(reader.articles.map((article: any) => article.id)).toEqual(['grade-live']);
     const owner = await (await call(env, 'GET', '/api/admin/articles/grade-live/wisdom-claim-uses', EDITOR)).json() as any;
-    expect(owner.history).toHaveLength(1);
-    expect(owner.history[0]).toMatchObject({ claim_id: 'menghai-county:scope', rev_used: 1, withdrawn: false });
-    expect(owner.history[0].text.length).toBeGreaterThan(0);
+    expect(owner.history.map((entry: any) => entry.claim_id)).toEqual(['gong-ting:definition', 'menghai-county:scope']);
+    expect(owner.history[1]).toMatchObject({ claim_id: 'menghai-county:scope', rev_used: 1, withdrawn: false });
+    expect(owner.history[1].text.length).toBeGreaterThan(0);
     const published = await (await call(env, 'GET', '/api/wisdom/claim-uses/articles?page_id=menghai-county', null)).json() as any;
     expect(published.articles).toEqual([
-      { id: 'grade-live', title: 'Title grade-live', slug: 'a-published-grade-piece', claim_ids: ['menghai-county:scope'] },
+      { id: 'grade-live', title: 'Title grade-live', slug: 'a-published-grade-piece', claim_ids: ['gong-ting:definition', 'menghai-county:scope'] },
     ]);
 
     // The draft itself is not found for a signed-out reader.
@@ -132,6 +133,7 @@ describe('article Wisdom claim uses', () => {
     // The published article carries its uses.
     const live = await (await call(env, 'GET', '/api/articles/a-published-grade-piece', null)).json() as any;
     expect(live.wisdom_claim_uses).toEqual([
+      { article_id: 'grade-live', block_index: 1, claim_id: 'gong-ting:definition', rev_used: 1, use_kind: 'prose' },
       { article_id: 'grade-live', block_index: 1, claim_id: 'menghai-county:scope', rev_used: 1, use_kind: 'prose' },
     ]);
   });

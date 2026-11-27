@@ -2198,7 +2198,8 @@
       "axis": "grade",
       "listing_eligible": false,
       "applies_when": {
-        "grade": "gong-ting"
+        "grade": "gong-ting",
+        "form": "Loose"
       },
       "attribution": null,
       "terms": [],
@@ -2223,7 +2224,8 @@
       "axis": "sensory_observation",
       "listing_eligible": false,
       "applies_when": {
-        "grade": "gong-ting"
+        "grade": "gong-ting",
+        "form": "Loose"
       },
       "attribution": null,
       "terms": [],
@@ -2248,7 +2250,8 @@
       "axis": "grade",
       "listing_eligible": true,
       "applies_when": {
-        "grade": "gong-ting"
+        "grade": "gong-ting",
+        "form": "Loose"
       },
       "attribution": null,
       "terms": [
@@ -2259,20 +2262,10 @@
         }
       ],
       "status": "approved",
-      "current_rev": 2,
+      "current_rev": 1,
       "revisions": [
         {
           "rev": 1,
-          "origin": "legacy_import",
-          "legacy_ref": "marks:gong-ting",
-          "scope": "General grade designation, used on shou pu’er and aged Taiwanese oolong",
-          "text": "A 'palace' or 'imperial court' designation for the highest grade classification within a tea's production, indicating the finest bud or tip material. Seen on shou pu-erh (finest bud material) and on aged Taiwanese oolong (finest buds and leaves).",
-          "approved_at": "2026-11-23",
-          "reason": "Imported from the legacy marks corpus",
-          "evidence_ids": []
-        },
-        {
-          "rev": 2,
           "origin": "approved",
           "scope": "Loose ripe pu’er grading",
           "text": "Gong Ting is the finest grade of loose ripe pu’er, sorted out for its small leaf and high share of buds. In the market it sits one step above special grade.",
@@ -2289,7 +2282,8 @@
       "axis": "terminology",
       "listing_eligible": false,
       "applies_when": {
-        "grade": "gong-ting"
+        "grade": "gong-ting",
+        "form": "Loose"
       },
       "attribution": null,
       "terms": [],
@@ -2314,7 +2308,8 @@
       "axis": "terminology",
       "listing_eligible": false,
       "applies_when": {
-        "grade": "gong-ting"
+        "grade": "gong-ting",
+        "form": "Loose"
       },
       "attribution": null,
       "terms": [],
@@ -7966,7 +7961,8 @@
       "axis": "terminology",
       "listing_eligible": false,
       "applies_when": {
-        "grade": "gong-ting"
+        "grade": "gong-ting",
+        "form": "Loose"
       },
       "attribution": null,
       "terms": [

@@ -3,6 +3,102 @@ import type { PublicClaim } from '../claims';
 
 export const PART: readonly PublicClaim[] = [
   {
+    "claimId": "san-he-liu-bao:export-buyers",
+    "pageId": "san-he-liu-bao",
+    "sectionKey": "export-buyers",
+    "label": "What buyers wanted from the leaf",
+    "axis": "named_tea_history",
+    "basis": "sourced",
+    "listingEligible": true,
+    "appliesWhen": {
+      "named_tea": "san-he-liu-bao"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Cangwu County export trade in 1959.",
+    "text": "In July 1959, Guangxi’s trade department circulated an account from tea makers in Buyi, in Cangwu County. Export buyers wanted a brighter, deeper red in the cup and a tighter twist to the leaf. The makers lowered the heat of the firing pan and rolled the leaves more firmly. The circular records how they changed their work in response to buyers overseas.",
+    "sourceIds": [
+      "guangxi-archives-liubao"
+    ],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "san-he-liu-bao:three-cranes",
+    "pageId": "san-he-liu-bao",
+    "sectionKey": "three-cranes",
+    "label": "The three cranes",
+    "axis": "named_tea_history",
+    "basis": "sourced",
+    "listingEligible": true,
+    "appliesWhen": {
+      "named_tea": "san-he-liu-bao"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Wuzhou Tea Factory and the Three Cranes mark.",
+    "text": "San He means “Three Cranes.” Wuzhou Tea Factory traces the birds on its trademark to Hegang Tower beside the factory. The works opened for the export trade in 1953. The factory registered the Three Cranes mark in October 1991, nearly four decades later.",
+    "sourceIds": [
+      "mofcom-three-cranes"
+    ],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "sheng:age-young",
+    "pageId": "sheng",
+    "sectionKey": "age-young",
+    "label": "Young raw pu’er",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Sheng"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Raw pu'er under about three to five years",
+    "text": "Under about three to five years a raw pu’er is young. Its cup is pale, yellow-green to pale gold, fresh and lean, with a bite of bitterness and astringency that is meant to turn sweet in the throat. Some drink it young for that liveliness; others treat it as a tea to put away.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "sheng:ageing",
+    "pageId": "sheng",
+    "sectionKey": "ageing",
+    "label": "Raw pu’er with age",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Sheng"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Raw pu'er past its first years",
+    "text": "With years, a well-kept raw pu’er turns from pale gold toward amber and then red in the cup, and its bitterness and astringency soften as it grows smoother and sweeter. How fast depends on how it is pressed and stored. The trade does not agree where aged begins: some say ten years, many wait for twenty or more.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "sheng:aging",
+    "pageId": "sheng",
+    "sectionKey": "aging",
+    "label": "Change through storage",
+    "axis": "process",
+    "basis": "sourced",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Sheng"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Sheng Pu’er",
+    "text": "Sheng is not given shou’s rapid fermentation. Its character instead changes gradually during storage, with leaf, liquor, aroma, and texture developing over years. Storage conditions therefore belong to the tea’s history, not as a guarantee of quality but as part of how any particular cake has evolved.",
+    "sourceIds": [
+      "marshaln-young-puer-2013"
+    ],
+    "reviewState": "approved"
+  },
+  {
     "claimId": "sheng:brewing",
     "pageId": "sheng",
     "sectionKey": "brewing",
@@ -858,80 +954,6 @@ export const PART: readonly PublicClaim[] = [
     "rev": 1,
     "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
     "text": "Baozhong is made in the north of Taiwan, mostly in Pinglin and the nearby Wenshan area, and is the most lightly oxidised Taiwan oolong. Unlike most Taiwan oolong it is left as a long twisted strip, not rolled into balls, and it is normally dried rather than roasted. The name means wrapped kind, from the old habit of wrapping the tea in paper.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "taiwan-oolong:brewing",
-    "pageId": "taiwan-oolong",
-    "sectionKey": "brewing",
-    "label": "Brewing Taiwan oolong",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "origin_includes": [
-        "taiwan"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
-    "text": "Ball-rolled Taiwan oolong takes hot water, about 90 to 100°C, a fairly generous amount of leaf and short steeps; the balls open slowly and give many infusions. Roasted Dong Ding takes water from about 95°C to a full boil. Aged oolong takes very hot water, in a pot that holds its heat, clay above all. Oriental Beauty is the exception and takes cooler water, about 80 to 95°C.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "taiwan-oolong:common-impressions",
-    "pageId": "taiwan-oolong",
-    "sectionKey": "common-impressions",
-    "label": "What people often notice",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "origin_includes": [
-        "taiwan"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
-    "text": "In light high mountain tea: a sweet, floral cup, often creamy or buttery, with little bitterness and a long sweet aftertaste. In roasted Dong Ding: caramel, ripe fruit, nuts and a toasted aroma. In Baozhong: floral notes and a clear, bright liquor. In Oriental Beauty: ripe fruit and honey, with little bitterness.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "taiwan-oolong:definition",
-    "pageId": "taiwan-oolong",
-    "sectionKey": "definition",
-    "label": "What Taiwan oolong is",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "origin_includes": [
-        "taiwan"
-      ]
-    },
-    "terms": [
-      {
-        "original": "青心烏龍",
-        "pinyin": "qīngxīn wūlóng",
-        "gloss": "Qingxin oolong"
-      },
-      {
-        "original": "金萱",
-        "pinyin": "jīnxuān",
-        "gloss": "Jinxuan"
-      }
-    ],
-    "rev": 1,
-    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
-    "text": "Taiwan oolong is the oolong of Taiwan, whose tea plants and craft came from Fujian. Most of it is lightly to moderately oxidised and rolled into balls, and Qingxin oolong is the main cultivar, with Jinxuan the other common one. The island makes several distinct styles: high mountain tea, Dong Ding from Lugu in Nantou, Baozhong from the north, and Oriental Beauty from Hsinchu and Miaoli.",
     "sourceIds": [],
     "reviewState": "approved"
   }

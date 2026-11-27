@@ -3,6 +3,74 @@ import type { PublicClaim } from '../claims';
 
 export const PART: readonly PublicClaim[] = [
   {
+    "claimId": "y562:original-blend",
+    "pageId": "y562",
+    "sectionKey": "original-blend",
+    "label": "The tea behind the code",
+    "axis": "named_tea_history",
+    "basis": "sourced",
+    "listingEligible": true,
+    "appliesWhen": {
+      "named_tea": "y562"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Jixing Y562 export tea and its documented historical versions.",
+    "text": "Pu’er magazine describes the original Y562 blend as grades five and six of ripe tea supplied by Menghai Tea Factory. Its yellow-box companion, Y671, used grades six and seven supplied by Kunming Tea Factory. These grades describe how the leaf was sorted for the original blends.",
+    "sourceIds": [
+      "puer-magazine-jixing-design"
+    ],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "yancha:ageing",
+    "pageId": "yancha",
+    "sectionKey": "ageing",
+    "label": "Keeping and ageing Wuyi rock tea",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "wuyi mountains"
+      ]
+    },
+    "terms": [
+      {
+        "original": "返青",
+        "pinyin": "fǎn qīng",
+        "gloss": "going green again"
+      }
+    ],
+    "rev": 1,
+    "scope": "Oolong from the Wuyi mountains; Da Hong Pao, Rougui, Shui Xian and Meizhan only on teas named for them",
+    "text": "Well-made medium to full roast Wuyi tea is the kind kept for years; light roast is for early drinking and is the most likely to go green again, a raw, sour or muddy taste that comes from damp or under-dried tea and is the main fault of stored rock tea. The heavier the roast, the longer the tea is said to stay good. With age the sharp roast softens, the liquor grows thicker and smoother and the high aroma fades. A tea that has gone green can be roasted again at low heat to drive out the moisture, a skilled job that costs some quality each time. Keep it sealed, dry, cool and away from strong smells, and look at it now and then.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "yancha:brewing",
+    "pageId": "yancha",
+    "sectionKey": "brewing",
+    "label": "Brewing Wuyi rock tea",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "wuyi mountains"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Oolong from the Wuyi mountains; Da Hong Pao, Rougui, Shui Xian and Meizhan only on teas named for them",
+    "text": "Wuyi tea is usually brewed gongfu style with water at or near the boil, about 95 to 100°C, and about 5 to 8 grams of leaf in a 100 to 120 ml gaiwan, a third to a half full. A quick rinse, poured off at once, is common. Steeps start short, about 5 to 20 seconds, and grow a few seconds longer each round, and good rock tea gives seven steeps or more. In a larger pot, use about 2 to 5 grams for 250 to 350 ml and steep two to three minutes.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
     "claimId": "yancha:common-impressions",
     "pageId": "yancha",
     "sectionKey": "common-impressions",

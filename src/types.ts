@@ -1519,6 +1519,7 @@ export interface CollectionItem {
   recommended_price_usd?: number | null;
   /** Catalog per-gram (tea) / per-unit (teaware) retail price, for the editor's placeholder. */
   fixed_retail_price_usd?: number | null;
+  catalog_price_usd?: number | null; // the shelf price now (typed, else from cost and freight); a blank quote uses it
   product_type?: string;
   product_name?: string;
   chinese_name?: string | null;
