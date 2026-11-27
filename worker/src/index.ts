@@ -1,5 +1,6 @@
 import { casualSitPublicationRoutes } from './casualSitPublications';
 import { invoiceKeptBy, keepInvoiceForUser, sendsInvoice } from './payInvoiceKeep';
+import { listMyBoughtTeas } from './myBoughtTeas';
 import { freightRateWriteRefusal } from './freightRateDoor';
 import { publicSitRoutes, publishedSitRecap } from './publicSitConnections';
 import { formalSessionCardsFor, publicSessionRoutes } from './publicSessions';
@@ -25684,6 +25685,16 @@ const handleGetMyOrders: Handler = async (request, env) => {
   return json({ orders: await listMyOrders(env, ctx.userId, ctx.accountId) });
 };
 
+// GET /api/me/bought-teas
+// The teas in the signed-in person's own orders, one entry per tea, for the
+// shop to say how much they bought (myBoughtTeas.ts).
+const handleGetMyBoughtTeas: Handler = async (request, env) => {
+  const ctx = await customerOrderContext(request, env);
+  if (!ctx) return json({ error: 'Sign in to see your teas' }, 401);
+  const ownership = await loadMyOrderOwnership(env, ctx.userId, ctx.accountId);
+  return json({ teas: await listMyBoughtTeas(env, ownership) });
+};
+
 /**
  * A person's own orders, as Your Table lists them. The route above and the
  * agent's list_my_orders both read through here, so an assistant sees exactly
@@ -34198,6 +34209,7 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/me/wishlist', handleGetMyWishlist],
   ['GET', '/api/me/journey', handleGetMyJourney],
   ['GET', '/api/me/orders', handleGetMyOrders],
+  ['GET', '/api/me/bought-teas', handleGetMyBoughtTeas],
   ['GET', '/api/me/orders/:id', handleGetMyOrderDetail],
   ['POST', '/api/me/orders/:id/keep-in-chest', handleKeepOrderLineInChest],
   ['GET', '/api/me/tea-credit', handleGetMyTeaCredit],

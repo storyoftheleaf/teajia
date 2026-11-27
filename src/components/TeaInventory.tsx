@@ -25,6 +25,7 @@ import { TeaQuantityPicker } from './shop/TeaQuantityPicker';
 import { TeaShopViewRegion, TeaShopViewTabs } from './shop/TeaShopViewTabs';
 import { BODY, LINK } from './shared/typeRoles';
 import { SendAsCollection } from './shop/SendAsCollection';
+import { boughtAmount, boughtTeaItem, useMyBoughtTeas } from '../lib/myBoughtTeas';
 import {
   applyFinderIntent,
   selectVisibleTeas,
@@ -170,10 +171,28 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
   const [activeFlavorTags, setActiveFlavorTags] = useState<string[]>([]);
   const [moodFlavorOpen, setMoodFlavorOpen] = useState(false);
 
+  // The teas this person bought. The shop says so on each one, and Bought
+  // shows only those, with a private tea she bought that the shop does not
+  // list (Adrian, 2026-11-27: the store itself, "it would just say how much
+  // she bought").
+  const { teas: boughtTeas, byId: boughtById } = useMyBoughtTeas();
+  const [boughtParams, setBoughtParams] = useSearchParams();
+  const boughtOnly = boughtParams.get('bought') === '1' && boughtTeas.length > 0;
+  const setBoughtOnly = (on: boolean) => {
+    const next = new URLSearchParams(boughtParams);
+    if (on) next.set('bought', '1'); else next.delete('bought');
+    setBoughtParams(next, { replace: true }); // history: refine
+  };
+  const boughtShelf = useMemo(() => {
+    const listed = new Map(inventory.map(item => [item.id, item]));
+    return boughtTeas.map(tea => listed.get(tea.product_id) ?? boughtTeaItem(tea));
+  }, [inventory, boughtTeas]);
   const baseAvailable = useMemo(() => selectVisibleTeas(inventory), [inventory]);
   const baseCurated = useMemo(() => selectCuratedTeas(inventory), [inventory]);
   const basePast = useMemo(() => selectPastTeas(inventory), [inventory]);
-  const filterSource = showPast
+  const filterSource = boughtOnly
+    ? boughtShelf
+    : showPast
     ? basePast
     : teaView === 'selection'
       ? baseCurated
@@ -636,6 +655,20 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                >
                  Saved
                </button>
+               {boughtTeas.length > 0 && (
+                 <button
+                   type="button"
+                   onClick={() => setBoughtOnly(!boughtOnly)}
+                   aria-pressed={boughtOnly}
+                   title={boughtOnly ? 'Showing the teas you bought. Show all teas' : 'Show the teas you bought'}
+                   className={`flex min-h-tap shrink-0 items-center text-ui-10 uppercase tracking-[0.15em] transition-colors ${
+                     boughtOnly ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
+                   }`}
+                   data-testid="shop-bought-toggle"
+                 >
+                   Bought
+                 </button>
+               )}
              </div>
 
              <div className={`flex w-full min-w-0 items-center pb-0.5 sm:w-auto sm:flex-1 sm:justify-end sm:pb-0 ${showViewTabs ? 'gap-4' : 'justify-between gap-2 sm:gap-4'}`}>
@@ -1017,6 +1050,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                showShopRecommendations={showShopRecommendations}
                onToggleFavorite={handleFavoriteToggle}
                onOpenProduct={openProduct}
+               boughtFor={item => { const tea = boughtById.get(item.id); return tea ? boughtAmount(tea) : null; }}
                onChooseAmount={onAddToCart ? item => setAmountItemId(item.id) : undefined}
                onAddToCart={onAddToCart ? handleAddWithFeedback : undefined}
              />

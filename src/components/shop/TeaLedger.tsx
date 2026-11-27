@@ -34,6 +34,8 @@ interface TeaLedgerProps {
   onAddToCart?: (item: InventoryItem, grams: number, totalUsd: number) => void;
   /** A collection link's own amounts and prices for a tea; the shop's when absent. */
   weighOptionsFor?: (item: InventoryItem) => WeighOption[] | undefined;
+  /** "You bought 150g" on a tea the signed-in person has bought. */
+  boughtFor?: (item: InventoryItem) => string | null;
 }
 
 /**
@@ -105,6 +107,7 @@ export function TeaLedger({
   onChooseAmount,
   onAddToCart,
   weighOptionsFor,
+  boughtFor,
 }: TeaLedgerProps) {
   return (
     <div className="flex flex-col animate-[fadeIn_0.5s_ease-out]">
@@ -151,6 +154,7 @@ export function TeaLedger({
                   onToggleSave={event => onToggleFavorite(item.id, event)}
                   onOpen={() => onOpenProduct(item)}
                   tastingCount={tastingCount}
+                  bought={boughtFor?.(item)}
                   recommended={showShopRecommendations && !!purchase && SHOP_RECOMMENDATIONS.has(item.id)}
                   trailing={purchase ? (
                     <TeaWeighControl item={item} preferredGrams={priceWeight} formatPrice={formatPrice}
@@ -190,10 +194,12 @@ interface TeaLedgerRowProps {
   label?: string | null;
   /** Drawn in the Save tile when the row has no year to show. */
   mark?: ReactNode;
+  /** "You bought 150g": a third line on a tea the person has bought. */
+  bought?: string | null;
 }
 
 /** The shop's tea row, shared verbatim with Library; actions belong to the caller. */
-export function TeaLedgerRow({ item, showType, saved, onToggleSave, onOpen, tastingCount = 0, recommended, trailing, selected, expanded, openLabel, headingId, label, mark }: TeaLedgerRowProps) {
+export function TeaLedgerRow({ item, showType, saved, onToggleSave, onOpen, tastingCount = 0, recommended, trailing, selected, expanded, openLabel, headingId, label, mark, bought }: TeaLedgerRowProps) {
   const { theme } = useTheme();
   const rowTones = getTeaLedgerTones(item.type, theme);
   const origin = splitOrigin(item.origin || '');
@@ -275,6 +281,9 @@ export function TeaLedgerRow({ item, showType, saved, onToggleSave, onOpen, tast
             )}
             </span>
           </div>
+          {bought && (
+            <p className="truncate font-sans text-ui-12 tracking-[0.02em] text-tea-gold" data-testid="tea-ledger-bought">{bought}</p>
+          )}
         </div>
 
         {/* Not every tea carries a description, and without one
