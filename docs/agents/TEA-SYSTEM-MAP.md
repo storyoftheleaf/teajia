@@ -7,6 +7,8 @@ Whiteboards for Adrian (same content, drawn):
 - [The tea system, end to end](https://claude.ai/artifact/RE2RbTsE1SJAMZoy8UdvhS): this map.
 - [Teajia, section by section](https://claude.ai/artifact/VmvoJCULgNWbmerUqiVY5i): the whole site. Each section carries a card to its detailed board.
 - Section boards, one per part of the site: [Read](https://claude.ai/artifact/ScMi5emjDXfuChAQDaTjNC), [Tea Table, sessions and people](https://claude.ai/artifact/8TLB9JJKRuU8grsi4KTkVo), [Tea Houses](https://claude.ai/artifact/8t3JqANYy58JP4reJ2kJrc), [Your Table](https://claude.ai/artifact/MySjydyn6bxEfK9D6moVr2). Shop and Manage open this map's board.
+- [How people use Teajia](https://claude.ai/artifact/CmADPt5RhNZUerbdmnfQwB): each kind of person, what they touch and do, and where their path is thin.
+- [Switch-on tracker](https://claude.ai/artifact/XphiutT5eeqzZAXTZJEYrZ): every switch, open PR and decision that stands between today and the whole site on. Keep its State column true.
 - Child boards: [Bringing a tea in](https://claude.ai/artifact/5wWBCaREDvXyoSiCAu4pAf) (steps 1 to 6, the intake plan), [From sample to sent link](https://claude.ai/artifact/Cw9iVkjtje3bjMBcpFeTZf) (steps 2 to 9), [New tea to Tea Wisdom](https://claude.ai/artifact/8N9HcPPeDqHmfUbZbLdT21) (step 7), [Wisdom Review](https://claude.ai/artifact/2MZWE6AFWwCmih1PonbesE) (Adrian's approvals in step 7).
 
 **Keep it true.** When you change a step, its doors or its tools, change its row here and the whiteboard in the same piece of work. When a gap below is closed, move it out of "Missing" and say which PR closed it.
