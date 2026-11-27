@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { hasToken } from '../lib/api';
+import { ApiError, hasToken } from '../lib/api';
 import { Icons } from '../components/Icons';
 import { Button } from '../components/shared/Button';
 import { TYPOGRAPHY_CLASSES } from '../designTokens';
@@ -116,10 +116,29 @@ export default function TeaCreditPage() {
   const queryClient = useQueryClient();
   const [failedOrder, setFailedOrder] = useState<string | null>(null);
   // The worker works out the amount and holds it for the shop's approval.
+  // One key per order, kept until the worker answers for sure: a retry after
+  // a dropped answer reuses it and is given the same request, never a second.
+  const requestKeys = useRef(new Map<string, string>());
+  const keyFor = (invoiceId: string) => {
+    let key = requestKeys.current.get(invoiceId);
+    if (!key) {
+      key = `page-${invoiceId}-${Date.now().toString(36)}`;
+      requestKeys.current.set(invoiceId, key);
+    }
+    return key;
+  };
   const use = useMutation({
-    mutationFn: (invoiceId: string) => hostCreditApi.useOnOrder(invoiceId),
-    onSuccess: () => { setFailedOrder(null); void queryClient.invalidateQueries({ queryKey: ['me', 'tea-credit'] }); },
-    onError: (_error, invoiceId) => setFailedOrder(invoiceId),
+    mutationFn: (invoiceId: string) => hostCreditApi.useOnOrder(invoiceId, keyFor(invoiceId)),
+    onSuccess: (_answer, invoiceId) => {
+      requestKeys.current.delete(invoiceId);
+      setFailedOrder(null);
+      void queryClient.invalidateQueries({ queryKey: ['me', 'tea-credit'] });
+    },
+    onError: (error, invoiceId) => {
+      // A definite refusal (the worker answered 4xx) ends the key; a lost or failed answer keeps it.
+      if (error instanceof ApiError && error.status >= 400 && error.status < 500) requestKeys.current.delete(invoiceId);
+      setFailedOrder(invoiceId);
+    },
   });
 
   useEffect(() => {

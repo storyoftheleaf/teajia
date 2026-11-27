@@ -1,6 +1,6 @@
 import { authorizeInvoiceLines, buildSettlementStatements, resolvePaymentRecipientUserId,
   type InvoiceSaleLineInput } from './teaMasterSales';
-import { loadInvoiceLedgerTotals, loadLedgerInvoice, PAYMENT_EPSILON } from './invoiceDomain';
+import { loadInvoiceLedgerTotals, loadLedgerInvoice, PAYMENT_EPSILON, settledUsd } from './invoiceDomain';
 
 export type PaidStockResult = { state: 'not_due' | 'already_deducted' | 'deducted' | 'blocked'; reason?: string };
 
@@ -18,7 +18,7 @@ export async function deductStockForPaidInvoice(
   const priced = await loadLedgerInvoice(env, invoiceId, accountId);
   if (!priced || (priced.total_usd <= 0 && !input.allowZeroTotal)) return { state: 'not_due' };
   const ledger = await loadInvoiceLedgerTotals(env, [invoiceId]);
-  if ((ledger.get(invoiceId)?.paid_usd ?? 0) < priced.total_usd - PAYMENT_EPSILON) return { state: 'not_due' };
+  if (settledUsd(ledger.get(invoiceId)) < priced.total_usd - PAYMENT_EPSILON) return { state: 'not_due' };
 
   const token = crypto.randomUUID();
   const claimed = await env.DB.prepare(
@@ -42,7 +42,7 @@ export async function deductStockForPaidInvoice(
     const current = await loadLedgerInvoice(env, invoiceId, accountId);
     const currentLedger = await loadInvoiceLedgerTotals(env, [invoiceId]);
     if (!current || (current.total_usd <= 0 && !input.allowZeroTotal) ||
-      (currentLedger.get(invoiceId)?.paid_usd ?? 0) < current.total_usd - PAYMENT_EPSILON) {
+      settledUsd(currentLedger.get(invoiceId)) < current.total_usd - PAYMENT_EPSILON) {
       await release();
       return { state: 'not_due' };
     }

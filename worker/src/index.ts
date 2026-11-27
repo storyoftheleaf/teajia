@@ -141,6 +141,8 @@ import {
   loadLedgerInvoice,
   reconcileLedgerWithColumn,
   recomputeInvoicePaymentStatus,
+  settledUsd,
+  settledUsdSql,
   validateRetailInvoiceInput,
   validateShippingCostUsd,
   validatePaymentStatusValue,
@@ -1786,7 +1788,7 @@ function cors(response: Response, origin: string | null): Response {
   headers.delete('Access-Control-Allow-Origin');
   if (origin) headers.set('Access-Control-Allow-Origin', origin);
   headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Teajia-Account');
+  headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Teajia-Account, Idempotency-Key');
   const vary = headers.get('Vary');
   if (!vary?.split(',').some(value => value.trim().toLowerCase() === 'origin')) {
     headers.set('Vary', vary ? `${vary}, Origin` : 'Origin');
@@ -7119,7 +7121,7 @@ const handleShipInvoice: Handler = async (request, env) => {
   if (invoice.shipping_quote_status === 'requested') return restError(409, 'Confirm the shipping charge before dispatch. Tea payment does not cover shipping.', 'shipping_quote_required');
   const priced = await loadLedgerInvoice(env, invoiceId, ctx.accountId);
   const ledger = await loadInvoiceLedgerTotals(env, [invoiceId]);
-  if (!priced || (ledger.get(invoiceId)?.paid_usd ?? 0) < priced.total_usd - PAYMENT_EPSILON) {
+  if (!priced || settledUsd(ledger.get(invoiceId)) < priced.total_usd - PAYMENT_EPSILON) {
     return restError(409, 'The current balance must be paid before shipping', 'balance_due');
   }
   if (invoice.status !== 'Pending') return restError(409, 'The order is not ready to ship', 'not_ready_to_ship');
@@ -7141,8 +7143,7 @@ const handleShipInvoice: Handler = async (request, env) => {
      WHERE id=? AND account_id=? AND status='Pending' AND inventory_deducted=1
        AND COALESCE(shipping_quote_status,'confirmed')!='requested'
        AND fulfillment_claim_token IS NULL
-       AND COALESCE((SELECT SUM(amount_usd) FROM invoice_payments
-         WHERE invoice_id=invoices.id AND account_id=invoices.account_id AND status='confirmed'),0)
+       AND ${settledUsdSql('invoices')}
          >= COALESCE((SELECT SUM(quantity*price_at_sale) FROM invoice_line_items
          WHERE invoice_id=invoices.id AND account_id=invoices.account_id),0)
          + COALESCE(shipping_cost_usd,0) - 0.01`
@@ -25577,13 +25578,17 @@ const handleUseMyTeaCredit: Handler = async (request, env, params) => {
   if (!hostCreditOpen(env)) return json({ error: 'Not found' }, 404);
   const user = await optionalAuthenticatedUser(request, env);
   if (!user) return json({ error: 'Sign in to use your tea credit' }, 401);
-  const held = await useHostCreditOnOrder(env, { hostUserId: user.userId, invoiceId: params.id });
+  // An Idempotency-Key makes a retry return the request it first made (A8-8).
+  const held = await useHostCreditOnOrder(env, {
+    hostUserId: user.userId, invoiceId: params.id, requestKey: request.headers.get('Idempotency-Key'),
+  });
   if ('error' in held) {
     if (held.error === 'closed') return json({ error: 'Not found' }, 404);
     if (held.error === 'not_found') return restError(404, 'Order not found', 'invoice_not_found');
     return restError(409, 'Your credit does not cover any more of this order.', 'host_credit_not_covered');
   }
-  return json({ success: true, request: held }, 201);
+  const { replayed, ...made } = held;
+  return replayed ? json({ success: true, request: made, replayed: true }) : json({ success: true, request: made }, 201);
 };
 
 async function requireHostCreditOwner(
@@ -25648,6 +25653,14 @@ const handleDecideHostCreditSpend: Handler = async (request, env, params) => {
         confirmOverCeiling: body?.confirm_over_ceiling === true,
       })
     : await declineHostCreditSpend(env, { accountId: ctx.accountId, requestId: params.id, approverUserId: ctx.userId });
+  if (decision.ok && decision.settled) {
+    // Credit that settles the order takes its stock, as a confirmed payment does.
+    const { settled, ...answer } = decision;
+    const stock = settled.payment_status === 'paid'
+      ? await applyConfirmedPaymentStock(env, settled.invoice_id, ctx)
+      : { state: 'not_due' as const };
+    return json({ ...answer, stock });
+  }
   if (decision.ok) return json(decision);
   return restError(decision.error === 'not_found' ? 404 : 409, decision.message, `host_credit_${decision.error}`);
 };
@@ -34091,7 +34104,7 @@ const requestHandler = {
     if (request.method === 'OPTIONS') {
       const headers: Record<string, string> = {
         'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Teajia-Account, X-Filename, X-Client-Evidence-Id',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Teajia-Account, X-Filename, X-Client-Evidence-Id, Idempotency-Key',
         'Access-Control-Max-Age': '86400',
         'Vary': 'Origin',
       };
