@@ -44,6 +44,8 @@ export const CAMEL_TO_SNAKE: Record<string, string> = {
   shopName: 'shop_name',
   transportMode: 'transport_mode',
   linkedCustomerId: 'linked_customer_id',
+  // Server-owned (migration 0155): read back, never sent.
+  vendorTeaNumber: 'vendor_tea_number',
   audioClips: 'audio_clips',
   buyQuantityGrams: 'buy_quantity_grams',
   buyQuantityUnits: 'buy_quantity_units',

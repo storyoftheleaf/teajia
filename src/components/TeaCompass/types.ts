@@ -130,6 +130,8 @@ export interface TeaCompassEntry {
   packSizeGrams?: number | null;
   packSizeLabel?: string | null;
   vendorItemNumber?: string | null;
+  /** This tea's number within its vendor, set by the server (V1T12 is 12). */
+  vendorTeaNumber?: number | null;
   discountPercent?: number | null;
   quoteId?: string | null;
   routeQuotes?: RouteQuote[];

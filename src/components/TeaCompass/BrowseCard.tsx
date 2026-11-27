@@ -45,6 +45,8 @@ export interface BrowseCardProps {
   /** Name of the sample batch this tea was requested in, when it has one. */
   sampleBatch?: string;
   onOpenSampleBatch?: (setId: string) => void;
+  /** The tea's short code, e.g. V1T12 (Adrian, 2026-11-27), when it has one. */
+  shortCode?: string | null;
 }
 
 export function formatRelativeDate(dateStr: string): string {
@@ -70,7 +72,7 @@ export function getDateGroup(dateStr: string): string {
   return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 }
 
-export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, stockProductId, readOnly = false, tastingRecorded, onOpenTasting, onEdit, onSelect, onOpenDetail, isSelected, onAcquire, pricePreference = DEFAULT_LIBRARY_PRICE, rates, purchaseState, purchaseStatusUnknown, sampleBatch, onOpenSampleBatch }) => {
+export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, stockProductId, readOnly = false, tastingRecorded, onOpenTasting, onEdit, onSelect, onOpenDetail, isSelected, onAcquire, pricePreference = DEFAULT_LIBRARY_PRICE, rates, purchaseState, purchaseStatusUnknown, sampleBatch, onOpenSampleBatch, shortCode }) => {
   const { showToast } = useToast();
   const updateEntry = useTeaCompassStore((state) => state.updateEntry);
   const [typeOpen, setTypeOpen] = useState(false);
@@ -144,7 +146,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, stockProductId, r
         className={isSelected ? 'library-tea-card-selected' : undefined}
         teaType={entry.type}
         title={<LibraryInlineValue multiline className={`${TYPOGRAPHY_CLASSES.h3} library-card-name text-tea-text`} value={identity.name} display={title} label={`Edit tea name: ${title}`} readOnly={readOnly} onSave={saveField('name')} />}
-        trailing={<Button variant="plain" type="button" className="tap-target library-more-action" aria-label={`Edit details for ${title}`} title={description || 'Edit tea details'} onClick={openDetail}><MoreHorizontal size={18} /></Button>}
+        trailing={<>{shortCode && <span className="library-card-code text-ui-10 text-tea-text-sec tabular-nums" data-testid="library-card-code" title="Short code: say or type it to find this tea">{shortCode}</span>}<Button variant="plain" type="button" className="tap-target library-more-action" aria-label={`Edit details for ${title}`} title={description || 'Edit tea details'} onClick={openDetail}><MoreHorizontal size={18} /></Button></>}
         meta={<>
           <LibraryGivenName entry={entry} readOnly={readOnly} onSave={value => savePatch({ givenName: value.trim() || null, shopName: null })} />
           {entry.category !== 'teaware' && (readOnly ? <span className="library-card-type">{entry.type || 'Type not set'}</span> : <Button variant="plain" type="button" className="tap-target library-card-type" aria-label={`Choose tea type for ${title}`} aria-haspopup="dialog" onClick={() => { setTypeError(''); setTypeOpen(true); }}>{entry.type || 'Choose type'}</Button>)}

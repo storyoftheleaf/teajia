@@ -13,6 +13,11 @@ function subscribeToToken(listener: () => void): () => void {
   return () => window.removeEventListener(AUTH_TOKEN_CHANGED_EVENT, listener);
 }
 
+/** True while this browser holds a sign-in. */
+export function useSignedIn(): boolean {
+  return Boolean(useSyncExternalStore(subscribeToToken, currentSignInToken, currentSignInToken));
+}
+
 /** Launch 3 entry points share the server's decision about available hosting doors. */
 export function useMayHost() {
   const open = hostedTablesOpen();

@@ -13,6 +13,11 @@ import { teaMergeProductLink } from './curateMergeLink';
 import { curateSnapshotForViewer, curateSnapshotJsonForViewer } from './compassScores';
 import { isShopOwner } from './publicScores';
 
+// Columns the database fills in itself after a recorded write (migration
+// 0155's tea numbers). The recorded snapshot cannot know them, so a later
+// difference there is not newer work.
+export const SERVER_STAMPED_COLUMNS: ReadonlySet<string> = new Set(['vendor_tea_number']);
+
 export type CurateEntity = 'tea' | 'vendor' | 'note' | 'todo' | 'sample' | 'transcript' | 'attachment';
 export type CurateRecordedEntity = CurateEntity | 'vendor_profile' | 'quote' | 'quote_line' | 'attachment' | 'asset' | 'sample_set' | 'arrival' | 'product' | 'product_listing';
 export type CurateCommand =
@@ -535,7 +540,7 @@ export async function previewCurateUndo(env:ToolEnv,auth:ToolAuth,agent='an agen
   }
   const before=JSON.parse(r.after_json); let after=JSON.parse(r.before_json);
   const current=await load(env,auth.accountId,r.entity_type,r.entity_id);
-  if(!before || Object.keys(before).some(k=>before[k]!==current[k])) throw new Error('This record changed after confirmation; undo would overwrite newer work');
+  if(!before || Object.keys(before).some(k=>!SERVER_STAMPED_COLUMNS.has(k)&&before[k]!==current[k])) throw new Error('This record changed after confirmation; undo would overwrite newer work');
   if(!after) {
    if(r.entity_type==='sample_set') {
     const createdIds=(records.results??[]).filter(x=>x.entity_type==='sample'&&JSON.parse(x.before_json)===null&&JSON.parse(x.after_json).set_id===r.entity_id).map(x=>x.entity_id);

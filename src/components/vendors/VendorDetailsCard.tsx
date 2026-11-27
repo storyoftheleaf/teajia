@@ -8,7 +8,7 @@ import { VendorFace } from './VendorFace';
 import { VendorFaceAdjustButton, VendorFacePhotoButton } from './VendorFacePhotoButton';
 import { vendorFacePhoto } from './vendorFaces';
 import { useVendorSave } from './useVendorSave';
-import { contactHref, fullAddress, mapsHref, splitPlace } from './vendorLinks';
+import { contactHref, fullAddress, mapsHref, placeFromAddress } from './vendorLinks';
 import type { ContactChannel, ContactEntry, Customer } from '../../admin/types';
 
 /**
@@ -71,6 +71,9 @@ export const VendorDetailsCard: React.FC<{ vendor: VendorRecord; vendorId: strin
   const queryClient = useQueryClient();
   const profile = useQuery({ queryKey: ['curate-vendor-profile', vendorId], queryFn: () => api.curateWorkspace.vendor(vendorId) });
   const vendorCode: string | null = profile.data?.vendor_code || null;
+  // Every vendor has a V code (V1, V2 ...); a code typed here is shown instead.
+  const shortCode: string | null = profile.data?.short_code || null;
+  const shownCode = vendorCode || shortCode;
   const saveCode = async (value: string) => {
     await api.curateWorkspace.saveVendor(vendorId, { vendor_code: value.trim() || null });
     await queryClient.invalidateQueries({ queryKey: ['curate-vendor-profile', vendorId] });
@@ -117,7 +120,7 @@ export const VendorDetailsCard: React.FC<{ vendor: VendorRecord; vendorId: strin
         </div>
         <div className="flex-1 min-w-0 space-y-2">
           <h2 className="h3 break-words">{vendor.name}</h2>
-          {vendorCode && <p className="text-ui-11 uppercase tracking-[0.08em] text-tea-text-sec" data-testid="vendor-code">Code {vendorCode}</p>}
+          {shownCode && <p className="text-ui-10 text-tea-text-sec" data-testid="vendor-code">Code {shownCode}{vendorCode && shortCode && vendorCode.toUpperCase() !== shortCode.toUpperCase() ? ` · ${shortCode}` : ''}</p>}
           {vendorSubtitle(vendor) && (
             <p className="text-ui-13 text-tea-text-sec break-words">{vendorSubtitle(vendor)}</p>
           )}
@@ -139,8 +142,9 @@ export const VendorDetailsCard: React.FC<{ vendor: VendorRecord; vendorId: strin
           <div>
             {/* One line: paste the whole address as Google Maps or the vendor writes it. It gets the full width;
                 the map and copy taps sit underneath, under the address itself. */}
-            <InlineField label="Address" value={vendor.address} placeholder="Paste the whole address"
-              display={address} onSave={v => save({ address: v || null })} />
+            {/* The city and country come from the address itself, so there is one thing to keep right. */}
+            <InlineField label="Address" value={address} placeholder="Paste the whole address"
+              onSave={v => save(v ? { address: v, ...(placeFromAddress(v) ?? {}) } : { address: null, city: null, country: null })} />
             {address && <div className="-mt-1 pb-2 ml-[6.75rem] flex flex-wrap gap-2">
               <a href={mapsHref(address)!} target="_blank" rel="noreferrer" aria-label={`Open ${address} in Google Maps`}
                 className="btn-quiet btn-sm inline-flex items-center gap-1.5">
@@ -153,8 +157,6 @@ export const VendorDetailsCard: React.FC<{ vendor: VendorRecord; vendorId: strin
               </Button>
             </div>}
           </div>
-          <InlineField label="City, country" value={[vendor.city, vendor.country].filter(Boolean).join(', ')}
-            onSave={v => save(splitPlace(v))} />
         </div>
       </div>
 
