@@ -28,13 +28,8 @@ import type { ContributorListItem } from '../types';
 // count of sessions, no icon, nothing that grows with how often.
 
 /** "Pours at tables", or nothing. The same three words for everyone who pours. */
-// Hidden for now (2026-11-27): worked out from who has hosted, it would be
-// automatic, which the quiet acknowledgement rule forbids. It returns once a
-// host or Adrian can give it by hand.
-const POURS_LINE_SHOWN = false;
-
 function PoursLine({ person }: { person: ContributorListItem }) {
-  if (!POURS_LINE_SHOWN || person.pours !== true) return null;
+  if (person.pours !== true) return null;
   return <span className="mt-1 block font-sans text-ui-12 text-tea-text-sec" data-testid="person-pours">Pours at tables</span>;
 }
 
