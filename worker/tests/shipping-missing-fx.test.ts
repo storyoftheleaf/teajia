@@ -108,7 +108,7 @@ describe('actual Worker pricing and invoice refusal with synthetic SQLite', () =
       const line = db.sqlite.prepare('SELECT price_at_sale FROM invoice_line_items WHERE invoice_id=?').get(saved.invoice_id) as { price_at_sale: number };
       expect(Number.isFinite(line.price_at_sale)).toBe(true);
       expect(line.price_at_sale).toBeGreaterThan(0);
-      if (name === 'valid shop FX' || name === 'CNY alias') expect(line.price_at_sale).toBe(.36);
+      if (name === 'valid shop FX' || name === 'CNY alias') expect(line.price_at_sale).toBe(.33); // 0.10 of leaf x3, plus 0.03 of freight at cost
       if (name.startsWith('fixed retail')) expect(line.price_at_sale).toBe(.52);
     });
   }

@@ -10,6 +10,7 @@ import { useAuth } from '../../hooks/useAuth';
 import type { RSVPFormData, ContactMethod, RSVPResponse, SessionDoor } from '../../types/events';
 import { seatKeyFor } from '../../lib/seatKey';
 import { Button } from '../shared/Button';
+import { anyoneHostsOpen } from '../../lib/anyoneHosts';
 
 interface RSVPFormSheetProps {
   slug: string;
@@ -304,7 +305,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
                     </>
                   )}
                 </div>
-              ) : answer?.status === 'waitlist' ? (
+              ) : answer?.status === 'waitlist' && anyoneHostsOpen() ? (
                 // A full table where the host says yes to each guest (J13 finding 1).
                 <div className="w-full max-w-xs flex flex-col items-center" data-testid="seat-request-waiting">
                   <h3 className="h2 mb-3 text-center">You're on the waiting list.</h3>
@@ -331,7 +332,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
                   </p>
                 </>
               )}
-              {answer?.status === 'waitlist' ? null : byLink ? (
+              {answer?.status === 'waitlist' && anyoneHostsOpen() ? null : byLink ? (
                 <p className="text-ui-12 text-tea-text-dim text-center max-w-xs leading-relaxed mb-8 px-2">
                   If your plans change, open your link and give up the seat, so someone else can have it.
                 </p>

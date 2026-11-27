@@ -107,6 +107,8 @@ export type ReleaseSeatsInput = {
   kind: 'cancelled' | 'released';
   cancellationNote?: string;
   userId?: string;
+  /** While Launch 3 is closed the guest's pending invitations stay as they were, as on main (launch-5 flags-off audit). */
+  keepInvitations?: boolean;
 };
 
 /**
@@ -147,16 +149,16 @@ export async function releaseSeats(db: Db, input: ReleaseSeatsInput): Promise<{ 
         WHERE participation_id = ? AND event_id = ? AND account_id = ?
           AND seat_status IN ('requested', 'held', 'confirmed') AND ${stillThere}`
     ).bind(...party, ...stillThereValues),
-    db.prepare(
+    ...(input.keepInvitations ? [] : [db.prepare(
       `UPDATE guest_invites SET status = 'expired'
         WHERE parent_attendee_id = ? AND event_id = ? AND status = 'pending' AND ${stillThere}`
-    ).bind(input.attendeeId, input.eventId, ...stillThereValues),
+    ).bind(input.attendeeId, input.eventId, ...stillThereValues)]),
     db.prepare(
       `UPDATE event_attendees SET status = 'cancelled', claim_expires_at = NULL${input.cancellationNote !== undefined ? ', cancellation_note = ?' : ''}
         WHERE id = ? AND event_id = ? AND account_id = ? AND status IN (${statuses})${ownerGuard}`
     ).bind(...(input.cancellationNote !== undefined ? [input.cancellationNote] : []), ...party, ...input.from, ...ownerValues),
   ]);
-  if (!Number(results[3]?.meta?.changes || 0)) return null;
+  if (!Number(results[results.length - 1]?.meta?.changes || 0)) return null;
   const row = await db.prepare(`SELECT seats FROM event_seat_notices WHERE id = ?`).bind(id).first<{ seats: number }>();
   return { seats: Number(row?.seats ?? 0) };
 }

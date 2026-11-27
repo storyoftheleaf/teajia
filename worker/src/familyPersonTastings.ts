@@ -32,14 +32,18 @@ export const PHOTO_NOT_HIDDEN =
   `NOT EXISTS (SELECT 1 FROM family_hides h WHERE h.account_id = p.account_id AND h.target_kind = 'photograph' AND h.target_id = p.id)`;
 /**
  * True unless the owner hid the tasting this photograph belongs to (A4 review,
- * finding 3): a hidden tasting takes its photographs with it, whether the
- * photograph names the journal row or only shares its author and tea.
+ * finding 3): a hidden tasting takes its photographs with it. A photograph
+ * belongs to the tasting its journal row names; one that names no journal row
+ * belongs to its author's tasting of that tea. A photograph that names another
+ * journal row is never taken with it (launch-5 flags-off audit): hiding one
+ * tasting does not hide a photograph of a different one.
  * Needs the member_photographs row aliased `p`.
  */
 export const PHOTO_TASTING_NOT_HIDDEN =
   `NOT EXISTS (SELECT 1 FROM family_hides ht WHERE ht.account_id = p.account_id AND ht.target_kind = 'tasting'
-     AND (ht.target_id = p.journal_entry_id OR ht.target_id IN (SELECT ts.journal_entry_id FROM member_tasting_shares ts
-       WHERE ts.author_user_id = p.author_user_id AND ts.product_id = p.product_id)))`;
+     AND (ht.target_id = p.journal_entry_id OR (p.journal_entry_id IS NULL AND ht.target_id IN (
+       SELECT ts.journal_entry_id FROM member_tasting_shares ts
+        WHERE ts.author_user_id = p.author_user_id AND ts.product_id = p.product_id))))`;
 /** True unless the owner hid the tasting a quote came from. Needs the tasting_note_candidates row aliased `c`. */
 export const QUOTE_TASTING_NOT_HIDDEN =
   `NOT EXISTS (SELECT 1 FROM family_hides hq WHERE hq.account_id = c.account_id AND hq.target_kind = 'tasting' AND hq.target_id = c.journal_entry_id)`;

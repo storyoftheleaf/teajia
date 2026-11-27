@@ -5,6 +5,47 @@ import type { DraftClaim } from '../claims';
 
 export const PART: readonly DraftClaim[] = [
   {
+    "claimId": "red:whole-and-broken",
+    "pageId": "red",
+    "sectionKey": "whole-and-broken",
+    "label": "Whole leaf and broken leaf",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Red"
+    },
+    "terms": [
+      {
+        "original": "工夫红茶",
+        "pinyin": "gōng fu hóng chá",
+        "gloss": "gongfu red tea"
+      },
+      {
+        "original": "红碎茶",
+        "pinyin": "hóng suì chá",
+        "gloss": "broken red tea"
+      }
+    ],
+    "rev": 1,
+    "scope": "All red tea; Dian Hong where the origin is Yunnan",
+    "text": "Red tea is made in two families. Whole-leaf strip tea, called gongfu in Chinese and orthodox in English, is rolled with care and is the choice for slow, attentive brewing. Broken-leaf tea, cut or crushed, gives its colour and strength fast, which is why it fills tea bags and suits milk tea.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "All red tea; Dian Hong where the origin is Yunnan",
+        "text": "Red tea is made in two families. Whole-leaf strip tea, called gongfu in Chinese and orthodox in English, is rolled with care and is the choice for slow, attentive brewing. Broken-leaf tea, cut or crushed, gives its colour and strength fast, which is why it fills tea bags and suits milk tea.",
+        "approvedAt": "2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 15)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
     "claimId": "san-he-liu-bao:aging-warehouse",
     "pageId": "san-he-liu-bao",
     "sectionKey": "aging-warehouse",
@@ -922,36 +963,6 @@ export const PART: readonly DraftClaim[] = [
         "origin": "approved",
         "scope": "The aged ripe style, not any lot",
         "text": "A smooth, deep cup with woody, date-like or medicinal notes, which the trade calls aged aroma.",
-        "approvedAt": "2026-11-23",
-        "reason": "Adrian approved the ripe pu'er kit, 2026-11-23",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "shou:piling-1973",
-    "pageId": "shou",
-    "sectionKey": "piling-1973",
-    "label": "Yunnan learns the pile",
-    "axis": "process",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Shou"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Yunnan state factories, 1973 to 1975",
-    "text": "In 1973 a team of seven from the Kunming, Menghai and Xiaguan factories went to the Guangzhou tea factory to learn its wet piling. Guangzhou piled with warm water. In Kunming’s cooler, drier air that failed, and Kunming succeeded in 1974 with cold water, sending about ten tonnes to Hong Kong that year. Menghai and Xiaguan each worked out their own ways, and by 1975 Menghai’s method had settled into the ripe pu’er made today.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Yunnan state factories, 1973 to 1975",
-        "text": "In 1973 a team of seven from the Kunming, Menghai and Xiaguan factories went to the Guangzhou tea factory to learn its wet piling. Guangzhou piled with warm water. In Kunming’s cooler, drier air that failed, and Kunming succeeded in 1974 with cold water, sending about ten tonnes to Hong Kong that year. Menghai and Xiaguan each worked out their own ways, and by 1975 Menghai’s method had settled into the ripe pu’er made today.",
         "approvedAt": "2026-11-23",
         "reason": "Adrian approved the ripe pu'er kit, 2026-11-23",
         "evidenceIds": []

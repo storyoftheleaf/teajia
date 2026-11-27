@@ -106,9 +106,15 @@ const CollectionItemRow: React.FC<{
     }
   };
 
-  const catalogRate = item.fixed_retail_price_usd
-    ? `$${item.fixed_retail_price_usd}/${isTeaware ? 'unit' : 'g'}`
+  // The shelf price a blank quote follows: typed, else from cost and freight.
+  const shelfRate = item.catalog_price_usd ?? item.fixed_retail_price_usd ?? null;
+  const catalogRate = shelfRate != null
+    ? `$${shelfRate}/${isTeaware ? 'unit' : 'g'}`
     : '';
+  const qtyForShelf = Number(qty);
+  const shelfTotal = shelfRate != null && Number.isFinite(qtyForShelf) && qtyForShelf > 0
+    ? (Math.round(shelfRate * qtyForShelf * 100) / 100).toFixed(2)
+    : null;
 
   // Two modes:
   // (a) Price blank + catalog rate exists: show what the blank will use.
@@ -125,7 +131,7 @@ const CollectionItemRow: React.FC<{
       ? `= ${fmtTotal} for ${qtyNum} unit${qtyNum === 1 ? '' : 's'}`
       : `= ${fmtTotal} for ${qtyNum}g  (~${fmtPer}/g)`;
   } else if (price.trim() === '' && catalogRate) {
-    priceHint = `Blank uses catalog ${catalogRate}`;
+    priceHint = `Blank uses the shelf price, ${catalogRate}`;
   }
 
   return (
@@ -221,7 +227,7 @@ const CollectionItemRow: React.FC<{
             value={price}
             onChange={e => setPrice(e.target.value)}
             onBlur={savePrice}
-            placeholder={item.fixed_retail_price_usd ? String(item.fixed_retail_price_usd) : '0.00'}
+            placeholder={shelfTotal ?? '0.00'}
             className="input-warm w-28 px-2.5 py-1.5 text-ui-13"
           />
         </label>

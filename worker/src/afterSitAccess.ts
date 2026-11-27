@@ -263,7 +263,8 @@ export function afterSitRoutes<E extends AfterSitEnv>(deps: Deps<E>): [string, s
     const scope = { accountId: seat.account_id, userId: actor.userId };
     if (withPhoto) return privateResponse(await saveGuestBookEntryWithPhoto(env.DB, scope, hash, note, photo, { teaId, publicRecap }));
     if (wholeEntry) return privateResponse(await withdrawGuestBookEntry(env.DB, scope, hash));
-    if (photos) return privateResponse(await serveGuestBookPhotos(request, env.DB, env.ATLAS_BUCKET, scope, hash, body));
+    // Closed, a photograph keeps its grouping with its taker's note, as before PR 560.
+    if (photos) return privateResponse(await serveGuestBookPhotos(request, env.DB, env.ATLAS_BUCKET, scope, hash, body, anyoneHostsOpen(env)));
 
     if (!method || !seat.magic_token) return unavailable();
     const input = new Request(request.url, { method, body: method === 'PUT' ? JSON.stringify({ note, teaId, publicRecap }) : undefined });

@@ -3,7 +3,6 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../../lib/api';
 import { rateToUsd } from '../../../lib/currency';
 import { FALLBACK_SHIPPING_RATE_CURRENCY, FALLBACK_SHIPPING_RATE_PER_KG } from '../../../lib/shippingRate';
-import { SHOP_MARKUP_MULTIPLIER } from '../../../lib/markup';
 import { useRates } from '../../hooks/useAdminData';
 import { logisticsNumber } from './LogisticsControls';
 
@@ -50,7 +49,7 @@ export function ShopFreightDefault({ accountId, account, busy, run }: { accountI
     : typed === null ? `Empty uses the platform default, ${FALLBACK_SHIPPING_RATE_PER_KG} ${FALLBACK_SHIPPING_RATE_CURRENCY}/kg.`
     : typed === 0 ? 'Zero means free freight for every tea on the shop default.'
     : fx === null ? `There is no exchange rate for ${currencyText}, so it cannot be converted.`
-    : `$${(typed / fx).toFixed(2)} USD/kg today, adding $${((typed / fx / 1000) * SHOP_MARKUP_MULTIPLIER).toFixed(3)} a gram on the shelf.`;
+    : `$${(typed / fx).toFixed(2)} USD/kg today, adding $${(typed / fx / 1000).toFixed(3)} a gram on the shelf, at cost.`;
   return <div className="journey-card journey-card-quiet" data-testid="shop-freight-default">
     <div className="journey-head">
       <div className="min-w-0"><div className="text-ui-16 text-tea-text">Shop default</div><div className="text-ui-12 text-tea-text-dim">Teas with no service, or one that cannot price them</div></div>
