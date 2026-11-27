@@ -166,6 +166,24 @@ export function hostingStoppedSql(account: string): string {
     WHERE stopped_host.id = ${account}.owner_user_id AND stopped_host.hosting_stopped_at IS NOT NULL))`;
 }
 
+/** What a stopped host is told, by what they tried. The page and the tools say the same words. */
+export const HOSTING_STOPPED_SAYS = {
+  table: 'New tables are paused on your account. Write to Teajia to talk it over.',
+  seat: 'New seats are paused on your account. Guests already confirmed keep their seats.',
+  change: 'Your tables are paused, so their door and seats stay as they are.',
+} as const;
+
+/**
+ * Whether this account is the private account of a host Adrian stopped. The
+ * shop's own Sessions room, the host's page and every tool that seats a guest
+ * read this one check, so a stopped host takes no one new by any way in.
+ */
+export async function accountHostingStopped(db: D1Database, accountId: string): Promise<boolean> {
+  const row = await db.prepare(`SELECT ${hostingStoppedSql('a')} AS stopped FROM accounts a WHERE a.id = ?`)
+    .bind(accountId).first<{ stopped: number }>();
+  return Number(row?.stopped) === 1;
+}
+
 /**
  * The door a guest meets at this session. The by-link door is the approved
  * host's: a private account's table whose host no longer carries the approval

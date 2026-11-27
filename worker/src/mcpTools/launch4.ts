@@ -3,7 +3,7 @@ import { teaTableOpen } from '../../../src/lib/teaTable';
 import { TEA_TABLE_HOLD_DAYS, type TeaTableKind } from '../../../src/lib/teaTableContract';
 import { FAVOURITE_KINDS, favouriteTarget, listFavourites, setFavourite, type FavouriteKind } from '../favourites';
 import {
-  holdTeaTablePiece, isTeaTableHoldDays, isTeaTableKind, isTeaTablePlatformOwner,
+  holdTeaTablePiece, hostedTeaTableSession, isTeaTableHoldDays, isTeaTableKind, isTeaTablePlatformOwner,
   setTeaTableHidden, setTeaTableKeep, setTeaTableRecap, takeTastingOffTeaTable, teaTablePiece, teaTableRecapTarget,
 } from '../teaTable';
 import type { ToolAuth, ToolDefinition, ToolHandler, ToolModule } from './registry';
@@ -97,12 +97,25 @@ const setTeaTableKeepTool = write('set_tea_table_keep', async (db, auth, args) =
 }, async (db, auth, { kind, id, kept }) =>
   teaTableResult(await setTeaTableKeep(db, auth.userId, kind, id, kept)));
 
+const notHost = { error: 'not_host', message: 'Only a host of this session can do that.' };
+
+/**
+ * The page's rule for a recap (teaTable.ts hostOf, A4 review finding 7): the
+ * platform owner, or a host of this session. Holding the shop is not enough
+ * (A11-6). Read in the preview and again in the apply.
+ */
+async function mayPlaceRecap(db: D1Database, auth: ToolAuth, id: string) {
+  return await isTeaTablePlatformOwner(db, auth.userId)
+    || await hostedTeaTableSession(db, id, auth.accountId, auth.userId);
+}
+
 const setMyRecap = write('set_my_recap_on_tea_table', async (db, auth, args) => {
   const id = idOf(args);
   const onTable = args?.on_table;
   if (!id || typeof onTable !== 'boolean') return invalid;
   const recap = await teaTableRecapTarget(db, auth.accountId, id);
   if (!recap) return notFound;
+  if (!await mayPlaceRecap(db, auth, id)) return notHost;
   if (onTable && !recap.eligible) return notEligible;
   return {
     input: { id, on_table: onTable }, title: recap.title,
@@ -111,6 +124,7 @@ const setMyRecap = write('set_my_recap_on_tea_table', async (db, auth, args) => 
 }, async (db, auth, { id, on_table }) => {
   const recap = await teaTableRecapTarget(db, auth.accountId, id);
   if (!recap) return notFound;
+  if (!await mayPlaceRecap(db, auth, id)) return notHost;
   if (on_table && !recap.eligible) return notEligible;
   return teaTableResult(await setTeaTableRecap(db, auth.accountId, auth.userId, id, on_table));
 });
@@ -118,12 +132,17 @@ const setMyRecap = write('set_my_recap_on_tea_table', async (db, auth, args) => 
 const takeMyTastingOff = write('take_my_tasting_off_tea_table', async (db, auth, args) => {
   const id = idOf(args);
   if (!id) return invalid;
-  const tasting = await db.prepare(`SELECT COALESCE(NULLIF(p.given_name, ''), p.product_name) AS title
+  const tasting = await db.prepare(`SELECT COALESCE(NULLIF(p.given_name, ''), p.product_name) AS title, s.page_alone_at
     FROM member_tasting_shares s JOIN products p ON p.id = s.product_id AND p.account_id = s.account_id
     WHERE s.journal_entry_id = ? AND s.author_user_id = ? AND s.tea_table_at IS NOT NULL`)
-    .bind(id, auth.userId).first<{ title: string }>();
+    .bind(id, auth.userId).first<{ title: string; page_alone_at: string | null }>();
   if (!tasting) return notFound;
-  return { input: { id }, title: tasting.title, effect: 'Take this tasting off the Tea Table. It stays on your page.' };
+  // takeTastingOffTeaTable keeps it on the person's page only when they chose
+  // their page by itself; otherwise it goes private everywhere (A11-8).
+  const effect = tasting.page_alone_at
+    ? 'Take this tasting off the Tea Table. It stays on your page.'
+    : 'Take this tasting off the Tea Table. It was public only for the Tea Table, so it goes private everywhere, your page too.';
+  return { input: { id }, title: tasting.title, effect };
 }, async (db, auth, { id }) => teaTableResult(await takeTastingOffTeaTable(db, auth.userId, id)));
 
 const holdPiece = write('hold_tea_table_piece', async (db, _auth, args) => {
@@ -194,14 +213,14 @@ const defs: ToolDefinition[] = [
     name: 'set_my_recap_on_tea_table',
     scope: 'catalog:write',
     unavailable: tableGate,
-    description: 'Put your published recap on the Tea Table or take it off. Preview first, then confirm.',
+    description: 'Put the published recap of a session you host on the Tea Table, or take it off. Preview first, then confirm.',
     inputSchema: writeSchema({ id, on_table: { type: 'boolean' } }),
   },
   {
     name: 'take_my_tasting_off_tea_table',
     scope: 'stock:write',
     unavailable: tableGate,
-    description: 'Take your tasting off the Tea Table. It stays on your page. Preview first, then confirm.',
+    description: 'Take your tasting off the Tea Table. It stays on your page only if you had chosen your page by itself; otherwise it goes private. The preview says which. Preview first, then confirm.',
     inputSchema: writeSchema({ id }),
   },
   {

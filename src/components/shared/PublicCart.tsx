@@ -224,7 +224,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
       let creditMissed = false;
       if (offerCredit && useCredit && result.invoice_id && !result.idempotent) {
         try {
-          const used = await hostCreditApi.useOnOrder(result.invoice_id);
+          const used = await hostCreditApi.useOnOrder(result.invoice_id, `checkout-${result.invoice_id}`);
           creditAsked = formatCredit(used.request.amount, used.request.currency);
         } catch { creditMissed = true; }
       }
