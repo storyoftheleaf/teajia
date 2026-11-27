@@ -38,7 +38,7 @@ import { hostRecord, hostRecordFileName, hostsAnyTable } from './hostRecord';
 import { advanceWaitingLists, cancelGuestSeat, NEXT_WAITLIST_POSITION_SQL, offerFreedSeats, offerNextAsMain, offerOn, offerShownUntil, recordSeatNotice, releaseSeats, seatNoticesFor, sessionHasBegun } from './waitingList';
 import { hostTableTeas, menuProductJoins, readTableTeas, saveTableTeas, searchTableTeas, shopTeaAddressColumns, shopTeaPath, tableTeaPhotoPrefix } from './hostTableTeas';
 import { guardGuideWrite, keepTableWay, readTableWay, readTableWayInput, saveTableWay, signWayForHost } from './hostTableWay';
-import { addTeaSpace, chooseYourTable, readYourTable, undoYourTable, withYourTable, yourTableAreaSql } from './yourTablePlace';
+import { addTeaSpace, chooseYourTable, readYourTable, setTableTeaSpace, undoYourTable, withYourTable, yourTableAreaSql } from './yourTablePlace';
 import { yourTablePlaceOpen } from '../../src/lib/yourTablePlace';
 import { teaHousesOpen } from '../../src/lib/teaHouses';
 import { launch4RouteClosed, openRoutes } from './launch4Closed';
@@ -18253,6 +18253,17 @@ const handleHostedTableWay: Handler = async (request, env, params) => {
   return hostTableJson(await signWayForHost(env.JWT_SECRET, await readTableWay(env.DB, own.table)));
 };
 
+// PUT /api/me/tables/:id/space {place_id | null}: which of the host's tea
+// spaces this table is in (tea spaces, step 2). The table's host alone.
+const handleHostedTableSpace: Handler = async (request, env, params) => {
+  if (!yourTableShown(env)) return fewHostsClosed();
+  const own = await requireOwnHostedTable(request, env, params.id);
+  if ('error' in own) return own.error;
+  const set = await setTableTeaSpace(env.DB, own.table, await request.json().catch(() => null) as Record<string, unknown> | null);
+  if ('refused' in set) return restError(set.refused.status, set.refused.error, set.refused.code);
+  return hostTableJson(set);
+};
+
 const handleKeepHostedTableWay: Handler = async (request, env, params) => {
   const own = await requireOwnHostedTable(request, env, params.id);
   if ('error' in own) return own.error;
@@ -33812,6 +33823,7 @@ const routes: [string, string, Handler][] = [
   ['POST',   '/api/me/tables/:id/teas/photo', handleHostedTableTeaPhoto],
   ['GET',    '/api/me/tables/:id/way', handleHostedTableWay],
   ['PUT',    '/api/me/tables/:id/way', handleHostedTableWay],
+  ['PUT',    '/api/me/tables/:id/space', handleHostedTableSpace],
   ['POST',   '/api/me/tables/:id/way/keep', handleKeepHostedTableWay],
   ['POST',   '/api/me/tables/:id/way/photos', handleHostedTableWayPhoto],
   // Launch 4, K4: closed (404) until src/lib/yourTablePlace.ts opens.

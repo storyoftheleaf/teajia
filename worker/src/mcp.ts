@@ -437,6 +437,8 @@ export const HOST_SELF_TOOLS: ReadonlySet<string> = new Set([
   // pageActions.ts (A11-10): the rest of the host's page, each through its own route.
   'change_my_table', 'mark_who_came', 'get_guest_thanks_link', 'review_guest_book', 'set_table_way',
   'set_your_table', 'ask_guest_back', 'offer_article',
+  // pageActions.ts, tea spaces step 5: the host's own tea spaces.
+  'list_my_tea_spaces', 'add_my_tea_space', 'set_table_tea_space',
 ]);
 
 const MCP_SCOPES = [

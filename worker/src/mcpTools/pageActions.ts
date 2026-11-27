@@ -268,25 +268,97 @@ const setTableWay = writeTool({
 
 const setYourTable = writeTool({
   name: 'set_your_table', scope: 'catalog:write', available: yourTable,
-  description: 'Choose one of your saved places as your table, with the area people are told, or clear it (clear: true).',
+  description: 'Name one of your saved places as a tea space, with the area people are told; or stop naming one (place_id with clear: true), or every one (clear: true alone). Your other tea spaces stay as they are.',
   properties: { place_id: string, area: { type: 'string', maxLength: 80 }, clear: { type: 'boolean' } },
   required: [],
   plan: async (env, auth, args) => {
     const current = await run(env, auth, { method: 'GET', path: '/api/me/your-table' });
     if (!current.ok) return refusalOf(current, 'not_available');
-    if (args.clear === true) {
-      return { step: { method: 'DELETE', path: '/api/me/your-table' }, preview: { effect: 'Stop naming any place as your table.' } };
-    }
     const placeId = text(args.place_id);
-    const place = (current.body.places ?? []).find((row: Body) => row.id === placeId);
+    const place = placeId ? (current.body.places ?? []).find((row: Body) => row.id === placeId) : null;
+    if (args.clear === true) {
+      if (placeId && !place) return { error: 'your_table_place', message: 'Choose one of your places.' };
+      return place
+        ? { step: { method: 'DELETE', path: `/api/me/your-table?place_id=${encodeURIComponent(placeId)}` }, preview: { place: place.name, effect: 'Stop naming this place as a tea space. The place itself stays.' } }
+        : { step: { method: 'DELETE', path: '/api/me/your-table' }, preview: { effect: 'Stop naming any place as a tea space. The places themselves stay.' } };
+    }
     if (!place) return { error: 'your_table_place', message: 'Choose one of your places.' };
-    if (!text(args.area)) return { error: 'your_table_area', message: 'Write the area your table is in.' };
+    if (!text(args.area)) return { error: 'your_table_area', message: 'Write the area your tea space is in.' };
     return {
       step: { method: 'PUT', path: '/api/me/your-table', body: { place_id: placeId, area_hint: text(args.area) } },
-      preview: { place: place.name ?? placeId, area: text(args.area), effect: 'Name this place as your table, shown by its area only.' },
+      preview: { place: place.name ?? placeId, area: text(args.area), effect: 'Name this place as a tea space, shown by its area only.' },
     };
   },
-  result: body => ({ ok: true, places: (body.places ?? []).map((row: Body) => ({ id: row.id, name: row.name, is_host_table: row.is_host_table })) }),
+  result: body => ({ ok: true, ...spacesOf(body) }),
+});
+
+// Tea spaces, step 5 (todo/plans/tea-spaces.md): the same as the host's page,
+// each through its own route. A space is shown to the public by its area only.
+function spacesOf(body: Body) {
+  const places = (body.places ?? []) as Body[];
+  return {
+    tea_spaces: places.filter(row => row.is_table).map(row => ({ id: row.id, name: row.name, area: row.area_hint ?? null })),
+    other_places: places.filter(row => !row.is_table).map(row => ({ id: row.id, name: row.name })),
+  };
+}
+
+const listMyTeaSpaces = readTool({
+  name: 'list_my_tea_spaces', scope: 'inventory:read', available: yourTable,
+  description: 'Your tea spaces, each with its name and the area people are told, and your other saved places that are not tea spaces yet.',
+  properties: {},
+  step: () => ({ method: 'GET', path: '/api/me/your-table' }),
+  result: body => spacesOf(body),
+});
+
+const addMyTeaSpace = writeTool({
+  name: 'add_my_tea_space', scope: 'catalog:write', available: yourTable,
+  description: 'Add a new tea space of yours: a name, and the area people are told (never the street or number). The way in is added from a table, as before.',
+  properties: { name: { type: 'string', maxLength: 80 }, area: { type: 'string', maxLength: 80 } },
+  required: ['name', 'area'],
+  plan: async (env, auth, args) => {
+    const name = text(args.name).replace(/\s+/g, ' ');
+    const area = text(args.area);
+    if (!name) return { error: 'tea_space_name', message: 'Give your tea space a name.' };
+    if (name.length > 80) return { error: 'tea_space_name', message: 'Keep the name under 80 characters.' };
+    if (!area) return { error: 'your_table_area', message: 'Write the area your tea space is in.' };
+    if (area.length > 80) return { error: 'your_table_area', message: 'Keep the area under 80 characters.' };
+    if (/https?:\/\//i.test(area)) return { error: 'your_table_area_address', message: 'Write only the area, not a link.' };
+    const current = await run(env, auth, { method: 'GET', path: '/api/me/your-table' });
+    if (!current.ok) return refusalOf(current, 'not_available');
+    return {
+      step: { method: 'POST', path: '/api/me/your-table', body: { name, area_hint: area } },
+      preview: { name, area, effect: 'Add this tea space. People see only the area.' },
+    };
+  },
+  result: body => ({ ok: true, ...spacesOf(body) }),
+});
+
+const setTableTeaSpace = writeTool({
+  name: 'set_table_tea_space', scope: 'catalog:write', available: yourTable,
+  description: 'Say which of your tea spaces one of your tables is in (place_id from list_my_tea_spaces), or none (place_id null). The table\'s address and way in stay as they are.',
+  properties: { table_id: tableId, place_id: { type: ['string', 'null'] } },
+  required: ['table_id', 'place_id'],
+  plan: async (env, auth, args) => {
+    if (args.place_id !== null && typeof args.place_id !== 'string') return { error: 'tea_space_place', message: 'Choose one of your tea spaces, or null for none.' };
+    const table = await run(env, auth, { method: 'GET', path: `/api/me/tables/${seg(args.table_id)}/way` });
+    if (!table.ok) return table.status === 404 ? { error: 'table_not_found' } : refusalOf(table, 'table_not_found');
+    const placeId = typeof args.place_id === 'string' ? text(args.place_id) : '';
+    let space: Body | null = null;
+    if (placeId) {
+      const current = await run(env, auth, { method: 'GET', path: '/api/me/your-table' });
+      if (!current.ok) return refusalOf(current, 'not_available');
+      space = (current.body.places ?? []).find((row: Body) => row.id === placeId && row.is_table) ?? null;
+      if (!space) return { error: 'tea_space_place', message: 'That is not one of your tea spaces.' };
+    }
+    return {
+      step: { method: 'PUT', path: `/api/me/tables/${seg(args.table_id)}/space`, body: { place_id: placeId || null } },
+      preview: {
+        table_id: text(args.table_id), space: space ? space.name : null,
+        effect: space ? 'This table is held in this tea space. Guests looking at it see only its area.' : 'This table is in none of your tea spaces.',
+      },
+    };
+  },
+  result: body => ({ ok: true, table_id: body.table_id, space: body.space ? { id: body.space.id, name: body.space.name, area: body.space.area_hint ?? null } : null }),
 });
 
 const askGuestBack = writeTool({
@@ -422,6 +494,7 @@ const listTeaTable = readTool({
 
 const tools = [
   changeMyTable, markWhoCame, guestThanksLink, reviewGuestBook, setTableWay, setYourTable, askGuestBack, offerArticle,
+  listMyTeaSpaces, addMyTeaSpace, setTableTeaSpace,
   setHostReach, listReports, resolveReport, reviewArticleOffer, listTeaTable,
 ];
 

@@ -170,13 +170,14 @@ export const SHOP_TOOL_GROUPS: readonly ToolGroup[] = [
 /** Tools a host's own key reaches: their tables, guests and circles, nothing of the shop. */
 export const HOST_TOOL_GROUP: ToolGroup = {
   title: 'A host’s own table',
-  copy: 'With a host’s own key, their assistant reaches their tables, guests, notes and circles, and nothing of the shop.',
+  copy: 'With a host’s own key, their assistant reaches their tables, tea spaces, guests, notes and circles, and nothing of the shop.',
   tools: [
     'host_table', 'list_my_tables', 'get_table_guests', 'answer_guest', 'add_table_tea', 'set_guest_note',
     'get_guest_notes', 'release_guest_seat', 'same_table_again', 'set_session_tasting',
     'make_circle', 'put_table_in_circle', 'list_my_circles', 'list_my_favourites',
     'change_my_table', 'mark_who_came', 'get_guest_thanks_link', 'review_guest_book', 'set_table_way',
     'set_your_table', 'ask_guest_back', 'offer_article',
+    'list_my_tea_spaces', 'add_my_tea_space', 'set_table_tea_space',
   ],
 };
 

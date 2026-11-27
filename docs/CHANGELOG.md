@@ -1,3 +1,7 @@
+## 2026-11-27: Tea spaces, step 5: agent tools, and a table in a space
+
+The host's tea spaces are the same for their assistant as on their page (`worker/src/mcpTools/pageActions.ts`, each through the page's own route, preview then confirm): `list_my_tea_spaces`, `add_my_tea_space` (a name and the area, never a link) and `set_table_tea_space`, which says which tea space a table is held in, or none, through the new `PUT /api/me/tables/:id/space`. `set_your_table` now takes off one space (`place_id` with `clear: true`) and leaves the others. All three join a host's own key and the /mcp page. A host keeps at most 50 places, spaces included, as with kept ways in.
+
 ## 2026-11-27: Tea spaces, step 4: "Serves at tables" opens where they serve
 
 Adrian: "Served at tables yes", and the line may be tapped. On the people list, a tap on "Serves at tables" opens that person's page at a short list (`?serves=open`, so back closes it): their own tea spaces first, then other spaces they have served in. Names only, no count and no dates. A private space shows by its area alone, never its name, address, map link or way in; a tea house shown on `/tea-houses/work` is named and linked. The list is `GET /api/public/people/:slug/spaces` (`worker/src/servesAt.ts`) and opens with the line itself (the Tea Table switch). Plan: `todo/plans/tea-spaces.md`, step 4.

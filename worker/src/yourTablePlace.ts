@@ -67,6 +67,8 @@ export async function chooseYourTable(db: D1Database, accountId: string, body: R
 }
 
 export const TEA_SPACE_NAME_MAX = 80;
+/** The same ceiling as a table's kept places (WAY_MAX_PLACES in hostTableWay.ts). */
+export const TEA_SPACE_PLACES_MAX = 50;
 
 /**
  * Add a new tea space: a name and the area, nothing more (tea spaces, step 2).
@@ -82,6 +84,9 @@ export async function addTeaSpace(db: D1Database, accountId: string, body: Recor
   if (!area) return refuse('your_table_area', 'Write the area your tea space is in.');
   if (area.length > TABLE_AREA_MAX) return refuse('your_table_area', `Keep the area under ${TABLE_AREA_MAX} characters.`);
   if (/https?:\/\//i.test(area)) return refuse('your_table_area_address', 'Write only the area, not a link.');
+  const count = await db.prepare('SELECT COUNT(*) AS n FROM saved_locations WHERE account_id = ?')
+    .bind(accountId).first<{ n: number }>();
+  if (Number(count?.n ?? 0) >= TEA_SPACE_PLACES_MAX) return refuse('table_way_places_full', `You can keep up to ${TEA_SPACE_PLACES_MAX} places.`, 409);
   await db.prepare(`INSERT INTO saved_locations (name, address, account_id, is_host_table, area_hint)
                     VALUES (?, '', ?, 1, ?)`).bind(name, accountId, area).run();
   return readYourTable(db, accountId);
@@ -100,6 +105,29 @@ export async function undoYourTable(db: D1Database, accountId: string, placeId?:
                        WHERE account_id = ? AND is_host_table = 1`).bind(accountId).run();
   }
   return readYourTable(db, accountId);
+}
+
+/**
+ * Say which of the host's tea spaces a table is in (tea spaces, step 2), or
+ * none (null). Only a tea space of the table's own account; anything else
+ * answers as if it did not exist. The table's address and way in stay as set.
+ */
+export async function setTableTeaSpace(db: D1Database, table: { id: string; account_id: string }, body: Record<string, unknown> | null):
+  Promise<{ table_id: string; space: YourTablePlace | null } | Refused> {
+  const raw = body?.place_id;
+  if (raw !== null && typeof raw !== 'string') return refuse('tea_space_place', 'Choose one of your tea spaces, or none.');
+  const placeId = typeof raw === 'string' ? raw.trim() : '';
+  let space: YourTablePlace | null = null;
+  if (placeId) {
+    const row = await db.prepare(
+      'SELECT id, name, area_hint FROM saved_locations WHERE id = ? AND account_id = ? AND is_host_table = 1',
+    ).bind(placeId, table.account_id).first<{ id: string; name: string; area_hint: string | null }>();
+    if (!row) return refuse('tea_space_place', 'That is not one of your tea spaces.', 404);
+    space = { id: row.id, name: String(row.name ?? ''), area_hint: row.area_hint, is_table: true };
+  }
+  await db.prepare(`UPDATE events SET location_id = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ?`)
+    .bind(space?.id ?? null, table.id, table.account_id).run();
+  return { table_id: table.id, space };
 }
 
 /**

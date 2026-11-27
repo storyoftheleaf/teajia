@@ -40,6 +40,7 @@ const HOST_SET = [
   // The rest of the host's page (review A11-10), each through its own route.
   'change_my_table', 'mark_who_came', 'get_guest_thanks_link', 'review_guest_book', 'set_table_way',
   'set_your_table', 'ask_guest_back', 'offer_article',
+  'list_my_tea_spaces', 'add_my_tea_space', 'set_table_tea_space',
 ].sort();
 
 let db: SqliteD1;
