@@ -20,7 +20,7 @@ const words = () => (barOn() ? LAUNCH_FOUR : TODAY);
 /** Where each word leads. The Tea Table and the Tea Houses portfolio are shut on both sites, so their words take their open doors. */
 const DOORS: Record<string, string> = {
   Read: '/read', Craft: '/craft', Advise: '/advise', Shop: '/shop',
-  'Tea table': '/events', 'Tea house': '/tea-houses/visit',
+  'Tea table': '/events', 'Tea house': '/advise',
 };
 
 async function mockApi(page: Page) {
@@ -135,11 +135,33 @@ test('the phone menu: today\'s rows, or the short list with the new bar', async 
   await noHorizontalOverflow(page, 'menu');
 });
 
-test('Home: today\'s lines, or the four new lines and "Come to a table"', async ({ page }) => {
+test('Home: today\'s lines, or the four doors and "Come to a table"', async ({ page }) => {
   await page.goto('/');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Tea deepens with what you bring to the table and what you leave behind.');
   const lines = page.getByRole('navigation', { name: 'Homepage destinations' });
   if (barOn()) {
-    await expect(lines.getByRole('link')).toHaveText(['Learn tea.', 'Sit at a table.', 'Find a tea house.', 'Find good tea.']);
+    const doors = lines.getByRole('link');
+    await expect(doors).toHaveText([
+      'Discover stories, craft and tea wisdom',
+      'Deepen sit at a table, taste, share what you found',
+      'Create a tea house, or a table of your own',
+      'Source fine tea and teaware, found by hand',
+    ]);
+    // Each door goes where its bar word goes.
+    const bar = [DOORS.Read, DOORS['Tea table'], DOORS['Tea house'], DOORS.Shop];
+    for (const [index, href] of bar.entries()) await expect(doors.nth(index)).toHaveAttribute('href', href);
+    for (let index = 0; index < 4; index++) {
+      const box = await doors.nth(index).boundingBox();
+      expect(box!.height, 'a door is at least 44 tall').toBeGreaterThanOrEqual(44);
+    }
+    await expect(page.getByTestId('home-four-doors').locator('xpath=following::*[@data-testid="home-come-to-a-table"]')).toHaveCount(1);
+    for (const [index, href] of bar.entries()) {
+      await doors.nth(index).click();
+      await expect(page).toHaveURL(new RegExp(`${href.replace(/\//g, '\\/')}(\\?.*)?$`));
+      // Every door lands, Create included: it goes to Advise until Tea Houses opens (4.20).
+      await expect(page.getByRole('heading', { name: '404', exact: true })).toHaveCount(0);
+      await page.goto('/');
+    }
     const door = page.getByTestId('home-come-to-a-table').getByRole('link');
     await expect(door).toHaveAttribute('href', '/events');
     await door.click();
@@ -147,6 +169,7 @@ test('Home: today\'s lines, or the four new lines and "Come to a table"', async 
   } else {
     await expect(lines.getByRole('link')).toHaveText(['Source your tea.', 'Discover the stories.', 'Deepen your practice.', 'Create the spaces to share.']);
     await expect(page.getByTestId('home-come-to-a-table')).toHaveCount(0);
+    await expect(page.getByTestId('home-four-doors')).toHaveCount(0);
   }
   // The strips need the Tea Table and the portfolio open; both are shut here, so neither shows.
   await expect(page.getByTestId('home-tea-table')).toHaveCount(0);

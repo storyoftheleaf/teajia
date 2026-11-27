@@ -1,6 +1,9 @@
 ## 2026-11-27: Price links for agents
 
 Two agent tools in `worker/src/mcpTools/priceLinks.ts`, so anyone can show a friend what some teas cost without touching stock. `draft_invoice` writes a Draft invoice (inventory not deducted, unpaid) and returns its pay link from `resolveInvoicePayment`; `share_collection_link` opens a private person link to a collection at `/c/<slug>` and never publishes to the shop. Fixed: invoice lines refused every tea stored as "Sheng Puer" or "Shou Puer", because `authorizeInvoiceLines` read the short type words only; it now reads `isStoredTeaType`. The `update_tea_pricing` freight description now says freight is added at cost. Guard: `worker/tests/price-link-tools.test.ts`.
+## 2026-11-27: Home's four doors (behind HOME_BAR_OPEN)
+
+Built on `build/home-four-doors`, approved by Adrian on 2026-11-27 ("4 yes"). With the new bar on, the four lines under Home's opener become four doors, each with a few plain words: Discover (stories, craft and tea wisdom), Deepen (sit at a table, taste, share what you found), Create (a tea house, or a table of your own) and Source (fine tea and teaware, found by hand). Each goes where its bar word goes (`tableDoor()` and `housesDoor()` in `src/components/navSections.ts`), so Create inherits open question 4.20: with `TEA_HOUSES_OPEN` off, `/tea-houses/visit` is not registered. "Come to a table" and "Host a table" follow, as before. Off, Home is exactly as it was. `HomeFourDoors` in `src/pages/home/HomeLaunchFour.tsx`; checks in its unit test and `tests/home-and-bar.spec.ts`.
 ## 2026-11-27: Freight rates live in Logistics
 
 Every freight rate is typed in Logistics services on the Purchases page and nowhere else. No tea's price moves.

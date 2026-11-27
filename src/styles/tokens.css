@@ -215,6 +215,9 @@
 .type-subtitle        { font-family: var(--font-body); font-size: var(--fs-subtitle); font-weight: var(--fw-medium); font-style: italic; line-height: var(--lh-subtitle); }
 .type-body            { font-family: var(--font-body); font-size: var(--fs-body); font-weight: var(--fw-medium); line-height: var(--lh-body); }
 .type-small           { font-family: var(--font-body); font-size: var(--fs-small); font-weight: var(--fw-medium); line-height: var(--lh-small); }
+/* Home's door words: small and close-set on a phone so the photograph shows; body size beside it from lg. */
+.type-door-words      { font-family: var(--font-body); font-size: var(--fs-small); font-weight: var(--fw-medium); line-height: 1.375; }
+@media (min-width: 1024px) { .type-door-words { font-size: var(--fs-body); line-height: var(--lh-body); } }
 .type-label           { font-family: var(--font-sans); font-size: var(--fs-label); font-weight: var(--fw-medium); line-height: var(--lh-label); letter-spacing: var(--ls-label); text-transform: uppercase; }
 .type-nav             { font-family: var(--font-sans); font-size: var(--fs-nav); font-weight: var(--fw-medium); line-height: 1.4; letter-spacing: var(--ls-nav); text-transform: uppercase; }
 .type-link            { font-family: var(--font-sans); font-size: var(--fs-link); font-weight: var(--fw-medium); letter-spacing: 0.2px; }
