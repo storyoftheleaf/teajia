@@ -6,6 +6,9 @@ import { TEA_HOUSES_TITLE } from '../../lib/teaHouses';
 import { TEA_HOUSE_READ, teaHousesApi } from '../../lib/teaHousesApi';
 import { TEA_HOUSE_PART_OFFERS, teaHousePagePath } from '../../lib/teaHousesContract';
 import { SectionSkeleton } from '../../components/shared/SectionSkeleton';
+import { LoadFailed } from '../../components/shared/LoadFailed';
+import { SiteNotFound } from '../../components/SiteNotFound';
+import { PART_QUERY, partView } from '../../lib/closedPart';
 
 /**
  * Build, /tea-houses/build (Launch 4, K5 part two): the same parts as a
@@ -13,8 +16,11 @@ import { SectionSkeleton } from '../../components/shared/SectionSkeleton';
  * done it somewhere, and points at the houses where he did, in his order.
  */
 export default function TeaHousesBuildPage() {
-  const query = useQuery({ queryKey: ['tea-houses', 'build'], queryFn: () => teaHousesApi.build(), ...TEA_HOUSE_READ });
+  const query = useQuery({ queryKey: ['tea-houses', 'build'], queryFn: () => teaHousesApi.build(), ...TEA_HOUSE_READ, ...PART_QUERY });
+  const view = partView(query);
   const parts = query.data?.parts ?? [];
+  // Open on the site, not yet on the worker: the address is not a page yet (A10-3).
+  if (view.state === 'closed') return <SiteNotFound />;
   return (
     <div className="w-full max-w-3xl mx-auto pt-12 pb-16" data-testid="tea-houses-build">
       <Helmet><title>{`Build | ${TEA_HOUSES_TITLE} | Teajia`}</title></Helmet>
@@ -23,7 +29,7 @@ export default function TeaHousesBuildPage() {
         <h1 className={`${T.h1} mt-3`}>This is what I can do for your room</h1>
       </header>
       {query.isPending && <SectionSkeleton variant="grid" />}
-      {query.isError && <p className={`${T.body} text-center text-tea-text-sec py-12`}>This could not be loaded just now.</p>}
+      {view.state === 'failed' && <LoadFailed className="justify-center py-12" sentence="This could not be loaded just now." onRetry={view.retry} />}
       {parts.length > 0 && (
         <ol className="flex flex-col border-t border-tea-border">
           {parts.map(entry => (

@@ -11,15 +11,22 @@ import { api } from '../../lib/api';
 import { anyoneHostsOpen } from '../../lib/anyoneHosts';
 import type { HostedTableGuest } from '../../lib/hostingApi';
 import { GuestBookPrivate } from './GuestBookPrivate';
+import { sessionMoment } from '../../../shared/sessionEnd';
 import { hostSmallText, hostTableQueryKey, hostText, tableHasBegun, type HostTablePartProps } from './hostTableParts';
 
 export function HostTableAfter(props: HostTablePartProps) {
   const { detail } = props;
   const begun = tableHasBegun(detail.table.event_date);
+  // Who came is marked once the table has ended, by the same end the worker
+  // reads (shared/sessionEnd.ts); saving it finishes the table (review A9-4).
+  const ended = sessionMoment({
+    event_date: detail.table.event_date, event_end_date: detail.table.event_end_date,
+    timezone: detail.table.timezone, lifecycle_status: detail.table.lifecycle_status,
+  }) === 'after';
   return (
     <section aria-labelledby="host-part-after" data-host-part="after" className="space-y-5">
       <h2 id="host-part-after" className={TYPOGRAPHY_CLASSES.h2}>After</h2>
-      {begun ? <WhoCame {...props} /> : <p className={hostText}>When the table has begun, mark who came here.</p>}
+      {ended ? <WhoCame {...props} /> : <p className={hostText}>When the table has ended, mark who came here.</p>}
       {anyoneHostsOpen() && ['completed', 'archived'].includes(detail.table.lifecycle_status) &&
         <GuestBookReview eventId={props.tableId} reviewer="host" />}
       {begun && <GuestBookPrivate {...props} />}

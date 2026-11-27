@@ -12,6 +12,8 @@ import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import { useAuth } from '../../hooks/useAuth';
 import { useStepParam } from '../../hooks/useStepParam';
 import { api } from '../../lib/api';
+import { PART_QUERY, partView } from '../../lib/closedPart';
+import { LoadFailed } from '../shared/LoadFailed';
 import type { YourTableAnswer, YourTablePlace } from '../../lib/hostingApi';
 import { hostSmallText, hostText } from './hostTableParts';
 
@@ -23,19 +25,22 @@ export function YourTablePlaceSection() {
   const queryClient = useQueryClient();
   const key = ['your-table', user?.email] as const;
   const [step, setStep] = useStepParam('your-table');
-  const answer = useQuery({ queryKey: key, queryFn: () => api.hosting.yourTable(), retry: false });
+  const answer = useQuery({ queryKey: key, queryFn: () => api.hosting.yourTable(), ...PART_QUERY });
+  const view = partView(answer);
   const settle = (next: YourTableAnswer) => queryClient.setQueryData(key, next);
   const undo = useMutation({ mutationFn: api.hosting.undoYourTable, retry: false, onSuccess: settle });
 
   const places = answer.data?.places ?? [];
   const table = places.find(place => place.is_table);
   const choosing = step === 'choose' && places.length > 0;
+  // Not open on the worker yet: the part is not offered (A10-3).
+  if (view.state === 'closed') return null;
 
   return (
     <section aria-labelledby="your-table-heading" className="mt-8 space-y-3 border-t border-tea-border pt-4" data-testid="your-table">
       <h2 id="your-table-heading" className={TYPOGRAPHY_CLASSES.h2}>Your table</h2>
       {answer.isPending && <p className={hostSmallText} role="status">Opening your places…</p>}
-      {answer.isError && <p className={hostSmallText} role="alert">Could not open your places. Reload to try again.</p>}
+      {view.state === 'failed' && <LoadFailed sentence="Could not open your places just now." onRetry={view.retry} />}
       {answer.data && !places.length && (
         <p className={hostText}>Keep the way in to a place from a table’s page, and you can name it as your table here.</p>
       )}

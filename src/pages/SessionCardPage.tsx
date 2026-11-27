@@ -6,6 +6,8 @@ import { TYPOGRAPHY_CLASSES } from '../designTokens';
 import { api } from '../lib/api';
 import { Icons } from '../components/Icons';
 import { useAdminBack } from '../admin/hooks/useAdminBack';
+import { PART_QUERY, partView } from '../lib/closedPart';
+import { LoadFailed } from '../components/shared/LoadFailed';
 
 interface PublicSession {
   slug: string;
@@ -102,6 +104,11 @@ const printStyles = `
   }
 `;
 
+function isPublicSession(data: PublicSession): boolean {
+  return typeof data === 'object' && data !== null && typeof data.event_date === 'string' && data.event_date.length > 0
+    && typeof data.title === 'string' && typeof data.slug === 'string';
+}
+
 export default function SessionCardPage() {
   const { slug } = useParams<'slug'>();
   const back = useAdminBack(slug ? `/admin/events/${encodeURIComponent(slug)}` : '/admin/events');
@@ -109,21 +116,31 @@ export default function SessionCardPage() {
     queryKey: ['event-public', slug],
     queryFn: () => api.events.getPublic(encodeURIComponent(slug!)),
     enabled: !!slug,
+    ...PART_QUERY,
   });
+  // A body without a title and a day is not a session: read as a failed load, never a crash (W5-2).
+  const sessionView = partView(session, isPublicSession);
   const menu = useQuery<PublicTea[]>({
     queryKey: ['session-card-tea-menu', slug],
     queryFn: () => api.events.getPublicTeaMenu(encodeURIComponent(slug!)),
-    enabled: !!session.data,
+    enabled: sessionView.state === 'ready',
+    ...PART_QUERY,
   });
+  const menuView = partView(menu);
 
-  if (!slug || session.isError || menu.isError) {
-    return <p role="alert" className={TYPOGRAPHY_CLASSES.body}>Could not load the session card.</p>;
+  if (!slug || sessionView.state === 'closed') {
+    return <p role="status" className={TYPOGRAPHY_CLASSES.body}>There is no session card at this address.</p>;
   }
-  if (!session.data || !menu.data) {
+  // A failed read says so at once, with a way to try again (W5-1).
+  if (sessionView.state === 'failed' || menuView.state === 'failed') {
+    return <LoadFailed className="pt-6" sentence="Could not load the session card just now."
+      onRetry={() => { if (sessionView.state === 'failed') sessionView.retry(); else if (menuView.state === 'failed') menuView.retry(); }} />;
+  }
+  if (sessionView.state !== 'ready' || menuView.state !== 'ready') {
     return <p role="status" className={TYPOGRAPHY_CLASSES.body}>Loading the session card…</p>;
   }
 
-  const event = session.data;
+  const event = sessionView.data;
   const host = event.hosts?.find(person => person.role === 'lead_host')
     ?? event.hosts?.find(person => person.role === 'co_host' || person.role === 'guest_host');
   const hostName = host?.display_name || event.account_name;
@@ -133,7 +150,7 @@ export default function SessionCardPage() {
   });
   const publicPath = `/event/${encodeURIComponent(event.slug)}`;
   const publicUrl = `https://teajia.com${publicPath}`;
-  const teas = [...menu.data].sort((a, b) => (a.brew_order ?? 0) - (b.brew_order ?? 0));
+  const teas = (Array.isArray(menuView.data) ? [...menuView.data] : []).sort((a, b) => (a.brew_order ?? 0) - (b.brew_order ?? 0));
 
   return (
     <section className="mx-auto max-w-prose pt-6 pb-nav">

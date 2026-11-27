@@ -119,7 +119,7 @@ test('back and forward move between the parts, and seats never go below those ta
   await parts.getByRole('button', { name: 'The way in' }).click();
   await expect(page.getByRole('heading', { name: 'The way in', level: 2 })).toBeVisible();
   await parts.getByRole('button', { name: 'After' }).click();
-  await expect(page.getByText('When the table has begun, mark who came here.')).toBeVisible();
+  await expect(page.getByText('When the table has ended, mark who came here.')).toBeVisible();
   await noSideScroll(page);
 
   await page.goBack();

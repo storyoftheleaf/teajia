@@ -12,6 +12,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowDown, ArrowUp, Navigation, Trash2 } from 'lucide-react';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import { api } from '../../lib/api';
+import { PART_QUERY, partView } from '../../lib/closedPart';
+import { LoadFailed } from '../shared/LoadFailed';
 import type { HostedTableWayAnswer, HostedTableWayInput, HostedWayPlace } from '../../lib/hostingApi';
 import type { VenueGuide, VenueGuideStep } from '../../types/events';
 import { Button } from '../shared/Button';
@@ -76,13 +78,14 @@ function wayAnswer(answer: Partial<HostedTableWayAnswer> | null | undefined): Ho
 const hasSteps = (place: HostedWayPlace) => Boolean(place.venue_guide?.steps?.length);
 
 export function WalkthroughEditor({ tableId }: HostTablePartProps) {
-  const way = useQuery({ queryKey: wayQueryKey(tableId), queryFn: async () => wayAnswer(await api.tables.way(tableId)), retry: false });
+  const way = useQuery({ queryKey: wayQueryKey(tableId), queryFn: async () => wayAnswer(await api.tables.way(tableId)), ...PART_QUERY });
+  const view = partView(way);
   return (
     <section aria-labelledby="host-part-way" data-host-part="way" className="space-y-5">
       <h2 id="host-part-way" className={TYPOGRAPHY_CLASSES.h2}>The way in</h2>
       <p className={hostText}>Guests see this only after your yes, and only until the session ends. A guest can still take a screenshot.</p>
       {way.isPending && <p className={hostSmallText} role="status">Opening the way in…</p>}
-      {way.isError && <p className={hostSmallText} role="alert">Could not open the way in. Reload to try again.</p>}
+      {view.state === 'failed' && <LoadFailed sentence="Could not open the way in just now." onRetry={view.retry} />}
       {way.data && <WayForm tableId={tableId} answer={way.data} />}
     </section>
   );

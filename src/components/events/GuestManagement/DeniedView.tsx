@@ -19,7 +19,7 @@ const DeniedView: React.FC<DeniedViewProps> = ({ attendee, event, statusBanner }
         {/* Event context */}
         <div className="text-center mb-10">
           <p className="text-ui-10 uppercase tracking-[0.3em] text-tea-text-sec mb-3">
-            {formatEventDate(event.eventDate)}
+            {formatEventDate(event.eventDate, event.timezone)}
           </p>
           <h1 className="font-serif text-2xl text-tea-text mb-1">{event.title}</h1>
           {event.areaHint && (

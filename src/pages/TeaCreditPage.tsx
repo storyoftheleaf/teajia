@@ -9,6 +9,9 @@ import { historyIndex } from '../admin/components/adminHistory';
 import { formatCredit, hostCreditApi, type CreditLineStatus, type HostCreditBalanceView, type HostCreditLine, type OwnCreditOrder, type OwnSpendRequest } from '../lib/hostCreditApi';
 import { hostCreditOpen } from '../lib/hostCredit';
 import { TEA_CREDIT_PATH, hasTeaCredit, useMyTeaCredit } from '../hooks/useMyTeaCredit';
+import { isNotHereYet } from '../lib/closedPart';
+import { SiteNotFound } from '../components/SiteNotFound';
+import { LoadFailed } from '../components/shared/LoadFailed';
 
 // Launch 5, M1: a host's own tea credit, in Your Table. What is earned,
 // waiting, held and ready to use, and the sessions it came from. Credit is in
@@ -112,7 +115,10 @@ export default function TeaCreditPage() {
   const navigate = useNavigate();
   const authed = hasToken();
   const open = hostCreditOpen();
-  const { data, isLoading, isError } = useMyTeaCredit();
+  const { data, isLoading, isError: readFailed, error, refetch } = useMyTeaCredit();
+  // A 404 is the worker not open yet (A10-3): the address is not a page yet.
+  const closed = readFailed && isNotHereYet(error);
+  const isError = readFailed && !closed;
   const queryClient = useQueryClient();
   const [failedOrder, setFailedOrder] = useState<string | null>(null);
   // The worker works out the amount and holds it for the shop's approval.
@@ -146,6 +152,7 @@ export default function TeaCreditPage() {
   }, [open, authed, navigate]);
 
   if (!open || !authed) return null;
+  if (closed) return <SiteNotFound />;
 
   const back = () => (historyIndex() > 0 ? navigate(-1) : navigate('/account'));
   const showShop = new Set((data?.balances ?? []).map(balance => balance.account_id)).size > 1;
@@ -164,7 +171,7 @@ export default function TeaCreditPage() {
       {isLoading && <div className="h-40 rounded-xl border border-tea-border bg-tea-surface animate-pulse" aria-label="Loading your tea credit" />}
 
       {isError && !isLoading && (
-        <p className="rounded-xl border border-tea-border bg-tea-surface p-5 text-ui-14 text-tea-text-sec">Your tea credit could not be read just now. Please try again in a moment.</p>
+        <LoadFailed className="rounded-xl border border-tea-border bg-tea-surface p-5" sentence="Your tea credit could not be read just now." onRetry={() => void refetch()} />
       )}
 
       {!isLoading && !isError && data && !hasTeaCredit(data) && (

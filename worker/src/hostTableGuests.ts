@@ -9,7 +9,7 @@
 // and the guarded allocator reservePartySeats), so capacity is checked in the
 // same transaction as the seat is taken.
 
-import { sessionInstant } from './sessionWalkthrough';
+import { sessionMoment } from './sessionWalkthrough';
 import { serveGuestBookReview } from './sessionGuestBook';
 import { reviewGuestBookPhotos } from './sessionGuestBookPhotos';
 import { isAreaRefusal, readTableArea } from './hostTableArea';
@@ -22,6 +22,7 @@ export type OwnHostedTable = {
   slug: string;
   title: string;
   event_date: string;
+  event_end_date?: string | null;
   timezone: string | null;
   door: HostedTableDoor | 'open' | null;
   total_capacity: number;
@@ -36,7 +37,7 @@ export type OwnHostedTable = {
 export async function ownHostedTable(db: D1Database, { hostUserId, eventId }: { hostUserId: string; eventId: string }) {
   if (!hostUserId || !eventId) return null;
   return db.prepare(`
-    SELECT e.id, e.account_id, e.slug, e.title, e.event_date, e.timezone, e.door, e.total_capacity, e.lifecycle_status
+    SELECT e.id, e.account_id, e.slug, e.title, e.event_date, e.event_end_date, e.timezone, e.door, e.total_capacity, e.lifecycle_status
       FROM events e
       JOIN accounts a ON a.id = e.account_id
      WHERE e.id = ? AND e.host_user_id = ?
@@ -65,22 +66,39 @@ export const SEAT_OF_A_GUEST_STILL_COMING = (seat: string) => `NOT EXISTS (SELEC
     AND gone.status IN ('cancelled', 'denied'))`;
 
 /**
+ * The SQL clock a seat count reads: SQLite's own now, or one operation time
+ * (a whole instant in milliseconds) so a scheduled run that is handed a clock
+ * reads every deadline at that same instant (review A9-14). The literal is
+ * built from a number by toISOString, never from text a person typed.
+ */
+export function sqlNow(now?: number): string {
+  return now === undefined || !Number.isFinite(now) ? "datetime('now')" : `datetime('${new Date(now).toISOString()}')`;
+}
+
+/**
+ * A confirmed guest from before party seats existed: no party seat row
+ * stands for them, so they are counted once by their own row (review A9-1).
+ */
+export const OLDER_CONFIRMED_SEATS_SQL = (event: string) => `(SELECT COUNT(*) FROM event_attendees older
+      WHERE older.event_id = ${event}.id AND older.account_id = ${event}.account_id AND older.status = 'confirmed'
+        AND NOT EXISTS (SELECT 1 FROM event_party_members seat
+          WHERE seat.participation_id = older.id AND seat.event_id = older.event_id AND seat.account_id = older.account_id))`;
+
+/**
  * Seats taken, counted the way the guarded allocator counts them (held and
  * confirmed party seats, and a live offer to someone waiting), plus a
  * confirmed guest from before party seats existed, who has no seat row.
+ * The allocator (eventDomain.ts reservePartySeats) reads the same three parts.
  */
-export function seatsTakenSql(event: string): string {
+export function seatsTakenSql(event: string, now?: number): string {
   return `(
     (SELECT COUNT(*) FROM event_party_members pm
       WHERE pm.event_id = ${event}.id AND pm.account_id = ${event}.account_id AND pm.seat_status IN ('held', 'confirmed')
         AND ${SEAT_OF_A_GUEST_STILL_COMING('pm')})
     + (SELECT COUNT(*) FROM event_attendees offer
       WHERE offer.event_id = ${event}.id AND offer.account_id = ${event}.account_id AND offer.status = 'waitlist'
-        AND offer.claim_expires_at IS NOT NULL AND datetime(offer.claim_expires_at) > datetime('now'))
-    + (SELECT COUNT(*) FROM event_attendees older
-      WHERE older.event_id = ${event}.id AND older.account_id = ${event}.account_id AND older.status = 'confirmed'
-        AND NOT EXISTS (SELECT 1 FROM event_party_members seat
-          WHERE seat.participation_id = older.id AND seat.event_id = older.event_id AND seat.account_id = older.account_id))
+        AND offer.claim_expires_at IS NOT NULL AND datetime(offer.claim_expires_at) > ${sqlNow(now)})
+    + ${OLDER_CONFIRMED_SEATS_SQL(event)}
   )`;
 }
 
@@ -254,16 +272,18 @@ export async function changeHostedTable(db: D1Database, table: OwnHostedTable, c
 }
 
 /**
- * The host marks who came, once the table's time has passed. Every confirmed
+ * The host marks who came, once the table has ended (review A9-4: the shared
+ * end, shared/sessionEnd.ts, never its start). Every confirmed
  * guest named is marked as came and every other confirmed guest as not, and a
  * table still open is finished (published, then registration closed, then
  * completed, the steps the lifecycle allows), so each guest who came can be
  * given their thank-you link.
  */
 export async function markWhoCame(db: D1Database, table: OwnHostedTable, attendeeIds: string[], now = new Date()) {
-  const start = sessionInstant(table.event_date, table.timezone);
-  if (!start || start.at > now.getTime()) {
-    return refuse(409, 'hosted_table_not_started', 'Mark who came once the table has begun.');
+  // A table completes only after its end. Ending tea early would be its own
+  // decision, never a side effect of saving who came.
+  if (sessionMoment({ event_date: table.event_date, event_end_date: table.event_end_date, timezone: table.timezone }, now.getTime()) !== 'after') {
+    return refuse(409, 'hosted_table_not_ended', 'Mark who came once the table has ended.');
   }
   if (!['published', 'registration_closed', 'completed'].includes(table.lifecycle_status)) {
     return refuse(409, 'hosted_table_closed', 'This table can no longer be marked.');

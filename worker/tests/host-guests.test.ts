@@ -177,13 +177,13 @@ describe('door and seats', () => {
 });
 
 describe('after the table', () => {
-  it('marks who came once the table has begun, finishes it, and gives a thank-you link to a guest who came', async () => {
+  it('marks who came once the table has ended, finishes it, and gives a thank-you link to a guest who came', async () => {
     await call('/api/me/tables/t-ana/guests/g-mei/yes', { actor: ana, method: 'PUT' });
     await call('/api/me/tables/t-ana/guests/g-tao/yes', { actor: ana, method: 'PUT' });
     const early = await call('/api/me/tables/t-ana/came', { actor: ana, method: 'PUT', body: { attendee_ids: ['g-mei'] } });
     expect(early.status).toBe(409);
 
-    db.sqlite.prepare('UPDATE events SET event_date = ? WHERE id = ?').run(new Date(Date.now() - 3600000).toISOString(), 't-ana');
+    db.sqlite.prepare('UPDATE events SET event_date = ? WHERE id = ?').run(new Date(Date.now() - 5 * 3600000).toISOString(), 't-ana');
     expect((await call('/api/me/tables/t-ana/came', { actor: bo, method: 'PUT', body: { attendee_ids: ['g-mei'] } })).status).toBe(404);
     expect((await call('/api/me/tables/t-ana/came', { actor: ana, method: 'PUT', body: { attendee_ids: ['g-mei'] } })).status).toBe(200);
     expect(db.sqlite.prepare('SELECT id, attended FROM event_attendees WHERE event_id = ? ORDER BY id').all('t-ana'))
