@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../lib/api';
-import { Check, Copy, ExternalLink, Plus, X } from 'lucide-react';
+import { Check, Copy, ExternalLink, MapPin, Plus, X } from 'lucide-react';
 import { Button } from '../shared/Button';
 import { InlineField } from './InlineField';
 import { VendorFace } from './VendorFace';
 import { VendorFaceAdjustButton, VendorFacePhotoButton } from './VendorFacePhotoButton';
 import { vendorFacePhoto } from './vendorFaces';
 import { useVendorSave } from './useVendorSave';
-import { contactHref } from './vendorLinks';
+import { contactHref, fullAddress, mapsHref, splitPlace } from './vendorLinks';
 import type { ContactChannel, ContactEntry, Customer } from '../../admin/types';
 
 /**
@@ -80,10 +80,11 @@ export const VendorDetailsCard: React.FC<{ vendor: VendorRecord; vendorId: strin
   const [newHandle, setNewHandle] = useState('');
   const [contactError, setContactError] = useState('');
   const [savingContact, setSavingContact] = useState(false);
-  const [copied, setCopied] = useState<number | null>(null);
-  const copyHandle = async (index: number, handle: string) => {
-    try { await navigator.clipboard.writeText(handle); setCopied(index); setTimeout(() => setCopied(c => c === index ? null : c), 1500); }
-    catch { setContactError("Couldn't copy. Press and hold the handle to copy it."); }
+  const [copied, setCopied] = useState<number | 'address' | null>(null);
+  const address = fullAddress(vendor);
+  const copyText = async (key: number | 'address', text: string) => {
+    try { await navigator.clipboard.writeText(text); setCopied(key); setTimeout(() => setCopied(c => c === key ? null : c), 1500); }
+    catch { setContactError("Couldn't copy. Press and hold it to copy."); }
   };
 
   const saveContacts = async (next: ContactEntry[]) => save(contactsPatch(next));
@@ -135,9 +136,24 @@ export const VendorDetailsCard: React.FC<{ vendor: VendorRecord; vendorId: strin
           <InlineField label="Chinese name" value={vendor.chinese_name} onSave={v => save({ chinese_name: v || null })} />
           <InlineField label="Shop" value={vendor.company} onSave={v => save({ company: v || null })} />
           {profile.isSuccess && <InlineField label="Vendor code" value={vendorCode} onSave={saveCode} />}
-          <InlineField label="Address" value={vendor.address} onSave={v => save({ address: v || null })} />
-          <InlineField label="City" value={vendor.city} onSave={v => save({ city: v || null })} />
-          <InlineField label="Country" value={vendor.country} onSave={v => save({ country: v || null })} />
+          <div className="flex items-start gap-1">
+            <div className="min-w-0 flex-1">
+              {/* One line: paste the whole address as Google Maps or the vendor writes it. */}
+              <InlineField label="Address" value={vendor.address} placeholder="Paste the whole address"
+                display={address} onSave={v => save({ address: v || null })} />
+            </div>
+            {address && <>
+              <a href={mapsHref(address)!} target="_blank" rel="noreferrer" aria-label={`Open ${address} in Google Maps`}
+                className="btn-icon tap-target mt-1 shrink-0 inline-flex items-center justify-center">
+                <MapPin size={14} strokeWidth={1.5} aria-hidden="true" />
+              </a>
+              <Button type="button" variant="icon" onClick={() => void copyText('address', address)}
+                aria-label={copied === 'address' ? 'Copied the address' : 'Copy the address'} className="tap-target mt-1 shrink-0"
+                icon={copied === 'address' ? <Check size={14} strokeWidth={1.5} aria-hidden="true" /> : <Copy size={14} strokeWidth={1.5} aria-hidden="true" />} />
+            </>}
+          </div>
+          <InlineField label="City, country" value={[vendor.city, vendor.country].filter(Boolean).join(', ')}
+            onSave={v => save(splitPlace(v))} />
         </div>
       </div>
 
@@ -168,7 +184,7 @@ export const VendorDetailsCard: React.FC<{ vendor: VendorRecord; vendorId: strin
                       <ExternalLink size={14} strokeWidth={1.5} aria-hidden="true" />
                     </a>
                   ) : (
-                    <Button type="button" variant="icon" onClick={() => void copyHandle(index, contact.handle)}
+                    <Button type="button" variant="icon" onClick={() => void copyText(index, contact.handle)}
                       aria-label={copied === index ? `Copied ${contact.handle}` : `Copy ${name} ${contact.handle}`}
                       className="tap-target mt-1 shrink-0"
                       icon={copied === index ? <Check size={14} strokeWidth={1.5} aria-hidden="true" /> : <Copy size={14} strokeWidth={1.5} aria-hidden="true" />} />
