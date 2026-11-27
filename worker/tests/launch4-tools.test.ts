@@ -115,7 +115,10 @@ describe('Launch 4 MCP tools', () => {
     const ownerTools = await names('owner');
     expect(hostTools).toEqual(expect.arrayContaining([...favourites, ...table]));
     expect(ownerTools).toEqual(expect.arrayContaining([...favourites, ...table, ...moderation]));
-    for (const name of moderation) expect(hostTools).not.toContain(name);
+    // A host holds their own session's recap, as on the page (A11-7, todo/review/fixes/last.md);
+    // the handler refuses them any other piece. Hiding stays the platform owner's.
+    expect(hostTools).toContain('hold_tea_table_piece');
+    expect(hostTools).not.toContain('hide_tea_table_piece');
 
     const closedFavourites = { FAVOURITES_OPEN: 'false' };
     const closedTable = { TEA_TABLE_OPEN: 'false' };

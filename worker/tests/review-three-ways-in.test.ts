@@ -681,6 +681,10 @@ describe('reports and favourites, page and tool', () => {
 
 describe('actions with an empty cell in the table', () => {
   it('FINDING A11-10: every page action a host has is a tool their key can call', async () => {
+    // The finding names these switches as on; the page routes for your table and
+    // article offers are behind them, and so are their tools.
+    flags.YOUR_TABLE_PLACE_OPEN = 'true';
+    flags.HOST_ARTICLES_OPEN = 'true';
     const hostTools = (await rpc(anaKey, 'tools/list')).body.result.tools.map((tool: { name: string }) => tool.name);
     // Page action -> the tool a host key would need. None of these exist on build/review.
     const wanted: Record<string, string> = {
@@ -700,6 +704,8 @@ describe('actions with an empty cell in the table', () => {
   });
 
   it('FINDING A11-11: every owner page action has an owner tool', async () => {
+    // Article offers are behind HOST_ARTICLES_OPEN on the page, and so is their tool.
+    flags.HOST_ARTICLES_OPEN = 'true';
     const names = (await rpc('tjmcp_a11_adrian_everything', 'tools/list')).body.result.tools.map((tool: { name: string }) => tool.name);
     const wanted: Record<string, string> = {
       'PUT /api/platform/users/:id/host-reach': 'set_host_reach',

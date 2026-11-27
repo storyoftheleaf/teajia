@@ -66,8 +66,16 @@ async function resultOf(response: Response, fallback: string, success: (body: Re
 const report: Action = async (env, auth, services, args, preview) => {
   const kind = args.target_kind;
   if (kind !== 'session' && kind !== 'person') return { error: 'validation_failed' };
+  // A person's table shows only its link, so a session may be named by its slug,
+  // resolved on the report route's own rule (A11-9). The id is never sent back.
+  let targetId = id(args.target_id);
+  const bySlug = !targetId && kind === 'session' && Boolean(id(args.target_slug));
+  if (bySlug) {
+    targetId = (await services.sessionBySlug(id(args.target_slug))) ?? '';
+    if (!targetId) return { error: 'target_not_found' };
+  }
   const input: Parameters<typeof fileReport>[1] = {
-    targetKind: kind, targetId: id(args.target_id),
+    targetKind: kind, targetId,
     reason: typeof args.reason === 'string' ? args.reason : null, reporterUserId: auth.userId, reporterSeatId: null,
   };
   if (!preview) {
@@ -77,7 +85,7 @@ const report: Action = async (env, auth, services, args, preview) => {
   const outcome = await (preview ? previewReport : fileReport)(env.DB, input);
   if ('refused' in outcome) return { error: outcome.refused.code };
   return preview
-    ? { target_kind: kind, target_id: input.targetId, effect: 'Send this report to Teajia for review.' }
+    ? { target_kind: kind, ...(bySlug ? { target_slug: id(args.target_slug) } : { target_id: input.targetId }), effect: 'Send this report to Teajia for review.' }
     : { received: true };
 };
 
@@ -162,8 +170,9 @@ const ownerOnly = (env: ToolEnv, auth: ToolAuth) => fewHostsOpen(env) && auth.cr
 const launch3Open = (env: ToolEnv) => fewHostsOpen(env) && anyoneHostsOpen(env);
 const tools = [
   writeTool('report', 'Report a session or person to Teajia.', anyoneHostsOpen,
-    { target_kind: { type: 'string', enum: ['session', 'person'] }, target_id: string, reason: string },
-    ['target_kind', 'target_id'], report, 'signed-in'),
+    { target_kind: { type: 'string', enum: ['session', 'person'] }, target_id: string,
+      target_slug: { type: 'string', description: 'For a session: the last part of its link, when you have no id.' }, reason: string },
+    ['target_kind'], report, 'signed-in'),
   writeTool('release_my_seat', 'Give back your own seat using its attendee ID.', launch3Open,
     { attendee_id: string }, ['attendee_id'], releaseMySeat, 'signed-in'),
   writeTool('release_guest_seat', 'Release a confirmed guest’s seat at your own table.', launch3Open,

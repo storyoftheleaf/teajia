@@ -23,9 +23,14 @@
 //   settle stamps whether credit was open then. An order Filled while closed
 //   never earns later (CLOSED_FILL_EARNS_LATER), and an order that has earned
 //   never earns again, even after its lines are replaced (A8-2).
+// - A staff seller cannot award credit on their own (A8-6): their Fill is
+//   stamped on host_credit_fills.filled_by_staff, and the order earns only once
+//   the owner approves it in Manage's second look (or Fills it again).
 // - Void writes one 'reversed' row per earned line, open or closed (A10-1),
-//   and releases any hold on that order (A8-9). Rows are only ever added;
-//   a reversal that exceeds unspent credit leaves debt that future earnings repay.
+//   and releases any hold on that order (A8-9). Rows are only ever added. A
+//   reversal reverses only what the host has not spent, so the signed ledger
+//   never goes below zero (A8-7); the rest is absorbed by the shop and kept in
+//   host_credit_shortfalls, shown to the owner in Manage, telling nobody.
 // - Spending is a held request that leaves the balance only on the owner's
 //   approval, in one guarded statement that cannot go below zero or spend the
 //   same request twice, and that rechecks the tea still on the order, what is
@@ -162,23 +167,26 @@ async function clearOddity(db: D1Database, name: string, ref: string, accountId:
 export async function settleHostCredit(
   env: CreditEnv,
   invoiceId: string,
-  opts: { approvedBy?: string } = {},
+  opts: { approvedBy?: string; staffFill?: string } = {},
 ): Promise<HostCreditSettlement> {
   if (typeof invoiceId !== 'string' || !invoiceId) return { ...NOTHING };
   const open = hostCreditOpen(env);
+  // A Fill made by someone other than the shop's owner (A8-6): the Fill
+  // routes pass it from hostCreditStaffFill. Nothing else does.
+  const staffFill = opts.staffFill ?? null;
   // Open or closed, the order's own Void and first Fill are recorded (A10-1,
   // A8-9, A8-5). Closed, nothing else runs: no source is read, nothing earns,
   // nothing is filed.
   if (!open) {
     try {
-      return { ...NOTHING, reversed: await recordVoidAndFill(env.DB, invoiceId, false) };
+      return { ...NOTHING, reversed: await recordVoidAndFill(env.DB, invoiceId, false, staffFill) };
     } catch {
       console.error('host credit could not record a closed Void or Fill');
       return { ...NOTHING };
     }
   }
   try {
-    const reversedNow = await recordVoidAndFill(env.DB, invoiceId, true);
+    const reversedNow = await recordVoidAndFill(env.DB, invoiceId, true, staffFill);
     const invoice = await env.DB.prepare(
       `SELECT i.id, i.account_id, i.status, i.deleted_at, i.cancelled_at, i.refund_required,
               i.source_inquiry_id, c.user_id AS buyer_user_id
@@ -202,17 +210,57 @@ export async function settleHostCredit(
   }
 }
 
-/** The order is Void: every unreversed award on it, scoped by ?1 (an invoice id) or by the whole of ?2 (a shop) / ?3 (a host). */
-const REVERSE_VOIDED_SQL = (scope: string) => `INSERT INTO host_credit_entries
-     (id, account_id, host_user_id, kind, amount, currency, source_inquiry_id, event_id,
-      invoice_id, invoice_line_id, product_id, reverses_entry_id, reason, created_by)
-   SELECT 'hcr_' || lower(hex(randomblob(12))), e.account_id, e.host_user_id, 'reversed', e.amount, e.currency,
-          e.source_inquiry_id, e.event_id, e.invoice_id, e.invoice_line_id, e.product_id, e.id, 'void', '${SYSTEM}'
-     FROM host_credit_entries e
-     JOIN invoices i ON i.id = e.invoice_id AND i.account_id = e.account_id AND i.status = 'Void'
-    WHERE ${scope} AND e.kind = 'earned'
-      AND NOT EXISTS (SELECT 1 FROM host_credit_entries r WHERE r.kind = 'reversed' AND r.reverses_entry_id = e.id)
-   ON CONFLICT DO NOTHING`;
+/** Signed ledger of one award's host in its shop and currency, now: earned less reversed less spent. */
+const HOST_NET_SQL = `(SELECT COALESCE(SUM(CASE l.kind WHEN 'earned' THEN l.amount WHEN 'reversed' THEN -l.amount
+    WHEN 'spent' THEN -l.amount ELSE 0 END), 0)
+   FROM host_credit_entries l WHERE l.account_id = e.account_id AND l.host_user_id = e.host_user_id AND l.currency = e.currency)`;
+const UNSETTLED_AWARD_SQL = `e.kind = 'earned'
+  AND NOT EXISTS (SELECT 1 FROM host_credit_entries r WHERE r.kind = 'reversed' AND r.reverses_entry_id = e.id)
+  AND NOT EXISTS (SELECT 1 FROM host_credit_shortfalls s WHERE s.award_entry_id = e.id)`;
+const STILL_VOID_SQL = `EXISTS (SELECT 1 FROM invoices i WHERE i.id = e.invoice_id AND i.account_id = e.account_id AND i.status = 'Void')`;
+
+/**
+ * Reverse awards, never below zero (A8-7). Each award, in one batch and in
+ * order, reverses the smaller of itself and what its host has not spent; what
+ * that leaves short is written to host_credit_shortfalls, the shop's to
+ * absorb. An award is settled once: reversed, absorbed, or both in part.
+ * Returns how many reversal rows were written.
+ */
+async function reverseAwards(
+  db: D1Database, scope: string, bindings: unknown[], reason: 'void' | 'self_purchase',
+): Promise<number> {
+  const voidOnly = reason === 'void';
+  const { results } = await db.prepare(
+    `SELECT e.id FROM host_credit_entries e
+      WHERE ${scope} AND ${UNSETTLED_AWARD_SQL} ${voidOnly ? `AND ${STILL_VOID_SQL}` : ''}
+      ORDER BY e.created_at, e.id LIMIT 500`,
+  ).bind(...bindings).all<{ id: string }>();
+  if (!results.length) return 0;
+  const guard = voidOnly ? `AND ${STILL_VOID_SQL}` : '';
+  const reversible = `MIN(e.amount, ROUND(${HOST_NET_SQL}, 2))`;
+  const statements = results.flatMap(({ id }) => [
+    db.prepare(`INSERT INTO host_credit_entries
+         (id, account_id, host_user_id, kind, amount, currency, source_inquiry_id, event_id,
+          invoice_id, invoice_line_id, product_id, reverses_entry_id, reason, created_by)
+       SELECT 'hcr_' || lower(hex(randomblob(12))), e.account_id, e.host_user_id, 'reversed', ${reversible}, e.currency,
+              e.source_inquiry_id, e.event_id, e.invoice_id, e.invoice_line_id, e.product_id, e.id, ?2, '${SYSTEM}'
+         FROM host_credit_entries e
+        WHERE e.id = ?1 AND ${UNSETTLED_AWARD_SQL} ${guard} AND ${reversible} > 0.004
+       ON CONFLICT DO NOTHING`).bind(id, reason),
+    db.prepare(`INSERT INTO host_credit_shortfalls (award_entry_id, account_id, host_user_id, invoice_id, amount, currency, reason)
+       SELECT e.id, e.account_id, e.host_user_id, e.invoice_id,
+              ROUND(e.amount - COALESCE((SELECT SUM(r.amount) FROM host_credit_entries r
+                WHERE r.kind = 'reversed' AND r.reverses_entry_id = e.id), 0), 2), e.currency, ?2
+         FROM host_credit_entries e
+        WHERE e.id = ?1 AND e.kind = 'earned' ${guard}
+          AND NOT EXISTS (SELECT 1 FROM host_credit_shortfalls s WHERE s.award_entry_id = e.id)
+          AND ROUND(e.amount - COALESCE((SELECT SUM(r.amount) FROM host_credit_entries r
+                WHERE r.kind = 'reversed' AND r.reverses_entry_id = e.id), 0), 2) > 0.004
+       ON CONFLICT DO NOTHING`).bind(id, reason),
+  ]);
+  const written = await db.batch(statements);
+  return written.reduce((sum, row, index) => sum + (index % 2 === 0 ? Number(row.meta?.changes || 0) : 0), 0);
+}
 
 /** Holds on an order that can never take them (Void or removed) end, with their history kept. */
 const RELEASE_VOIDED_SQL = (scope: string) => `UPDATE host_credit_spend_requests AS h
@@ -226,14 +274,32 @@ const RELEASE_VOIDED_SQL = (scope: string) => `UPDATE host_credit_spend_requests
  * Void order, and stamp its first Fill with whether credit was open. Returns
  * how many awards were reversed.
  */
-async function recordVoidAndFill(db: D1Database, invoiceId: string, open: boolean): Promise<number> {
-  const [reversed] = await db.batch([
-    db.prepare(REVERSE_VOIDED_SQL('e.invoice_id = ?1')).bind(invoiceId),
+async function recordVoidAndFill(db: D1Database, invoiceId: string, open: boolean, staffFill: string | null): Promise<number> {
+  await db.batch([
     db.prepare(RELEASE_VOIDED_SQL('h.invoice_id = ?1')).bind(invoiceId),
     db.prepare('UPDATE host_credit_fills SET credit_open = ?2 WHERE invoice_id = ?1 AND credit_open IS NULL')
       .bind(invoiceId, open ? 1 : 0),
+    // A staff seller's Fill (A8-6), only while the order is Filled. Taking it
+    // out of Filled clears it again (migration 0152's trigger).
+    ...(staffFill ? [db.prepare(`UPDATE host_credit_fills SET filled_by_staff = ?2
+        WHERE invoice_id = ?1 AND filled_by_staff IS NULL
+          AND EXISTS (SELECT 1 FROM invoices i WHERE i.id = ?1 AND i.status = 'Filled')`).bind(invoiceId, staffFill)] : []),
   ]);
-  return Number(reversed?.meta?.changes || 0);
+  return reverseAwards(db, 'e.invoice_id = ?1', [invoiceId], 'void');
+}
+
+/**
+ * For a Fill route: the person making the Fill when they are not the shop's
+ * owner (A8-6), so their Fill earns nothing until the owner approves it in
+ * Manage. Undefined for an active owner of the shop or the platform owner.
+ */
+export async function hostCreditStaffFill(db: D1Database, accountId: string, userId: string | null | undefined): Promise<string | undefined> {
+  if (!userId || !accountId) return undefined;
+  const row = await db.prepare(
+    `SELECT EXISTS (SELECT 1 FROM account_members WHERE account_id = ?1 AND user_id = ?2 AND status = 'active' AND role = 'owner')
+         OR EXISTS (SELECT 1 FROM users WHERE id = ?2 AND platform_role = 'platform_owner') AS owner`,
+  ).bind(accountId, userId).first<{ owner: number }>();
+  return Number(row?.owner) === 1 ? undefined : userId;
 }
 
 /**
@@ -246,26 +312,15 @@ export async function reconcileHostCredit(db: D1Database, scope: { accountId?: s
   const by = scope.accountId ? 'account_id' : 'host_user_id';
   const value = scope.accountId ?? scope.hostUserId;
   if (!value) return;
-  await db.batch([
-    db.prepare(REVERSE_VOIDED_SQL(`e.${by} = ?1`)).bind(value),
-    db.prepare(RELEASE_VOIDED_SQL(`h.${by} = ?1`)).bind(value),
-  ]);
+  await db.prepare(RELEASE_VOIDED_SQL(`h.${by} = ?1`)).bind(value).run();
+  await reverseAwards(db, `e.${by} = ?1`, [value], 'void');
 }
 
 async function reverseInvoiceCredit(db: D1Database, invoice: InvoiceRow, reason: 'void' | 'self_purchase'): Promise<number> {
-  const result = await db.prepare(
-    `INSERT INTO host_credit_entries
-       (id, account_id, host_user_id, kind, amount, currency, source_inquiry_id, event_id,
-        invoice_id, invoice_line_id, product_id, reverses_entry_id, reason, created_by)
-     SELECT 'hcr_' || lower(hex(randomblob(12))), e.account_id, e.host_user_id, 'reversed', e.amount, e.currency,
-            e.source_inquiry_id, e.event_id, e.invoice_id, e.invoice_line_id, e.product_id, e.id, ?1, ?2
-       FROM host_credit_entries e
-      WHERE e.invoice_id = ?3 AND e.account_id = ?4 AND e.kind = 'earned'
-        AND (?1 = 'void' OR e.host_user_id = ?5)
-        AND NOT EXISTS (SELECT 1 FROM host_credit_entries r WHERE r.kind = 'reversed' AND r.reverses_entry_id = e.id)
-     ON CONFLICT DO NOTHING`,
-  ).bind(reason, SYSTEM, invoice.id, invoice.account_id, invoice.buyer_user_id).run();
-  return Number(result.meta?.changes || 0);
+  return reason === 'void'
+    ? reverseAwards(db, 'e.invoice_id = ?1 AND e.account_id = ?2', [invoice.id, invoice.account_id], 'void')
+    : reverseAwards(db, 'e.invoice_id = ?1 AND e.account_id = ?2 AND e.host_user_id = ?3',
+      [invoice.id, invoice.account_id, invoice.buyer_user_id], 'self_purchase');
 }
 
 /**
@@ -319,8 +374,9 @@ async function earnInvoiceCredit(env: CreditEnv, invoice: InvoiceRow, approvedBy
        EXISTS (SELECT 1 FROM host_credit_entries WHERE invoice_id = ?1 AND account_id = ?2 AND kind = 'earned') AS earned,
        EXISTS (SELECT 1 FROM host_credit_entries WHERE invoice_id = ?1 AND account_id = ?2 AND kind = 'pending') AS pending,
        (SELECT credit_open FROM host_credit_fills WHERE invoice_id = ?1) AS fill_open,
+       (SELECT filled_by_staff FROM host_credit_fills WHERE invoice_id = ?1) AS filled_by_staff,
        EXISTS (SELECT 1 FROM host_credit_fills WHERE invoice_id = ?1) AS fill_seen`,
-  ).bind(invoice.id, invoice.account_id).first<{ earned: number; pending: number; fill_open: number | null; fill_seen: number }>();
+  ).bind(invoice.id, invoice.account_id).first<{ earned: number; pending: number; fill_open: number | null; filled_by_staff: string | null; fill_seen: number }>();
   if (Number(prior?.earned) === 1) return { ...NOTHING };
   // First Filled while closed, it never earns, and is not held as pending
   // either, whatever its status now (A8-5).
@@ -397,6 +453,11 @@ async function earnInvoiceCredit(env: CreditEnv, invoice: InvoiceRow, approvedBy
     return { ...NOTHING, pending };
   }
 
+  // A staff seller's Fill waits for the owner's approval in Manage (A8-6).
+  if (!approvedBy && prior?.filled_by_staff) {
+    return { ...NOTHING, pending, awaiting_approval: true };
+  }
+
   // Above the ceiling, the whole order waits for the owner's approval.
   const orderCredit = roundUsd(lines.reduce((sum, line) => sum + line.credit, 0));
   if (!approvedBy && terms.ceilingUsd !== null && orderCredit > terms.ceilingUsd + PAYMENT_EPSILON / 2) {
@@ -425,7 +486,9 @@ const MATCHING_AWARD_SQL = `EXISTS (
   SELECT 1 FROM host_credit_entries e
    WHERE e.id = r.reverses_entry_id AND e.kind = 'earned'
      AND e.account_id = r.account_id AND e.host_user_id = r.host_user_id
-     AND e.currency = r.currency AND e.amount = r.amount
+     AND e.currency = r.currency
+     AND (e.amount = r.amount OR EXISTS (SELECT 1 FROM host_credit_shortfalls s
+       WHERE s.award_entry_id = e.id AND ABS(s.amount + r.amount - e.amount) < 0.005))
      AND e.invoice_id = r.invoice_id AND e.invoice_line_id = r.invoice_line_id)`;
 
 /**
@@ -790,8 +853,19 @@ export async function readShopHostCredit(db: D1Database, accountId: string) {
       WHERE r.account_id = ?
       ORDER BY r.requested_at DESC LIMIT 500`,
   ).bind(accountId).all<Record<string, any>>();
+  // What a Void could not take back because the host had spent it (A8-7): the
+  // shop absorbed it. Shown to the owner here only; nobody is told.
+  const { results: shortfalls } = await db.prepare(
+    `SELECT s.award_entry_id, s.host_user_id, s.invoice_id, i.invoice_number, s.amount, s.currency, s.reason, s.created_at
+       FROM host_credit_shortfalls s
+       LEFT JOIN invoices i ON i.id = s.invoice_id AND i.account_id = s.account_id
+      WHERE s.account_id = ? ORDER BY s.created_at DESC LIMIT 200`,
+  ).bind(accountId).all<Record<string, any>>();
   return {
     terms,
+    shortfalls: shortfalls.map(row => ({
+      ...row, amount: Number(row.amount), host_name: names.get(row.host_user_id) ?? null,
+    })),
     hosts: (await readBalances(db, 'account_id = ?', [accountId]))
       .map(balance => ({ ...balance, host_name: names.get(balance.host_user_id) ?? null })),
     lines: results.map(row => ({
@@ -816,25 +890,29 @@ export async function readShopHostCredit(db: D1Database, accountId: string) {
 async function readOrdersAwaitingApproval(
   db: D1Database, accountId: string, terms: HostCreditTerms | null, names: Map<string, string | null>,
 ) {
-  if (!terms || terms.ceilingUsd === null) return [];
+  if (!terms) return [];
+  // Over the ceiling, or Filled by someone other than the owner (A8-6).
+  const ceiling = terms.ceilingUsd;
   const { results } = await db.prepare(
-    `SELECT p.invoice_id, i.invoice_number, p.host_user_id, ev.title AS event_title, SUM(p.amount) AS credit_amount
+    `SELECT p.invoice_id, i.invoice_number, p.host_user_id, ev.title AS event_title, SUM(p.amount) AS credit_amount,
+            EXISTS (SELECT 1 FROM host_credit_fills f WHERE f.invoice_id = p.invoice_id AND f.filled_by_staff IS NOT NULL) AS unverified
        FROM host_credit_entries p
        JOIN invoices i ON i.id = p.invoice_id AND i.account_id = p.account_id
        LEFT JOIN events ev ON ev.id = p.event_id AND ev.account_id = p.account_id
-      WHERE p.account_id = ? AND p.kind = 'pending' AND p.currency = ?
+      WHERE p.account_id = ?1 AND p.kind = 'pending' AND p.currency = ?2
         AND i.status = 'Filled' AND i.deleted_at IS NULL AND i.cancelled_at IS NULL
         AND NOT EXISTS (SELECT 1 FROM host_credit_entries e WHERE e.kind = 'earned' AND e.invoice_id = p.invoice_id)
         AND NOT ${CLOSED_FILL_SQL('p')}
       GROUP BY p.invoice_id, i.invoice_number, p.host_user_id, ev.title
-      HAVING SUM(p.amount) > ? + 0.004
+      HAVING (?3 IS NOT NULL AND SUM(p.amount) > ?3 + 0.004) OR unverified
       ORDER BY p.invoice_id LIMIT 200`,
-  ).bind(accountId, HOST_CREDIT_CURRENCY, terms.ceilingUsd).all<Record<string, any>>();
+  ).bind(accountId, HOST_CREDIT_CURRENCY, ceiling).all<Record<string, any>>();
   return results.map(row => ({
     invoice_id: String(row.invoice_id), invoice_number: row.invoice_number ?? null,
     host_user_id: String(row.host_user_id), host_name: names.get(String(row.host_user_id)) ?? null,
     event_title: row.event_title ?? null, credit_amount: roundUsd(Number(row.credit_amount)),
     currency: HOST_CREDIT_CURRENCY, ceiling_usd: terms.ceilingUsd,
+    reason: Number(row.unverified) === 1 ? 'not_filled_by_owner' as const : 'over_ceiling' as const,
   }));
 }
 
