@@ -100,7 +100,7 @@ Part of: <parent id>     Related: <id>, <id>
 ## Step 3. Adrian approves the pages
 
 1. `node scripts/tea-wisdom-compose/review-page.mjs --scopes .tea-wisdom-review/scopes.json` writes `.tea-wisdom-review/review.html` and prints the run id.
-2. Publish it with the Artifact tool, `capabilities: {db: {}, user: {}}`, to the one "Wisdom Review" artifact: reuse the URL saved in `.tea-wisdom-review/artifact-url`, or on the first run publish a new one with icon `tea` and save its URL there. Give Adrian the link.
+2. Publish it with the Artifact tool, `capabilities: {db: {}, user: {}}`, to the one Wisdom Review artifact, [claude.ai/artifact/2MZWE6AFWwCmih1PonbesE](https://claude.ai/artifact/2MZWE6AFWwCmih1PonbesE): pass that URL so the link Adrian keeps stays the same (read it first if this conversation has not). Give Adrian the link.
 3. Wait for him to say he has reviewed it. Do not poll.
 4. Save his choices: ArtifactData `list` on collection `runs/<run>/decisions` with `out_dir: .tea-wisdom-review/decisions`.
 5. `node scripts/tea-wisdom-compose/apply-review.mjs --decisions .tea-wisdom-review/decisions` approves each section through the claim ledger, makes a draft page public once all its sections are approved (never one whose current text is a legacy import), and rebuilds the pages.
