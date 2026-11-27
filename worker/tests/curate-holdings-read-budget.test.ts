@@ -61,7 +61,12 @@ for query in fixture['queries']:
  db.execute(query['sql'],query['values']).fetchall()
 print(steps)
 `], { input: JSON.stringify({ schema: fixture, queries }), encoding: 'utf8' }).trim());
-        expect(operations).toBeLessThan(30_000 * scale);
+        // 30,000 held until the personal scores change (fffbcda, K14), which
+        // reads each tasting's writer so another reader's score can be left
+        // out: the same two reads, measured at 30,207. The guard that catches
+        // a return to per-tea scans is the growth check below; this ceiling
+        // keeps the absolute cost near where it was, with 5 percent of room.
+        expect(operations).toBeLessThan(31_500 * scale);
         measures.push(operations);
       } finally { db.close(); }
     }
