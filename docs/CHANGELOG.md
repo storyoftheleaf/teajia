@@ -1,3 +1,7 @@
+## 2026-11-27: Tea spaces, step 2: several spaces per host
+
+Adrian's house has two spaces, in different rooms. A host may now name several of their places as tea spaces, and add a new one by its name and the area people see (`POST /api/me/your-table`; the way in is added from a table's page as before). Choosing a place no longer clears the others, and each space has its own Undo (`DELETE /api/me/your-table?place_id=`). Migration 0156 is schema only: it drops the one-table-per-account index. A host's page no longer breaks when the tables answer is missing its list. Plan: `todo/plans/tea-spaces.md`, step 2.
+
 ## 2026-11-27: Tea spaces, step 1: the words
 
 Adrian: "A tea space is a place inside of a tea house... Let's focus on the spaces, not the houses. Because anyone can own a space", and "Yes, right after the switch-on". The bar's and rail's third word is now "Tea spaces" (`BAR_WORDS.houses`; the id `houses` and the address `/tea-houses` stay). A host's place section reads "Your tea space" throughout, and a public session at it reads "{Name}'s tea space, {area}". Plan: `todo/plans/tea-spaces.md`, step 1.

@@ -6,15 +6,15 @@
  * the area people see, then undoes it. Opening the chooser is a step in the
  * address, so back closes it. The page asks the host for the area only.
  *
- * Needs a site started with VITE_FEW_HOSTS_OPEN=true and
- * VITE_YOUR_TABLE_PLACE_OPEN=true, and is skipped otherwise.
+ * Both switches are on (2026-11-27); skipped only on a site started with
+ * either one set to false.
  */
 import type { Page } from '@playwright/test';
 import { expect, test } from './fixtures';
 
 test.skip(
-  process.env.VITE_FEW_HOSTS_OPEN !== 'true' || process.env.VITE_YOUR_TABLE_PLACE_OPEN !== 'true',
-  'Needs a site started with VITE_FEW_HOSTS_OPEN=true and VITE_YOUR_TABLE_PLACE_OPEN=true',
+  process.env.VITE_FEW_HOSTS_OPEN === 'false' || process.env.VITE_YOUR_TABLE_PLACE_OPEN === 'false',
+  'Skipped on a site started with VITE_FEW_HOSTS_OPEN=false or VITE_YOUR_TABLE_PLACE_OPEN=false',
 );
 test.use({ viewport: { width: 390, height: 844 } });
 
