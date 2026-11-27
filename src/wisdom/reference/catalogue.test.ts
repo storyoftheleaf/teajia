@@ -185,6 +185,7 @@ describe('sellable Tea Reference catalogue', () => {
       'dian-hong',
       'fujian-white',
       'gaba',
+      'gong-ting',
       'greater-yiwu',
       'green',
       'jingmai',
