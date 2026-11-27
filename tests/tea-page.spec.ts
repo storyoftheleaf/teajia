@@ -76,11 +76,11 @@ test('the tea page reads in editing order and Next keeps the part you are on', a
   await page.screenshot({ path: testInfo.outputPath('tea-page-top.png') });
 
   // The tea only names the service it travels by; each says the price it gives before it is
-  // picked: Liu Bao costs 0.50 a gram, so Airmail at 2 dollars a kilo sells at 1.51. Nothing
+  // picked: Liu Bao costs 0.50 a gram, so Airmail at 2 dollars a kilo sells at 1.50 (0.50 x3, plus freight at cost). Nothing
   // on the tea edits a freight price: the rates are set in Logistics.
   const freight = tea.getByRole('combobox', { name: 'Travels by' });
   await expect(freight).toHaveValue('');
-  await expect(freight.locator('option')).toHaveText(['Shop rate', 'Guangzhou · Airmail, $1.51 a gram']);
+  await expect(freight.locator('option')).toHaveText(['Shop rate', 'Guangzhou · Airmail, $1.50 a gram']);
   await expect(tea.getByRole('spinbutton', { name: /freight/i })).toHaveCount(0);
   await expect(tea.getByRole('button', { name: 'Rates are set in Logistics' })).toBeVisible();
   const saved = page.waitForRequest(r => r.url().includes('/api/products/liu-bao/commercial') && r.method() === 'PUT');
