@@ -65,7 +65,7 @@ import { eraseFamilyPhotoFiles, familyErasureStatements, familyPhotoKeysForUser 
 import { recordingAudioUrl, linkedRecordingSql, readOwnedRecording, preservePrivateRecordingClips, mergeRecordingClipsSql } from './privateRecordingMedia';
 import { quoteUsCheckoutShipping } from './usCheckoutShipping';
 import { hasPublicStatus } from '../../src/lib/productPublication';
-import { guardFetch } from './allowanceGuard.mjs';
+import { guardFetch } from './allowanceGuard.mjs'; import { classifyTeajiaRequest, noteAgentRefusal } from './agentAllowance';
 import { isCuratedReadPath, isReadPathPublic } from '../../src/pages/read/articleLive';
 import { attachStudioReferrals, hasOpenStudioReferral, referStudioLine, resolveStudioReferral, StudioReferralError, STUDIO_REFERRAL_MESSAGE, STUDIO_REFERRAL_OPEN } from './studioReceiptReferrals';
 import { LogisticsTrackingError, recordLogisticsTrackingUpdate } from './logisticsTracking';
@@ -106,7 +106,7 @@ import { COMPASS_COLUMNS, decodeCompassWrite as decodeCompassWriteCodec, type Co
 import { compassFieldPatch, readCompassFieldHints } from './compassFieldPatch';
 import { receiptHoldingTeaId } from './curateMergeLink';
 import { resolveShopFreightDefault } from './shippingRate';
-import { addPricingFields, lookupRateToUsd, accountFreightDefaults, freightDefaultsByAccount, shelfPricesFor } from './productPricing';
+import { addPricingFields, lookupRateToUsd, accountFreightDefaults, freightDefaultsByAccount } from './productPricing'; import { fillBlankQuotes, withShelfPrices } from './collectionShelf';
 import { INWARD_BALI_LOT, INWARD_ORDERS_PAUSED_SQL, inwardOrdersPaused } from '../../shared/catalog/inwardOrders';
 import { checkNewProductPublication, checkProductPublication, openingStockKnownAt, publicationPatchFromColumns, writeProductPublication } from './productPublication';
 import { deductStockForPaidInvoice } from './orderLifecycle';
@@ -28767,14 +28767,11 @@ const handleGetCollection: Handler = async (request, env, params) => {
   // The old notes' ratings are the shop owner's: the curator, staff and a
   // platform administrator read the words; the owner reads their own tea whole.
   const readsOwnShopScores = await shopScoreGiver(env, ctx);
-  // The shelf price a blank quote follows, read live (productPricing.ts, shelfPricesFor).
-  const adminShelf = await shelfPricesFor(env, ctx.accountId, ((items.results ?? []) as any[]).map(i => i.product_id));
-  const collectionItems = ((items.results ?? []) as Record<string, any>[]).map(({ product_account_id, ...raw }) => {
-    const item: Record<string, any> = { ...raw, catalog_price_usd: adminShelf.get(raw.product_id) ?? null };
-    return readsOwnShopScores && product_account_id === ctx.accountId
+  const collectionItems = (await withShelfPrices(env, ctx.accountId, (items.results ?? []) as Record<string, any>[])).map(({ product_account_id, ...item }) => (
+    readsOwnShopScores && product_account_id === ctx.accountId
       ? item
-      : { ...item, tasting_notes: item.tasting_notes ? tastingJsonWithoutScores(item.tasting_notes) ?? '[]' : item.tasting_notes };
-  });
+      : { ...item, tasting_notes: item.tasting_notes ? tastingJsonWithoutScores(item.tasting_notes) ?? '[]' : item.tasting_notes }
+  ));
 
   const pubs = await env.DB.prepare(
     `SELECT id, collection_id, target_type, target_id, slug, recipients_json,
@@ -29873,17 +29870,10 @@ const handleGetPublicCollection: Handler = async (_request, env, params) => {
       ORDER BY ci.position ASC`
   ).bind(pub.collection_id, pub.target_type === 'shop' ? 1 : 0).all();
 
-  // A blank quote is the shelf price for the recommended amount, read live, so
-  // a tea priced from its cost shows a price instead of none.
-  const publicShelf = account ? await shelfPricesFor(env, String(account.id), ((items.results ?? []) as any[]).map(i => i.product_id)) : new Map<string, number | null>();
+  if (account) await fillBlankQuotes(env, String(account.id), (items.results ?? []) as any[]); // a blank quote shows the shelf price: collectionShelf.ts
   const visibleItems = ((items.results ?? []) as any[])
     .filter(i => i.product_status === 'Active')
     .map(i => {
-      if (i.recommended_price_usd == null) {
-        const perUnit = publicShelf.get(i.product_id) ?? null;
-        const qty = Number(i.recommended_quantity);
-        if (perUnit != null && Number.isFinite(qty) && qty > 0) i.recommended_price_usd = Math.round(perUnit * qty * 100) / 100;
-      }
       if (typeof i.tasting_notes === 'string') {
         try { i.tasting_notes = JSON.parse(i.tasting_notes); } catch { i.tasting_notes = []; }
       }
@@ -30139,9 +30129,7 @@ const handleConfirmCollectionPicks: Handler = async (request, env, params) => {
       WHERE ci.collection_id = ?`
   ).bind(pub.collection_id).all();
   const byItemId = new Map<string, any>();
-  for (const r of (itemRows.results ?? []) as any[]) byItemId.set(r.id, r);
-  // A tea with no quote and no typed price sells at its shelf price, read live.
-  const pickShelf = await shelfPricesFor(env, accountId, ((itemRows.results ?? []) as any[]).map(r => r.product_id));
+  for (const r of (await withShelfPrices(env, accountId, (itemRows.results ?? []) as any[]))) byItemId.set(r.id, r);
 
   const lineItems: Array<{ product_id: string | null; custom_name: string | null; quantity: number; price_at_sale: number; label: string;quantity_unit:'g'|'unit' }> = [];
   for (const pick of picks) {
@@ -30157,7 +30145,7 @@ const handleConfirmCollectionPicks: Handler = async (request, env, params) => {
       quantity,
       recommendedQuantity: row.recommended_quantity == null ? null : Number(row.recommended_quantity),
       recommendedPriceUsd: row.recommended_price_usd == null ? null : Number(row.recommended_price_usd),
-      catalogUnitPriceUsd: pickShelf.get(row.product_id) ?? (row.fixed_retail_price_usd == null ? null : Number(row.fixed_retail_price_usd)),
+      catalogUnitPriceUsd: row.catalog_price_usd ?? (row.fixed_retail_price_usd == null ? null : Number(row.fixed_retail_price_usd)),
     });
 
     const mayRemainLinked = isStoredTeaType(String(row.product_type || ''))||row.product_type==='Teaware';
@@ -34620,7 +34608,7 @@ const protectedHandler = {
 export default {
   fetch(request: Request, env: Env, ctx?: ExecutionContext): Promise<Response> {
     if (!(env as any).SHARED_ALLOWANCE && (env as any).SHARED_ALLOWANCE_REQUIRED !== 'true') return protectedHandler.fetch(request, env, ctx);
-    return guardFetch(request, env, ctx, protectedHandler, { project: 'teajia' });
+    return guardFetch(request, env, ctx, protectedHandler, { project: 'teajia', classify: classifyTeajiaRequest }).then(response => noteAgentRefusal(request, response, env.DB, ctx));
   },
   async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
     if (!(env as any).SHARED_ALLOWANCE && (env as any).SHARED_ALLOWANCE_REQUIRED !== 'true') return protectedHandler.scheduled(event, env, ctx);
