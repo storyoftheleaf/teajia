@@ -5,6 +5,7 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { PaymentChooser } from '../components/profile/PaymentChooser';
 import { PayInvoiceTeas } from '../components/profile/PayInvoiceTeas';
 import { PayInvoiceKeep } from '../components/profile/PayInvoiceKeep';
+import { PayInvoiceGift } from '../components/profile/PayInvoiceGift';
 import { PayInvoiceBuyMore } from '../components/profile/PayInvoiceBuyMore';
 import { useOpenLinkTea } from '../components/shop/useOpenLinkTea';
 import type { InventoryItem } from '../types';
@@ -262,6 +263,7 @@ export default function ProfilePaymentPage({ onAddToCart }: {
           )}
           <h1 className="font-display text-ui-26 leading-[1.1] text-tea-text">{heading}</h1>
           {visibleCount > 0 && <p className="mt-1.5 font-body text-ui-14 italic leading-[1.5] text-tea-text-sec">{waysLine}</p>}
+          <PayInvoiceGift from={firstName(access.contributor.display_name)} discount={access.invoice?.discount} />
         </header>
         <div className="mt-2">
           <PayInvoiceTeas lines={invoiceLines} invoiceNumber={access.invoice?.invoice_number ?? null} onAddToCart={onAddToCart} discount={access.invoice?.discount ?? null} />

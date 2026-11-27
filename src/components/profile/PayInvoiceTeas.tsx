@@ -90,7 +90,12 @@ export function PayInvoiceTeas({ lines, invoiceNumber = null, onAddToCart, disco
       )}
       <div className="flex items-baseline justify-between gap-4 border-b border-tea-border px-4 py-4 md:px-6" data-testid="pay-invoice-total">
         <span className="label-caps text-tea-text-sec">Total</span>
-        <span className="font-display text-ui-22 tabular-nums text-tea-text">{exact(totalUsd)}</span>
+        <span className="flex items-baseline gap-2">
+          {discount && discount.amount_usd > 0 && (
+            <s className="font-display text-ui-15 tabular-nums text-tea-text-sec" data-testid="pay-invoice-full-total">{exact(Math.round((totalUsd + discount.amount_usd) * 100) / 100)}</s>
+          )}
+          <span className="font-display text-ui-22 tabular-nums text-tea-text">{exact(totalUsd)}</span>
+        </span>
       </div>
       {openRow && (
         <LinkTeaPage
