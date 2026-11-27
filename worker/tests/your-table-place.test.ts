@@ -104,11 +104,11 @@ afterEach(() => {
 });
 
 describe('migration 0144', () => {
-  it('starts every place as not a table, with no area, and allows one table per account', () => {
+  it('starts every place as not a table, with no area, and (since 0156) allows several tea spaces per account', () => {
     const rows = db.sqlite.prepare('SELECT is_host_table, area_hint FROM saved_locations').all() as Array<Record<string, unknown>>;
     expect(rows.every(row => row.is_host_table === 0 && row.area_hint === null)).toBe(true);
     db.sqlite.prepare('UPDATE saved_locations SET is_host_table = 1 WHERE id = ?').run(PLACE_ID);
-    expect(() => db.sqlite.prepare('UPDATE saved_locations SET is_host_table = 1 WHERE id = ?').run('place-studio')).toThrow();
+    expect(() => db.sqlite.prepare('UPDATE saved_locations SET is_host_table = 1 WHERE id = ?').run('place-studio')).not.toThrow();
   });
 });
 
@@ -119,7 +119,7 @@ describe('choosing your table', () => {
     expect((await call('/api/me/your-table')).status).toBe(401);
   });
 
-  it('names one place as the table, moves it, and undoes it', async () => {
+  it('marks places as tea spaces, keeps several, and undoes one or all', async () => {
     const list = await (await call('/api/me/your-table', { actor: ana })).json() as { places: Array<Record<string, unknown>> };
     expect(list.places.map(p => p.name)).toEqual([PLACE_NAME, 'Studio']);
     expect(list.places.every(p => p.is_table === false)).toBe(true);
@@ -132,8 +132,11 @@ describe('choosing your table', () => {
     expect(after.places.find(p => p.id === PLACE_ID)).toMatchObject({ is_table: true, area_hint: AREA });
 
     await call('/api/me/your-table', { actor: ana, method: 'PUT', body: { place_id: 'place-studio', area_hint: 'Ubud' } });
-    const moved = db.sqlite.prepare('SELECT id FROM saved_locations WHERE account_id = ? AND is_host_table = 1').all(ana.accountId);
-    expect(moved).toEqual([{ id: 'place-studio' }]);
+    const both = db.sqlite.prepare('SELECT id FROM saved_locations WHERE account_id = ? AND is_host_table = 1 ORDER BY id').all(ana.accountId);
+    expect(both).toEqual([{ id: PLACE_ID }, { id: 'place-studio' }].sort((a, b) => a.id.localeCompare(b.id)));
+
+    const one = await (await call(`/api/me/your-table?place_id=${PLACE_ID}`, { actor: ana, method: 'DELETE' })).json() as { places: Array<{ id: string; is_table: boolean }> };
+    expect(one.places.filter(p => p.is_table).map(p => p.id)).toEqual(['place-studio']);
 
     const undone = await (await call('/api/me/your-table', { actor: ana, method: 'DELETE' })).json() as { places: Array<{ is_table: boolean }> };
     expect(undone.places.every(p => !p.is_table)).toBe(true);
@@ -253,5 +256,18 @@ describe('the public is told the area only', () => {
       expect(read.text).not.toContain(PLACE_NAME);
       expect(read.text).not.toContain(AREA);
     }
+  });
+});
+
+describe('adding a tea space (tea spaces, step 2)', () => {
+  it('takes a name and an area, nothing more, and never a link', async () => {
+    expect((await call('/api/me/your-table', { actor: ana, method: 'POST', body: { name: '', area_hint: 'Ubud' } })).status).toBe(400);
+    expect((await call('/api/me/your-table', { actor: ana, method: 'POST', body: { name: 'Tea room', area_hint: '' } })).status).toBe(400);
+    expect((await call('/api/me/your-table', { actor: ana, method: 'POST', body: { name: 'Tea room', area_hint: 'https://maps.example/x' } })).status).toBe(400);
+    const added = await call('/api/me/your-table', { actor: ana, method: 'POST', body: { name: '  Tea   room ', area_hint: 'Ubud, near the market' } });
+    expect(added.status).toBe(200);
+    const body = await added.json() as { places: Array<{ name: string; is_table: boolean; area_hint: string | null }> };
+    expect(body.places.find(p => p.name === 'Tea room')).toMatchObject({ is_table: true, area_hint: 'Ubud, near the market' });
+    expect((await call('/api/me/your-table', { actor: ana, method: 'POST', open: false, body: { name: 'X', area_hint: 'Y' } })).status).toBe(404);
   });
 });

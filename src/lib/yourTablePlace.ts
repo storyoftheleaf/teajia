@@ -40,6 +40,6 @@ export function yourTableLine(table: unknown, hostName?: unknown): string | unde
   if (!table || typeof table !== 'object') return undefined;
   const area = (table as { area?: unknown }).area;
   const name = typeof hostName === 'string' && hostName.trim() ? hostName.trim() : '';
-  const whose = name ? `${name}’s table` : 'The host’s table';
+  const whose = name ? `${name}’s tea space` : 'The host’s tea space';
   return typeof area === 'string' && area.trim() ? `${whose}, ${area.trim()}` : whose;
 }

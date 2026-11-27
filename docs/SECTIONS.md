@@ -1,5 +1,7 @@
 # Teajia sections: the overhaul, what is built and what is proposed
 
+> **Tea spaces (2026-11-27).** Every switch is on, and the bar's third word is **Tea spaces** (was "Tea house"): a tea house holds one or more tea spaces, anyone can own a space, and a host's own place is "Your tea space". Plan: `todo/plans/tea-spaces.md`. Where "tea house" names the bar word below, read "tea spaces".
+
 > **Craft removed (2026-11-27).** Adrian: "we're removing craft completely", then "the things inside of craft I don't wanna lose", and chose "Read: Stories, Lessons, Wisdom". The bar today reads **read, advise, shop**. Read carries three shelves on every page of it: Stories (`/read`), Lessons (`/read/lessons`, Craft's lessons) and Wisdom (`/wisdom`, now with the glossary). Tea Spaces and Playlists go to Tea house and Shared Wisdom to Tea table when those pages take them. Where Craft appears below, read it as history.
 
 > **Launch 4 branch status (2026-11-26).** The feature sections below describe what is in this checkout. Built and off: the bar words, Home in full and Read's three shelves (`HOME_BAR_OPEN`), and Tea Houses with Visit, Build and Work (`TEA_HOUSES_OPEN`). The bar reads **read, advise, shop** until `HOME_BAR_OPEN` opens. Adrian has not settled the words "Tea table" and "Tea house". See [SITE_MAP.md](SITE_MAP.md) for routes and flag states. The switch for the bar is in `src/lib/homeBar.ts`. Adrian's words of 2026-11-26 are "Read", "Tea table", "Tea house" and "Shop", one line in `src/components/navSections.ts`, and he has said he doubts the middle two.
@@ -101,7 +103,7 @@ Full plan: [tea-table.md](../todo/plans/tea-table.md).
 
 | View | Address | The question it answers |
 |---|---|---|
-| Overview | `/tea-houses` | What is a Teajia tea house, and what can I do here |
+| Overview | `/tea-houses` | The tea spaces page (tea spaces, step 3): shown houses with their spaces, then hosts' own spaces by area with who serves there; Adrian's house as a marked placeholder until it is shown; then the doors below |
 | Build | `/tea-houses/build` | I want one. What happens, in what order, and how do I start |
 | Work | `/tea-houses/work`, `/tea-houses/work/:slug` | Show me ones Adrian has built |
 | Visit | `/tea-houses/visit`, then `/store/:slug` | Where can I sit down at a house |

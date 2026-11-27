@@ -1,6 +1,29 @@
 ## 2026-11-27: Checks and worker deploys wait less
 
 A pull request's checks took 11 to 13 minutes, 9 of them the worker suite run in one piece, and a worker deploy ran that same suite again for about 9 of its 10 minutes. The suite now runs as four shards beside the type check and build (`worker-tests` and `checks-static` in `playwright.yml`; `checks` still passes only when every part did). A deploy skips the suite when Playwright already proved the exact tree it is about to ship, which is a squash merge of a PR that was up to date with main, and otherwise runs the same four shards. The dry-run build stays above the migrations.
+## 2026-11-27: Hosts connect ChatGPT or Claude by signing in
+
+Adrian: yes to a sign-in page so hosts can connect ChatGPT or Claude. A host adds Teajia's connector in their app and signs in; a host who is not a shop owner lands on the site's own page, `/connect/<request>` (not Manage), which names the app and says it reaches their own tables, tea spaces, guests and notes and nothing of the shop. The grant is the same as a host's own key: `host:self` alone, on their own personal account, checked at approval and again at the token exchange, and refused for anyone Teajia has not approved, a stopped host, or with host keys closed. No shop scope rides along, whatever is asked. The connection sits with their keys on their page, as "OAuth: Claude" or "OAuth: ChatGPT", and stops when they take it off. Guard: `worker/tests/host-token.test.ts`; browser check `tests/connect-assistant.spec.ts`.
+
+## 2026-11-27: Tea spaces, step 3: the tea spaces page
+
+The bar word "Tea spaces" now opens one page of spaces at `/tea-houses` (the address stays, so no link breaks). A tea house Adrian shows sits under its own name with the spaces inside it; a host's own tea space appears only once they tick "Show it on the tea spaces page, by its area only" on their page, and then by its area alone, with who serves there. Never its name, address, map link or way in. Undoing a tea space takes it off the page too. Until his own house is shown it stands first as "Adrian's house" with two spaces, each marked as a placeholder. Build, Work and Visit stay below. Migration 0157 is schema only (`saved_locations.shown_on_spaces`, default off). Routes: `GET /api/tea-spaces`, `PUT /api/me/your-table/:id/shown`. Plan: `todo/plans/tea-spaces.md`, step 3.
+
+## 2026-11-27: Tea spaces, step 5: agent tools, and a table in a space
+
+The host's tea spaces are the same for their assistant as on their page (`worker/src/mcpTools/pageActions.ts`, each through the page's own route, preview then confirm): `list_my_tea_spaces`, `add_my_tea_space` (a name and the area, never a link) and `set_table_tea_space`, which says which tea space a table is held in, or none, through the new `PUT /api/me/tables/:id/space`. `set_your_table` now takes off one space (`place_id` with `clear: true`) and leaves the others. All three join a host's own key and the /mcp page. A host keeps at most 50 places, spaces included, as with kept ways in.
+
+## 2026-11-27: Tea spaces, step 4: "Serves at tables" opens where they serve
+
+Adrian: "Served at tables yes", and the line may be tapped. On the people list, a tap on "Serves at tables" opens that person's page at a short list (`?serves=open`, so back closes it): their own tea spaces first, then other spaces they have served in. Names only, no count and no dates. A private space shows by its area alone, never its name, address, map link or way in; a tea house shown on `/tea-houses/work` is named and linked. The list is `GET /api/public/people/:slug/spaces` (`worker/src/servesAt.ts`) and opens with the line itself (the Tea Table switch). Plan: `todo/plans/tea-spaces.md`, step 4.
+
+## 2026-11-27: Tea spaces, step 2: several spaces per host
+
+Adrian's house has two spaces, in different rooms. A host may now name several of their places as tea spaces, and add a new one by its name and the area people see (`POST /api/me/your-table`; the way in is added from a table's page as before). Choosing a place no longer clears the others, and each space has its own Undo (`DELETE /api/me/your-table?place_id=`). Migration 0156 is schema only: it drops the one-table-per-account index. A host's page no longer breaks when the tables answer is missing its list. Plan: `todo/plans/tea-spaces.md`, step 2.
+
+## 2026-11-27: Tea spaces, step 1: the words
+
+Adrian: "A tea space is a place inside of a tea house... Let's focus on the spaces, not the houses. Because anyone can own a space", and "Yes, right after the switch-on". The bar's and rail's third word is now "Tea spaces" (`BAR_WORDS.houses`; the id `houses` and the address `/tea-houses` stay). A host's place section reads "Your tea space" throughout, and a public session at it reads "{Name}'s tea space, {area}". Plan: `todo/plans/tea-spaces.md`, step 1.
 
 ## 2026-11-27: Every switch from Launches 1 to 5 is on
 

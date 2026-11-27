@@ -150,7 +150,7 @@ function MakeTable({ doors }: { doors: HostedTableDoor[] }) {
   // The table just made is the last table; before any this visit, the newest on the host's list.
   const lastSent = create.variables;
   const known = tableFormDefaults(doors,
-    lastSent ? { seats: lastSent.seats ?? 6, door: lastSent.door ?? 'request', area_hint: lastSent.area ?? null } : tables.data?.tables[0],
+    lastSent ? { seats: lastSent.seats ?? 6, door: lastSent.door ?? 'request', area_hint: lastSent.area ?? null } : tables.data?.tables?.[0],
     places.data?.places);
   const justMade = create.data?.id === tableId && create.variables
     ? { link: create.data.link, day: formatDay(create.variables.date, 'UTC') }

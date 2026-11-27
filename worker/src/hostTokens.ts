@@ -46,7 +46,7 @@ const PERSONAL_ACCOUNT_SQL = `SELECT a.id FROM accounts a
     AND m.role = 'owner' AND m.status = 'active'
   WHERE a.personal_inventory_user_id = ? AND a.owner_user_id = a.personal_inventory_user_id AND a.status = 'active'`;
 
-async function personalAccountId(db: D1Database, userId: string): Promise<string | null> {
+export async function personalAccountId(db: D1Database, userId: string): Promise<string | null> {
   const row = await db.prepare(PERSONAL_ACCOUNT_SQL).bind(userId).first<{ id: string }>();
   return row?.id ?? null;
 }

@@ -15,7 +15,7 @@ import { teaHousesOpen } from '../lib/teaHouses';
  */
 
 /** The four words with the new bar on. Change a word here, on this one line, and the bar, the rail and Home follow. */
-export const BAR_WORDS = { read: 'Read', table: 'Tea table', houses: 'Tea house', shop: 'Shop' } as const;
+export const BAR_WORDS = { read: 'Read', table: 'Tea table', houses: 'Tea spaces', shop: 'Shop' } as const;
 
 /**
  * Read's three shelves, the row at the top of /read, /read/lessons and /wisdom

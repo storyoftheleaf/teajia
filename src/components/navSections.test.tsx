@@ -119,7 +119,7 @@ describe('with the new bar on', () => {
     const words = [BAR_WORDS.read, BAR_WORDS.table, BAR_WORDS.houses, BAR_WORDS.shop];
     expect(barWords(bar())).toEqual(words.map(w => w.toLowerCase()));
     expect(railWords(rail())).toEqual(words);
-    expect(words).toEqual(['Read', 'Tea table', 'Tea house', 'Shop']);
+    expect(words).toEqual(['Read', 'Tea table', 'Tea spaces', 'Shop']);
   });
 
   it('marks the bar so its words go one size smaller under 340px', () => {
@@ -141,7 +141,7 @@ describe('with the new bar on', () => {
   it('read lights on all three shelves; table on sessions and people; house on houses and the consult', () => {
     for (const path of ['/read', '/wisdom', '/wisdom/cultivars', '/wisdom/glossary', '/article/x']) expect(litBar(bar(path, 'MAGAZINE'))).toEqual(['Read']);
     for (const path of ['/tea-table', '/events', '/event/a', '/people/bo']) expect(litBar(bar(path, 'EVENTS'))).toEqual(['Tea table']);
-    for (const path of ['/tea-houses/visit', '/store/a', '/advise']) expect(litBar(bar(path, 'OFFERINGS'))).toEqual(['Tea house']);
+    for (const path of ['/tea-houses/visit', '/store/a', '/advise']) expect(litBar(bar(path, 'OFFERINGS'))).toEqual(['Tea spaces']);
     expect(litBar(bar('/shop', 'SHOP'))).toEqual(['Shop']);
   });
 

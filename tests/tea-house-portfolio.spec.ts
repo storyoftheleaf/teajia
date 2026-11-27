@@ -133,3 +133,40 @@ test.describe('the tea house portfolio, open', () => {
     await noHorizontalOverflow(page);
   });
 });
+
+// Tea spaces, step 3: the bar word's page is one page of spaces.
+test.describe('the tea spaces page', () => {
+  test.beforeEach(async ({ page }) => { if (!open) await openTeaHouses(page); });
+  test.skip(!open, 'Tea houses are closed on this site');
+
+  test('until Adrian’s house is shown it stands first as a marked placeholder', async ({ page }) => {
+    await prepare(page);
+    await page.route(/\/api\/tea-spaces$/, route => route.fulfill({ headers: CORS, json: { houses: [], spaces: [] } }));
+    await page.goto('/tea-houses');
+    await expect(page.getByRole('heading', { level: 1, name: 'Tea spaces' })).toBeVisible();
+    const placeholder = page.getByTestId('tea-spaces-placeholder');
+    await expect(placeholder.getByRole('heading')).toContainText('(placeholder)');
+    await expect(placeholder.getByRole('listitem')).toHaveCount(2);
+    await expect(page.getByTestId('tea-spaces-own')).toHaveCount(0);
+    await expect(page.getByRole('link', { name: 'Find a tea house to visit' })).toHaveAttribute('href', '/tea-houses/visit');
+    await noHorizontalOverflow(page);
+  });
+
+  test('a shown house sits with its spaces, then a host’s spaces by area with who serves there, nothing counted', async ({ page }) => {
+    await prepare(page);
+    await page.route(/\/api\/tea-spaces$/, route => route.fulfill({ headers: CORS, json: {
+      houses: [{ name: 'Ubud House', slug: 'ubud-house', spaces: ['The long table', 'The quiet room'] }],
+      spaces: [{ id: 's1', area: 'Ubud, near the market', served_by: { name: 'Mei Lin', slug: 'mei-lin' } }],
+    } }));
+    await page.goto('/tea-houses');
+    await expect(page.getByTestId('tea-spaces-placeholder')).toHaveCount(0);
+    const house = page.getByTestId('tea-spaces-house');
+    await expect(house.getByRole('link', { name: 'Ubud House' })).toHaveAttribute('href', '/tea-houses/work/ubud-house');
+    await expect(house).toContainText('The quiet room');
+    const space = page.getByTestId('tea-spaces-space');
+    await expect(space).toContainText('Ubud, near the market');
+    await expect(space.getByRole('link', { name: 'Mei Lin' })).toHaveAttribute('href', '/people/mei-lin');
+    expect(await page.getByTestId('tea-houses-overview').innerText()).not.toMatch(NOTHING_COUNTED);
+    await noHorizontalOverflow(page);
+  });
+});
