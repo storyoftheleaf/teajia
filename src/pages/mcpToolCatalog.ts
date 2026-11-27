@@ -87,16 +87,19 @@ export const SHOP_TOOL_GROUPS: readonly ToolGroup[] = [
   {
     step: 7,
     title: 'Make it public',
-    copy: 'Choose the photos and show the tea in the shop.',
-    tools: ['search_tea', 'get_tea', 'set_tea_image', 'add_tea_images', 'remove_tea_image', 'set_tea_visibility'],
+    copy: 'Choose the photos, check what the Tea Wisdom Base already holds for it, and show the tea in the shop.',
+    tools: [
+      'search_tea', 'get_tea', 'set_tea_image', 'add_tea_images', 'remove_tea_image', 'set_tea_visibility',
+      'wisdom_records_for_tea', 'search_wisdom', 'get_wisdom_entry',
+    ],
   },
   {
     step: 8,
     title: 'Offer it',
-    copy: 'Gather teas into a collection to send, and turn a request from the shop into an order.',
+    copy: 'Gather teas into a collection to send, answer what people ask for, and turn a request into an order.',
     tools: [
       'list_collections', 'create_collection', 'add_tea_to_collection', 'remove_tea_from_collection',
-      'publish_collection', 'unpublish_collection', 'list_order_requests', 'convert_order_request',
+      'publish_collection', 'unpublish_collection', 'list_order_requests', 'set_order_request_status', 'convert_order_request',
     ],
   },
   {
@@ -119,6 +122,11 @@ export const SHOP_TOOL_GROUPS: readonly ToolGroup[] = [
     ],
   },
   {
+    title: 'Between shops',
+    copy: 'Wholesale orders with another Teajia shop, from submitted to received.',
+    tools: ['list_wholesale_orders', 'get_wholesale_order', 'move_wholesale_order'],
+  },
+  {
     title: 'People',
     copy: 'Find, add and tag the people the shop sells to.',
     tools: ['find_customer', 'get_customer', 'create_customer', 'update_customer', 'tag_customer', 'untag_customer'],
@@ -135,14 +143,22 @@ export const SHOP_TOOL_GROUPS: readonly ToolGroup[] = [
     ],
   },
   {
+    title: 'Places, teaware and contributors',
+    copy: 'Where sessions are held, the teaware collection, and the people with a page in Read.',
+    tools: ['list_venues', 'save_venue', 'list_teaware', 'list_contributors'],
+  },
+  {
     title: 'Writing',
     copy: 'Draft and publish articles, including one written from a session.',
     tools: ['list_articles', 'get_article', 'create_article_draft', 'update_article_draft', 'draft_article_from_event', 'set_article_published'],
   },
   {
     title: 'The shop itself',
-    copy: 'What is waiting, the shop’s settings and its exchange rates.',
-    tools: ['whats_waiting', 'get_account_context', 'update_account_settings', 'update_exchange_rate'],
+    copy: 'What is waiting, what agents changed and the way back, the site\u2019s problems, settings and exchange rates.',
+    tools: [
+      'whats_waiting', 'list_agent_changes', 'undo_agent_change', 'list_site_problems', 'resolve_site_problem',
+      'get_account_context', 'update_account_settings', 'update_exchange_rate',
+    ],
   },
 ];
 
@@ -160,12 +176,12 @@ export const HOST_TOOL_GROUP: ToolGroup = {
 /** Tools any signed-in person may use on their own seat and pieces. */
 export const PERSONAL_TOOL_GROUP: ToolGroup = {
   title: 'Anyone signed in',
-  copy: 'Give back a seat, keep a favourite, put a recap on the Tea Table or take a tasting off it, report a problem.',
-  tools: ['release_my_seat', 'set_my_favourite', 'set_my_recap_on_tea_table', 'take_my_tasting_off_tea_table', 'report'],
+  copy: 'Read your own orders, Tea Chest and journal, give back a seat, keep a favourite, put a recap on the Tea Table or take a tasting off it, report a problem.',
+  tools: ['list_my_orders', 'list_my_tea_chest', 'list_my_journal', 'release_my_seat', 'set_my_favourite', 'set_my_recap_on_tea_table', 'take_my_tasting_off_tea_table', 'report'],
 };
 
 /** The read-only connector for shoppers, at MCP_PUBLIC_URL. */
-export const PUBLIC_TOOLS: readonly string[] = ['search_tea', 'get_tea', 'browse_catalog', 'prepare_order'];
+export const PUBLIC_TOOLS: readonly string[] = ['search_tea', 'get_tea', 'browse_catalog', 'prepare_order', 'search_wisdom', 'get_wisdom_entry'];
 
 export function allCatalogTools(): string[] {
   return [...SHOP_TOOL_GROUPS, HOST_TOOL_GROUP, PERSONAL_TOOL_GROUP].flatMap((group) => group.tools);

@@ -16725,13 +16725,18 @@ const handleListCellar: Handler = async (request, env) => {
   if (authErr) return authErr;
   const userId = authedUserId(request);
   if (!userId) return json({ error: 'Invalid token' }, 401);
+  return json({ items: await listMyTeaChest(env, userId) });
+};
+
+/** A person's own Tea Chest, for the route above and the agent's list_my_tea_chest. */
+async function listMyTeaChest(env: Env, userId: string) {
   const { results } = await env.DB.prepare(
     `SELECT c.*, e.title AS source_event_title FROM personal_cellar_items c
      LEFT JOIN events e ON e.id = c.source_event_id
      WHERE c.owner_user_id = ? ORDER BY c.created_at DESC`
   ).bind(userId).all();
-  return json({ items: (results as any[]).map(row => ownedCellarItemToApi(row, favouritesOpen(env))) });
-};
+  return (results as any[]).map(row => ownedCellarItemToApi(row, favouritesOpen(env)));
+}
 
 // POST /api/me/cellar — add a tea the caller owns, with a quantity. Private.
 const handleCreateCellarItem: Handler = async (request, env) => {
@@ -21351,6 +21356,24 @@ function isPersonJournalTea(id: string) {
   return id.startsWith('member-sit:') || id.startsWith('member-tea:');
 }
 
+/**
+ * A person's own tasting journal: the shop's lines kept under their email, and
+ * their own under their person id. The route below and the agent's
+ * list_my_journal both read through here.
+ */
+async function listMyJournal(env: Env, email: string | null | undefined, userId: string, accountId: string | null) {
+  let query = 'SELECT * FROM customer_tasting_journal WHERE ((user_id = ?';
+  const binds: any[] = [email];
+  if (accountId) {
+    query += ' AND account_id = ?';
+    binds.push(accountId);
+  }
+  query += ') OR (user_id = ? AND account_id IS NULL)) ORDER BY created_at DESC';
+  binds.push(personJournalOwner(userId));
+  const { results } = await env.DB.prepare(query).bind(...binds).all();
+  return results;
+}
+
 const handleGetTastingJournal: Handler = async (request, env) => {
   const authErr = await requireAuth(request, env);
   if (authErr) return authErr;
@@ -21358,16 +21381,7 @@ const handleGetTastingJournal: Handler = async (request, env) => {
   const claims = parseToken(isAuthed(request)!);
   const headerAccount = request.headers.get('X-Teajia-Account') || claims?.active_account_id || null;
 
-  let query = 'SELECT * FROM customer_tasting_journal WHERE ((user_id = ?';
-  const binds: any[] = [email];
-  if (headerAccount) {
-    query += ' AND account_id = ?';
-    binds.push(headerAccount);
-  }
-  query += ') OR (user_id = ? AND account_id IS NULL)) ORDER BY created_at DESC';
-  binds.push(personJournalOwner(claims?.sub ?? ''));
-
-  const { results } = await env.DB.prepare(query).bind(...binds).all();
+  const results = await listMyJournal(env, email, claims?.sub ?? '', headerAccount);
 
   // Pass JSON strings through verbatim. The client parses them. This avoids
   // double-stringification and keeps the worker handler narrow.
@@ -25397,8 +25411,15 @@ async function loadMyOrderOwnership(env: Env, userId: string, accountId: string)
 const handleGetMyOrders: Handler = async (request, env) => {
   const ctx=await customerOrderContext(request,env);
   if(!ctx)return json({error:'Sign in to view your orders'},401);
-  const { accountId:legacyAccountId, userId } = ctx;
+  return json({ orders: await listMyOrders(env, ctx.userId, ctx.accountId) });
+};
 
+/**
+ * A person's own orders, as Your Table lists them. The route above and the
+ * agent's list_my_orders both read through here, so an assistant sees exactly
+ * the orders the page shows and no other.
+ */
+async function listMyOrders(env: Env, userId: string, legacyAccountId: string) {
   const ownership = await loadMyOrderOwnership(env, userId, legacyAccountId);
 
   // Build the WHERE clause: include rows linked via customers.user_id, plus any
@@ -25468,8 +25489,8 @@ const handleGetMyOrders: Handler = async (request, env) => {
     refunded_usd:refundMap.get(r.id)||0,refund_due_usd:r.status==='Void'?Math.max(0,roundUsd(Number(payments.get(r.id)?.paid_usd||0)-(refundMap.get(r.id)||0))):0,refund_required:Boolean(r.refund_required),cancelled_at:r.cancelled_at,shipping_destination:r.shipping_destination,tracking_number:r.tracking_number,
   }));
 
-  return json({ orders });
-};
+  return orders;
+}
 
 const handleGetMyOrderDetail: Handler = async (request, env, params) => {
   const ctx=await customerOrderContext(request,env);
@@ -31558,17 +31579,30 @@ const handleUpdateWholesaleOrder: Handler = async (request, env, params) => {
 const handleTransitionWholesaleOrder: Handler = async (request, env, params) => {
   const ctx = await requireBundle(request, env, 'sell');
   if ('error' in ctx) return ctx.error;
-  const { accountId, userId, email } = ctx;
+  let body: any;
+  try { body = await request.json(); } catch { body = {}; }
+  return transitionWholesaleOrder(env, { accountId: ctx.accountId, userId: ctx.userId, email: ctx.email }, params.id, body);
+};
 
-  const orderId = params.id;
+/**
+ * Move a wholesale order one step (submitted, replied, confirmed, shipped,
+ * received, cancelled). The route above and the agent's move_wholesale_order
+ * both come here, so a step taken by an agent checks the same party, the same
+ * order of steps and moves the same stock.
+ */
+async function transitionWholesaleOrder(
+  env: Env,
+  ctx: { accountId: string; userId: string; email: string | null | undefined },
+  orderId: string | undefined,
+  body: any,
+): Promise<Response> {
+  const { accountId, userId, email } = ctx;
   if (!orderId) return json({ error: 'Order id required' }, 400);
 
   const loaded = await loadWholesaleOrder(env, orderId, accountId);
   if ('error' in loaded) return loaded.error;
   const { order } = loaded;
-
-  let body: any;
-  try { body = await request.json(); } catch { body = {}; }
+  body = body && typeof body === 'object' ? body : {};
 
   const to = typeof body.to === 'string' ? body.to.trim().toLowerCase() : '';
   const validTargets = new Set(['submitted', 'replied', 'confirmed', 'shipped', 'received', 'cancelled']);
@@ -31699,12 +31733,12 @@ const handleTransitionWholesaleOrder: Handler = async (request, env, params) => 
 
   try{await env.DB.batch(stmts);}catch(error){if(receiveClaim)await releaseReceive();if(/cannot be negative/i.test(String(error)))return json({error:'Supplier stock is insufficient for this receipt'},409);throw error;}
 
-  await logPlatformAction(env, `wholesale.${to}`, userId, email,
+  await logPlatformAction(env, `wholesale.${to}`, userId, email ?? '',
     'wholesale_order', orderId,
     { from: order.status, to, by_account: accountId });
 
   return json({ ok: true, status: to });
-};
+}
 
 // Receive side effects:
 //   1. Decrement supplier's listing stock for each line item
@@ -34226,6 +34260,13 @@ const requestHandler = {
           receiveImport: (scope, line, key) => receiveFinalizedImportLine(env, scope, line, key),
         },
         stockMovements: { apply: (scope, productId, input) => applyStockMovement(env, scope, productId, input) },
+        // The same functions the routes call, so an agent's step is the page's step.
+        wholesale: { transition: (scope, orderId, body) => transitionWholesaleOrder(env, scope, orderId, body) },
+        personal: {
+          orders: (userId, accountId) => listMyOrders(env, userId, accountId),
+          teaChest: (userId) => listMyTeaChest(env, userId),
+          journal: (userId, email, accountId) => listMyJournal(env, email, userId, accountId),
+        },
         // A host's yes over MCP takes the admin approval's own reservation (Launch 2, H12).
         hostSeats: { reservationFor: (attendee, guests) => buildApprovalReservation(env, attendee as unknown as ApprovalAttendeeRow, guests) },
         launch3: {

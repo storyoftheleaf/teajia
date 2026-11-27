@@ -76,13 +76,21 @@ The address the page gives to clients is `https://api.teajia.com/mcp` (and `/mcp
 
 Checked against the tea system map and the "How people use Teajia" board. Close a line by naming the PR that closed it.
 
-1. Site problems: nothing reads `/account/fixes` (`incident_ledger`) or marks one fixed.
-2. Requests from people: "find me a tea" inquiries, wholesale orders and tea house build requests cannot be listed or answered.
-3. Low stock to reorder: `list_low_stock` does not name the supplier or the last quote.
-4. Undo outside Curate: no history or undo for stock, prices or invoices, and no read of what agents changed.
-5. Tea Wisdom: no read of what a tea still needs from the Wisdom Base, and the public connector cannot answer from it.
-6. A person's own things (journal, Tea Chest, orders, favourites) have no agent of their own; only hosts get keys.
-7. Smaller: venues, contributors and teaware have no tools; the i64os sale tools sit beside Teajia's unchecked.
+Closed by PR 595, one module each in `worker/src/mcpTools/`:
+
+1. Site problems: `siteProblems.ts`, `list_site_problems` and `resolve_site_problem` (platform owner only; resolved needs `resolution_ref`).
+2. Requests from people: `peopleRequests.ts`, `set_order_request_status` for "find me a tea" inquiries, and `list_wholesale_orders`, `get_wholesale_order`, `move_wholesale_order` through the same transition as the Manage route. Tea house build requests stay out while that section is switched off.
+3. Low stock to reorder: `list_low_stock` now gives each tea's `reorder` (Library tea, supplier and last quote).
+4. Undo outside Curate: `agentChanges.ts`. Confirmed writes on stock, prices, words, threshold and archive keep the tea's columns before and after on the `MCP_TOOL_CALL` line. `list_agent_changes` reads them; `undo_agent_change` puts stock back as a pinned recount and answers `next_call` for the rest. Invoices are still undone with `void_invoice`.
+5. Tea Wisdom: `wisdomRecords.ts`, `search_wisdom` and `get_wisdom_entry` (also on `/mcp/public`), read from the published `/wisdom/` dataset, and `wisdom_records_for_tea`, which says which of a tea's place, cultivar and producer have a record. It does not read drafts; `needs.mjs` stays the full list.
+6. A person's own things: `personal.ts`, `list_my_orders`, `list_my_tea_chest`, `list_my_journal`, read only, through the same functions as Your Table. A token with no scope at all still reaches nothing.
+7. Venues, contributors and teaware: `shopRecords.ts`, `list_venues`, `save_venue`, `list_teaware`, `list_contributors`.
+
+Still open:
+
+- Favourites on the Tea Table have no tool.
+- Teaware and contributors are read only; changes stay in Manage.
+- The i64os sale tools (`create_tea_sale`, `create_tea_invoice`, `mark_tea_sale_paid`, `purchase_tea_inventory`) live in the i64os repository and are not checked against Teajia's invoices (tea system map, gap 5).
 
 The unfulfilled invoice and the private collection link are PR 593.
 

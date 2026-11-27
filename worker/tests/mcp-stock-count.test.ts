@@ -138,7 +138,11 @@ describe('the Gushu Red, never counted, set to 118 g', () => {
     // Every confirmed agent change is in the activity log with the token that made it.
     const logged = db.sqlite.prepare("SELECT details, entity_id FROM activity_logs WHERE action = 'MCP_TOOL_CALL'").all() as any[];
     expect(logged.map(l => ({ ...JSON.parse(l.details), entity_id: l.entity_id })))
-      .toEqual([{ tool: 'count_stock', token_id: 'tok-count', confirmed: true, failed: false, entity_id: 'tok-count' }]);
+      .toEqual([{
+        tool: 'count_stock', token_id: 'tok-count', confirmed: true, failed: false, entity_id: 'tok-count',
+        // The tea before and after, so undo_agent_change can put it back.
+        product_id: 'gushu', before: { stock_grams: null }, after: { stock_grams: 118 },
+      }]);
   });
 
   it('a confirmation is spent once', async () => {

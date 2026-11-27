@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { mcpToolNames } from '../src/mcp';
+import { mcpToolNames, publicMcpToolNames } from '../src/mcp';
 import { allCatalogTools, PUBLIC_TOOLS } from '../../src/pages/mcpToolCatalog';
 
 /*
@@ -27,9 +26,6 @@ describe('the /mcp page names every connector tool, and only those', () => {
   });
 
   it('lists the public tools the public connector defines', () => {
-    const source = readFileSync(new URL('../src/mcp.ts', import.meta.url), 'utf8');
-    const block = source.slice(source.indexOf('const PUBLIC_TOOL_DEFS = ['));
-    const publicDefs = [...block.slice(0, block.indexOf('\n];')).matchAll(/^ {4}name: '([a-z_]+)'/gm)].map((m) => m[1]);
-    expect([...PUBLIC_TOOLS].sort()).toEqual(publicDefs.sort());
+    expect([...PUBLIC_TOOLS].sort()).toEqual(publicMcpToolNames().sort());
   });
 });
