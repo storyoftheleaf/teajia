@@ -13,7 +13,7 @@ import {
   type FaceVendor,
   type LooseFace,
 } from './vendorFaces';
-import { looksLikePhoto, prepareFacePhoto } from './facePhotoFile';
+import { looksLikePhoto, pastedPhotos, prepareFacePhoto } from './facePhotoFile';
 
 /**
  * Every vendor as a face, in People > Suppliers. Tap a face for the vendor's
@@ -75,6 +75,21 @@ export const VendorFaceGallery: React.FC<{ vendors: FaceVendor[] }> = ({ vendors
     }
     if (unreadable.length) setError(`Couldn't open ${unreadable.join(', ')}. Try saving it as a JPEG and dropping it again.`);
   }, []);
+
+  // Paste (Cmd+V / Ctrl+V) a copied photo straight into the tray (Adrian,
+  // 2026-11-27). Typing in the search box still pastes text as usual.
+  useEffect(() => {
+    const onPaste = (event: ClipboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.closest('input, textarea, [contenteditable="true"]')) return;
+      const files = pastedPhotos(event.clipboardData);
+      if (files.length === 0) return;
+      event.preventDefault();
+      void addFiles(files);
+    };
+    window.addEventListener('paste', onPaste);
+    return () => window.removeEventListener('paste', onPaste);
+  }, [addFiles]);
 
   const removeLoose = (key: string) => {
     setLoose(prev => {
@@ -228,8 +243,8 @@ export const VendorFaceGallery: React.FC<{ vendors: FaceVendor[] }> = ({ vendors
           ) : (
             <p className="text-ui-13 text-tea-text-sec flex-1 min-w-0">
               {missingFaces > 0
-                ? `${missingFaces === 1 ? 'One vendor has' : `${missingFaces} vendors have`} no face photo yet. Drop a batch of photos here to place them, or tap the camera on a tile to add one.`
-                : 'Drop a batch of photos here to place them on vendors.'}
+                ? `${missingFaces === 1 ? 'One vendor has' : `${missingFaces} vendors have`} no face photo yet. Drop or paste a batch of photos here to place them, or tap the camera on a tile to add one.`
+                : 'Drop or paste a batch of photos here to place them on vendors.'}
             </p>
           )}
           <Button type="button" variant="secondary" size="sm" icon={<ImagePlus size={14} strokeWidth={1.5} />} onClick={() => fileInput.current?.click()}>
@@ -246,7 +261,7 @@ export const VendorFaceGallery: React.FC<{ vendors: FaceVendor[] }> = ({ vendors
             data-testid="face-drop-zone"
           >
             <ImagePlus size={28} strokeWidth={1.25} aria-hidden="true" />
-            <span className="text-ui-14 text-tea-text">Drop face photos here, or tap to choose them</span>
+            <span className="text-ui-14 text-tea-text">Drop or paste face photos here, or tap to choose them</span>
             <span className="text-ui-12">They wait here, then you drag each one onto its vendor below.</span>
           </Button>
         )}
