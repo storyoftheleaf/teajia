@@ -55,6 +55,7 @@ import { curateSupplyTools } from './mcpTools/curateSupply';
 import { curatePhotoTools } from './mcpTools/curatePhotos';
 import { curateArrivalTools } from './mcpTools/curateArrivals';
 import { orderTrackingTools } from './mcpTools/orderTracking';
+import { invoiceLineTools } from './mcpTools/invoiceLines';
 import { priceLinkTools } from './mcpTools/priceLinks';
 import { paymentDetailsTools } from './mcpTools/paymentDetails';
 import { purchaseArrivalTools } from './mcpTools/purchaseArrivals';
@@ -7321,6 +7322,7 @@ const TOOL_MODULES: ToolModule[] = [
   curatePhotoTools,
   curateArrivalTools,
   orderTrackingTools,
+  invoiceLineTools,
   priceLinkTools,
   paymentDetailsTools,
   purchaseArrivalTools,

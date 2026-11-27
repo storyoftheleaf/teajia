@@ -636,10 +636,13 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
           passages: wisdomPassages.passages, grade: publicFacts.grade, namedTeaId: publicFacts.namedTeaId, search,
         })}
         factsTitle="Provenance"
-        history={composed
-          ? <AlcoveComposedEntry entry={composed} claims={entryClaims} journal={pageJournal} />
-          : <AlcoveWisdomPassages listing={wisdomPassages} />}
-        order={wisdomPilot?.externalReference || item.ordersPaused ? undefined : commerceFooter('docked')}
+        history={<>
+          {linkAddition}
+          {composed
+            ? <AlcoveComposedEntry entry={composed} claims={entryClaims} journal={pageJournal} />
+            : <AlcoveWisdomPassages listing={wisdomPassages} />}
+        </>}
+        order={linkFooter !== undefined ? linkFooter ?? undefined : wisdomPilot?.externalReference || item.ordersPaused ? undefined : commerceFooter('docked')}
         teaOrder
         tasting={characterBand}
         journal={composed ? undefined : <div className="mx-5">{pageJournal}</div>}

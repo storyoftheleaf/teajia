@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { looksLikePastedDetails, pastedLines, readPastedPayment } from './pastedPayment';
+import { looksLikePastedDetails, methodCurrency, pastedLines, readPastedPayment } from './pastedPayment';
 
 // The shape Wise hands over, with made-up numbers.
 const WISE = `Send money to:
@@ -16,9 +16,16 @@ Swift/BIC: EXAMPLE33`;
 describe('readPastedPayment', () => {
   it('reads the name and calls a Wise paste "Wise" when the paste says so', () => {
     expect(readPastedPayment(WISE)).toEqual({
-      recipientName: 'Mei Lin Example', externalUrl: null, methodType: 'bank_transfer', suggestedLabel: 'Bank transfer',
+      recipientName: 'Mei Lin Example', externalUrl: null, methodType: 'bank_transfer', suggestedLabel: 'Bank transfer USD',
     });
-    expect(readPastedPayment(`Wise details\n${WISE}`).suggestedLabel).toBe('Wise');
+    expect(readPastedPayment(`Wise details\n${WISE}`).suggestedLabel).toBe('Wise USD');
+  });
+
+  it('names the currency of an account, so Wise USD and Wise IDR sit side by side', () => {
+    expect(readPastedPayment('Wise IDR account details\nName: Mei\nAccount number: 1234567').suggestedLabel).toBe('Wise IDR');
+    expect(methodCurrency({ label: 'Wise IDR', instructions: null })).toBe('IDR');
+    expect(methodCurrency({ label: 'Wise', instructions: WISE })).toBe('USD');
+    expect(methodCurrency({ label: 'Bank transfer', instructions: 'Name: Mei\nIBAN: X' })).toBeNull();
   });
 
   it('treats a lone link as a payment link', () => {

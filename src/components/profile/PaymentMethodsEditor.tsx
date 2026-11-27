@@ -164,7 +164,7 @@ function PaymentFields({ value, associations, onChange }: { value: PaymentMethod
     if (reading.recipientName) patch.recipient_name = reading.recipientName;
     if (reading.externalUrl && !value.external_url) patch.external_url = reading.externalUrl;
     if (text.trim()) patch.method_type = reading.methodType;
-    if (!value.label.trim() || ['Wise', 'Bank transfer', 'Payment link'].includes(value.label)) patch.label = reading.suggestedLabel;
+    if (!value.label.trim() || /^(Wise|Bank transfer|Payment link)( [A-Z]{3})?$/.test(value.label)) patch.label = reading.suggestedLabel;
     onChange(patch);
   };
   return (

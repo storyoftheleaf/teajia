@@ -29,6 +29,8 @@ interface ProductPageContextValue {
   selectedBy: Awaited<ReturnType<typeof api.products.getSelectedBy>>['selected_by'];
   onCartClick?: () => void;
   cartItemCount: number;
+  /** A tea opened over a private link goes back to the link, not to the shop. */
+  onBack?: () => void;
 }
 
 export const ProductDetailPageContext = createContext<ProductPageContextValue>({
@@ -59,7 +61,7 @@ interface ProductDetailLayoutProps {
 export function ProductDetailLayout({
   identity, gallery, actions, facts, factsTitle, history, order, tasting, journal, reading, related, styleReference, teaOrder, modals, soldOut, ownerPreviewNavigation, galleryCaption,
 }: ProductDetailLayoutProps) {
-  const { shopHref, shopName, crumbType, selectedBy, onCartClick, cartItemCount } = useContext(ProductDetailPageContext);
+  const { shopHref, shopName, crumbType, selectedBy, onCartClick, cartItemCount, onBack } = useContext(ProductDetailPageContext);
   const { item } = identity;
   const hasProductActions = Boolean(actions) && !ownerPreviewNavigation;
   const photos = useTeaFamily(hasProductActions ? item.id : undefined);
@@ -104,7 +106,12 @@ export function ProductDetailLayout({
   return (
     <>
       {ownerPreviewNavigation ?? <div className="tea-product-nav mb-1 flex w-full items-center justify-between gap-4 border-b border-tea-border px-5 max-[383px]:gap-2 max-[383px]:px-3 lg:px-10">
-        <Link
+        {onBack ? (
+          <button type="button" onClick={onBack} className="btn-quiet btn-sm">
+            <Icons.Back className="h-3.5 w-3.5" />
+            <span>Back</span>
+          </button>
+        ) : <Link
           to={shopHref}
           aria-label={shopName ? `Back to ${shopName}` : 'Back to shop'}
           className="btn-quiet btn-sm"
@@ -117,7 +124,7 @@ export function ProductDetailLayout({
               <span className="max-[383px]:hidden">{crumbType}</span>
             </>
           )}
-        </Link>
+        </Link>}
         {actions && <div className="tea-product-nav-end flex min-w-0 items-center gap-3 max-[383px]:gap-1">
           {hasProductActions && <ProductAccount onEdit={actions?.onEdit} />}
           <ProductOrderAccess onCartClick={onCartClick} cartItemCount={cartItemCount} />
