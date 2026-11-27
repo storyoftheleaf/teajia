@@ -6,17 +6,10 @@ import { api } from '../lib/api';
 import { buildWhatsAppUrl, buildCollectionBasketMessage } from '../lib/whatsapp';
 import type { PublicCollectionResponse, PublicCollectionItem } from '../types';
 import { authPagePath } from '../lib/authNavigation';
-
-const ROMAN = [
-  '', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X',
-  'XI', 'XII', 'XIII', 'XIV', 'XV', 'XVI', 'XVII', 'XVIII', 'XIX', 'XX',
-  'XXI', 'XXII', 'XXIII', 'XXIV', 'XXV', 'XXVI', 'XXVII', 'XXVIII', 'XXIX', 'XXX',
-];
-
-function toRoman(n: number): string {
-  if (n <= 30) return ROMAN[n] || String(n);
-  return String(n);
-}
+import { buildPublicProductHref } from '../lib/publicProductNavigation';
+import {
+  LinkTeaEntry, LinkTeaPhoto, LinkTeaWisdomLinks, linkTeaMetaLine, useLinkTeaWriting, type LinkTeaSource,
+} from '../components/shop/linkTea';
 
 // ── Picker mode ──────────────────────────────────────────────────────────────
 
@@ -26,6 +19,13 @@ function getPickerMode(item: PublicCollectionItem): PickerMode {
   const t = (item.product_type || '').toLowerCase();
   if (t === 'teaware') return 'teaware';
   if (t === 'misc') return 'misc';
+  // Pu'er and dark tea count by the piece only when the tea is a pressed piece
+  // and the suggested amount reads as pieces. A loose tea, or a suggestion
+  // of 50, is grams: "50 cakes" was never what a curator meant.
+  const form = (item.form || '').toLowerCase();
+  if (form === 'loose' || form.includes('loose')) return 'loose-leaf';
+  const rec = Number(item.recommended_quantity);
+  if (Number.isFinite(rec) && rec > 10) return 'loose-leaf';
   if (t === 'sheng' || t === 'shou' || t === 'dark') return 'cake-brick';
   return 'loose-leaf';
 }
@@ -35,7 +35,10 @@ function getPickerMode(item: PublicCollectionItem): PickerMode {
 // rates this public page doesn't load). We render them with an explicit "USD"
 // tag so the amount is unambiguous for an international recipient.
 
-const fmtUsd = (n: number) => `$${Math.round(n * 100) / 100}`;
+const fmtUsd = (n: number) => {
+  const cents = Math.round(n * 100);
+  return cents % 100 === 0 ? `$${cents / 100}` : `$${(cents / 100).toFixed(2)}`;
+};
 
 // ── Brewing guidance ─────────────────────────────────────────────────────────
 // A modest steep guide keyed off product_type. Generic-but-correct starting
@@ -342,40 +345,14 @@ const CollectionCatalog: React.FC<{ data: PublicCollectionResponse }> = ({ data 
     <main className="min-h-screen bg-tea-bg text-tea-text pb-nav-gap-lg">
       {/* Masthead, editorial cover. Big title over a faint count watermark so an
           image-less collection still has presence. Contents index doubles as nav. */}
-      <header className="relative overflow-hidden border-b border-tea-border">
-        {/* Faint oversized count watermark, typographic texture, no image needed */}
-        <span
-          aria-hidden
-          className="pointer-events-none select-none absolute -right-2 -top-10 md:-top-16 font-display leading-none text-tea-elevated"
-          style={{ fontSize: 'clamp(160px, 30vw, 360px)', opacity: 0.5 }}
-        >
-          {visible.length || ''}
-        </span>
-
-        <div className="relative max-w-5xl mx-auto px-4 md:px-6 lg:px-10 pt-12 pb-10 md:pt-24 md:pb-16">
-          {/* Only label a real source, no store-name placeholder. */}
-          {account?.name && (
-            <p className="label-caps text-tea-text-dim mb-5">
-              A collection from <span className="text-tea-text-sec">{account.name}</span>
-            </p>
-          )}
-          <h1 className="h1 text-tea-text mb-6 max-w-[18ch]">
-            {collection.title}
-          </h1>
-          {collection.note && (
-            <p className="body-prose text-tea-text-sec italic max-w-[52ch]">
-              {collection.note}
-            </p>
-          )}
-          <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2">
-            {curatorName && (
-              <p className="subtitle text-tea-text-sec">
-                Curated by {curatorName}.
-              </p>
-            )}
-            <p className="label-caps text-tea-text-dim">
-              {visible.length} {visible.length === 1 ? 'tea suggested' : 'teas suggested'}
-            </p>
+      {/* Masthead in the shop's own register: who it is from, the title, the
+          curator's note. A private link, so it says so once, quietly. */}
+      <header className="border-b border-tea-border">
+        <div className="max-w-6xl mx-auto px-4 md:px-6 lg:px-10 pt-8 pb-8 md:pt-14 md:pb-10">
+          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 mb-6">
+            <Link to="/shop" className="tap-target label-caps text-tea-text-sec hover:text-tea-text transition-colors">
+              {account?.name || 'Teajia'}
+            </Link>
             <button
               onClick={handleShare}
               className="tap-target inline-flex items-center gap-1.5 font-sans text-ui-12 text-tea-text-sec hover:text-tea-text transition-colors"
@@ -386,63 +363,54 @@ const CollectionCatalog: React.FC<{ data: PublicCollectionResponse }> = ({ data 
                 : (<><Share2 size={13} /> Share</>)}
             </button>
           </div>
+          <h1 className="h1 text-tea-text mb-4 max-w-[22ch]">
+            {collection.title}
+          </h1>
+          {collection.note && (
+            <p className="body-prose text-tea-text-sec italic max-w-[56ch]">
+              {collection.note}
+            </p>
+          )}
+          <p className="mt-4 font-sans text-ui-12 text-tea-text-sec">
+            {[
+              curatorName ? `Chosen by ${curatorName}` : null,
+              `${visible.length} ${visible.length === 1 ? 'tea' : 'teas'}`,
+              'A private link, not listed in the shop',
+            ].filter(Boolean).join(' · ')}
+          </p>
 
           {collection.hero_image_url && (
-            <figure className="mt-10 -mx-4 md:-mx-6 lg:mx-0">
+            <figure className="mt-8 -mx-4 md:-mx-6 lg:mx-0">
               <img
                 src={collection.hero_image_url}
                 alt=""
-                className="w-full max-h-[50vh] object-cover lg:rounded-md"
+                className="w-full max-h-[46vh] object-cover lg:rounded-md"
                 loading="eager"
               />
             </figure>
-          )}
-
-          {/* Contents, quick index, each row jumps to its entry */}
-          {visible.length > 1 && (
-            <nav aria-label="Contents" className="mt-10 pt-6 border-t border-tea-border max-w-[44ch]">
-              <ul className="flex flex-col gap-2.5">
-                {visible.map((item, i) => (
-                  <li key={item.id}>
-                    <a
-                      href={`#entry-${item.id}`}
-                      className="group flex items-baseline gap-3 text-tea-text-sec hover:text-tea-text transition-colors"
-                    >
-                      <span className="font-display text-ui-12 tabular-nums text-tea-text-dim group-hover:text-tea-gold transition-colors w-6 shrink-0">
-                        {toRoman(i + 1)}.
-                      </span>
-                      <span className="font-body text-ui-14 leading-[1.4] truncate">
-                        {item.product_name || 'Untitled tea'}
-                      </span>
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </nav>
           )}
         </div>
       </header>
 
       {/* Catalog body */}
-      <section className={`max-w-5xl mx-auto px-4 md:px-6 lg:px-10 py-4 md:py-8 ${selectedCount > 0 ? 'pb-40' : 'pb-16'}`}>
+      <section className={`max-w-6xl mx-auto px-4 md:px-6 lg:px-10 py-8 md:py-10 ${selectedCount > 0 ? 'pb-40' : 'pb-16'}`}>
         {visible.length === 0 ? (
           <p className="font-body text-ui-15 leading-[1.65] text-tea-text-sec italic py-10 text-center">
             The teas in this collection are currently unavailable.
           </p>
         ) : (
-          <ol className="flex flex-col">
-            {visible.map((item, i) => (
+          <ul className="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
+            {visible.map(item => (
               <CatalogEntry
                 key={item.id}
                 item={item}
-                index={i + 1}
                 basket={basket}
                 setBasket={setBasket}
                 curatorFirstName={curatorFirstName}
                 onOpenDetail={() => setDetailId(item.id)}
               />
             ))}
-          </ol>
+          </ul>
         )}
       </section>
 
@@ -454,7 +422,7 @@ const CollectionCatalog: React.FC<{ data: PublicCollectionResponse }> = ({ data 
           everyone who walks in"); this says the same thing in a footer's worth
           of words. Where a human curator is named, name them, and where only the
           store is known, name the store. Only the last branch is generic. */}
-      <footer className="border-t border-tea-border py-10 text-center">
+      <footer className="border-t border-tea-border px-4 py-10 text-center">
         <p className="label-caps text-tea-text-dim">
           {curatorName
             ? `Curated by ${curatorName}`
@@ -533,7 +501,7 @@ const CollectionCatalog: React.FC<{ data: PublicCollectionResponse }> = ({ data 
                 <span className="text-tea-gold font-medium">{selectedCount}</span>{' '}
                 {selectedCount === 1 ? 'item' : 'items'}
                 {quotedTotal > 0 && (
-                  <span className="text-tea-text-dim"> · ${Math.round(quotedTotal * 100) / 100}</span>
+                  <span className="text-tea-text-dim"> · {fmtUsd(quotedTotal)}</span>
                 )}
               </p>
               <div className="flex items-center gap-2 shrink-0">
@@ -583,6 +551,7 @@ const CollectionCatalog: React.FC<{ data: PublicCollectionResponse }> = ({ data 
             onNavigate={(next) => setDetailId(visible[next].id)}
             onClose={() => setDetailId(null)}
             onReview={() => { setDetailId(null); setReviewOpen(true); }}
+            shopStoreSlug={account?.slug ?? null}
           />
         );
       })()}
@@ -723,7 +692,9 @@ const unitWord = (mode: PickerMode, n: number) =>
 const AmountCost: React.FC<{
   ctl: ReturnType<typeof useItemControls>;
   className?: string;
-}> = ({ ctl, className = '' }) => {
+  /** The card's price line: smaller, no "recommended" word. */
+  compact?: boolean;
+}> = ({ ctl, className = '', compact }) => {
   const { pickerMode, recQty, isSelected, qty, priceForQty } = ctl;
   // Amount shown: the live chosen qty when selected, else the recommended/default.
   const shownQty = isSelected ? Number(qty) : (recQty ?? (pickerMode === 'loose-leaf' ? 100 : 1));
@@ -731,13 +702,13 @@ const AmountCost: React.FC<{
   const amountLabel = `${shownQty}${pickerMode === 'loose-leaf' ? 'g' : ' ' + unitWord(pickerMode, shownQty)}`;
   return (
     <div className={`flex items-baseline flex-wrap gap-x-2 gap-y-1 ${className}`}>
-      <span className="font-body text-ui-15 text-tea-text">{amountLabel}</span>
+      <span className={`font-body ${compact ? 'text-ui-14' : 'text-ui-15'} text-tea-text`}>{amountLabel}</span>
       {price != null && (
-        <span className="font-body text-ui-15 text-tea-gold">
+        <span className={`font-body ${compact ? 'text-ui-14' : 'text-ui-15'} text-tea-gold`}>
           · {fmtUsd(price)} <span className="text-ui-11 text-tea-text-dim">USD</span>
         </span>
       )}
-      {!isSelected && recQty != null && (
+      {!compact && !isSelected && recQty != null && (
         <span className="label-caps text-tea-text-dim">recommended</span>
       )}
     </div>
@@ -865,141 +836,121 @@ const ItemControls: React.FC<{
 
 const CatalogEntry: React.FC<{
   item: PublicCollectionItem;
-  index: number;
   basket: BasketState;
   setBasket: React.Dispatch<React.SetStateAction<BasketState>>;
   curatorFirstName: string;
   onOpenDetail: () => void;
-}> = ({ item, index, basket, setBasket, curatorFirstName, onOpenDetail }) => {
-  const origin = [item.origin_region, item.origin_country].filter(Boolean).join(', ');
-
+}> = ({ item, basket, setBasket, curatorFirstName, onOpenDetail }) => {
   const ctl = useItemControls(item, basket, setBasket);
-  const { oos, isSelected, description, recQty, recPrice, unitLabel } = ctl;
+  const { oos, isSelected, toggle } = ctl;
+  const writing = useLinkTeaWriting(teaSourceOf(item));
   const { ref, shown } = useScrollReveal<HTMLLIElement>();
+  const meta = linkTeaMetaLine({ ...teaSourceOf(item), year: item.year });
+  const name = item.product_name || 'Untitled tea';
+  const photo = item.images?.[0] ?? item.image_url ?? null;
+  // The card's own words: the curator's note leads where there is one, then
+  // the tea's Wisdom writing, then the shop's description.
+  const lead = writing.lead || ctl.description || null;
 
   return (
     <li
       ref={ref}
       id={`entry-${item.id}`}
-      className={`scroll-mt-6 border-t border-tea-border py-12 md:py-16 first:border-t-0 first:pt-4 transition-[opacity,transform] duration-700 ease-out ${
+      data-testid="collection-tea-card"
+      className={`scroll-mt-6 min-w-0 transition-[opacity,transform] duration-700 ease-out ${
         shown ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
-      } ${oos ? 'opacity-[0.72]' : ''}`}
+      }`}
     >
-      {/* Two-column on desktop: media + title rail (left) / content (right).
-          On mobile it stacks into a single flow. */}
-      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] gap-y-6 lg:gap-x-12">
+      <article className="flex h-full flex-col">
+        <button
+          type="button"
+          onClick={onOpenDetail}
+          aria-haspopup="dialog"
+          aria-label={`Open ${name}`}
+          className="group block w-full overflow-hidden rounded-md"
+        >
+          <LinkTeaPhoto
+            src={photo}
+            type={item.product_type}
+            dim={oos}
+            className={`${photo ? 'aspect-square' : 'aspect-[16/9] sm:aspect-square'} w-full rounded-md transition-transform duration-500 group-hover:scale-[1.02]`}
+          />
+        </button>
 
-        {/* ── Left column: numeral, title, origin, image ── */}
-        <div className="min-w-0">
-          <div className="flex items-baseline gap-4">
-            <span
-              className={`font-display text-ui-20 tabular-nums tracking-[0.05em] transition-colors ${
-                isSelected ? 'text-tea-gold' : oos ? 'text-tea-text-dim' : 'text-tea-gold'
-              }`}
-              style={{ fontWeight: 500 }}
-            >
-              {toRoman(index)}.
-            </span>
-            <div className="flex-1 min-w-0">
-              <h2 className="h2 text-tea-text">
-                <button
-                  onClick={onOpenDetail}
-                  className="text-left hover:text-tea-gold transition-colors"
-                  aria-haspopup="dialog"
-                >
-                  {item.product_name || <span className="text-tea-text-sec italic font-body">Untitled tea</span>}
-                </button>
-                {item.chinese_name && (
-                  <span className="block sm:inline font-body italic text-ui-15 sm:ml-3 text-tea-text-sec mt-1 sm:mt-0" style={{ fontWeight: 300 }}>
-                    {item.chinese_name}
-                  </span>
-                )}
-              </h2>
-              {(origin || item.year) && (
-                <p className="label-caps text-tea-text-dim mt-2">
-                  {[origin, item.year].filter(Boolean).join(' · ')}
-                </p>
-              )}
-              {oos && (
-                <p className="label-caps text-tea-text-sec mt-2 inline-flex items-center gap-1.5">
-                  <AlertCircle size={10} /> currently unavailable
-                </p>
-              )}
-            </div>
-          </div>
-
-          {item.image_url && (
-            <figure className="mt-6 pl-[44px]">
-              <button
-                onClick={onOpenDetail}
-                className="block w-full max-w-[440px] group"
-                aria-haspopup="dialog"
-                aria-label={`View details for ${item.product_name || 'this tea'}`}
-              >
-                <img
-                  src={item.image_url}
-                  alt=""
-                  className="block w-full rounded-md aspect-[4/5] object-cover transition-transform duration-500 group-hover:scale-[1.02]"
-                  loading="lazy"
-                />
-              </button>
-            </figure>
+        <div className="mt-3 flex min-w-0 flex-1 flex-col">
+          <h2 className="font-display text-ui-20 font-medium leading-tight text-tea-text">
+            <button type="button" onClick={onOpenDetail} aria-haspopup="dialog" className="text-left transition-colors hover:text-tea-gold">
+              {name}
+            </button>
+          </h2>
+          {item.chinese_name && (
+            <p className="mt-0.5 font-body text-ui-13 italic text-tea-text-sec" lang="zh">{item.chinese_name}</p>
           )}
-        </div>
+          {meta && (
+            <p className="mt-1.5 font-sans text-ui-12 uppercase tracking-[0.04em] text-tea-text-sec">{meta}</p>
+          )}
+          {oos && (
+            <p className="label-caps text-tea-text-sec mt-2 inline-flex items-center gap-1.5">
+              <AlertCircle size={10} /> currently unavailable
+            </p>
+          )}
 
-      {/* ── Right column: quiet index. Blurb, cost preview, "View →". The card
-          owns the decision, the row never Adds. ── */}
-      <div className="min-w-0 pl-[44px] lg:pl-0 max-w-[60ch]">
-        {/* Curator's note, "why I chose this". The curation voice. */}
-        {item.item_note?.trim() && (
-          <p className="font-body text-ui-15 leading-[1.7] text-tea-gold italic mb-4">
-            “{item.item_note.trim()}”
-            <span className="not-italic text-tea-text-dim text-ui-12">, {curatorFirstName}</span>
-          </p>
-        )}
+          {item.item_note?.trim() && (
+            <p className="mt-3 font-body text-ui-14 leading-[1.6] italic text-tea-text">
+              “{item.item_note.trim()}”
+              <span className="not-italic text-tea-text-dim text-ui-12">, {curatorFirstName}</span>
+            </p>
+          )}
 
-        {/* Short blurb, what this tea is. Clamped; the card holds the full read. */}
-        {description && (
-          <p className="font-body text-ui-15 leading-[1.75] text-tea-text line-clamp-2 mb-4">
-            {description}
-          </p>
-        )}
+          {lead && (
+            <p className="mt-3 font-body text-ui-14 leading-[1.65] text-tea-text-sec line-clamp-3">{lead}</p>
+          )}
 
-        {/* Cost preview, read-only here; choosing happens in the card */}
-        {!oos && (
-          <p className="font-body text-ui-14 text-tea-text-sec mb-4">
-            {recQty != null ? (
-              <>
-                <span className="text-tea-text">{recQty}{unitLabel(recQty)}</span>
-                {recPrice != null && <span className="text-tea-gold"> · {fmtUsd(recPrice)}</span>}
-                <span className="label-caps text-tea-text-dim ml-2">recommended</span>
-              </>
-            ) : recPrice != null ? (
-              <>from <span className="text-tea-gold">{fmtUsd(recPrice)}</span></>
-            ) : null}
-          </p>
-        )}
-
-        {/* View → opens the cycling card (the decision surface) */}
-        <div className="flex items-center gap-3">
           <button
+            type="button"
             onClick={onOpenDetail}
-            className="tap-target inline-flex items-center gap-1.5 px-4 py-2.5 rounded-md text-ui-12 font-medium tracking-[0.3px] border border-tea-border text-tea-text-sec hover:text-tea-text hover:border-tea-gold/[0.4] transition-colors"
             aria-haspopup="dialog"
+            className="tap-target mt-2 inline-flex items-center gap-1 self-start font-sans text-ui-12 text-tea-text-sec transition-colors hover:text-tea-gold"
           >
-            {isSelected ? 'View' : (oos ? 'View' : 'View & add')} <ArrowRight size={11} />
+            {writing.entry || writing.passages.passages.length ? 'Read about this tea' : 'More about this tea'} <ArrowRight size={11} />
           </button>
-          {isSelected && (
-            <span className="inline-flex items-center gap-1.5 text-ui-12 font-medium text-tea-gold">
+        </div>
+
+        {/* The price and the one action, on the card the way the shop's row
+            carries its price beside its name. Changing the amount happens in
+            the tea's own card. */}
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-t border-tea-border pt-3">
+          {oos ? <span className="font-body text-ui-14 text-tea-text-sec">Not available now</span> : <AmountCost ctl={ctl} compact />}
+          {isSelected ? (
+            <button type="button" onClick={toggle} className="tap-target inline-flex items-center gap-1.5 text-ui-12 font-medium text-tea-gold" aria-label={`Remove ${name} from your picks`}>
               <Check size={13} /> {oos ? 'On the waitlist' : 'Added'}
-            </span>
+            </button>
+          ) : oos ? (
+            <button type="button" onClick={toggle} className="tap-target inline-flex items-center gap-1.5 text-ui-12 text-tea-text-sec hover:text-tea-text">
+              <Bell size={12} /> Tell me when it’s back
+            </button>
+          ) : (
+            <button type="button" onClick={toggle} className="btn-primary tap-target" aria-label={`Add ${name}`}>
+              <Plus size={13} /> Add
+            </button>
           )}
         </div>
-      </div>
-      </div>
+      </article>
     </li>
   );
 };
+
+/** What the shared tea parts read from a collection item. */
+function teaSourceOf(item: PublicCollectionItem): LinkTeaSource {
+  return {
+    productId: item.product_id,
+    name: item.product_name,
+    type: item.product_type,
+    form: item.form,
+    originRegion: item.origin_region,
+    originCountry: item.origin_country,
+  };
+}
 
 // ── Detail panel ─────────────────────────────────────────────────────────────
 // Centered popup card that cycles through the collection's teas (prev/next
@@ -1018,12 +969,20 @@ const TeaCard: React.FC<{
   onNavigate: (nextIndex: number) => void;
   onClose: () => void;
   onReview: () => void;
-}> = ({ items, activeIndex, basket, setBasket, curatorFirstName, selectedCount, onNavigate, onClose, onReview }) => {
+  shopStoreSlug?: string | null;
+}> = ({ items, activeIndex, basket, setBasket, curatorFirstName, selectedCount, onNavigate, onClose, onReview, shopStoreSlug }) => {
   const item = items[activeIndex];
   const ctl = useItemControls(item, basket, setBasket);
   const { oos, description } = ctl;
-  const origin = [item.origin_region, item.origin_country].filter(Boolean).join(', ');
-  const brew = getBrewGuide(item);
+  const writing = useLinkTeaWriting(teaSourceOf(item));
+  const meta = linkTeaMetaLine({ ...teaSourceOf(item), year: item.year });
+  const photos = item.images?.length ? item.images : item.image_url ? [item.image_url] : [];
+  // A type-wide steep table only where the Wisdom Base has no brewing for
+  // this tea: a number about every oolong is not about this oolong.
+  const brew = writing.entry?.brewing ? null : getBrewGuide(item);
+  const shopHref = item.in_shop && (item.product_slug || item.product_id)
+    ? buildPublicProductHref({ slug: item.product_slug, id: item.product_id }, shopStoreSlug)
+    : null;
   const closeRef = useRef<HTMLButtonElement | null>(null);
   const touchStartX = useRef<number | null>(null);
 
@@ -1132,18 +1091,19 @@ const TeaCard: React.FC<{
 
         {/* Scrollable body, re-keyed per item so a quick fade plays on cycle */}
         <div key={item.id} className="flex-1 overflow-y-auto animate-[fadeIn_220ms_ease-out]">
-          {item.image_url && (
-            <figure className="relative">
-              <img
-                src={item.image_url}
-                alt=""
-                className={`block w-full aspect-[4/3] object-cover ${oos ? 'opacity-[0.72]' : ''}`}
-                loading="eager"
-              />
-            </figure>
+          {/* The shop's photos for this tea, or its type's illustration. A
+              second photo and more scroll sideways inside the frame only. */}
+          {photos.length > 1 ? (
+            <div className="flex snap-x snap-mandatory overflow-x-auto" aria-label="Photos">
+              {photos.map((src, i) => (
+                <LinkTeaPhoto key={src} src={src} type={item.product_type} dim={oos} eager={i === 0} className="aspect-[4/3] w-full shrink-0 snap-center" />
+              ))}
+            </div>
+          ) : (
+            <LinkTeaPhoto src={photos[0]} type={item.product_type} dim={oos} eager className="aspect-[4/3] w-full" />
           )}
 
-          <div className="px-5 py-5 flex flex-col gap-4">
+          <div className="px-5 py-5 flex flex-col gap-5">
             <div>
               <h2 className="h2 text-tea-text">
                 {item.product_name || <span className="text-tea-text-sec italic font-body">Untitled tea</span>}
@@ -1153,10 +1113,8 @@ const TeaCard: React.FC<{
                   </span>
                 )}
               </h2>
-              {(origin || item.year) && (
-                <p className="label-caps text-tea-text-dim mt-2">
-                  {[origin, item.year].filter(Boolean).join(' · ')}
-                </p>
+              {meta && (
+                <p className="mt-2 font-sans text-ui-12 uppercase tracking-[0.04em] text-tea-text-sec">{meta}</p>
               )}
               {oos && (
                 <p className="label-caps text-tea-text-sec mt-2 inline-flex items-center gap-1.5">
@@ -1166,20 +1124,22 @@ const TeaCard: React.FC<{
             </div>
 
             {item.item_note?.trim() && (
-              <p className="font-body text-ui-15 leading-[1.7] text-tea-gold italic">
+              <p className="font-body text-ui-15 leading-[1.7] text-tea-text italic">
                 “{item.item_note.trim()}”
                 <span className="not-italic text-tea-text-dim text-ui-12">, {curatorFirstName}</span>
               </p>
             )}
 
-            {/* Short blurb, what this tea is. No tasting notes. */}
-            {description && (
+            {/* The tea's own writing from the Wisdom Base, the same entry its
+                shop page reads. The shop's description stands in only when
+                the Wisdom Base has nothing for this tea yet. */}
+            <LinkTeaEntry writing={writing} className="border-t border-tea-border pt-5" />
+            {!writing.entry && writing.passages.passages.length === 0 && description && (
               <p className="font-body text-ui-15 leading-[1.8] text-tea-text whitespace-pre-line">
                 {description}
               </p>
             )}
 
-            {/* Brewing guidance, substance, keyed off type. The connoisseur signal. */}
             {brew && (
               <div className="border-t border-tea-border pt-4">
                 <p className="label-caps text-tea-text-dim mb-2.5">How to brew</p>
@@ -1195,6 +1155,14 @@ const TeaCard: React.FC<{
                   A starting point. Adjust to taste.
                 </p>
               </div>
+            )}
+
+            <LinkTeaWisdomLinks pages={writing.pages} className="border-t border-tea-border pt-4" />
+
+            {shopHref && (
+              <Link to={shopHref} className="tap-target inline-flex items-center gap-1 self-start font-sans text-ui-12 text-tea-text-sec hover:text-tea-gold transition-colors">
+                Its page in the shop <ArrowRight size={11} />
+              </Link>
             )}
           </div>
         </div>

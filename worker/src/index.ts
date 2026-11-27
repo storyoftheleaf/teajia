@@ -107,7 +107,7 @@ import { COMPASS_COLUMNS, decodeCompassWrite as decodeCompassWriteCodec, type Co
 import { compassFieldPatch, readCompassFieldHints } from './compassFieldPatch';
 import { receiptHoldingTeaId } from './curateMergeLink';
 import { resolveShopFreightDefault } from './shippingRate';
-import { addPricingFields, lookupRateToUsd, accountFreightDefaults, freightDefaultsByAccount } from './productPricing'; import { fillBlankQuotes, withShelfPrices } from './collectionShelf';
+import { addPricingFields, lookupRateToUsd, accountFreightDefaults, freightDefaultsByAccount } from './productPricing'; import { fillBlankQuotes, withShelfPrices } from './collectionShelf'; import { linkTeaPhotos, loadPayLinkTeaLines, type PayLinkTeaLine } from './publicLinkTea';
 import { INWARD_BALI_LOT, INWARD_ORDERS_PAUSED_SQL, inwardOrdersPaused } from '../../shared/catalog/inwardOrders';
 import { checkNewProductPublication, checkProductPublication, openingStockKnownAt, publicationPatchFromColumns, writeProductPublication } from './productPublication';
 import { deductStockForPaidInvoice } from './orderLifecycle';
@@ -28340,7 +28340,7 @@ const handleGetPayAccess: Handler = async (request, env, params) => {
   const { decision, link, grant, refusal } = await resolvePayAccess(env, contributor, viewer, url.searchParams.get(PAY_LINK_PARAM));
   if (refusal) return json(refusal, 409);
 
-  let invoice: { invoice_number: string | null; outstanding_usd: number } | null = null;
+  let invoice: { invoice_number: string | null; outstanding_usd: number; lines: PayLinkTeaLine[] } | null = null;
   if (link) {
     await env.DB.prepare(
       `UPDATE payment_share_links SET open_count = open_count + 1, last_opened_at = datetime('now') WHERE id = ?`
@@ -28364,7 +28364,10 @@ const handleGetPayAccess: Handler = async (request, env, params) => {
       if (ledgerInvoice) {
         const ledger = await loadInvoiceLedgerTotals(env, [ledgerInvoice.id]);
         const money = invoiceMoney(ledgerInvoice.total_usd, ledgerInvoice.payment_status, ledger.get(ledgerInvoice.id));
-        invoice = { invoice_number: ledgerInvoice.invoice_number, outstanding_usd: money.outstanding_usd };
+        // The teas on the invoice, shown on the pay page as the shop shows
+        // them. Only a holder of this invoice's own link reaches this line.
+        const lines = await loadPayLinkTeaLines(env, ledgerInvoice.id, link.account_id);
+        invoice = { invoice_number: ledgerInvoice.invoice_number, outstanding_usd: money.outstanding_usd, lines };
       }
     }
   }
@@ -29857,7 +29860,7 @@ const handleGetPublicCollection: Handler = async (_request, env, params) => {
 
   // Account for WhatsApp deep link.
   const account = await env.DB.prepare(
-    `SELECT id, name, whatsapp_number, status, public_enabled FROM accounts WHERE id = (
+    `SELECT id, slug, name, whatsapp_number, status, public_enabled FROM accounts WHERE id = (
        SELECT account_id FROM collections WHERE id = ?
      )`
   ).bind(pub.collection_id).first();
@@ -29873,7 +29876,9 @@ const handleGetPublicCollection: Handler = async (_request, env, params) => {
             p.id AS product_id, p.type AS product_type,
             COALESCE(p.given_name, p.product_name) AS product_name,
             p.chinese_name, p.year, p.origin_country, p.origin_region,
-            p.image_url, p.description, p.tasting_notes,
+            p.image_url, p.additional_images, p.form, p.slug AS product_slug,
+            CASE WHEN p.is_public = 1 AND p.shown_in_shop = 1 THEN 1 ELSE 0 END AS in_shop,
+            p.description, p.tasting_notes,
             p.status AS product_status, p.stock_grams, p.quantity_units
        FROM collection_items ci
        JOIN products p ON p.id = ci.product_id
@@ -29894,7 +29899,18 @@ const handleGetPublicCollection: Handler = async (_request, env, params) => {
       const outOfStock = i.product_type === 'Teaware'
         ? (i.quantity_units ?? 0) <= 0
         : (i.stock_grams ?? 0) <= 0;
-      return { ...i, description: reviewedDescription(i.product_id, i.description), out_of_stock: outOfStock };
+      // The shop's photos ride along so the link looks like the shop. A tea's
+      // shop address is given only when the tea is on the shop's shelf; a
+      // private tea stays private.
+      const { additional_images, product_slug, in_shop, ...rest } = i;
+      return {
+        ...rest,
+        images: linkTeaPhotos(i.image_url, additional_images),
+        in_shop: in_shop === 1,
+        product_slug: in_shop === 1 ? (product_slug ?? null) : null,
+        description: reviewedDescription(i.product_id, i.description),
+        out_of_stock: outOfStock,
+      };
     });
 
   return json({
@@ -29907,7 +29923,7 @@ const handleGetPublicCollection: Handler = async (_request, env, params) => {
         : null,
     },
     items: visibleItems,
-    account: account ? { name: account.name, whatsapp_number: account.whatsapp_number } : null,
+    account: account ? { name: account.name, slug: account.slug ?? null, whatsapp_number: account.whatsapp_number } : null,
     publication: { slug: pub.slug, view_count: pub.view_count },
   });
 };

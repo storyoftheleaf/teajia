@@ -1568,6 +1568,12 @@ export interface PublicCollectionItem {
   origin_country?: string | null;
   origin_region?: string | null;
   image_url?: string | null;
+  /** The shop's photos for this tea, main one first. */
+  images?: string[];
+  form?: string | null;
+  /** True when the tea is also on the shop's shelf; then `product_slug` opens its shop page. */
+  in_shop?: boolean;
+  product_slug?: string | null;
   description?: string | null;
   tasting_notes?: string[] | null;
   product_status?: string;
@@ -1582,7 +1588,7 @@ export interface PublicCollectionResponse {
     curator_display_name?: string | null;
   };
   items: PublicCollectionItem[];
-  account: { name: string; whatsapp_number?: string | null } | null;
+  account: { name: string; slug?: string | null; whatsapp_number?: string | null } | null;
   publication: { slug: string; view_count: number };
 }
 
