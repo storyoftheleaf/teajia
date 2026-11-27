@@ -18,6 +18,9 @@ last_reviewed: 2026-11-03
 All tea knowledge (types, places, grades, marks, processes, producers, named teas) lives in the one Wisdom Base at /wisdom: the records in `data/tea-wisdom-source/` and the written pages in `data/tea-reference/pages/`, joined by shared id. Never start a second library, store or set of pages for it. Before posting or composing a tea, check what it needs in the Wisdom Base and write that first. How: [docs/TEA_WISDOM_BASE.md](docs/TEA_WISDOM_BASE.md#one-wisdom-base-two-layers-read-this-before-adding-anything). A new tea's path from Curate to its entry, step by step with each agent's model and never-list: [docs/agents/TEA-WISDOM-AGENTS.md](docs/agents/TEA-WISDOM-AGENTS.md), run with `/tea-wisdom`.
 Run `node scripts/tea-wisdom-compose/needs.mjs` (or read the Wisdom Base list on the tea in Curate) before composing.
 
+## The tea system map
+How a tea moves from Curate to the shop, the invoice and after the cup, with each step's screen, tools, owner doc and gaps: [docs/agents/TEA-SYSTEM-MAP.md](docs/agents/TEA-SYSTEM-MAP.md). Change its row in the same commit as any change to a step.
+
 ## Tea UI reference
 
 Reuse the shared card, panel summary, and tasting parts documented in [the design system](docs/DESIGN_SYSTEM.md#tea-cards-detail-panels-and-tasting). The interactive reference runs locally at `/preview/tea-ui/`.
