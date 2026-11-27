@@ -61,7 +61,7 @@ export const HomeFourDoors: React.FC = () => (
         className="group tap-target !items-start !justify-start flex-col min-w-0 max-w-full rounded-md py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/40 focus-visible:ring-offset-2 focus-visible:ring-offset-tea-bg"
       >
         <span className={`${TYPOGRAPHY_CLASSES.body} font-medium tracking-[0.015em] text-tea-gold`}>{door.accent}</span>{' '}
-        <span className={`${TYPOGRAPHY_CLASSES.bodyLight} leading-snug lg:[font-size:var(--fs-body)] lg:[line-height:var(--lh-body)] mt-0.5 lg:mt-0 break-words tracking-[0.015em] text-tea-text-sec underline decoration-tea-gold/0 underline-offset-[4px] transition-all duration-300 group-hover:text-tea-text group-hover:decoration-tea-gold/30`}>{door.words}</span>
+        <span className={`type-door-words mt-0.5 lg:mt-0 break-words tracking-[0.015em] text-tea-text-sec underline decoration-tea-gold/0 underline-offset-[4px] transition-all duration-300 group-hover:text-tea-text group-hover:decoration-tea-gold/30`}>{door.words}</span>
       </Link>
     ))}
   </nav>
