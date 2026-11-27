@@ -161,7 +161,6 @@ test('photo upload in the impression, one tasting, then the Share step', async (
   await expect(share.getByRole('button', { name: 'Keep private' })).toHaveAttribute('aria-pressed', 'true');
   await page.screenshot({ path: `${SHOTS}-3-share-step.png` });
   await share.getByRole('button', { name: /offer my photographs/ }).click();
-  await share.getByRole('button', { name: 'Share', exact: true }).click();
   await expect(share.getByText('On your page. Your photographs are offered to Teajia.')).toBeVisible({ timeout: 20_000 });
   const after = await (await page.request.get(`/api/family/teas/${productId}/mine`, { headers: { Authorization: `Bearer ${token}` } })).json();
   expect(after.tasting_share_state).toBe('offered');

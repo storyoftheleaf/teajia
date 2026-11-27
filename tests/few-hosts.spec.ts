@@ -473,11 +473,9 @@ for (const size of SIZES) {
         await host.context.grantPermissions(['clipboard-read', 'clipboard-write'], { origin: ON_URL });
         await signIn(host.page, 'ana', 'ana');
         await host.page.goto(`/account/host/${table!.id}?part=after`);
-        await host.page.getByRole('button', { name: 'Mark who came' }).click();
+        // Who came is on the list itself once the table has ended (review A9-13, W2-6).
         await host.page.getByRole('checkbox', { name: guest!.name }).check();
-        await host.page.locator('[data-host-part="after"]').getByRole('button', { name: 'Save', exact: true }).click();
-        const came = host.page.getByRole('list', { name: 'Who came' });
-        await expect(came.getByText(guest!.name)).toBeVisible();
+        await host.page.locator('[data-host-part="after"]').getByRole('button', { name: 'Save who came', exact: true }).click();
         await host.page.getByRole('button', { name: `Copy their thank-you link for ${guest!.name}` }).click();
         await expect(host.page.getByText(`Copied. Send it only to ${guest!.name}.`)).toBeVisible();
         const copied = await host.page.evaluate(() => navigator.clipboard.readText());

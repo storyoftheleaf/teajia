@@ -3,12 +3,10 @@ import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 import { hostingRowActions } from '../admin/hostingRowActions';
 import { tableLinks } from '../components/host/hostTableParts';
-import { thanksGuests } from '../components/host/HostTableAfter';
 import { addOpensOrder, forgetOrderVia, rememberOrderVia } from './orderVia';
 import { usableSeat } from './mySeat';
 
 const table = { id: 'ev1', slug: 'jun-table', public_visibility: 'public', lifecycle_status: 'completed' };
-const guest = (id: string, status: any, attended: number | null) => ({ id, status, attended, full_name: id }) as any;
 
 describe('U1-1: her own seat after signing in', () => {
   it('a seat with a page token and a live status is hers; cancelled, denied or tokenless is not', () => {
@@ -52,13 +50,6 @@ describe('U1-5 and U1-6: hosting on the person row', () => {
   it('before the stopping part is open only Let host is offered', () => {
     expect(hostingRowActions({ may_host: false }, { stoppingOpen: false })).toEqual(['let-host']);
     expect(hostingRowActions({ may_host: true }, { stoppingOpen: false })).toEqual([]);
-  });
-});
-
-describe('U1-7: the thank-you link beside every guest', () => {
-  it('shows for each confirmed guest not marked absent, before and after Mark who came', () => {
-    const list = [guest('a', 'confirmed', null), guest('b', 'confirmed', 1), guest('c', 'confirmed', 0), guest('d', 'waitlist', null)];
-    expect(thanksGuests(list).map(each => each.id)).toEqual(['a', 'b']);
   });
 });
 

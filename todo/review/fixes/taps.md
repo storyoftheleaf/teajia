@@ -17,3 +17,5 @@ Fixed by Sonnet 5.5 (cloud). Taps counted as in `todo/review/tap-ledger.md` (the
 - No navigation component was touched (BottomTabBar, manageNav.ts, rail). Guest notes on the phone (U1-3) is another builder's.
 - U1-8: opening the order from the thank-you with no product page at all (teas listed with Add to order beside them) would need the thank-you answer to carry the sizes and prices; not built.
 - U1-1: a device seat is not linked to the account when she signs in (needs a new route and an `api.ts` call).
+
+U1-7 (merged with A9-13): the implicit marking from fix-taps was replaced by fix-tables' ticks on the guest list with one Save; Save then Copy is 2 taps, and nobody is marked as having come without the host saving it.

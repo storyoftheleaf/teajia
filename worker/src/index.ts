@@ -27,12 +27,12 @@ import { CONTRIBUTOR_EFFECTIVELY_PUBLISHED_SQL, publicLeadHostSql } from './sess
 import { areaGivesAwayTheWay, isAreaRefusal, readTableArea } from './hostTableArea';
 import { signedWayPhotoUrl, signWayGuide, WAY_HOST, WAY_SIGNED_SECONDS, wayMediaVerdict } from './wayMedia';
 import { guestLinkSessions, withoutForeignGuestLinks, type GuestLinkCaller } from './guestLinkHolders';
-import { createHostedTable, tableInstant, tableWallTime, type HostedTableDoor } from './hostTable';
+import { createHostedTable, tableInstant, tableSlug, tableWallTime, type HostedTableDoor } from './hostTable';
 import { changeHostedTable, hostTableGuests, markWhoCame, ownHostedTable, readTableChange, reviewHostedTableGuestBook, sayNoToGuest, SEAT_OF_A_GUEST_STILL_COMING, seatsTaken, seatsTakenSql, waitingGuest, type OwnHostedTable } from './hostTableGuests';
 import { createsCustomer, linkDoorFullAnswer, looksUpByContact, photoConsentValue, seatContact, seatDoorRule, seatIdFromKey, seatKey, seatRequirement, seatStatusFor, usesSeatKey } from './seatRequest';
 import { guestNotesFor, saveGuestNote } from './hostGuestNotes';
 import { hostRecord, hostRecordFileName, hostsAnyTable } from './hostRecord';
-import { advanceWaitingLists, cancelGuestSeat, NEXT_WAITLIST_POSITION_SQL, offerFreedSeats, offerShownUntil, recordSeatNotice, releaseSeats, seatNoticesFor, sessionHasBegun } from './waitingList';
+import { advanceWaitingLists, cancelGuestSeat, NEXT_WAITLIST_POSITION_SQL, offerFreedSeats, offerNextAsMain, offerOn, offerShownUntil, recordSeatNotice, releaseSeats, seatNoticesFor, sessionHasBegun } from './waitingList';
 import { hostTableTeas, menuProductJoins, readTableTeas, saveTableTeas, searchTableTeas, shopTeaAddressColumns, shopTeaPath, tableTeaPhotoPrefix } from './hostTableTeas';
 import { guardGuideWrite, keepTableWay, readTableWay, readTableWayInput, saveTableWay, signWayForHost } from './hostTableWay';
 import { chooseYourTable, readYourTable, undoYourTable, withYourTable, yourTableAreaSql } from './yourTablePlace';
@@ -12554,11 +12554,12 @@ const handleExtractFromImage: Handler = async (request, env) => {
 // ── Waitlist Cascade Helper ──
 // Offer any free seat to the guests waiting longest (slice J9, worker/src/waitingList.ts).
 // The offer is guarded on a free seat in its own write, so calling this when
-// nothing was freed offers nothing.
+// nothing was freed offers nothing. While Launch 3 is closed it is main's
+// cascade instead (offerNextAsMain; queue case 11).
 async function cascadeWaitlist(env: Env, eventId: string, _claimWindowMinutes?: number): Promise<void> {
   const event = await env.DB.prepare('SELECT account_id FROM events WHERE id = ?').bind(eventId).first<{ account_id: string }>();
   if (!event) return;
-  await offerFreedSeats(env.DB, { eventId, accountId: event.account_id });
+  await offerOn(anyoneHostsOpen(env), env.DB, { eventId, accountId: event.account_id });
 }
 
 function seatReservationError(result: Exclude<ReservePartySeatsResult, { ok: true }>): Response {
@@ -13512,6 +13513,8 @@ const handleUpdateRSVP: Handler = async (request, env, params) => {
     const result = await cancelGuestSeat(env.DB, {
       accountId: attendee.account_id as string, eventId: attendee.eid as string,
       attendeeId: attendee.id as string, cancellationNote: update.cancellationNote,
+      // Closed, no seat notice and main's cascade (queue cases 8, 12, 13).
+      asMain: !anyoneHostsOpen(env),
     });
     return result ? json(result) : restError(409, 'This seat can no longer be changed here.', 'state_conflict');
   }
@@ -13599,13 +13602,23 @@ const handleClaimSpot: Handler = async (_request, env, params) => {
 
   // The offer ran out: it is cleared (only if still the same expired offer),
   // and the seat moves on to the next guest, never back to this one (J9).
+  // While Launch 3 is closed it is main's claim (queue cases 1, 2): the
+  // expired offer is cleared, main's cascade runs (it may offer this guest
+  // again), and the answer carries no code.
+  const open = anyoneHostsOpen(env);
   const expired = async () => {
+    if (!open) {
+      await env.DB.prepare(`UPDATE event_attendees SET claim_expires_at = NULL WHERE id = ? AND status = 'waitlist' AND claim_expires_at = ?`)
+        .bind(attendee.id, attendee.claim_expires_at).run();
+      await offerNextAsMain(env.DB, scope);
+      return json({ error: 'Claim window has expired' }, 410);
+    }
     await offerFreedSeats(env.DB, scope);
     return json({ error: 'Claim window has expired', code: 'offer_expired' }, 410);
   };
 
   if (!attendee.claim_expires_at) {
-    if (attendee.offer_lapsed_at) return json({ error: 'Claim window has expired', code: 'offer_expired' }, 410);
+    if (open && attendee.offer_lapsed_at) return json({ error: 'Claim window has expired', code: 'offer_expired' }, 410);
     return json({ error: 'No claim offer pending' }, 400);
   }
   // Liveness is decided by SQLite, the same clock the guarded write reads.
@@ -13655,7 +13668,8 @@ const handleClaimSpot: Handler = async (_request, env, params) => {
   }
 
   // The host is told on their table page and in Manage. Nothing is sent.
-  await recordSeatNotice(env.DB, { ...scope, attendeeId: attendee.id as string, kind: 'claimed', seats: 1 });
+  // Closed, main wrote no seat notice (queue case 12).
+  if (open) await recordSeatNotice(env.DB, { ...scope, attendeeId: attendee.id as string, kind: 'claimed', seats: 1 });
 
   return json({ success: true, status: 'confirmed' });
 };
@@ -14620,10 +14634,16 @@ const handleUpdateAttendee: Handler = async (request, env, params) => {
       accountId, eventId: attendee.eid as string, attendeeId: params.id,
       // A guest said no to can be marked cancelled too, as on main (A3).
       from: ['confirmed', 'requested', 'waitlist', 'denied'], kind: 'released',
+      asMain: !anyoneHostsOpen(env),
     });
-    if (!released) return json({ error: 'This seat changed while you were looking. Open it again.', code: 'state_conflict' }, 409);
+    if (!released) {
+      // Closed, main answered yes when the guest had been cancelled in between (queue case 13).
+      const now = anyoneHostsOpen(env) ? null : await env.DB.prepare('SELECT status FROM event_attendees WHERE id = ? AND account_id = ?')
+        .bind(params.id, accountId).first<{ status: string }>();
+      if (now?.status !== 'cancelled') return json({ error: 'This seat changed while you were looking. Open it again.', code: 'state_conflict' }, 409);
+    }
     // Offered on whatever was held: a live offer is a seat with no seat row (A3).
-    await offerFreedSeats(env.DB, { eventId: attendee.eid as string, accountId });
+    await offerOn(anyoneHostsOpen(env), env.DB, { eventId: attendee.eid as string, accountId });
   }
 
   return json({ success: true });
@@ -17854,9 +17874,32 @@ const handleChangeHostedTable: Handler = async (request, env, params) => {
   }
   const result = await changeHostedTable(env.DB, own.table, change);
   if ('refused' in result) return restError(result.refused.status, result.refused.error, result.refused.code);
-  // More seats, or a new door, may free a seat for a guest waiting.
-  await offerFreedSeats(env.DB, { eventId: own.table.id, accountId: own.table.account_id });
+  // More seats, or a new door, may free a seat for a guest waiting. Main
+  // offered nothing here, so while Launch 3 is closed neither does this.
+  if (anyoneHostsOpen(env)) await offerFreedSeats(env.DB, { eventId: own.table.id, accountId: own.table.account_id });
   return hostTableJson({ ok: true });
+};
+
+// POST /api/me/tables/:id/again {date, time}. Same table again from the
+// host's own page (review A11-13): the same copy the same_table_again tool
+// makes (duplicateEvent, with the new-table rules of A11-2 and A11-3), on a
+// new slug and the day the host gives, on the table's own clock. Launch 3's,
+// as the tool is: closed with its switch.
+const handleSameTableAgain: Handler = async (request, env, params) => {
+  if (!anyoneHostsOpen(env)) return hostTableJson({ error: 'Table not found' }, 404);
+  const own = await requireOwnHostedTable(request, env, params.id);
+  if ('error' in own) return own.error;
+  const body = await request.json().catch(() => null) as Record<string, unknown> | null;
+  const date = typeof body?.date === 'string' ? body.date.trim() : '';
+  const time = typeof body?.time === 'string' ? body.time.trim() : '';
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^\d{2}:\d{2}$/.test(time)) {
+    return restError(400, 'Give a day and a time for the new table.', 'invalid_event_date');
+  }
+  const made = await duplicateEvent(env, own.table.account_id, own.table.id,
+    { slug: tableSlug(own.table.title), event_date: `${date}T${time}` }, { userId: own.host.userId, preview: false });
+  if (made.status !== 201) return made;
+  const copy = await made.json() as { id: string; slug: string };
+  return hostTableJson({ id: copy.id, slug: copy.slug, link: `${appOrigin(env)}/event/${copy.slug}` }, 201);
 };
 
 // PUT /api/me/tables/:id/tasting {is_tasting}. The host makes their own table
@@ -17915,8 +17958,9 @@ const handleHostSaysNo: Handler = async (request, env, params) => {
   }
   await buildActivityLog(env, 'attendee_denied', `Host said no to ${attendee.full_name}`,
     getUserEmail(request), 'event_attendee', attendee.id, own.table.account_id).run();
-  // A free seat nobody is asking for now goes to the next guest waiting (J13 finding 1).
-  await offerFreedSeats(env.DB, { eventId: own.table.id, accountId: own.table.account_id });
+  // A free seat nobody is asking for now goes to the next guest waiting (J13
+  // finding 1). Main's no offered nothing, so closed neither does this.
+  if (anyoneHostsOpen(env)) await offerFreedSeats(env.DB, { eventId: own.table.id, accountId: own.table.account_id });
   return hostTableJson({ ok: true, status: 'denied' });
 };
 
@@ -19815,10 +19859,17 @@ const handleDenyAttendee: Handler = async (request, env, params) => {
   // No is for a guest who holds no seat: one who asked, or one waiting
   // without a live offer. A confirmed guest's seat is released, not denied,
   // so the seat is given back and offered on (J9). Guarded in the write.
-  const denied = await env.DB.prepare(
-    `UPDATE event_attendees SET status = 'denied', denial_message = ?
+  // While Launch 3 is closed it is main's no (queue cases 5, 6): a waiting
+  // guest is said no to even while they hold an offer, which ends with it,
+  // and main's cascade runs after. A confirmed seat is still released, never
+  // denied, so no seat stays held by a guest said no to.
+  const open = anyoneHostsOpen(env);
+  const denied = await env.DB.prepare(open
+    ? `UPDATE event_attendees SET status = 'denied', denial_message = ?
       WHERE id = ? AND account_id = ? AND status IN ('requested', 'waitlist')
         AND (status = 'requested' OR claim_expires_at IS NULL OR datetime(claim_expires_at) <= datetime('now'))`
+    : `UPDATE event_attendees SET status = 'denied', denial_message = ?, claim_expires_at = NULL
+      WHERE id = ? AND account_id = ? AND status IN ('requested', 'waitlist', 'denied')`
   ).bind(body.message || null, params.id, accountId).run();
   if (!Number(denied.meta?.changes || 0)) {
     return json({ error: 'This guest holds a seat or an offer of one. Release the seat instead.', code: 'state_conflict' }, 409);
@@ -19829,6 +19880,7 @@ const handleDenyAttendee: Handler = async (request, env, params) => {
     `Denied ${attendee.full_name}${body.message ? ': ' + body.message : ''}`,
     userEmail, 'event_attendee', params.id, accountId
   ).run();
+  if (!open) await offerNextAsMain(env.DB, { eventId: attendee.event_id as string, accountId });
 
   return json({ success: true, status: 'denied' });
 };
@@ -19853,11 +19905,19 @@ const handleWaitlistAttendee: Handler = async (request, env, params) => {
   // of the queue and may be offered a seat again. A confirmed seat is
   // released, never moved, so nobody loses a seat by this route.
   const userEmail = getUserEmail(request);
-  const moved = await env.DB.prepare(
-    `UPDATE event_attendees SET status = 'waitlist', waitlist_position = ${NEXT_WAITLIST_POSITION_SQL},
+  // While Launch 3 is closed it is main's move (queue case 7): any guest who
+  // holds no seat moves to the end of the queue, a cancelled or already
+  // waiting one too, and no offer is made. A confirmed guest still keeps
+  // their seat: moving them would leave a seat held by someone waiting.
+  const open = anyoneHostsOpen(env);
+  const moved = await env.DB.prepare(open
+    ? `UPDATE event_attendees SET status = 'waitlist', waitlist_position = ${NEXT_WAITLIST_POSITION_SQL},
             claim_expires_at = NULL, offer_lapsed_at = NULL
       WHERE id = ? AND account_id = ?
         AND (status IN ('requested', 'denied') OR (status = 'waitlist' AND offer_lapsed_at IS NOT NULL AND claim_expires_at IS NULL))
+      RETURNING waitlist_position`
+    : `UPDATE event_attendees SET status = 'waitlist', waitlist_position = ${NEXT_WAITLIST_POSITION_SQL}
+      WHERE id = ? AND account_id = ? AND status IN ('requested', 'denied', 'waitlist', 'cancelled')
       RETURNING waitlist_position`
   ).bind(params.id, accountId).first<{ waitlist_position: number }>();
   if (!moved) {
@@ -19871,7 +19931,8 @@ const handleWaitlistAttendee: Handler = async (request, env, params) => {
     userEmail, 'event_attendee', params.id, accountId
   ).run();
   // A seat may be free already; the offer is guarded on one being free.
-  await offerFreedSeats(env.DB, { eventId: attendee.event_id as string, accountId });
+  // Main made no offer here, so closed neither does this.
+  if (open) await offerFreedSeats(env.DB, { eventId: attendee.event_id as string, accountId });
 
   return json({ success: true, status: 'waitlist', waitlist_position: waitlistPosition });
 };
@@ -33593,6 +33654,7 @@ const routes: [string, string, Handler][] = [
   ['GET',    '/api/me/tables/:id', handleGetHostedTable],
   ['PUT',    '/api/me/tables/:id', handleChangeHostedTable],
   ['PUT',    '/api/me/tables/:id/tasting', handleSetHostedTableTasting],
+  ['POST',   '/api/me/tables/:id/again', handleSameTableAgain],
   ['PUT',    '/api/me/tables/:id/came', handleHostMarksWhoCame],
   ['PUT',    '/api/me/tables/:id/guests/:attendeeId/yes', handleHostSaysYes],
   ['PUT',    '/api/me/tables/:id/guests/:attendeeId/no', handleHostSaysNo],
@@ -34546,11 +34608,14 @@ const requestHandler = {
 
     // Offers that ran out move the waiting list on (J9). Nothing is sent:
     // the next guest sees the offer on their own page, the host on theirs.
-    try {
-      const moved = await advanceWaitingLists(env.DB);
-      if (moved.lapsed) console.info('Waiting list offers lapsed', moved);
-    } catch (error) {
-      console.error('Waiting list advance failed', error instanceof Error ? error.message : String(error));
+    // Main had no such run: while Launch 3 is closed it does not run (queue case 10).
+    if (anyoneHostsOpen(env)) {
+      try {
+        const moved = await advanceWaitingLists(env.DB);
+        if (moved.lapsed) console.info('Waiting list offers lapsed', moved);
+      } catch (error) {
+        console.error('Waiting list advance failed', error instanceof Error ? error.message : String(error));
+      }
     }
 
     // Generate checkin reminder notifications for events happening tomorrow

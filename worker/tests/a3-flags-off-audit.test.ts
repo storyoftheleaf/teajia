@@ -138,7 +138,7 @@ describe('item 4: the scheduled run rewrites no row from before Launch 3', () =>
     expect(row<{ n: number }>('SELECT COUNT(*) AS n FROM event_notifications').n).toBe(0);
   });
 
-  it('offers a freed seat to the guest whose old offer ran out, as main did, then lapses that offer when it runs out', async () => {
+  it('offers a freed seat to the guest whose old offer ran out, as main did, and leaves no notice for a run to lapse', async () => {
     session(1);
     guest('c1', 'confirmed');
     guest('w-old', 'waitlist', { position: 1 });
@@ -150,11 +150,13 @@ describe('item 4: the scheduled run rewrites no row from before Launch 3', () =>
     expect(Date.parse(offerOf('w-old').claim_expires_at!)).toBeGreaterThan(Date.now());
     expect(offerOf('w-new').claim_expires_at).toBeNull();
 
-    // That offer is this code's: when it runs out, the run lapses it and the seat moves on.
+    // Closed, that offer is main's cascade's (queue cases 10 and 12,
+    // todo/review/fixes/queue-cases.md): it leaves no seat notice, so even
+    // the run called by hand lapses nothing, and the scheduler does not run it.
     offer('w-old', Date.now() - 1000);
-    expect(await advanceWaitingLists(db as never)).toEqual({ lapsed: 1, offered: 1 });
-    expect(offerOf('w-old').offer_lapsed_at).not.toBeNull();
-    expect(offerOf('w-new').claim_expires_at).not.toBeNull();
+    expect(await advanceWaitingLists(db as never)).toEqual({ lapsed: 0, offered: 0 });
+    expect(offerOf('w-old').offer_lapsed_at).toBeNull();
+    expect(offerOf('w-new').claim_expires_at).toBeNull();
   });
 });
 

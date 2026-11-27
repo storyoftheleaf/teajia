@@ -7,17 +7,18 @@
 // usePhotoEditor with freeShape) and is uploaded under venue-guide/, so it is
 // served private. Who sees the way is decided by the worker, not here: a guest
 // the host said yes to, until the session ends (sessionWalkthrough.ts).
-import { useEffect, useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowDown, ArrowUp, Navigation, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, ImagePlus, Navigation, Trash2 } from 'lucide-react';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import { api } from '../../lib/api';
 import { PART_QUERY, partView } from '../../lib/closedPart';
 import { LoadFailed } from '../shared/LoadFailed';
-import type { HostedTableWayAnswer, HostedTableWayInput, HostedWayPlace } from '../../lib/hostingApi';
+import type { HostedTableWayAnswer, HostedTableWayInput, HostedWayPlace, YourTablePlace } from '../../lib/hostingApi';
 import type { VenueGuide, VenueGuideStep } from '../../types/events';
 import { Button } from '../shared/Button';
 import { WayStepPhoto } from '../events/WayStepPhoto';
+import { usePhotoEditor } from '../shared/usePhotoEditor';
 import { hostSmallText, hostText, type HostTablePartProps } from './hostTableParts';
 
 const STEP_MAX = 280;
@@ -77,7 +78,20 @@ function wayAnswer(answer: Partial<HostedTableWayAnswer> | null | undefined): Ho
 
 const hasSteps = (place: HostedWayPlace) => Boolean(place.venue_guide?.steps?.length);
 
-export function WalkthroughEditor({ tableId }: HostTablePartProps) {
+/**
+ * The place just kept, offered as the host's table on the same screen
+ * (review W2-5): only when they have no table yet and this table has an area
+ * to tell people. Null when there is nothing to offer.
+ */
+export function wayTableOffer(keptPlaceId: string | null, places: ReadonlyArray<YourTablePlace> | undefined, tableArea: string | null | undefined):
+  { place: YourTablePlace; area: string } | null {
+  const area = (tableArea ?? '').trim();
+  if (!keptPlaceId || !area || !places?.length || places.some(place => place.is_table)) return null;
+  const place = places.find(candidate => candidate.id === keptPlaceId);
+  return place ? { place, area } : null;
+}
+
+export function WalkthroughEditor({ tableId, detail }: HostTablePartProps) {
   const way = useQuery({ queryKey: wayQueryKey(tableId), queryFn: async () => wayAnswer(await api.tables.way(tableId)), ...PART_QUERY });
   const view = partView(way);
   return (
@@ -86,14 +100,18 @@ export function WalkthroughEditor({ tableId }: HostTablePartProps) {
       <p className={hostText}>Guests see this only after your yes, and only until the session ends. A guest can still take a screenshot.</p>
       {way.isPending && <p className={hostSmallText} role="status">Opening the way in…</p>}
       {view.state === 'failed' && <LoadFailed sentence="Could not open the way in just now." onRetry={view.retry} />}
-      {way.data && <WayForm tableId={tableId} answer={way.data} />}
+      {way.data && <WayForm tableId={tableId} answer={way.data} tableArea={detail?.table?.area_hint ?? null} />}
     </section>
   );
 }
 
-function WayForm({ tableId, answer }: { tableId: string; answer: HostedTableWayAnswer }) {
+function WayForm({ tableId, answer, tableArea }: { tableId: string; answer: HostedTableWayAnswer; tableArea: string | null }) {
   const queryClient = useQueryClient();
   const ids = useId();
+  const picker = useRef<HTMLInputElement>(null);
+  const { editPhotos, photoEditor } = usePhotoEditor({ freeShape: true, title: 'Photograph for a new step', confirmLabel: 'Use photograph' });
+  const [adding, setAdding] = useState(false);
+  const [keptPlaceId, setKeptPlaceId] = useState<string | null>(null);
   const [draft, setDraft] = useState<Draft>(() => draftFrom(answer.way.venue_guide, answer.way.address, answer.way.map_link));
   const [dirty, setDirty] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
@@ -128,9 +146,28 @@ function WayForm({ tableId, answer }: { tableId: string; answer: HostedTableWayA
   function addStep() {
     change(previous => ({ steps: [...previous.steps, { description: '' }], keys: [...previous.keys, newKey()] }));
   }
+  // One or several photographs, each framed in the shared editor, each made
+  // its own step (review W2-4): pick, then "Use photograph" on each.
+  async function addPhotoSteps(files: FileList | null) {
+    if (!files?.length) return;
+    const room = MAX_STEPS - draft.steps.length;
+    const framed = (await editPhotos(Array.from(files))).slice(0, Math.max(0, room));
+    if (!framed.length) return;
+    setAdding(true);
+    try {
+      for (const file of framed) {
+        const url = (await api.tables.uploadWayPhoto(tableId, file)).url;
+        change(previous => ({ steps: [...previous.steps, { description: '', image_url: url }], keys: [...previous.keys, newKey()] }));
+      }
+    } catch (failure) {
+      setNotice(failure instanceof Error && failure.message ? failure.message : 'A photograph did not upload. Try again.');
+    } finally {
+      setAdding(false);
+    }
+  }
 
   const save = useMutation({
-    mutationFn: async () => wayAnswer(await api.tables.saveWay(tableId, inputFrom(draft))),
+    mutationFn: async (from?: Draft) => wayAnswer(await api.tables.saveWay(tableId, inputFrom(from ?? draft))),
     onSuccess: saved => {
       queryClient.setQueryData(wayQueryKey(tableId), saved);
       setDraft(draftFrom(saved.way.venue_guide, saved.way.address, saved.way.map_link));
@@ -147,19 +184,40 @@ function WayForm({ tableId, answer }: { tableId: string; answer: HostedTableWayA
     onSuccess: saved => {
       queryClient.setQueryData(wayQueryKey(tableId), saved);
       setDirty(false);
+      setKeptPlaceId(saved.way.place_id ?? null);
       setNotice(`Kept as ${placeName.trim()} for next time.`);
     },
   });
 
+  // The host's places, to offer the place just kept as their table (review
+  // W2-5). Closed with its switch, nothing is offered.
+  const yourTable = useQuery({ queryKey: ['your-table', 'way', tableId], queryFn: () => api.hosting.yourTable(), enabled: Boolean(keptPlaceId), ...PART_QUERY });
+  const offer = partView(yourTable).state === 'closed' ? null : wayTableOffer(keptPlaceId, yourTable.data?.places, tableArea);
+  const makeTable = useMutation({
+    mutationFn: (choice: { place_id: string; area_hint: string }) => api.hosting.chooseYourTable(choice),
+    retry: false,
+    onSuccess: next => {
+      queryClient.setQueryData(['your-table', 'way', tableId], next);
+      void queryClient.invalidateQueries({ queryKey: ['your-table'] });
+      const chosen = next.places.find(place => place.is_table);
+      setNotice(`${chosen?.name ?? 'This place'} is your table. People see only “${chosen?.area_hint ?? ''}”.`);
+    },
+  });
+
+  // "Use the way to X" is the host's yes to copying it, so it saves on that tap (review W2-4).
   function copyWayFrom(place: HostedWayPlace) {
-    setDraft(draftFrom(place.venue_guide, place.address, place.map_link));
+    const next = draftFrom(place.venue_guide, place.address, place.map_link);
+    setDraft(next);
     setPlaceName(place.name);
     setDirty(true);
-    setNotice(`Copied in the way to ${place.name}. Save to use it for this table.`);
+    save.mutate(next, {
+      onSuccess: () => setNotice(`Using the way to ${place.name} for this table.`),
+      onError: () => setNotice(`Copied in the way to ${place.name}. Save to use it for this table.`),
+    });
   }
 
-  const failure = (save.error ?? keep.error) as Error | null;
-  const busy = save.isPending || keep.isPending;
+  const failure = (save.error ?? keep.error ?? makeTable.error) as Error | null;
+  const busy = save.isPending || keep.isPending || adding;
   const mapsHref = draft.map_link.trim() || (draft.address.trim()
     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(draft.address.trim())}` : '');
 
@@ -170,7 +228,7 @@ function WayForm({ tableId, answer }: { tableId: string; answer: HostedTableWayA
           <h3 className={TYPOGRAPHY_CLASSES.h3}>A way you kept</h3>
           <div className="flex flex-wrap gap-2">
             {reusable.map(place => (
-              <Button key={place.id} type="button" size="sm" variant="secondary" className="tap-target" onClick={() => copyWayFrom(place)}>
+              <Button key={place.id} type="button" size="sm" variant="secondary" className="tap-target" disabled={busy} onClick={() => copyWayFrom(place)}>
                 Use the way to {place.name}
               </Button>
             ))}
@@ -210,11 +268,21 @@ function WayForm({ tableId, answer }: { tableId: string; answer: HostedTableWayA
           })}
         </ol>
         {draft.steps.length < MAX_STEPS && (
-          <Button type="button" size="sm" variant="secondary" className="tap-target"
-            onClick={addStep}>
-            Add a step
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button type="button" size="sm" variant="secondary" className="tap-target"
+              onClick={addStep}>
+              Add a step
+            </Button>
+            <Button type="button" size="sm" variant="secondary" className="tap-target" disabled={busy} loading={adding}
+              icon={<ImagePlus size={14} aria-hidden />} onClick={() => picker.current?.click()}>
+              Add photographs
+            </Button>
+          </div>
         )}
+        {/* Picked here, each framed in the shared editor, uploaded only after. */}
+        <input ref={picker} type="file" accept="image/*" multiple hidden data-testid="way-photos-picker"
+          onChange={event => { const files = event.target.files; void addPhotoSteps(files).finally(() => { event.target.value = ''; }); }} />
+        {photoEditor}
       </div>
 
       <div className="space-y-3">
@@ -255,7 +323,7 @@ function WayForm({ tableId, answer }: { tableId: string; answer: HostedTableWayA
 
       <div className="flex flex-wrap items-center justify-end gap-3">
         {notice && <p className={`${hostSmallText} mr-auto`} role="status">{notice}</p>}
-        <Button type="button" className="tap-target" disabled={busy || !dirty} loading={save.isPending} onClick={() => save.mutate()}>
+        <Button type="button" className="tap-target" disabled={busy || !dirty} loading={save.isPending} onClick={() => save.mutate(undefined)}>
           Save the way in
         </Button>
       </div>
@@ -274,6 +342,15 @@ function WayForm({ tableId, answer }: { tableId: string; answer: HostedTableWayA
             Keep this for next time
           </Button>
         </div>
+        {offer && (
+          <div className="flex flex-wrap items-center gap-2" data-way-make-table>
+            <p className={`${hostSmallText} min-w-0 flex-1`}>Make {offer.place.name} your table? People would see only “{offer.area}”, never the address or the way in.</p>
+            <Button type="button" className="tap-target" loading={makeTable.isPending} disabled={makeTable.isPending}
+              onClick={() => makeTable.mutate({ place_id: offer.place.id, area_hint: offer.area })}>
+              Make this your table
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );

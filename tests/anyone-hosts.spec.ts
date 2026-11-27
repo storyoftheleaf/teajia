@@ -595,12 +595,10 @@ for (const size of SIZES) {
         const links: Record<string, string> = {};
         await check(host, 'mark who came and copy each thank-you link', `5-${tag}`, async () => {
           await host.page.goto(`/account/host/${tasting!.id}?part=after`);
-          await host.page.getByRole('button', { name: 'Mark who came' }).click();
+          // Who came is on the list itself once the table has ended (review A9-13, W2-6).
           await host.page.getByRole('checkbox', { name: c!.name }).check();
           await host.page.getByRole('checkbox', { name: d!.name }).check();
-          await host.page.locator('[data-host-part="after"]').getByRole('button', { name: 'Save', exact: true }).click();
-          const came = host.page.getByRole('list', { name: 'Who came' });
-          await expect(came.getByText(c!.name)).toBeVisible();
+          await host.page.locator('[data-host-part="after"]').getByRole('button', { name: 'Save who came', exact: true }).click();
           for (const guest of [c!, d!]) {
             await host.page.getByRole('button', { name: `Copy their thank-you link for ${guest.name}` }).click();
             await expect(host.page.getByText(`Copied. Send it only to ${guest.name}.`)).toBeVisible();

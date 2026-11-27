@@ -11,6 +11,9 @@ import { TEA_TABLE_MINE_KEY } from '../../lib/teaTableApi';
 
 type Choice = 'private' | 'page' | 'offered';
 
+/** Every own tasting's share choice (the journal's line reads it; W1-11). */
+export const TASTING_SHARES_QUERY_KEY = ['family', 'tasting-shares'] as const;
+
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 /** The line after a share, from what was recorded. */
@@ -20,9 +23,10 @@ export function shareLine(askedForTable: boolean, onTable: boolean): string {
 }
 
 /**
- * After Save: where this tasting goes. Keep private is the default, and Done
- * writes it; Not now leaves things as they were. The score never travels with
- * a share; words and photographs only.
+ * After Save: where this tasting goes. The choice is the action (review
+ * W1-10): one tap on a place shares it there, and Keep private writes
+ * private and closes; Not now leaves things as they were. The score never
+ * travels with a share; words and photographs only.
  */
 export function TastingShareStep({ productId, photographCount, onClose }: {
   productId: string;
@@ -48,7 +52,8 @@ export function TastingShareStep({ productId, photographCount, onClose }: {
     ...(photographCount > 0 ? [{ id: 'offered' as const, label: table ? 'On my page and the Tea Table, and offer my photographs to Teajia' : 'On my page, and offer my photographs to Teajia' }] : []),
   ];
 
-  async function share() {
+  async function share(picked: Choice) {
+    setChoice(picked);
     // Keep private is a choice, not a way out: it is written, so a later
     // sitting of a tea already on the page goes back to private with it.
     setState('sharing');
@@ -60,10 +65,12 @@ export function TastingShareStep({ productId, photographCount, onClose }: {
       let lastError: unknown;
       for (let attempt = 0; attempt < 3; attempt += 1) {
         try {
-          const answer = await familyApi.shareTasting(productId, choice as FamilyShareState, table);
+          const answer = await familyApi.shareTasting(productId, picked as FamilyShareState, table);
           setOnTable(table && answer?.on_tea_table === true);
           void queryClient.invalidateQueries({ queryKey: TEA_TABLE_MINE_KEY });
-          if (choice === 'private') { onClose(); return; }
+          // The journal's line says the new place at once, behind the step (W1-11).
+          void queryClient.invalidateQueries({ queryKey: TASTING_SHARES_QUERY_KEY });
+          if (picked === 'private') { onClose(); return; }
           setState('shared');
           return;
         } catch (err) {
@@ -79,9 +86,9 @@ export function TastingShareStep({ productId, photographCount, onClose }: {
       const code = err instanceof ApiError ? (err.data?.code as string | undefined) : undefined;
       setState('error');
       setMessage(code === 'tasting_not_saved'
-        ? `Your tasting is still reaching Teajia. Try ${choice === 'private' ? 'Done' : 'Share'} again in a moment.`
+        ? 'Your tasting is still reaching Teajia. Tap your picked again in a moment.'
         : err instanceof ApiError && err.message && !err.message.startsWith('Request failed') ? err.message
-          : choice === 'private' ? 'Could not keep it private. Please try again.' : 'Could not share. Please try again.');
+          : picked === 'private' ? 'Could not keep it private. Please try again.' : 'Could not share. Please try again.');
     }
   }
 
@@ -91,18 +98,15 @@ export function TastingShareStep({ productId, photographCount, onClose }: {
       ? <p className={TYPOGRAPHY_CLASSES.bodyLight} role="status">{`${shareLine(table, onTable)}${choice === 'offered' ? ' Your photographs are offered to Teajia.' : ''}`}</p>
       : <div className="tasting-share-options" role="group" aria-label="Where this tasting goes">
           {options.map(option => <Button variant="plain" type="button" key={option.id} className="tap-target" aria-pressed={choice === option.id}
-            disabled={state === 'sharing'} onClick={() => setChoice(option.id)}>{option.label}</Button>)}
+            disabled={state === 'sharing'} onClick={() => { void share(option.id); }}>
+            {state === 'sharing' && choice === option.id ? (option.id === 'private' ? 'Saving…' : 'Sharing…') : option.label}
+          </Button>)}
         </div>}
     {message && <p className={TYPOGRAPHY_CLASSES.accountMeta} role="alert">{message}</p>}
     <div className="tasting-share-actions">
       {state === 'shared'
         ? <Button variant="plain" type="button" className="tap-target tasting-share-primary" onClick={onClose}>Close</Button>
-        : <>
-            <Button variant="plain" type="button" className="tap-target" onClick={onClose} disabled={state === 'sharing'}>Not now</Button>
-            <Button variant="plain" type="button" className="tap-target tasting-share-primary" onClick={() => { void share(); }} disabled={state === 'sharing'}>
-              {state === 'sharing' ? (choice === 'private' ? 'Saving…' : 'Sharing…') : choice === 'private' ? 'Done' : 'Share'}
-            </Button>
-          </>}
+        : <Button variant="plain" type="button" className="tap-target" onClick={onClose} disabled={state === 'sharing'}>Not now</Button>}
     </div>
   </section>;
 }

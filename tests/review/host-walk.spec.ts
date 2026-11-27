@@ -265,8 +265,8 @@ for (const who of ['ana', 'jun'] as const) {
         await expect(w.page.getByLabel('Step 1', { exact: true })).toHaveValue('The blue gate after the warung.');
         const address = await w.page.getByLabel('Address').inputValue();
         finding(w, 'W2-6', address === 'Jalan Raya Ubud 12', 'using the kept way copies the steps but not the place’s address');
-        await w.page.getByRole('button', { name: 'Save the way in' }).click();
-        await expect(w.page.getByText('Saved.')).toBeVisible();
+        // W2-4, fixed: the tap is the host's yes, so the way is saved with it.
+        await expect(w.page.getByText('Using the way to Ubud house for this table.')).toBeVisible();
       });
     }
     await w.page.goto('/account/host');
@@ -342,9 +342,9 @@ for (const who of ['ana', 'jun'] as const) {
         await expect(w.page.getByRole('heading', { name: 'After', level: 2 })).toBeVisible();
       });
       note(w, 'after-text', (await w.page.locator('[data-host-page="table"]').innerText()).replace(/\s+/g, ' ').slice(0, 1500));
-      await step(w, '8b', 'mark who came and copy the thank-you', { clicks: 3 }, async () => {
-        await w.page.getByRole('button', { name: 'Mark who came' }).click();
-        await w.page.getByRole('button', { name: 'Save' }).click();
+      // A9-13 and W2-6, fixed: who came is on the list itself, so Save then Copy.
+      await step(w, '8b', 'mark who came and copy the thank-you', { clicks: 2 }, async () => {
+        await w.page.getByRole('button', { name: 'Save who came' }).click();
         await w.page.getByRole('button', { name: /Copy their thank-you link/ }).first().click();
         await expect(w.page.getByText(/Copied\. Send it only to/)).toBeVisible();
       });
