@@ -89,6 +89,18 @@ export interface PageRouteService {
   call: (auth: ToolAuth, step: import('./pageActions').PageStep) => Promise<Response>;
 }
 
+/** Wholesale steps: `transitionWholesaleOrder` in index.ts, the route's own function. */
+export interface WholesaleService {
+  transition: (scope: { accountId: string; userId: string; email: string | null | undefined }, orderId: string, body: Record<string, unknown>) => Promise<Response>;
+}
+
+/** A person's own things, read through the same functions as Your Table. */
+export interface PersonalService {
+  orders: (userId: string, accountId: string) => Promise<unknown[]>;
+  teaChest: (userId: string) => Promise<unknown[]>;
+  journal: (userId: string, email: string | null | undefined, accountId: string | null) => Promise<unknown[]>;
+}
+
 export interface ToolEnv {
   EDITORIAL_PILOT_ACCOUNT_ID?: string;
   FAVOURITES_OPEN?: string;
@@ -113,6 +125,8 @@ export interface ToolEnv {
   curateReceipts?: CurateReceiptService;
   inventoryReceipts?: InventoryReceiptService;
   stockMovements?: StockMovementService;
+  wholesale?: WholesaleService;
+  personal?: PersonalService;
   /** An invoice's pay link, from resolveInvoicePayment in index.ts. Null when there is none to give. */
   invoicePayLinks?: { payUrl: (accountId: string, invoiceId: string) => Promise<string | null> };
 }

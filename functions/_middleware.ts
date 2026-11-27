@@ -242,6 +242,35 @@ const WORKER_PROXY_PATHS = new Set([
   '/sitemap-products.xml',
 ]);
 
+/**
+ * The MCP page's link preview. teajia.com/mcp is the address people share for
+ * "connect your assistant", and it is also a path the worker answers, so until
+ * 2026-11-27 a pasted link previewed as the homepage: Functions never ran for
+ * /mcp, and the shell carried the home title and picture. The picture is drawn
+ * by `npm run share:mcp`.
+ */
+export const MCP_PAGE_META: Meta = {
+  title: 'Connect your assistant to Teajia',
+  description: 'Let Claude, ChatGPT or your own agent work a Teajia tea shop: bring teas in, price, invoice and send. Every change is shown first and happens only when you say yes.',
+  image: `${SITE}/share/mcp.png`,
+};
+
+/**
+ * A person or a link-preview scraper opening teajia.com/mcp, as opposed to an
+ * MCP client talking to it. A client POSTs, or GETs an event stream, or sends
+ * its token; a person's browser asks for HTML and a scraper names itself.
+ * Anything else keeps reaching the worker, as before.
+ */
+export function isMcpPageRequest(request: Request): boolean {
+  const { pathname } = new URL(request.url);
+  if (pathname !== '/mcp' && pathname !== '/mcp/') return false;
+  if (request.method !== 'GET' && request.method !== 'HEAD') return false;
+  if (request.headers.has('authorization')) return false;
+  const accept = request.headers.get('accept') || '';
+  if (accept.includes('text/event-stream')) return false;
+  return accept.includes('text/html') || CRAWLER_RE.test(request.headers.get('user-agent') || '');
+}
+
 export function isWorkerProxyPath(pathname: string): boolean {
   return pathname === '/mcp' || pathname.startsWith('/mcp/') ||
     pathname.startsWith('/oauth/') || WORKER_PROXY_PATHS.has(pathname);
@@ -464,7 +493,8 @@ export const onRequest: PagesFunction<Env> = async (context) => {
   const url = new URL(request.url);
   if (url.pathname.startsWith('/assets/')) return guardBuiltAsset(await next());
   // These protocol endpoints must reach the Worker before the SPA fallback.
-  if (isWorkerProxyPath(url.pathname)) return proxyToWorker(request, context.env.WORKER_ORIGIN);
+  const mcpPage = isMcpPageRequest(request);
+  if (isWorkerProxyPath(url.pathname) && !mcpPage) return proxyToWorker(request, context.env.WORKER_ORIGIN);
   // Normalize trailing slashes but keep "/" as the homepage (not "/read").
   const path = url.pathname === '/' ? '/' : url.pathname.replace(/\/+$/, '');
 
@@ -493,7 +523,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     const workerOrigin = configuredWorkerOrigin(context.env.WORKER_ORIGIN);
     if (workerOrigin) readStates = await readPublishStatesAtEdge(workerOrigin);
   }
-  let meta: Meta | null = resolveStaticReadMeta(path, readStates);
+  let meta: Meta | null = mcpPage ? MCP_PAGE_META : resolveStaticReadMeta(path, readStates);
 
   // Dynamic DB-backed article — only pay the API call for crawlers.
   if (!meta && path.startsWith('/article/')) {

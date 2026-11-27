@@ -67,6 +67,34 @@ Connected, a session can do the admin work directly instead of describing it: se
 
 **What a session cannot reach from a cloud sandbox by default:** `api.teajia.com`, `api.cloudflare.com` and `registry.npmjs.org` are all off the allowlist, so no MCP, no `wrangler`, no `npm install`, which means no `npm run lint` and no `npm run test:worker` either. Deploys do not need any of it (CI holds the Cloudflare credentials and runs migrations then deploy on every push to `main` touching `worker/**`); diagnosis does. To give a cloud session Cloudflare directly, add `CLOUDFLARE_API_TOKEN` (Workers Scripts: Edit + D1: Edit) and `CLOUDFLARE_ACCOUNT_ID` to the environment and allow those hosts.
 
+### The page at teajia.com/mcp
+
+`www.teajia.com/mcp` is two things at one address. A person's browser (it asks for HTML) and a link-preview scraper (it names itself) get the page, `src/pages/McpPage.tsx`, with its own title, words and picture (`MCP_PAGE_META` and `isMcpPageRequest` in `functions/_middleware.ts`; the picture is `public/share/mcp.png`, drawn by `npm run share:mcp`). Anything else, a POST, an event stream, a request with a token, a bare `curl`, still goes to the worker. `/mcp` is in `public/_routes.json` for that; before 2026-11-27 it was not, so a pasted link previewed as the homepage.
+
+The address the page gives to clients is `https://api.teajia.com/mcp` (and `/mcp/public`), never the site's own origin: OAuth discovery lives on the API host. The page lists every tool from `src/pages/mcpToolCatalog.ts`, grouped by the ten steps of [the tea system map](../agents/TEA-SYSTEM-MAP.md). `worker/tests/mcp-page-catalog.test.ts` fails when the list names a tool the worker lacks or leaves one out, so a new tool needs a line there in the group a person would look in.
+
+### What an agent still cannot do (2026-11-27)
+
+Checked against the tea system map and the "How people use Teajia" board. Close a line by naming the PR that closed it.
+
+Closed by PR 595, one module each in `worker/src/mcpTools/`:
+
+1. Site problems: `siteProblems.ts`, `list_site_problems` and `resolve_site_problem` (platform owner only; resolved needs `resolution_ref`).
+2. Requests from people: `peopleRequests.ts`, `set_order_request_status` for "find me a tea" inquiries, and `list_wholesale_orders`, `get_wholesale_order`, `move_wholesale_order` through the same transition as the Manage route. Tea house build requests stay out while that section is switched off.
+3. Low stock to reorder: `list_low_stock` now gives each tea's `reorder` (Library tea, supplier and last quote).
+4. Undo outside Curate: `agentChanges.ts`. Confirmed writes on stock, prices, words, threshold and archive keep the tea's columns before and after on the `MCP_TOOL_CALL` line. `list_agent_changes` reads them; `undo_agent_change` puts stock back as a pinned recount and answers `next_call` for the rest. Invoices are still undone with `void_invoice`.
+5. Tea Wisdom: `wisdomRecords.ts`, `search_wisdom` and `get_wisdom_entry` (also on `/mcp/public`), read from the published `/wisdom/` dataset, and `wisdom_records_for_tea`, which says which of a tea's place, cultivar and producer have a record. It does not read drafts; `needs.mjs` stays the full list.
+6. A person's own things: `personal.ts`, `list_my_orders`, `list_my_tea_chest`, `list_my_journal`, read only, through the same functions as Your Table. A token with no scope at all still reaches nothing.
+7. Venues, contributors and teaware: `shopRecords.ts`, `list_venues`, `save_venue`, `list_teaware`, `list_contributors`.
+
+Still open:
+
+- Favourites on the Tea Table have no tool.
+- Teaware and contributors are read only; changes stay in Manage.
+- The i64os sale tools (`create_tea_sale`, `create_tea_invoice`, `mark_tea_sale_paid`, `purchase_tea_inventory`) live in the i64os repository and are not checked against Teajia's invoices (tea system map, gap 5).
+
+The unfulfilled invoice and the private collection link are PR 593.
+
 **Implementation:** [worker/src/mcp.ts](../../worker/src/mcp.ts) (JSON-RPC handlers, tool defs, OAuth, public server), [src/admin/views/MCPTokensView.tsx](../../src/admin/views/MCPTokensView.tsx) (token management), [src/admin/views/OAuthConsentView.tsx](../../src/admin/views/OAuthConsentView.tsx) (OAuth consent).
 
 **Schema:** `mcp_tokens` in [0000_initial_schema.sql](../../worker/migrations/0000_initial_schema.sql) (tokens as SHA-256 hash; `last_used_at` bumped on auth), `mcp_confirmation_tickets` (same file) (durable confirm tickets), `oauth_clients`, `oauth_codes` and `oauth_authorize_requests` (same file) (OAuth + scoped grants + mobile-safe consent passing).
