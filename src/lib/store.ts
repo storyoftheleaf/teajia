@@ -722,7 +722,13 @@ const createdAppStore = create<AppState>()(
         set((state) => (
           state.activeUserId === activeUserId
             ? { activeUserId }
-            : { ...scopedStateReset(), activeUserId }
+            // A different person on this device starts clean. A guest who
+            // has just joined or signed in is the same person: the teas they
+            // saved and the order they were building come with them (Adrian,
+            // 2026-11-27: "so they don't lose where they were").
+            : state.activeUserId === null
+              ? { ...scopedStateReset(), activeUserId, favoriteTeas: state.favoriteTeas, publicCart: state.publicCart }
+              : { ...scopedStateReset(), activeUserId }
         )),
       setActiveAccountId: (activeAccountId) =>
         set((state) => (

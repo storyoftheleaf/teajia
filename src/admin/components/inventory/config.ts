@@ -3,13 +3,14 @@ import {
   AlertTriangle,
   Archive,
   CheckSquare,
-  Coffee,
+  
   Droplets,
   EyeOff,
   FlaskConical,
   Globe,
   PackageX,
 } from 'lucide-react';
+import { TeaCup } from '../../../components/TeaCupIcon';
 import type { BulkEditField, ColDef, InventoryViewConfig } from './types';
 import { INVENTORY_TEA_TYPES, NON_TEA_TYPES } from '../../../wisdom';
 
@@ -19,7 +20,7 @@ export const VIEW_ICON_MAP: Record<string, React.ComponentType<{ size?: number; 
   CheckSquare,
   FlaskConical,
   Archive,
-  Coffee,
+  TeaCup,
   Globe,
   Droplets,
   PackageX,
@@ -203,7 +204,7 @@ export const DEFAULT_TEA_VIEWS: InventoryViewConfig[] = [
   {
     id: 'default-personal',
     name: 'Personal',
-    icon: 'Coffee',
+    icon: 'TeaCup',
     columns: ['productName', 'type', 'year', 'originRegion', 'stockGrams', 'costAmount'],
     sortConfig: [{ key: 'year', direction: 'desc' }],
     filterType: 'Personal',
@@ -304,7 +305,7 @@ export const DEFAULT_TEAWARE_VIEWS: InventoryViewConfig[] = [
   {
     id: 'default-teaware-personal',
     name: 'Personal',
-    icon: 'Coffee',
+    icon: 'TeaCup',
     columns: ['productName', 'teawareCategory', 'material', 'quantityUnits', 'costAmount'],
     sortConfig: [{ key: 'teawareCategory', direction: 'asc' }],
     filterType: 'Personal',

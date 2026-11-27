@@ -1,9 +1,10 @@
 import {
   Flower2, Cherry, Wheat, Flame, TreePine, Mountain, Gem, Leaf, Droplets,
   Circle, Waves, Timer, Sparkles, Wind, Moon, Zap, Thermometer, Maximize2,
-  Palette, Clock, Coffee, Sunrise, Cookie,
+  Palette, Clock,  Sunrise, Cookie,
   type LucideIcon,
 } from 'lucide-react';
+import { TeaCup } from '../components/TeaCupIcon';
 import taxonomyJson from './teajia-tasting-taxonomy.json';
 import type { TastingData } from '../types';
 
@@ -56,7 +57,7 @@ export const GROUP_ICON_MAP: Record<string, LucideIcon> = {
   'Color': Palette,
   // Brewing
   'Approach': Clock,
-  'Vessel': Coffee,
+  'Vessel': TeaCup,
   'Session arc': Sunrise,
   // Legacy keys kept for old entries
   'Other qualities': Droplets,
@@ -73,7 +74,7 @@ export const SECTION_ICONS: Record<string, LucideIcon> = {
   'feeling': Moon,
   'flavor': Leaf,
   'liquor-color': Palette,
-  'brewing': Coffee,
+  'brewing': TeaCup,
 };
 
 /** One-line descriptions for each section */
@@ -93,7 +94,7 @@ const CATEGORY_ICON_FALLBACK: Record<string, LucideIcon> = {
   'finish': Sparkles,
   'feeling': Moon,
   'liquor-color': Palette,
-  'brewing': Coffee,
+  'brewing': TeaCup,
 };
 
 // Per-term icon overrides (for groups with duplicate labels across categories)

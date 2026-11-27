@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { ProductPage } from '../../pages/ProductPage';
 import type { InventoryItem } from '../../types';
+import type { YoursStripNav } from './YoursStrip';
 
 /**
  * A tea opened from a private link (an invoice's pay page, a /c/ collection)
@@ -12,7 +13,7 @@ import type { InventoryItem } from '../../types';
  * an invoice's tea keeps the shop's own, to get more of it. A private tea the
  * shop does not list opens from what the link carries, with no footer.
  */
-export function LinkTeaPage({ item, onClose, footer, top, yoursLine, yoursNote, joinMarker, onAddToCart }: {
+export function LinkTeaPage({ item, onClose, footer, top, yoursLine, yoursNote, yoursNav, onAddToCart }: {
   item: InventoryItem;
   onAddToCart?: (item: InventoryItem, grams: number, totalUsd: number) => void;
   onClose: () => void;
@@ -21,7 +22,8 @@ export function LinkTeaPage({ item, onClose, footer, top, yoursLine, yoursNote, 
   /** The tea is theirs on this link: the page shows the strip that is theirs with this line. */
   yoursLine?: string;
   yoursNote?: { text: string | null | undefined; by?: string };
-  joinMarker?: string;
+  /** Where the tea sits among the link's teas, and the arrows to the ones beside it. */
+  yoursNav?: YoursStripNav;
 }) {
   const scroller = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -42,7 +44,7 @@ export function LinkTeaPage({ item, onClose, footer, top, yoursLine, yoursNote, 
       className="fixed inset-0 z-modal overflow-y-auto bg-tea-bg pb-nav-gap"
       data-testid="link-tea-page"
     >
-      <ProductPage onAddToCart={onAddToCart} link={{ productKey: item.id, fallbackItem: item, top, yoursLine, yoursNote, joinMarker, footer, onBack: onClose }} />
+      <ProductPage onAddToCart={onAddToCart} link={{ productKey: item.id, fallbackItem: item, top, yoursLine, yoursNote, yoursNav, footer, onBack: onClose }} />
     </div>,
     document.body,
   );

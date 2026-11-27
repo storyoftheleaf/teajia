@@ -1,6 +1,7 @@
 
 import React from 'react';
-import { Play, BookOpen, Headphones, Film, Share2, X, ChevronLeft, ChevronRight, Camera, Heart, Bookmark, Eye, EyeOff, LayoutGrid, Link as LinkIcon, Check, Twitter, MessageCircle, Instagram, Download, SlidersHorizontal, ChevronDown, ChevronUp, ShoppingBag, List, ArrowUpDown, ArrowUp, ArrowDown, Copy, Trash, Plus, Sun, Moon, GraduationCap, Coffee, MoreHorizontal, Mail, Info, Settings, User, Users, Music, Image, ExternalLink, Palette, Package, Lightbulb, Send, Sparkles, MapPin, Search, ZoomIn, Star, Home, Calendar, LogOut, LogIn, Shield, Clock, KeyRound, AlertCircle, Pencil, Lock } from 'lucide-react';
+import { Play, BookOpen, Headphones, Film, Share2, X, ChevronLeft, ChevronRight, Camera, Heart, Bookmark, Eye, EyeOff, LayoutGrid, Link as LinkIcon, Check, Twitter, MessageCircle, Instagram, Download, SlidersHorizontal, ChevronDown, ChevronUp, ShoppingBag, List, ArrowUpDown, ArrowUp, ArrowDown, Copy, Trash, Plus, Sun, Moon, GraduationCap,  MoreHorizontal, Mail, Info, Settings, User, Users, Music, Image, ExternalLink, Palette, Package, Lightbulb, Send, Sparkles, MapPin, Search, ZoomIn, Star, Home, Calendar, LogOut, LogIn, Shield, Clock, KeyRound, AlertCircle, Pencil, Lock } from 'lucide-react';
+import { TeaCup } from './TeaCupIcon';
 
 export const SealIcon = ({ className, style, ...props }: { className?: string, style?: React.CSSProperties } & React.SVGProps<SVGSVGElement>) => (
   <svg viewBox="0 0 100 100" className={className} style={style} fill="currentColor" {...props}>
@@ -134,7 +135,7 @@ export const Icons = {
   Sun,
   Moon,
   School: GraduationCap,
-  Cup: Coffee,
+  Cup: TeaCup,
   Info,
   Mail,
   Settings,
@@ -158,7 +159,7 @@ export const Icons = {
   Star,
   Home,
   Calendar,
-  Coffee,
+  TeaCup,
   LogOut,
   LogIn,
   Shield,
