@@ -5,6 +5,7 @@ import { ArrowRight, Bookmark, Check, Copy } from 'lucide-react';
 import { useAppStore } from '../../lib/store';
 import { authPagePath } from '../../lib/authNavigation';
 import { keepPayInvoice, setPayInvoiceDiscount } from '../../lib/payInvoiceKeepApi';
+import { Button } from '../shared/Button';
 
 const KEEP_PARAM = 'keep';
 
@@ -107,13 +108,13 @@ function DiscountOffer({ slug, token, percent, onChanged }: {
         />
         <span className="font-sans text-ui-13 text-tea-text-sec">%</span>
       </span>
-      <button type="submit" disabled={!valid || state === 'saving'} className="btn-secondary tap-target">
+      <Button type="submit" variant="secondary" disabled={!valid || state === 'saving'} className="tap-target">
         {state === 'saving' ? 'Saving' : percent ? 'Change' : 'Offer'}
-      </button>
+      </Button>
       {percent ? (
-        <button type="button" onClick={() => void apply(0)} disabled={state === 'saving'} className="tap-target font-sans text-ui-12 text-tea-text-sec hover:text-tea-text">
+        <Button type="button" variant="plain" onClick={() => void apply(0)} disabled={state === 'saving'} className="tap-target font-sans text-ui-12 text-tea-text-sec hover:text-tea-text">
           Take it off
-        </button>
+        </Button>
       ) : null}
       {state === 'error' && <p role="alert" className="basis-full font-sans text-ui-12 text-tea-text-sec">That did not save. Try again.</p>}
     </form>
