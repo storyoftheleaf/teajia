@@ -226,28 +226,26 @@ function NumberPad({ open, name, shelf, busy, onClose, onPour }: {
 
   return (
     <BottomSheet open={open} onOpenChange={next => { if (!next) onClose(); }} title={name} description={shelf}>
-      <div className="mx-auto flex w-full max-w-sm flex-col gap-3 px-2 pt-1">
+      <div className="-mx-2 flex flex-col sm:mx-auto sm:w-full sm:max-w-sm">
         <output aria-live="polite" aria-label="Weight in grams"
-          className="flex h-16 items-baseline justify-center gap-2 rounded-md border border-tea-border bg-tea-surface">
-          <span className="font-sans text-5xl tabular-nums leading-[4rem] text-tea-text">{typed || '0'}</span>
+          className="flex h-20 items-baseline justify-end gap-2 px-6">
+          <span className="font-sans text-6xl tabular-nums leading-[5rem] text-tea-text">{typed || '0'}</span>
           <span className="font-sans text-xl text-tea-text-sec">g</span>
         </output>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-3 gap-px border-y border-tea-border bg-tea-border">
           {KEYS.map(key => (
             <Button key={key} type="button" variant="plain" aria-label={key === 'back' ? 'Delete' : key === '.' ? 'Decimal point' : key}
               onClick={() => setTyped(current => addKey(current, key))}
-              className="flex h-16 items-center justify-center rounded-md border border-tea-border bg-tea-surface font-sans text-3xl tabular-nums text-tea-text transition-colors hover:border-tea-gold active:bg-tea-elevated">
+              className="flex h-[4.5rem] items-center justify-center bg-tea-bg font-sans text-3xl tabular-nums text-tea-text transition-colors active:bg-tea-elevated">
               {key === 'back' ? <Delete size={26} strokeWidth={1.5} aria-hidden /> : key}
             </Button>
           ))}
-        </div>
-        <div className="grid grid-cols-3 gap-2">
-          <Button type="button" variant="secondary" disabled={busy} onClick={() => onPour(null)}
-            className="!h-16 !text-base">
+          <Button type="button" variant="plain" disabled={busy} onClick={() => onPour(null)}
+            className="flex h-[4.5rem] items-center justify-center bg-tea-bg font-sans text-base text-tea-text-sec transition-colors active:bg-tea-elevated disabled:opacity-50">
             No weight
           </Button>
           <Button type="button" disabled={busy || weight === null} onClick={() => onPour(weight)}
-            className="col-span-2 !h-16 !text-xl">
+            className="col-span-2 !h-[4.5rem] !rounded-none !text-xl">
             Enter
           </Button>
         </div>
