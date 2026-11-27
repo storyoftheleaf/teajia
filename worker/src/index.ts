@@ -234,7 +234,7 @@ import {
   listTeaReferenceIssues,
   resolveTeaReferenceIssues,
 } from './teaReferenceIssues';
-import { isTeaType, normalizeTeaType, TEA_TYPES } from '../../src/wisdom/vocabulary';
+import { isStoredTeaType, isTeaType, normalizeTeaType, STORED_TEA_TYPES } from '../../src/wisdom/vocabulary';
 import { buildPublicProductHref } from '../../src/lib/publicProductNavigation';
 import {
   isTopTeaSlot, TOP_TEA_SLOTS, TOP_TEA_NAME_LIMIT, TOP_TEA_NOTE_LIMIT, topTeasOpen,
@@ -4440,9 +4440,9 @@ const handleGetEligibleSalesProducts: Handler = async (request, env) => {
          ORDER BY winner.created_at DESC,winner.id DESC LIMIT 1
        )
        WHERE p.account_id=? AND p.status='Active'
-         AND p.type IN (${[...TEA_TYPES,'Teaware'].map(() => '?').join(',')})
+         AND p.type IN (${[...STORED_TEA_TYPES,'Teaware'].map(() => '?').join(',')})
        ORDER BY product_name`
-    ).bind(ctx.userId, ctx.accountId, ...TEA_TYPES,'Teaware').all();
+    ).bind(ctx.userId, ctx.accountId, ...STORED_TEA_TYPES,'Teaware').all();
     const eligible = (rows.results as any[]).flatMap(row => {
       const permission = resolveSalePermission({
         actorRole: ctx.role, actorUserId: ctx.userId, stockOwnerUserId: row.owner_id,
@@ -16466,7 +16466,7 @@ const handleConvertInquiry: Handler = async (request, env, params) => {
       const quantity = packing.packGrams * packing.packs;
       const product = products.get(String(item.id || ''));
       const name = String(product?.given_name || product?.product_name || item.name || 'Item');
-      const linked = product && (isTeaType(String(product.type || ''))||product.type==='Teaware');
+      const linked = product && (isStoredTeaType(String(product.type || ''))||product.type==='Teaware');
       return {
         product_id: linked ? String(product.id) : null,
         custom_name: `${name} (${inquiryPackingLabel({ ...item, category: product?.type === 'Teaware' ? 'ware' : item.category })})`,
@@ -30147,7 +30147,7 @@ const handleConfirmCollectionPicks: Handler = async (request, env, params) => {
       catalogUnitPriceUsd: row.fixed_retail_price_usd == null ? null : Number(row.fixed_retail_price_usd),
     });
 
-    const mayRemainLinked = isTeaType(String(row.product_type || ''))||row.product_type==='Teaware';
+    const mayRemainLinked = isStoredTeaType(String(row.product_type || ''))||row.product_type==='Teaware';
     lineItems.push({
       product_id: mayRemainLinked ? row.product_id : null,
       custom_name: mayRemainLinked ? null : row.product_name,
