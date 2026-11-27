@@ -28770,7 +28770,7 @@ const handleGetCollection: Handler = async (request, env, params) => {
   // The shelf price a blank quote follows, read live (productPricing.ts, shelfPricesFor).
   const adminShelf = await shelfPricesFor(env, ctx.accountId, ((items.results ?? []) as any[]).map(i => i.product_id));
   const collectionItems = ((items.results ?? []) as Record<string, any>[]).map(({ product_account_id, ...raw }) => {
-    const item = { ...raw, catalog_price_usd: adminShelf.get(raw.product_id) ?? null };
+    const item: Record<string, any> = { ...raw, catalog_price_usd: adminShelf.get(raw.product_id) ?? null };
     return readsOwnShopScores && product_account_id === ctx.accountId
       ? item
       : { ...item, tasting_notes: item.tasting_notes ? tastingJsonWithoutScores(item.tasting_notes) ?? '[]' : item.tasting_notes };
