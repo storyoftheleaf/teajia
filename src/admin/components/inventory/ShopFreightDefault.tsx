@@ -51,10 +51,12 @@ export function ShopFreightDefault({ accountId, account, busy, run }: { accountI
     : typed === 0 ? 'Zero means free freight for every tea on the shop default.'
     : fx === null ? `There is no exchange rate for ${currencyText}, so it cannot be converted.`
     : `$${(typed / fx).toFixed(2)} USD/kg today, adding $${((typed / fx / 1000) * SHOP_MARKUP_MULTIPLIER).toFixed(3)} a gram on the shelf.`;
-  return <div className="logistics-service-row" data-testid="shop-freight-default">
-    <span>Shop default<small className="text-tea-text-sec">Teas with no service, or one that cannot price them</small></span>
-    <span>{shopDefaultLabel(account)}</span>
-    {!editing && <button type="button" className="tap-target purchase-tracking-button" aria-label="Edit shop default" disabled={busy || !accountId} onClick={open}>Edit</button>}
+  return <div className="journey-card journey-card-quiet" data-testid="shop-freight-default">
+    <div className="journey-head">
+      <div className="min-w-0"><div className="text-ui-16 text-tea-text">Shop default</div><div className="text-ui-12 text-tea-text-dim">Teas with no service, or one that cannot price them</div></div>
+      <div className="journey-rate text-ui-16 text-tea-text tabular-nums">{shopDefaultLabel(account)}</div>
+      {!editing && <button type="button" className="btn-quiet btn-sm" aria-label="Edit shop default" disabled={busy || !accountId} onClick={open}>Edit</button>}
+    </div>
     {editing && <form className="logistics-service-editor" onSubmit={event => {
       event.preventDefault(); if (!valid || !accountId) return;
       void run(async () => {

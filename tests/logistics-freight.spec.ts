@@ -47,7 +47,7 @@ test('Logistics holds the shop default and adds My suitcase as an ordinary servi
 
   // My suitcase: a luggage contact, then a free service by the kilo, by air, in the shop's currency.
   await page.getByRole('button', { name: '+ My suitcase' }).click();
-  await expect(page.locator('.logistics-service-row').filter({ hasText: 'My suitcase' })).toContainText('0 Yuan/kg');
+  await expect(page.locator('.journey-card').filter({ hasText: 'My suitcase' })).toContainText('0 Yuan/kg');
   expect(writes.find(w => w.url === '/api/logistics/services')?.body).toMatchObject({ logistics_company_name: 'My luggage', name: 'My suitcase', mode: 'air', basis: 'kg', rate: 0, currency: 'Yuan' });
   await expect(page.getByRole('button', { name: '+ My suitcase' })).toHaveCount(0);
 
@@ -63,7 +63,7 @@ test('Logistics holds the shop default and adds My suitcase as an ordinary servi
   await add.getByRole('combobox', { name: 'Logistics company' }).fill('Keelung Sea Freight');
   await add.getByRole('textbox', { name: 'Service rate' }).fill('12');
   await add.getByRole('button', { name: 'Save' }).click();
-  await expect(page.locator('.logistics-service-row').filter({ hasText: 'Keelung Sea Freight' })).toContainText('12 Yuan/kg');
+  await expect(page.locator('.journey-card').filter({ hasText: 'Keelung Sea Freight' })).toContainText('12 Yuan/kg');
   expect(writes.filter(w => w.url === '/api/logistics/services').at(-1)?.body).toMatchObject({ logistics_company_name: 'Keelung Sea Freight', name: 'Air', mode: 'air', basis: 'kg', rate: 12, currency: 'Yuan' });
   await page.waitForTimeout(300);
   await page.screenshot({ path: info.outputPath('logistics-services.png') });
@@ -84,19 +84,25 @@ test('a service links to its orders, shipments and teas, and a link opens it aga
 
   // A link to a service opens the services with its connections showing.
   await page.goto('/admin/purchase-orders?serviceId=air');
-  const links = page.getByTestId('service-connections-air');
-  await expect(links).toBeVisible({ timeout: 20_000 });
-  await expect(page.locator('.logistics-service-row').filter({ hasText: 'Airmail' })).toContainText('1 order, 1 shipment, 1 tea');
-  await expect(links.getByRole('link', { name: 'Chen Family' })).toHaveAttribute('href', '/admin/purchase-orders?purchaseId=po-chen');
-  await expect(links.getByRole('link', { name: 'On the way, due 2026-12-04' })).toHaveAttribute('href', '/admin/purchase-orders?shipmentId=ship-1');
-  await expect(links.getByRole('link', { name: 'Velvet Earth' })).toHaveAttribute('href', '/admin/stock?panel=velvet');
+  const card = page.getByTestId('service-journey-air');
+  await expect(card).toBeVisible({ timeout: 20_000 });
+  // The journey track: ordered, at the forwarder, on the way, arrived; it opens on what is on the way.
+  const stages = card.getByRole('group', { name: 'Airmail journey' }).getByRole('button');
+  await expect(stages).toHaveText([/Ordered0/, /At Guangzhou Forwarder1Chen Family/, /On the way1Due 4 Dec/, /Arrived0/]);
+  await expect(stages.nth(2)).toHaveAttribute('aria-pressed', 'true');
+  await expect(card.getByTestId('journey-items-on_the_way').getByRole('link', { name: /Due 4 Dec/ })).toHaveAttribute('href', '/admin/purchase-orders?shipmentId=ship-1');
+  await expect(card.getByRole('link', { name: 'Velvet Earth' })).toHaveAttribute('href', '/admin/stock?panel=velvet');
+  await stages.nth(1).click();
+  await expect(card.getByTestId('journey-items-at_forwarder').getByRole('link', { name: 'Chen Family' })).toHaveAttribute('href', '/admin/purchase-orders?purchaseId=po-chen');
   await page.waitForTimeout(200);
   await page.screenshot({ path: info.outputPath('service-connections.png') });
+  await stages.nth(2).click();
+  const links = card.getByTestId('journey-items-on_the_way');
 
   // Following the shipment link closes the panel and lands on the shipment, which links back.
-  await links.getByRole('link', { name: 'On the way, due 2026-12-04' }).click();
+  await links.getByRole('link', { name: /Due 4 Dec/ }).click();
   await expect(page).toHaveURL(/shipmentId=ship-1/);
-  const card = page.locator('#shipment-card-ship-1');
-  await expect(card.getByTestId('shipment-service-link')).toHaveAttribute('href', '/admin/purchase-orders?serviceId=air');
-  await expect(card.getByRole('link', { name: 'Velvet Earth' })).toHaveAttribute('href', '/admin/stock?panel=velvet');
+  const shipmentCard = page.locator('#shipment-card-ship-1');
+  await expect(shipmentCard.getByTestId('shipment-service-link')).toHaveAttribute('href', '/admin/purchase-orders?serviceId=air');
+  await expect(shipmentCard.getByRole('link', { name: 'Velvet Earth' })).toHaveAttribute('href', '/admin/stock?panel=velvet');
 });

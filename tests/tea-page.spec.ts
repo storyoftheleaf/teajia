@@ -86,14 +86,17 @@ test('the tea page reads in editing order and Next keeps the part you are on', a
   await expect(tea.getByRole('spinbutton', { name: /freight/i })).toHaveCount(0);
   await expect(tea.getByRole('button', { name: 'Rates are set in Logistics' })).toBeVisible();
   // The shipments this tea is on are links, each with the service it travels by.
-  await expect(tea.getByTestId('tea-shipments').getByRole('link', { name: 'On the way, due 2026-12-04' })).toHaveAttribute('href', '/admin/purchase-orders?shipmentId=ship-1');
-  await expect(tea.getByTestId('tea-shipments').getByRole('link', { name: 'Guangzhou · Airmail' })).toHaveAttribute('href', '/admin/purchase-orders?serviceId=air');
+  await expect(tea.getByTestId('tea-shipments').getByRole('link', { name: /Due 4 Dec/ })).toHaveAttribute('href', '/admin/purchase-orders?shipmentId=ship-1');
+  await expect(tea.getByTestId('tea-shipments').getByRole('link', { name: /Due 4 Dec.*Guangzhou · Airmail/ })).toBeVisible();
   const saved = page.waitForRequest(r => r.url().includes('/api/products/liu-bao/commercial') && r.method() === 'PUT');
   await page.route('**/api/products/liu-bao/commercial', r => r.fulfill({ json: { success: true } }));
   await freight.selectOption('air');
   expect((await saved).postDataJSON()).toEqual({ freight_service_id: 'air' });
   // Once it travels by a service, the service itself is a link.
-  await expect(tea.getByTestId('tea-freight-service-link')).toHaveAttribute('href', '/admin/purchase-orders?serviceId=air');
+  await expect(tea.getByTestId('tea-freight-service-link').getByRole('link')).toHaveAttribute('href', '/admin/purchase-orders?serviceId=air');
+  await tea.getByTestId('tea-shipments').scrollIntoViewIfNeeded();
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: testInfo.outputPath('tea-page-journey.png') });
 
   await page.getByRole('navigation', { name: 'Parts of this tea' }).getByRole('button', { name: 'Price' }).click();
   await expect(page.getByTestId('tea-page-next-at')).toHaveText('Next opens at Price');

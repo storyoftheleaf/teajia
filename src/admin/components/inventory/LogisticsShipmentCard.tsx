@@ -319,7 +319,7 @@ export function LogisticsShipmentCard({ shipment, orders, addresses = [], busy, 
     aria-label={`${shipment.logistics_company_name} shipment`}>
     <div className="logistics-shipment-heading">
       <div className="logistics-actions"><h2 className={T.h3}>{name}</h2>{shipment.service_id
-        ? <Link data-testid="shipment-service-link" className="tap-target underline text-tea-gold" to={serviceHref(shipment.service_id)}>{shipment.service_quote?.name || 'Its service'}{shipment.service_quote ? `, ${n(shipment.service_quote.rate)} ${shipment.service_quote.currency}${shipment.service_quote.basis === 'fixed' ? ' fixed' : shipment.service_quote.basis === 'm3' ? '/m³' : '/kg'}` : ''}</Link>
+        ? <Link data-testid="shipment-service-link" className="journey-chip tap-target text-ui-13" to={serviceHref(shipment.service_id)}>{shipment.service_quote?.name || 'Its service'}{shipment.service_quote ? `, ${n(shipment.service_quote.rate)} ${shipment.service_quote.currency}${shipment.service_quote.basis === 'fixed' ? ' fixed' : shipment.service_quote.basis === 'm3' ? '/m³' : '/kg'}` : ''}</Link>
         : <span className="text-tea-text-sec">No service named</span>}<span className="logistics-state" data-state={state}>{status[state]}</span></div>
       {!grouped && <span className="text-tea-text-sec">{shipment.logistics_company_name}</span>}
     </div>

@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useProducts } from '../../hooks/useAdminData';
-import { purchaseHref, serviceConnections, shipmentHref, SHIPMENT_STATE_WORD, teaHref } from './logisticsLinks';
+import { serviceJourney } from './serviceJourney';
+import { ServiceJourneyCard } from './ServiceJourneyCard';
 import { TrackingTask } from './TrackingTask';
 import { useQuery } from '@tanstack/react-query';
 import { api, ApiError } from '../../../lib/api';
@@ -18,27 +19,17 @@ export function serviceRateLabel(service: Pick<LogisticsService, 'rate' | 'curre
 type CompanyContact = { id: string; name: string };
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
-/** What one service is connected to, every line a link both ways (Adrian, 2026-11-27). */
-function ServiceConnectionsList({ service, tracking, products, onGo }: { service: LogisticsService; tracking?: LogisticsTracking | null; products: Parameters<typeof serviceConnections>[2]; onGo: () => void }) {
-  const { orders, shipments, teas } = serviceConnections(service, tracking, products);
-  const link = 'tap-target underline text-tea-gold';
-  return <div className="logistics-service-links" data-testid={`service-connections-${service.id}`}>
-    <div><small className="text-tea-text-dim">Orders waiting at {service.logistics_company_name}</small>
-      {orders.length ? <ul>{orders.map(order => <li key={order.purchase_id}><Link className={link} to={purchaseHref(order.purchase_id)} onClick={onGo}>{order.vendor_name || 'Supplier order'}</Link> <span className="text-tea-text-sec">{order.logistics_arrived_at ? 'at logistics' : 'on its way to them'}</span></li>)}</ul> : <p className="text-tea-text-sec">None waiting.</p>}</div>
-    <div><small className="text-tea-text-dim">Shipments by {service.name}</small>
-      {shipments.length ? <ul>{shipments.map(shipment => <li key={shipment.id}><Link className={link} to={shipmentHref(shipment.id)} onClick={onGo}>{SHIPMENT_STATE_WORD[shipment.state]}{shipment.eta ? `, due ${shipment.eta}` : ''}</Link> <span className="text-tea-text-sec">{plural(shipment.lines.length, 'line')}{shipment.freight?.confirmed ? ', bill confirmed' : ''}</span></li>)}</ul> : <p className="text-tea-text-sec">No shipments yet.</p>}</div>
-    <div><small className="text-tea-text-dim">Teas priced by {service.name}</small>
-      {teas.length ? <ul>{teas.map(tea => <li key={tea.id}><Link className={link} to={teaHref(tea.id)} onClick={onGo}>{tea.name}</Link></li>)}</ul> : <p className="text-tea-text-sec">No teas travel by it yet.</p>}</div>
-  </div>;
-}
-
 export function LogisticsServices({ services, tracking, accountId, busy, mutate: save }: { services: LogisticsService[]; tracking?: LogisticsTracking | null; accountId: string | null; busy: boolean; mutate: LogisticsMutation }) {
   const { mutate, error } = useLogisticsAction(save);
   const [params, setParams] = useSearchParams();
   const linkedService = params.get('serviceId');
   const [open, setOpen] = useState(Boolean(linkedService));
-  const [shown, setShown] = useState<string | null>(linkedService);
-  useEffect(() => { if (linkedService) { setOpen(true); setShown(linkedService); } }, [linkedService]);
+  useEffect(() => { if (linkedService) setOpen(true); }, [linkedService]);
+  useEffect(() => {
+    if (!open || !linkedService) return;
+    const frame = requestAnimationFrame(() => document.querySelector(`[data-testid="service-journey-${CSS.escape(linkedService)}"]`)?.scrollIntoView({ block: 'nearest' }));
+    return () => cancelAnimationFrame(frame);
+  }, [open, linkedService]);
   const close = () => { setOpen(false); if (linkedService) setParams(current => { const next = new URLSearchParams(current); next.delete('serviceId'); return next; }); };
   const { data: products = [] } = useProducts({ enabled: open });
   const [editing, setEditing] = useState<string | null>(null);
@@ -81,16 +72,7 @@ export function LogisticsServices({ services, tracking, accountId, busy, mutate:
       setEditing(null); void contactsQuery.refetch();
     });
   };
-  return <><button type="button" className="tap-target purchase-tracking-button" aria-label="Logistics services" onClick={() => setOpen(true)}>Services <span className="text-tea-text-dim">{active.length}</span></button><TrackingTask open={open} onClose={close} title="Logistics services"><div className="logistics-form">
-    <ShopFreightDefault accountId={accountId} account={shopDefault.data} busy={busy} run={action => mutate(action)}/>
-    {active.map(service => { const c = serviceConnections(service, tracking, products); return <div className="logistics-service-row" key={service.id}>
-      <button type="button" className="tap-target logistics-service-name" aria-expanded={shown === service.id} onClick={() => setShown(shown === service.id ? null : service.id)}>{service.logistics_company_name}<small className="text-tea-text-sec">{service.name} · {service.mode === 'sea' ? 'Boat' : 'Air'} · {plural(c.orders.length, 'order')}, {plural(c.shipments.length, 'shipment')}, {plural(c.teas.length, 'tea')}</small></button>
-      <span>{serviceRateLabel(service)}</span><button type="button" className="tap-target purchase-tracking-button" disabled={busy} onClick={() => chooseEditor(service)}>Edit</button>
-      {shown === service.id && <ServiceConnectionsList service={service} tracking={tracking} products={products} onGo={close}/>}
-    </div>; })}
-    {!active.length && <p className="text-tea-text-sec">Save a company's services and quoted rates here, then choose one when preparing a shipment.</p>}
-    {!editing && <div className="logistics-actions"><button type="button" className="tap-target purchase-tracking-button logistics-add-service" onClick={() => chooseEditor()}>+ Logistics company</button>{!hasSuitcase(services) && <button type="button" className="tap-target purchase-tracking-button" disabled={busy || shopDefault.isLoading} onClick={addSuitcase}>+ My suitcase</button>}</div>}
-    {editing && <form key={editing} className="logistics-service-editor" aria-label={edit ? 'Edit logistics service' : 'Add a logistics company'} onSubmit={event => { event.preventDefault(); saveDraft(); }}>
+  const editorForm = <form key={editing} className="logistics-service-editor" aria-label={edit ? 'Edit logistics service' : 'Add a logistics company'} onSubmit={event => { event.preventDefault(); saveDraft(); }}>
       <div className="logistics-fields">
         <label>Company<input aria-label="Logistics company" list="logistics-company-names" value={draft.companyName} placeholder="Name" disabled={busy} onChange={event => change({ companyName: event.target.value })}/></label>
         <datalist id="logistics-company-names">{contacts.map(contact => <option key={contact.id} value={contact.name}/>)}</datalist>
@@ -110,7 +92,14 @@ export function LogisticsServices({ services, tracking, accountId, busy, mutate:
         {edit && <button type="button" className="tap-target purchase-tracking-button" disabled={busy} onClick={() => void mutate(async () => { await api.logistics.archiveService(edit.id); setEditing(null); })}>Archive service</button>}
         <span className="text-tea-text-dim">{details ? 'Saved rates fill new shipment estimates. Existing quotes and final bills stay as recorded.' : `${draft.mode === 'sea' ? 'By boat' : 'By air'}, ${draft.basis === 'fixed' ? 'a fixed price' : draft.basis === 'm3' ? 'per m³' : 'per kg'}, in ${draft.currency || shopCurrency}. More details to change.`}</span>
       </div>
-    </form>}
+    </form>;
+  return <><button type="button" className="tap-target purchase-tracking-button" aria-label="Logistics services" onClick={() => setOpen(true)}>Services <span className="text-tea-text-dim">{active.length}</span></button><TrackingTask open={open} onClose={close} title="Logistics services"><div className="logistics-form journey-list">
+    <ShopFreightDefault accountId={accountId} account={shopDefault.data} busy={busy} run={action => mutate(action)}/>
+    {active.map(service => <ServiceJourneyCard key={service.id} service={service} journey={serviceJourney(service, tracking, products)} rate={serviceRateLabel(service)}
+      busy={busy} onEdit={() => chooseEditor(service)} onGo={close}>{editing === service.id && editorForm}</ServiceJourneyCard>)}
+    {!active.length && <p className="text-tea-text-sec">Save a company's services and quoted rates here, then choose one when preparing a shipment.</p>}
+    {!editing && <div className="logistics-actions"><button type="button" className="tap-target purchase-tracking-button logistics-add-service" onClick={() => chooseEditor()}>+ Logistics company</button>{!hasSuitcase(services) && <button type="button" className="tap-target purchase-tracking-button" disabled={busy || shopDefault.isLoading} onClick={addSuitcase}>+ My suitcase</button>}</div>}
+    {editing === 'new' && editorForm}
     <LogisticsActionError message={error} recovery="Your entries are kept. Retry the same company or service action."/>
   </div></TrackingTask></>;
 }

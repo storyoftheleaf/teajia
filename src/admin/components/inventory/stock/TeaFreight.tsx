@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
 import { serviceHref, shipmentHref, SHIPMENT_STATE_WORD, teaShipments } from '../logisticsLinks';
+import { JourneyChip } from '../ServiceJourneyCard';
 import { Button } from '../../../../components/shared/Button';
 import { api } from '../../../../lib/api';
 import { rateToUsd } from '../../../../lib/currency';
@@ -78,15 +78,17 @@ export function TeaFreight({ product, shopPerKgUsd, rates, costRateToUsd, onChoo
       </div>
     </TeaLine>
     {chosen && <TeaLine label="Service">
-      <Link data-testid="tea-freight-service-link" className="tap-target text-tea-gold" to={serviceHref(chosen.id)}>{chosen.logistics_company_name} · {chosen.name}, {serviceRateLabel(chosen)}</Link>
+      <span data-testid="tea-freight-service-link" className="journey-items flex-1 justify-end"><JourneyChip item={{ key: chosen.id, label: `${chosen.logistics_company_name} · ${chosen.name}`, detail: serviceRateLabel(chosen), href: serviceHref(chosen.id) }}/></span>
     </TeaLine>}
     {onBoard.length > 0 && <TeaLine label="Shipments">
-      <ul data-testid="tea-shipments" className="flex-1 min-w-0 space-y-1">
-        {onBoard.slice(0, 4).map(({ shipment, service }) => <li key={shipment.id} className="flex flex-wrap gap-x-2">
-          <Link className="tap-target text-tea-gold" to={shipmentHref(shipment.id)}>{SHIPMENT_STATE_WORD[shipment.state]}{shipment.eta ? `, due ${shipment.eta}` : ''}</Link>
-          {service ? <Link className="tap-target text-admin-text-dim" to={serviceHref(service.id)}>{shipment.logistics_company_name} · {service.name}</Link> : <span className="text-admin-text-dim">{shipment.logistics_company_name}, no service named</span>}
-        </li>)}
-      </ul>
+      <span data-testid="tea-shipments" className="journey-items flex-1 justify-end">
+        {onBoard.slice(0, 4).map(({ shipment, service }) => <JourneyChip key={shipment.id} item={{
+          key: shipment.id,
+          label: shipment.eta && shipment.state !== 'received' ? `Due ${new Date(`${shipment.eta}T00:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' })}` : SHIPMENT_STATE_WORD[shipment.state],
+          detail: service ? `${shipment.logistics_company_name} · ${service.name}` : shipment.logistics_company_name,
+          href: shipmentHref(shipment.id),
+        }}/>)}
+      </span>
     </TeaLine>}
     <TeaLine label="Freight">
       <span data-testid="tea-freight-rate" className="text-admin-text tabular-nums">{usd(shown) ?? '—'} / kg</span>
