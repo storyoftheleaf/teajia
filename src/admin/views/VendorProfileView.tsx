@@ -1,26 +1,34 @@
 import { CurateRecordTools } from '../../components/curate/CurateRecordTools';
 import { CurateQuotesPanel } from '../../components/curate/CurateQuotesPanel';
 import { CurateVendorFields } from '../../components/curate/CurateVendorFields';
-import { VendorDetailsCard, type VendorRecord } from '../../components/vendors/VendorDetailsCard';
+import { VendorDetailsCard, vendorContacts, type VendorRecord } from '../../components/vendors/VendorDetailsCard';
+import { vendorLinks, wisdomPlaceLink, wisdomTypeLink } from '../../components/vendors/vendorLinks';
+import { VendorCurateTeasCard } from '../../components/vendors/VendorCurateTeasCard';
 import { VendorNotesCard } from '../../components/vendors/VendorNotesCard';
 import { VendorSalesCard, type VendorOwnOrder } from '../../components/vendors/VendorSalesCard';
 /**
  * VendorProfileView, /admin/vendors/:vendorId
  *
- * One vendor: their face and details (each editable where it sits), notes,
- * what the shop sold of their teas and what they bought, the teas they
- * supply, and what was bought from them. The working records (people,
+ * One vendor, in the order Adrian reads them: who they are and how to reach
+ * them, the numbers, the teas they supply, what was bought from them, what
+ * the shop sold of their teas, then notes. The working records (people,
  * quotes, files) sit last.
+ *
+ * Every row opens its own record: a tea opens in Stock, a receipt or purchase
+ * order in its own screen, an invoice in Activity. Each is a link, so the
+ * browser's back returns here.
  *
  * Adrian, 2026-11-23: "nothing is editable ... the notes is just one weird
  * long list ... you're not sharing what other people purchased from me."
+ * Adrian, 2026-11-27: "when I click on them, they don't actually take me to
+ * the product ... make sure everything inside of it is linkable."
  */
 
 import React from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { useAdminBack } from '../hooks/useAdminBack';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { api, type PurchaseOrder, type VendorProductSale } from '../../lib/api';
 import { usePrivateQueryScope } from '../hooks/usePrivateQueryScope';
 import { useRates } from '../hooks/useAdminData';
@@ -48,11 +56,26 @@ function fmt(n: number, decimals = 2): string {
   return n.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 }
 
+/** Receipt sources in words; the stored kind is a code like "curate_import". */
+function receiptSource(kind?: string | null): string {
+  const words: Record<string, string> = { curate_import: 'from an import', purchase: 'purchase', purchase_order: 'purchase order', manual: 'entered by hand' };
+  return kind ? words[kind] ?? kind.replace(/_/g, ' ') : '';
+}
+
 function stockVariant(g: number): { label: string; variant: StatusPillVariant } {
   if (g <= 0) return { label: 'Out', variant: 'draft' };
   if (g < 100) return { label: 'Low', variant: 'active' };
   return { label: 'In stock', variant: 'success' };
 }
+
+/** Teas whose cost has an amount but no confirmed currency, which is why a total is declined. */
+export function unconfirmedCostCount(products: PricedVendorProductRow[]): number {
+  return products.filter(p => p.cost_amount != null && !p.cost_currency_source).length;
+}
+
+const rowLinkInner = 'flex items-center gap-3 py-3 -mx-2 px-2 rounded-md transition-colors hover:bg-tea-accent-sub focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50';
+const rowLink = `${rowLinkInner} border-b border-tea-border last:border-0`;
+const metaLink = 'underline decoration-tea-border underline-offset-2 hover:text-tea-text';
 
 // ────────────────────────────────────────────────────────
 // Sub-components
@@ -71,7 +94,6 @@ const StatusPill: React.FC<{ variant?: StatusPillVariant; children: React.ReactN
 
 export const VendorProfileView: React.FC = () => {
   const { vendorId } = useParams<{ vendorId: string }>();
-  const navigate = useNavigate();
   const goBack = useAdminBack('/admin/people?tab=sources');
   const scope = usePrivateQueryScope();
   const { data: rates } = useRates();
@@ -123,6 +145,7 @@ export const VendorProfileView: React.FC = () => {
   const historyLoading = ordersLoading || receiptsLoading;
   const historyError = ordersError || receiptsError;
   const economics = vendorEconomics(products, scope.ready ? productsData : undefined, rates);
+  const unconfirmed = unconfirmedCostCount(products);
   const money = (value: number | null, decimals = 0) => value == null
     ? '—'
     : `$${fmt(value, decimals)}`;
@@ -181,15 +204,8 @@ export const VendorProfileView: React.FC = () => {
       <div className="max-w-3xl mx-auto px-4 md:px-6 pb-12 space-y-6">
         <VendorDetailsCard vendor={vendor} vendorId={vendorId!} />
 
-        <VendorNotesCard vendorId={vendorId!} notes={vendor.notes} />
-
-        <VendorSalesCard
-          sales={salesData}
-          salesLoading={salesLoading}
-          salesError={salesError}
-          ownOrders={ownOrdersData}
-          ownOrdersLoading={ownOrdersLoading}
-        />
+        {/* An old note sits right under the card, so each part can move into it. */}
+        <VendorNotesCard vendorId={vendorId!} notes={vendor.notes} contacts={vendorContacts(vendor)} />
 
         {/* Stats row */}
         <section className="bg-tea-surface border border-tea-border rounded-xl p-5">
@@ -209,10 +225,14 @@ export const VendorProfileView: React.FC = () => {
               </div>
             ))}
           </div>
+          {unconfirmed > 0 && (economics.totalCostUsd == null || economics.stockValueUsd == null) && (
+            <p className="mt-3 text-ui-13 text-tea-text-sec" data-testid="vendor-unconfirmed-costs">
+              {unconfirmed === 1 ? '1 tea has' : `${unconfirmed} teas have`} a cost with no confirmed currency, so the totals are left out rather than guessed.
+            </p>
+          )}
         </section>
 
-
-        {/* Products supplied */}
+        {/* Products supplied: each opens in Stock */}
         <section className="bg-tea-surface border border-tea-border rounded-xl p-5">
           <div className="flex items-baseline justify-between mb-4">
             <h3 className="h3">Products supplied</h3>
@@ -227,33 +247,47 @@ export const VendorProfileView: React.FC = () => {
             <div className="border-t border-tea-border">
               {products.map(p => {
                 const stock = p.stock_grams == null ? null : stockVariant(Number(p.stock_grams));
+                const typeLink = wisdomTypeLink(p.type);
+                const placeLink = wisdomPlaceLink(p.origin_region, p.origin_country);
                 return (
-                  <div
-                    key={p.id}
-                    className="flex items-center gap-3 py-3 border-b border-tea-border last:border-0"
-                  >
-                    {p.image_url ? (
-                      <img
-                        src={p.image_url}
-                        alt=""
-                        className="w-9 h-9 rounded-md object-cover shrink-0"
-                      />
-                    ) : (
-                      <div className="w-9 h-9 rounded-md bg-tea-elevated shrink-0" />
+                  <div key={p.id} className="flex flex-wrap items-center border-b border-tea-border last:border-0" data-testid="vendor-product-row">
+                    <Link
+                      to={vendorLinks.product(p.id)}
+                      state={{ panelOpenedHere: true }}
+                      className={`${rowLinkInner} min-w-0 basis-full`}
+                    >
+                      {p.image_url ? (
+                        <img
+                          src={p.image_url}
+                          alt=""
+                          className="w-9 h-9 rounded-md object-cover shrink-0"
+                        />
+                      ) : (
+                        <div className="w-9 h-9 rounded-md bg-tea-elevated shrink-0" />
+                      )}
+                      {/* The whole name across the top, then stock and cost under it, so a
+                          long name is never cut off (Adrian, 2026-11-27). */}
+                      <div className="min-w-0 flex-1">
+                        <p className="text-ui-14 text-tea-text break-words">
+                          {p.given_name || p.product_name}
+                        </p>
+                        <p className="mt-0.5 font-mono text-ui-12 text-tea-text-sec tabular-nums">
+                          {[p.stock_grams == null ? 'Stock ?' : `${Number(p.stock_grams).toLocaleString()}g${stock ? ` · ${stock.label}` : ''}`, recordedCost(p) ?? 'Cost ?'].join(' · ')}
+                        </p>
+                        {!typeLink && !placeLink && (p.type || p.origin_region || p.origin_country) && (
+                          <p className="label-caps text-tea-text-dim mt-0.5 break-words">
+                            {[p.type, p.origin_region, p.origin_country].filter(Boolean).join(' · ')}
+                          </p>
+                        )}
+                      </div>
+                      <ChevronRight size={16} strokeWidth={1.5} className="shrink-0 text-tea-text-dim" aria-hidden="true" />
+                    </Link>
+                    {(typeLink || placeLink) && (
+                      <div className="basis-full -mt-2 pb-3 pl-12 flex flex-wrap gap-x-3 gap-y-1 label-caps text-tea-text-dim">
+                        {typeLink ? <Link to={typeLink.href} className={metaLink}>{typeLink.label}</Link> : p.type && <span>{p.type}</span>}
+                        {placeLink ? <Link to={placeLink.href} className={metaLink}>{placeLink.label}</Link> : (p.origin_region || p.origin_country) && <span>{[p.origin_region, p.origin_country].filter(Boolean).join(' · ')}</span>}
+                      </div>
                     )}
-                    <div className="min-w-0 flex-1">
-                      <p className="text-ui-13 text-tea-text truncate">
-                        {p.given_name || p.product_name}
-                      </p>
-                      <p className="label-caps text-tea-text-dim mt-0.5 truncate">
-                        {[p.type, p.origin_region, p.origin_country].filter(Boolean).join(' · ')}
-                      </p>
-                    </div>
-                    {/* Stock and cost stack on the right, so the row never runs off a phone. */}
-                    <div className="shrink-0 text-right font-mono text-ui-12 text-tea-text-sec tabular-nums leading-snug">
-                      <p>{p.stock_grams == null ? 'Stock ?' : `${Number(p.stock_grams).toLocaleString()}g`}{stock ? ` · ${stock.label}` : ''}</p>
-                      <p>{recordedCost(p) ?? 'Cost ?'}</p>
-                    </div>
                   </div>
                 );
               })}
@@ -261,7 +295,9 @@ export const VendorProfileView: React.FC = () => {
           )}
         </section>
 
-        {/* Purchase history */}
+        <VendorCurateTeasCard vendorId={vendorId!} stockedIds={new Set(products.map(p => p.id))} />
+
+        {/* Purchase history: each opens its own screen */}
         <section className="bg-tea-surface border border-tea-border rounded-xl p-5">
           <div className="flex items-baseline justify-between mb-4">
             <h3 className="h3">Bought from them</h3>
@@ -279,13 +315,14 @@ export const VendorProfileView: React.FC = () => {
           ) : (
             <div className="border-t border-tea-border">
               {orders.map(order => (
-                <div
+                <Link
                   key={`order:${order.id}`}
-                  className="flex items-center justify-between gap-3 py-3 border-b border-tea-border last:border-0"
+                  to={vendorLinks.purchaseOrder(order.id)}
+                  className={rowLink}
                 >
                   <div className="min-w-0 flex-1">
                     <p className="font-mono text-ui-13 text-tea-text tabular-nums truncate">
-                      Purchase order · {order.vendor_name}
+                      Purchase order
                     </p>
                     <p className="label-caps text-tea-text-dim mt-0.5">
                       {formatDate(order.created_at)}
@@ -299,25 +336,37 @@ export const VendorProfileView: React.FC = () => {
                   <StatusPill variant={order.status === 'received' ? 'success' : 'draft'}>
                     {order.status}
                   </StatusPill>
-                </div>
+                  <ChevronRight size={16} strokeWidth={1.5} className="shrink-0 text-tea-text-dim" aria-hidden="true" />
+                </Link>
               ))}
               {receipts.map(receipt => (
-                <div key={`receipt:${receipt.id}`} className="flex items-center justify-between gap-3 py-3 border-b border-tea-border last:border-0">
+                <Link key={`receipt:${receipt.id}`} to={vendorLinks.receipt(receipt.id)} className={rowLink}>
                   <div className="min-w-0 flex-1">
                     <p className="font-mono text-ui-13 text-tea-text tabular-nums">Inventory receipt</p>
-                    <p className="label-caps text-tea-text-dim mt-0.5">{receipt.lines?.length ?? 0} lines · {receipt.source_kind}</p>
+                    <p className="label-caps text-tea-text-dim mt-0.5">
+                      {[receipt.lines?.length === 1 ? '1 tea' : `${receipt.lines?.length ?? 0} teas`, receiptSource(receipt.source_kind)].filter(Boolean).join(' · ')}
+                    </p>
                   </div>
                   <StatusPill variant={receipt.state === 'received' ? 'success' : 'draft'}>{receipt.state}</StatusPill>
-                </div>
+                  <ChevronRight size={16} strokeWidth={1.5} className="shrink-0 text-tea-text-dim" aria-hidden="true" />
+                </Link>
               ))}
             </div>
           )}
         </section>
 
+        <VendorSalesCard
+          sales={salesData}
+          salesLoading={salesLoading}
+          salesError={salesError}
+          ownOrders={ownOrdersData}
+          ownOrdersLoading={ownOrdersLoading}
+        />
+
         {/* The working records (people, quotes, files, history) sit last, below
             what Adrian reads (Adrian, 2026-11-23: "put these at the very bottom"). */}
         <section className="bg-tea-surface border border-tea-border rounded-xl p-5 space-y-3">
-          <CurateVendorFields vendorId={vendorId!} />
+          <CurateVendorFields vendorId={vendorId!} withContacts={false} />
           <CurateQuotesPanel vendorId={vendorId!} />
           <CurateRecordTools entityType="vendor" entityId={vendorId!} />
         </section>

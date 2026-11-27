@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Plus, X } from 'lucide-react';
+import { Check, Copy, ExternalLink, Plus, X } from 'lucide-react';
 import { Button } from '../shared/Button';
 import { InlineField } from './InlineField';
 import { VendorFace } from './VendorFace';
 import { VendorFaceAdjustButton, VendorFacePhotoButton } from './VendorFacePhotoButton';
 import { vendorFacePhoto } from './vendorFaces';
 import { useVendorSave } from './useVendorSave';
+import { contactHref } from './vendorLinks';
 import type { ContactChannel, ContactEntry, Customer } from '../../admin/types';
 
 /**
@@ -49,6 +50,13 @@ export function contactsPatch(contacts: ContactEntry[]): Record<string, unknown>
   return { contacts, email: first('email'), phone: first('phone'), whatsapp: first('whatsapp') };
 }
 
+/** Shop and place under the name. A shop recorded under the vendor's own name is not repeated. */
+export function vendorSubtitle(vendor: Pick<Customer, 'name' | 'company' | 'city' | 'country'>): string {
+  const same = (a?: string | null, b?: string | null) => !!a && !!b && a.trim().toLocaleLowerCase() === b.trim().toLocaleLowerCase();
+  const shop = vendor.company && !same(vendor.company, vendor.name) ? vendor.company : null;
+  return [shop, [vendor.city, vendor.country].filter(Boolean).join(', ')].filter(Boolean).join(' · ');
+}
+
 export const VendorDetailsCard: React.FC<{ vendor: VendorRecord; vendorId: string }> = ({ vendor, vendorId }) => {
   const save = useVendorSave(vendorId);
   const contacts = vendorContacts(vendor);
@@ -57,6 +65,11 @@ export const VendorDetailsCard: React.FC<{ vendor: VendorRecord; vendorId: strin
   const [newHandle, setNewHandle] = useState('');
   const [contactError, setContactError] = useState('');
   const [savingContact, setSavingContact] = useState(false);
+  const [copied, setCopied] = useState<number | null>(null);
+  const copyHandle = async (index: number, handle: string) => {
+    try { await navigator.clipboard.writeText(handle); setCopied(index); setTimeout(() => setCopied(c => c === index ? null : c), 1500); }
+    catch { setContactError("Couldn't copy. Press and hold the handle to copy it."); }
+  };
 
   const saveContacts = async (next: ContactEntry[]) => save(contactsPatch(next));
   const addContact = async () => {
@@ -88,10 +101,8 @@ export const VendorDetailsCard: React.FC<{ vendor: VendorRecord; vendorId: strin
         </div>
         <div className="flex-1 min-w-0 space-y-2">
           <h2 className="h3 break-words">{vendor.name}</h2>
-          {(vendor.company || vendor.city || vendor.country) && (
-            <p className="text-ui-13 text-tea-text-sec break-words">
-              {[vendor.company, [vendor.city, vendor.country].filter(Boolean).join(', ')].filter(Boolean).join(' · ')}
-            </p>
+          {vendorSubtitle(vendor) && (
+            <p className="text-ui-13 text-tea-text-sec break-words">{vendorSubtitle(vendor)}</p>
           )}
           <div className="flex flex-wrap items-start gap-2">
             <VendorFacePhotoButton vendorId={vendorId} vendorName={vendor.name} hasFace={!!vendor.face_photo} />
@@ -129,6 +140,23 @@ export const VendorDetailsCard: React.FC<{ vendor: VendorRecord; vendorId: strin
                     onSave={handle => saveContacts(contacts.map((c, i) => i === index ? { ...c, handle } : c))}
                   />
                 </div>
+                {(() => {
+                  // One tap reaches them: open the chat, call or mail where the channel has a link, copy where it has none (WeChat, Line).
+                  const href = contactHref(contact.channel, contact.handle);
+                  const name = channelLabel(contact.channel);
+                  return href ? (
+                    <a href={href} target={href.startsWith('http') ? '_blank' : undefined} rel="noreferrer"
+                      aria-label={`Open ${name} ${contact.handle}`}
+                      className="btn-icon tap-target mt-1 shrink-0 inline-flex items-center justify-center">
+                      <ExternalLink size={14} strokeWidth={1.5} aria-hidden="true" />
+                    </a>
+                  ) : (
+                    <Button type="button" variant="icon" onClick={() => void copyHandle(index, contact.handle)}
+                      aria-label={copied === index ? `Copied ${contact.handle}` : `Copy ${name} ${contact.handle}`}
+                      className="tap-target mt-1 shrink-0"
+                      icon={copied === index ? <Check size={14} strokeWidth={1.5} aria-hidden="true" /> : <Copy size={14} strokeWidth={1.5} aria-hidden="true" />} />
+                  );
+                })()}
                 <Button
                   type="button"
                   variant="icon"

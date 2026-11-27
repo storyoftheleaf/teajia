@@ -1,4 +1,5 @@
 import { casualSitPublicationRoutes } from './casualSitPublications';
+import { freightRateWriteRefusal } from './freightRateDoor';
 import { publicSitRoutes, publishedSitRecap } from './publicSitConnections';
 import { formalSessionCardsFor, publicSessionRoutes } from './publicSessions';
 import type { PublicProductReader } from './sessionTeas';
@@ -65,7 +66,7 @@ import { eraseFamilyPhotoFiles, familyErasureStatements, familyPhotoKeysForUser 
 import { recordingAudioUrl, linkedRecordingSql, readOwnedRecording, preservePrivateRecordingClips, mergeRecordingClipsSql } from './privateRecordingMedia';
 import { quoteUsCheckoutShipping } from './usCheckoutShipping';
 import { hasPublicStatus } from '../../src/lib/productPublication';
-import { guardFetch } from './allowanceGuard.mjs';
+import { guardFetch } from './allowanceGuard.mjs'; import { classifyTeajiaRequest, noteAgentRefusal } from './agentAllowance';
 import { isCuratedReadPath, isReadPathPublic } from '../../src/pages/read/articleLive';
 import { attachStudioReferrals, hasOpenStudioReferral, referStudioLine, resolveStudioReferral, StudioReferralError, STUDIO_REFERRAL_MESSAGE, STUDIO_REFERRAL_OPEN } from './studioReceiptReferrals';
 import { LogisticsTrackingError, recordLogisticsTrackingUpdate } from './logisticsTracking';
@@ -106,7 +107,7 @@ import { COMPASS_COLUMNS, decodeCompassWrite as decodeCompassWriteCodec, type Co
 import { compassFieldPatch, readCompassFieldHints } from './compassFieldPatch';
 import { receiptHoldingTeaId } from './curateMergeLink';
 import { resolveShopFreightDefault } from './shippingRate';
-import { addPricingFields, lookupRateToUsd, accountFreightDefaults, freightDefaultsByAccount } from './productPricing';
+import { addPricingFields, lookupRateToUsd, accountFreightDefaults, freightDefaultsByAccount } from './productPricing'; import { fillBlankQuotes, withShelfPrices } from './collectionShelf';
 import { INWARD_BALI_LOT, INWARD_ORDERS_PAUSED_SQL, inwardOrdersPaused } from '../../shared/catalog/inwardOrders';
 import { checkNewProductPublication, checkProductPublication, openingStockKnownAt, publicationPatchFromColumns, writeProductPublication } from './productPublication';
 import { deductStockForPaidInvoice } from './orderLifecycle';
@@ -3103,6 +3104,8 @@ const handleCreateProduct: Handler = async (request, env) => {
   }
   const capabilityError = validateProductCreateCapabilities(ctx, body);
   if (capabilityError) return capabilityError;
+  const freightRefusal = freightRateWriteRefusal(body, 'create');
+  if (freightRefusal) return restError(400, freightRefusal, 'freight_rate_in_logistics');
   /* After the unknown-field check, so `cost_currency_source` is not a field a
      caller may send: it records that this process saw a currency arrive. */
   stampCostCurrencySource(body);
@@ -3248,6 +3251,8 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
     }
     const capabilityError = validateProductCreateCapabilities(ctx, raw, { costRefusedPerRow: true });
     if (capabilityError) return capabilityError;
+    const freightRefusal = freightRateWriteRefusal(raw, 'create');
+    if (freightRefusal) return restError(400, freightRefusal, 'freight_rate_in_logistics');
     const ownerError = await validateProductOwnerAssignment(env, ctx, raw);
     if (ownerError) return ownerError;
   }
@@ -3657,6 +3662,14 @@ async function applyProductUpdate(
       .bind(params.id, accountId).first() as { cost_currency?: string | null } | null;
     const costRefusal = costMissingItsCurrency(body, existingCost?.cost_currency);
     if (costRefusal) return costRefusal;
+  }
+  // Freight rates are typed in Logistics, not here (worker/src/freightRateDoor.ts).
+  if ('shipping_rate_per_kg' in body) {
+    const existingFreight = await env.DB.prepare('SELECT shipping_rate_per_kg, cost_currency FROM products WHERE id = ? AND account_id = ?')
+      .bind(params.id, accountId).first() as { shipping_rate_per_kg?: number | null; cost_currency?: string | null } | null;
+    const freightRefusal = freightRateWriteRefusal(body, existingFreight);
+    if (freightRefusal) return restError(400, freightRefusal, 'freight_rate_in_logistics');
+    if (body.shipping_rate_per_kg === '') body.shipping_rate_per_kg = null;
   }
   // How the tea travels home: one of this shop's active logistics services, or
   // nothing said (src/lib/freightSource.ts). The rate stays on the service.
@@ -28767,7 +28780,7 @@ const handleGetCollection: Handler = async (request, env, params) => {
   // The old notes' ratings are the shop owner's: the curator, staff and a
   // platform administrator read the words; the owner reads their own tea whole.
   const readsOwnShopScores = await shopScoreGiver(env, ctx);
-  const collectionItems = ((items.results ?? []) as Record<string, any>[]).map(({ product_account_id, ...item }) => (
+  const collectionItems = (await withShelfPrices(env, ctx.accountId, (items.results ?? []) as Record<string, any>[])).map(({ product_account_id, ...item }) => (
     readsOwnShopScores && product_account_id === ctx.accountId
       ? item
       : { ...item, tasting_notes: item.tasting_notes ? tastingJsonWithoutScores(item.tasting_notes) ?? '[]' : item.tasting_notes }
@@ -29870,6 +29883,7 @@ const handleGetPublicCollection: Handler = async (_request, env, params) => {
       ORDER BY ci.position ASC`
   ).bind(pub.collection_id, pub.target_type === 'shop' ? 1 : 0).all();
 
+  if (account) await fillBlankQuotes(env, String(account.id), (items.results ?? []) as any[]); // a blank quote shows the shelf price: collectionShelf.ts
   const visibleItems = ((items.results ?? []) as any[])
     .filter(i => i.product_status === 'Active')
     .map(i => {
@@ -30128,7 +30142,7 @@ const handleConfirmCollectionPicks: Handler = async (request, env, params) => {
       WHERE ci.collection_id = ?`
   ).bind(pub.collection_id).all();
   const byItemId = new Map<string, any>();
-  for (const r of (itemRows.results ?? []) as any[]) byItemId.set(r.id, r);
+  for (const r of (await withShelfPrices(env, accountId, (itemRows.results ?? []) as any[]))) byItemId.set(r.id, r);
 
   const lineItems: Array<{ product_id: string | null; custom_name: string | null; quantity: number; price_at_sale: number; label: string;quantity_unit:'g'|'unit' }> = [];
   for (const pick of picks) {
@@ -30144,7 +30158,7 @@ const handleConfirmCollectionPicks: Handler = async (request, env, params) => {
       quantity,
       recommendedQuantity: row.recommended_quantity == null ? null : Number(row.recommended_quantity),
       recommendedPriceUsd: row.recommended_price_usd == null ? null : Number(row.recommended_price_usd),
-      catalogUnitPriceUsd: row.fixed_retail_price_usd == null ? null : Number(row.fixed_retail_price_usd),
+      catalogUnitPriceUsd: row.catalog_price_usd ?? (row.fixed_retail_price_usd == null ? null : Number(row.fixed_retail_price_usd)),
     });
 
     const mayRemainLinked = isStoredTeaType(String(row.product_type || ''))||row.product_type==='Teaware';
@@ -34607,7 +34621,7 @@ const protectedHandler = {
 export default {
   fetch(request: Request, env: Env, ctx?: ExecutionContext): Promise<Response> {
     if (!(env as any).SHARED_ALLOWANCE && (env as any).SHARED_ALLOWANCE_REQUIRED !== 'true') return protectedHandler.fetch(request, env, ctx);
-    return guardFetch(request, env, ctx, protectedHandler, { project: 'teajia' });
+    return guardFetch(request, env, ctx, protectedHandler, { project: 'teajia', classify: classifyTeajiaRequest }).then(response => noteAgentRefusal(request, response, env.DB, ctx));
   },
   async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
     if (!(env as any).SHARED_ALLOWANCE && (env as any).SHARED_ALLOWANCE_REQUIRED !== 'true') return protectedHandler.scheduled(event, env, ctx);

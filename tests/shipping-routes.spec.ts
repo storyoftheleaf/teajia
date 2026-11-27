@@ -6,7 +6,7 @@ import { fileURLToPath } from 'url';
 // request, writes included, is answered here; no live account is touched.
 const SHOTS = path.join(path.dirname(fileURLToPath(import.meta.url)), '../test-results/shipping-routes');
 
-test('a route is added, its figures are tapped and typed, and an emptied rate stays unknown', async ({ page, context }) => {
+test('a route is added and its figures are tapped and typed, but it holds no freight rate', async ({ page, context }) => {
   const accountId = 'fixture-routes-store';
   const memberships = [{ account_id: accountId, account_name: 'Routes test store', role: 'owner', slug: 'routes-test' }];
   const user = { id: 'fixture-routes-owner', email: 'owner@example.invalid', name: 'Fixture Owner', role: 'owner', platform_role: null, active_account_id: accountId, memberships };
@@ -54,18 +54,17 @@ test('a route is added, its figures are tapped and typed, and an emptied rate st
     await air.getByRole('textbox', { name }).press('Enter');
   };
   await type('Air carrier', 'Bali Air Cargo');
-  await type('Air rate per kilo', '85');
   await type('Air packing percent', '35');
   await type('Air billing step in kilos', '1');
   await type('Air received at', 'Teajia Bali');
   await expect(air).toContainText('Bali Air Cargo');
   await expect(air).toContainText('Teajia Bali');
-  await expect(air.getByRole('button', { name: 'Air rate per kilo' })).toHaveText('85');
-  await expect(air.getByRole('button', { name: 'Air rate currency' })).toHaveText('Yuan');
-  expect(writes.find(w => w.body && 'rate_per_kg' in w.body)?.body).toMatchObject({ rate_per_kg: '85', rate_currency: 'Yuan' });
+  // Freight rates are typed only in Logistics (Adrian, 2026-11-27): no rate here, a link there.
+  await expect(air.getByRole('button', { name: /rate per kilo|rate currency/ })).toHaveCount(0);
+  await expect(section.getByRole('link', { name: 'Logistics' })).toHaveAttribute('href', '/admin/purchase-orders');
+  expect(writes.filter(w => w.body && ('rate_per_kg' in w.body || 'rate_currency' in w.body))).toEqual([]);
+  // Nor does Store Settings type the shop default any more.
+  await expect(page.getByRole('textbox', { name: /Freight Rate per kg|Freight Currency/ })).toHaveCount(0);
+  await expect(page.getByText('Freight Rate per kg')).toHaveCount(0);
   await section.screenshot({ path: path.join(SHOTS, 'settings-routes.png') });
-
-  await type('Air rate per kilo', '');
-  await expect(air.getByRole('button', { name: 'Air rate per kilo' })).toHaveText('rate');
-  await expect(air).toContainText('the shop freight rate applies');
 });

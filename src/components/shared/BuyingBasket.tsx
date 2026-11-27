@@ -7,6 +7,7 @@ import { canonicalCurrency } from '../../lib/currency';
 import { ledgerItemAmount } from '../CurateV2/curatePricing';
 import { estimateOrderFreight, type RouteMode } from './routeFreight';
 import { useShippingRoutes } from './useShippingRoutes';
+import { useLogisticsServices } from './useLogisticsServices';
 import { releaseTeaFromOrder } from '../CurateV2/orderBuy';
 import { confirmPurchase, purchaseNeedsVendor, recordPurchase, splitDraftByRoute } from '../CurateV2/placeOrder';
 import { Button } from './Button';
@@ -17,9 +18,9 @@ import { Icons } from '../Icons';
 // Flow 2, plan todo/plans/samples-to-orders.md build 2). It is Curate's draft
 // orders, read and written through the ledger, one group per supplier. Place
 // order runs the same code as Curate's order screen (placeOrder.ts).
-// Freight is estimated silently from the shipping routes in Settings (build 3),
-// packing and the carrier's rounding included; with no route, air follows the
-// shop rate. The routes' addresses show as the Receiving tiles.
+// Freight is estimated silently: rates from the logistics services in
+// Logistics, packing and the carrier's rounding from the routes in Settings;
+// with no air service, air follows the shop default rate. The routes' addresses show as the Receiving tiles.
 
 const SYMBOL: Record<string, string> = { Yuan: '¥', USD: '$', NT: 'NT$', HKD: 'HK$', IDR: 'Rp', JPY: 'JP¥', MYR: 'RM', AUD: 'A$' };
 export function money(amount: number, currency: Currency | string): string {
@@ -127,6 +128,7 @@ export const BuyingBasket: React.FC<{ onClose: () => void }> = ({ onClose }) => 
   const { data: rates = [] } = useRates();
   const shopFreight = useShopFreightDefault();
   const { data: routes = [] } = useShippingRoutes();
+  const { services } = useLogisticsServices();
   const queryClient = useQueryClient();
   const [placing, setPlacing] = useState(false);
   const busy = useRef(false);
@@ -139,7 +141,7 @@ export const BuyingBasket: React.FC<{ onClose: () => void }> = ({ onClose }) => 
     let packing = false;
     const modes = new Set<RouteMode>();
     for (const tx of drafts) {
-      const freight = estimateOrderFreight(tx, routes, rates, shopFreight.perKgUsd);
+      const freight = estimateOrderFreight(tx, routes, services, rates, shopFreight.perKgUsd);
       if (freight.packing) packing = true;
       freight.modes.forEach((m) => modes.add(m));
       for (const item of tx.items) {
@@ -155,7 +157,7 @@ export const BuyingBasket: React.FC<{ onClose: () => void }> = ({ onClose }) => 
       if (row) { if (freight.amount != null) row.freight += freight.amount; else row.freightKnown = false; }
     }
     return { rows: [...byMoney.values()], packing, modes: [...modes] };
-  }, [drafts, routes, rates, shopFreight.perKgUsd]);
+  }, [drafts, routes, services, rates, shopFreight.perKgUsd]);
   const unpriced = drafts.reduce((n, tx) => n + tx.items.filter((i) => i.unpriced).length, 0);
   const nameless = drafts.filter(purchaseNeedsVendor);
 

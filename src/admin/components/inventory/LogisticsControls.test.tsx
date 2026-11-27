@@ -1,7 +1,10 @@
 import React from 'react';
 // Render task bodies here to inspect their controls independently of portal visibility.
 vi.mock('./TrackingTask', () => ({ TrackingTask: ({ children }: { children: React.ReactNode }) => <section>{children}</section> }));
-import { renderToStaticMarkup } from 'react-dom/server';
+import { renderToStaticMarkup as renderPlain } from 'react-dom/server';
+import { MemoryRouter } from 'react-router-dom';
+// Shipment cards link to teas and services, so they render inside a router.
+const renderToStaticMarkup = (node: React.ReactElement) => renderPlain(<MemoryRouter>{node}</MemoryRouter>);
 import { describe, expect, it, vi } from 'vitest';
 import type { LogisticsOrder, LogisticsShipment } from '../../../lib/logisticsTypes';
 import type { PurchaseTrackingRow } from '../../../lib/api';

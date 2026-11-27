@@ -7,6 +7,8 @@ type Entity = 'tea' | 'vendor' | 'arrival' | 'quote';
 type Props = { entityType: Entity; entityId: string; onChanged?: () => void; flat?: boolean };
 type Change = { entity_type?: string; entity_id?: string; entity?: string; id?: string; before: Record<string, unknown> | null; after: Record<string, unknown> | null };
 const roles = { leaf: 'Leaf', liquor: 'Liquor', wrapper: 'Wrapper', label: 'Label', pricelist: 'Price list', businesscard: 'Business card', source_document: 'Source document' };
+/** What a vendor's papers can be: a tea's leaf, liquor or wrapper photos belong on the tea. */
+const VENDOR_ROLES = new Set(['businesscard', 'pricelist', 'source_document']);
 const hidden = new Set(['account_id','user_id','created_by_user_id','created_at','updated_at','object_key','sha256']);
 const label = (key: string) => key.replace(/_/g, ' ');
 function valueText(value: unknown): string {
@@ -43,7 +45,7 @@ function RecordToolsInner({ entityType, entityId, onChanged, flat = false }: Pro
   const [history, setHistory] = useState<any[]>([]);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-  const [role, setRole] = useState('source_document');
+  const [role, setRole] = useState(entityType === 'vendor' ? 'businesscard' : 'source_document');
   const [file, setFile] = useState<File | null>(null);
   const [pending, setPending] = useState<{ kind: 'upload'|'correct'|'undo'; input: Record<string, unknown>; token: string; preview: any } | null>(null);
   const confirmationRef = useRef<HTMLDivElement>(null);
@@ -84,7 +86,8 @@ function RecordToolsInner({ entityType, entityId, onChanged, flat = false }: Pro
   });
   return <section className="space-y-4 min-w-0 text-tea-text" aria-label="Files and change history">
     <div className="border-t border-tea-border pt-4 space-y-3">
-      <h3 className={T.h3}>Files</h3>
+      <h3 className={T.h3}>{entityType === 'vendor' ? 'Business cards and price lists' : 'Files'}</h3>
+      {entityType === 'vendor' && <p className={`${T.body} text-tea-text-sec`}>Photos of their card, price lists and papers they sent. Kept private to the shop; nobody else sees them.</p>}
       {attachments.map(a => <div key={a.id} className="flex flex-wrap items-center gap-3 border border-tea-border rounded-md p-3 min-w-0">
         <button type="button" disabled={busy} className="tap-target text-left text-tea-gold break-all flex-1" onClick={()=>void download(a)}>{a.filename}<span className="block text-ui-11 text-tea-text-dim">{roles[a.role as keyof typeof roles]||a.role}</span></button>
         <button type="button" disabled={busy} className="tap-target text-ui-12" onClick={()=>void previewRemove(a.id)}>Remove</button>
@@ -93,7 +96,7 @@ function RecordToolsInner({ entityType, entityId, onChanged, flat = false }: Pro
       <div className="flex flex-wrap gap-3 items-center">
         {/* Private to the shop. JPEG, PNG, WebP or PDF up to 6 MiB (checked on attach). */}
         <label className="btn-secondary cursor-pointer min-w-0 max-w-full"><span className="truncate">{file ? file.name : 'Choose file'}</span><input aria-label="Choose file" className="sr-only" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" disabled={busy||!!pending} onChange={e=>setFile(e.target.files?.[0]||null)} /></label>
-        <select aria-label="Attachment role" className="min-h-tap bg-tea-surface border border-tea-border rounded-md px-2 text-ui-14 text-tea-text" value={role} disabled={busy||!!pending} onChange={e=>setRole(e.target.value)}>{Object.entries(roles).filter(([key])=>key!=='businesscard'||entityType==='vendor').map(([key,name])=><option key={key} value={key}>{name}</option>)}</select>
+        <select aria-label="Attachment role" className="min-h-tap bg-tea-surface border border-tea-border rounded-md px-2 text-ui-14 text-tea-text" value={role} disabled={busy||!!pending} onChange={e=>setRole(e.target.value)}>{Object.entries(roles).filter(([key])=>entityType==='vendor' ? VENDOR_ROLES.has(key) : key!=='businesscard').map(([key,name])=><option key={key} value={key}>{name}</option>)}</select>
         <button type="button" className="btn-secondary" disabled={busy||!file||!!pending} onClick={()=>void previewUpload()}>Attach</button>
       </div>
     </div>
