@@ -98,12 +98,11 @@ export function PayInvoiceGuide({ slug, token, productIds, teaser, signedIn, kep
   const at = !paid ? 'pay' : !kept && !yoursToSend ? 'keep' : 'taste';
 
   return (
-    <GuideRow testId="pay-guide">
+    <GuideRow testId="pay-guide" error={error}>
         <Step label={paid ? 'Paid' : 'Pay'} done={paid} lit={at === 'pay'} icon={<Banknote size={20} aria-hidden="true" />} onClick={onPay} testId="pay-guide-pay" />
         <Step label={kept ? 'Kept' : state === 'saving' ? 'Keeping' : 'Keep'} done={kept} lit={at === 'keep'} disabled={yoursToSend || state === 'saving'} icon={<Bookmark size={20} aria-hidden="true" />} onClick={keep} testId="pay-guide-keep" />
         <Step label="Taste" lit={at === 'taste'} icon={<Coffee size={20} aria-hidden="true" />} onClick={() => { void taste(); }} testId="pay-guide-taste" />
         <Step label="Again" icon={<Repeat size={20} aria-hidden="true" />} to={kept ? '/shop?bought=1' : againPath} testId="pay-guide-again" />
-      {error && <li role="alert" className="basis-full pt-2 text-center font-sans text-ui-12 text-tea-text-sec">{error}</li>}
     </GuideRow>
   );
 }

@@ -9,13 +9,14 @@ import { Check, X } from 'lucide-react';
  * the person is at lit (Adrian, 2026-11-27: "visual guide, not reading
  * paragraphs").
  */
-export function GuideRow({ testId, children }: { testId: string; children: ReactNode }) {
+export function GuideRow({ testId, error, children }: { testId: string; error?: string | null; children: ReactNode }) {
   return (
     <nav aria-label="What comes next" className="mt-3" data-testid={testId}>
       <ol className="relative mx-auto flex max-w-md flex-wrap items-start justify-between">
         <li aria-hidden="true" className="absolute inset-x-10 top-6 border-t border-tea-border" />
         {children}
       </ol>
+      {error && <p role="alert" className="mt-2 text-center font-sans text-ui-12 text-tea-text-sec">{error}</p>}
     </nav>
   );
 }
