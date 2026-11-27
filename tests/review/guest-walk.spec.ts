@@ -585,7 +585,6 @@ test.describe(`W1 the guest (site ${SITE_SET}, worker ${WORKER_SET})`, () => {
 
   // ── 10 ───────────────────────────────────────────────────────────────────
   test('10. from Home she asks to host a table herself (2)', async ({ page }, info) => {
-    test.fail(true, 'W1-13 live W1-16');
     test.setTimeout(240_000);
     const q = quiet(page, [/\/api\/me\/circles/]);
     await signInWithToken(page, 'mei');

@@ -91,6 +91,7 @@ import {
   loadLedgerInvoice,
   reconcileLedgerWithColumn,
   recomputeInvoicePaymentStatus,
+  settledUsdSql,
 } from './invoiceDomain';
 import type {
   InvoiceLedgerTotals,
@@ -4444,7 +4445,7 @@ async function commitMarkInvoicePaid(env: Env, m: Extract<PendingMutation, { kin
         `UPDATE invoices SET status='Filled',fulfilled_at=COALESCE(fulfilled_at,datetime('now'))
          WHERE id=? AND account_id=? AND status='Pending' AND inventory_deducted=1
            AND fulfillment_claim_token IS NULL
-           AND COALESCE((SELECT SUM(amount_usd) FROM invoice_payments WHERE invoice_id=invoices.id AND status='confirmed'),0)
+           AND ${settledUsdSql('invoices')}
              >= COALESCE((SELECT SUM(quantity*price_at_sale) FROM invoice_line_items WHERE invoice_id=invoices.id),0)
                 + COALESCE(shipping_cost_usd,0) - 0.01`
       ).bind(m.invoiceId, m.accountId).run();

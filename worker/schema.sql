@@ -4256,3 +4256,31 @@ CREATE TABLE IF NOT EXISTS tea_table_question_notes (
   updated_at TEXT NOT NULL DEFAULT (datetime('now')),
   UNIQUE (question_id, writer_user_id)
 );
+
+-- 0149_host_credit_fills_and_request_keys.sql
+CREATE TABLE IF NOT EXISTS host_credit_fills (
+  invoice_id  TEXT PRIMARY KEY,
+  account_id  TEXT NOT NULL,
+  filled_at   TEXT NOT NULL DEFAULT (datetime('now')),
+  credit_open INTEGER CHECK (credit_open IS NULL OR credit_open IN (0, 1))
+);
+CREATE TRIGGER IF NOT EXISTS host_credit_first_fill_insert
+AFTER INSERT ON invoices WHEN NEW.status = 'Filled'
+BEGIN
+  INSERT OR IGNORE INTO host_credit_fills (invoice_id, account_id) VALUES (NEW.id, NEW.account_id);
+END;
+CREATE TRIGGER IF NOT EXISTS host_credit_first_fill_update
+AFTER UPDATE OF status ON invoices WHEN NEW.status = 'Filled' AND OLD.status IS NOT 'Filled'
+BEGIN
+  INSERT OR IGNORE INTO host_credit_fills (invoice_id, account_id) VALUES (NEW.id, NEW.account_id);
+END;
+CREATE TRIGGER IF NOT EXISTS host_credit_unrecorded_fill_leaves
+AFTER UPDATE OF status ON invoices WHEN OLD.status = 'Filled' AND NEW.status IS NOT 'Filled'
+BEGIN
+  INSERT OR IGNORE INTO host_credit_fills (invoice_id, account_id, credit_open) VALUES (NEW.id, NEW.account_id, 0);
+END;
+ALTER TABLE host_credit_spend_requests ADD COLUMN request_key TEXT;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_host_credit_requests_key
+  ON host_credit_spend_requests(account_id, host_user_id, invoice_id, request_key)
+  WHERE request_key IS NOT NULL;
+ALTER TABLE host_credit_spend_requests ADD COLUMN release_reason TEXT;

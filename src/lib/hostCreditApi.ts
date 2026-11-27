@@ -123,8 +123,14 @@ export const hostCreditApi = {
   mine: (storeSlug?: string): Promise<MyTeaCredit> =>
     authedFetch(`${API_URL}/api/me/tea-credit${storeSlug ? `?store=${encodeURIComponent(storeSlug)}` : ''}`),
   /** Ask to use credit on one of the host's own open orders. The worker works out the amount. */
-  useOnOrder: (invoiceId: string): Promise<{ success: true; request: TeaCreditUse }> =>
-    authedFetch(`${API_URL}/api/me/tea-credit/orders/${encodeURIComponent(invoiceId)}/use`, { method: 'POST' }),
+  /**
+   * Asks to use credit on an order. Pass one requestKey per press and reuse it
+   * on a retry: the worker answers a repeat with the original request.
+   */
+  useOnOrder: (invoiceId: string, requestKey?: string): Promise<{ success: true; request: TeaCreditUse }> =>
+    authedFetch(`${API_URL}/api/me/tea-credit/orders/${encodeURIComponent(invoiceId)}/use`, {
+      method: 'POST', ...(requestKey ? { headers: { 'Idempotency-Key': requestKey } } : {}),
+    }),
   shop: (): Promise<ShopTeaCredit> => authedFetch(`${API_URL}/api/host-credit`),
   approveSpend: (id: string, confirmOverCeiling = false): Promise<{ ok: true; status: 'approved' }> =>
     authedFetch(`${API_URL}/api/host-credit/spend-requests/${encodeURIComponent(id)}/approve`, {

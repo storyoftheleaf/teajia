@@ -5,6 +5,8 @@ import { KNOW_THIS_TEA_HEADING, knowThisTeaOpen } from '../../../lib/knowThisTea
 import { knowThisTeaApi } from '../../../lib/knowThisTeaApi';
 import { questionPath, type KnowThisTeaManageItem } from '../../../lib/knowThisTeaContract';
 import { Chip, SectionHeading, TextAction, dayLabel, errorSentence } from './parts';
+import { PART_QUERY, partView } from '../../../lib/closedPart';
+import { LoadFailed } from '../../../components/shared/LoadFailed';
 
 /**
  * "Does anyone know this tea?" in Manage (Launch 5, M8), for the platform
@@ -48,14 +50,16 @@ function QuestionRow({ item }: { item: KnowThisTeaManageItem }) {
 /** Shown inside the owner's Tea Table section, only while "Does anyone know this tea?" is open. */
 export function KnowThisTeaManage() {
   const open = knowThisTeaOpen();
-  const query = useQuery({ queryKey: MANAGE_KEY, queryFn: () => knowThisTeaApi.manage.list(), staleTime: 0, enabled: open });
-  if (!open) return null;
+  const query = useQuery({ queryKey: MANAGE_KEY, queryFn: () => knowThisTeaApi.manage.list(), staleTime: 0, enabled: open, ...PART_QUERY });
+  const view = partView(query);
+  // Closed on the site, or not yet on the worker: the section is not shown (A10-3).
+  if (!open || view.state === 'closed') return null;
   return (
     <section aria-labelledby="know-this-tea-manage-heading" className="mt-8" data-testid="know-this-tea-manage">
       <SectionHeading><span id="know-this-tea-manage-heading">{KNOW_THIS_TEA_HEADING}</span></SectionHeading>
       <p className="mt-1 text-ui-12 text-tea-text-sec">What people wrote to the one who asked is theirs alone, and is not shown here.</p>
       {query.isPending && <p role="status" className="py-4 text-ui-13 text-tea-text-sec">Opening the questions…</p>}
-      {query.isError && <p role="alert" className="py-4 text-ui-13 text-tea-text-sec">Could not open the questions.</p>}
+      {view.state === 'failed' && <LoadFailed className="py-4" sentence="Could not open the questions." onRetry={view.retry} />}
       {query.isSuccess && (query.data.items.length
         ? <ul>{query.data.items.map(item => <QuestionRow key={item.id} item={item} />)}</ul>
         : <p className="py-4 text-ui-13 text-tea-text-sec">Nobody has asked about a tea yet.</p>)}

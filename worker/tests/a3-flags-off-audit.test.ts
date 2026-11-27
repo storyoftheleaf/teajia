@@ -164,6 +164,8 @@ describe('item 5: the session gallery and a shop session’s tasting are closed 
     guest('c1', 'confirmed');
     const saved = await call('/api/admin/events/s', { actor: adrian, method: 'PUT', body: { title: 'Shop session', is_tasting: true } });
     expect(saved.status).toBe(200);
+    // A10-2: the answer names what was not kept, so a site already open does not claim it was.
+    expect(await json(saved)).toMatchObject({ success: true, not_kept: ['is_tasting'] });
     expect(row('SELECT is_tasting FROM events WHERE id = ?', 's')).toEqual({ is_tasting: 0 });
 
     db.sqlite.prepare("UPDATE events SET is_tasting = 1 WHERE id = 's'").run();

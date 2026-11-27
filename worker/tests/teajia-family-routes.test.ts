@@ -245,7 +245,7 @@ describe('the member\'s own tea shop', () => {
 
 describe('sharing a tasting', () => {
   it('needs a saved tasting, shares its photographs with it, and never lets the score out', async () => {
-    const { env } = setup();
+    const { env, db } = setup();
     await upload(env, MEMBER);
     await upload(env, MEMBER_TWO);
     const unsaved = await call(env, MEMBER_TWO, '/api/family/teas/tea-a/share', { method: 'PUT', body: { share_state: 'page' } });
@@ -264,10 +264,16 @@ describe('sharing a tasting', () => {
     const publicText = await publicView.text();
     const publicBody = JSON.parse(publicText);
     expect(publicBody.family).toHaveLength(1);
-    // Closed, the tea page credits the photograph as main does (the first-name choice opens with the Tea Table).
-    expect(publicBody.family[0].author).toEqual({ name: 'Mei', page_id: null });
+    // The photographer has not allowed credit, so nobody is named, whatever the switch says (A7-2).
+    expect(publicBody.family[0].author).toBeNull();
     // Closed, the public answer carries no credit line at all (A4 review, finding 11).
     expect(publicBody.family[0]).not.toHaveProperty('photograph_by');
+    // Allowed, the closed tea page credits the photograph as main does.
+    db.exec(`UPDATE member_photographs SET credit_name_shown = 1`);
+    const allowed = await (await call(env, null, '/api/family/teas/tea-a/photographs')).json() as any;
+    expect(allowed.family[0].author).toEqual({ name: 'Mei', page_id: null });
+    expect(allowed.family[0]).not.toHaveProperty('photograph_by');
+    db.exec(`UPDATE member_photographs SET credit_name_shown = 0`);
     for (const text of [sharedText, publicText, await (await call(env, MEMBER, '/api/family/teas/tea-a/mine')).text()]) {
       expect(text).not.toMatch(/rating|verdict|love|secret words/);
     }
@@ -337,6 +343,11 @@ describe('the shop\'s side', () => {
       expect((await call(env, OWNER, `/api/admin/family/photographs/${first}/${action}`, { method: 'POST' })).status).toBe(409);
     }
     expect((await call(env, OWNER, `/api/admin/family/photographs/${third}/lead`, { method: 'POST' })).status).toBe(200);
+    tea = await (await call(env, null, '/api/family/teas/tea-a/photographs')).json() as any;
+    // Credit not allowed: no name and no page link, whatever the switch says (A7-2).
+    expect(tea.lead).toMatchObject({ id: third, author: null });
+    expect(tea.lead).not.toHaveProperty('photograph_by');
+    db.sqlite.prepare('UPDATE member_photographs SET credit_name_shown = 1 WHERE id = ?').run(third);
     tea = await (await call(env, null, '/api/family/teas/tea-a/photographs')).json() as any;
     expect(tea.lead).toMatchObject({ id: third, author: { name: 'Mei Lin', page_id: 'mei-page' } });
     expect(tea.lead).not.toHaveProperty('photograph_by');

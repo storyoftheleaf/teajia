@@ -46,6 +46,15 @@ export function guestBookEntryKeys<T extends { user_id: string }>(rows: T[], acc
   })));
 }
 
+/**
+ * How a guest book note is signed to anyone but the host and the owner: the
+ * note's own saved signature, or else the booking first name. Never the
+ * booking surname, email or phone. Needs `b` (session_guest_book) and `a`
+ * (event_attendees) in scope. NULL when neither gives a name.
+ */
+export const guestSignature = `COALESCE(NULLIF(trim(b.signed_name), ''),
+  NULLIF(substr(trim(a.full_name), 1, instr(trim(a.full_name) || ' ', ' ') - 1), ''))`;
+
 const attendeeBinds = (scope: Scope, token: string) => [token, scope.accountId, scope.userId, scope.userId];
 const roster = `FROM session_guest_book b
   JOIN event_attendees a ON a.id = b.attendee_id AND a.account_id = b.account_id AND a.event_id = b.event_id
@@ -67,7 +76,7 @@ export async function serveGuestBook(request: Request, db: D1Database, scope: Sc
   if (request.method === 'GET') {
     const [included, own] = await Promise.all([
       db.prepare(
-        `SELECT b.id, COALESCE(b.signed_name, a.full_name) AS display_name, b.note, b.user_id ${roster}
+        `SELECT b.id, ${guestSignature} AS display_name, b.note, b.user_id ${roster}
          AND b.status = 'included' ORDER BY b.updated_at ASC, b.id ASC`
       ).bind(...where).all<{ user_id: string }>(),
       db.prepare(

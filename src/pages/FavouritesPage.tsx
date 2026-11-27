@@ -8,6 +8,7 @@ import { useAppStore } from '../lib/store';
 import { MY_FAVOURITES_KEY } from '../lib/favouritesTypes';
 import { favouritesOpen } from '../lib/favouritesOpen';
 import { SiteNotFound } from '../components/SiteNotFound';
+import { PART_QUERY, partView } from '../lib/closedPart';
 import { TEA_TABLE_MINE_KEY, teaTableApi, useTeaTableMine } from '../lib/teaTableApi';
 import { recapPath } from '../lib/publicSitConnections';
 import type { TeaTableItem, TeaTableMine } from '../lib/teaTableContract';
@@ -73,12 +74,16 @@ function OpenFavouritesPage() {
     if (!authed) navigate(`/signin?returnTo=${encodeURIComponent('/account/favourites')}`, { replace: true });
   }, [authed, navigate]);
 
-  const { data, isLoading, isError, refetch } = useQuery({
+  const favourites = useQuery({
     queryKey: MY_FAVOURITES_KEY,
     queryFn: () => api.favourites.list(),
     enabled: authed,
     staleTime: 1000 * 60,
+    ...PART_QUERY,
   });
+  const { data, isLoading, refetch } = favourites;
+  const view = partView(favourites);
+  const isError = view.state === 'failed';
 
   const drop = (kind: Kind, id: string) => qc.setQueryData<MyFavourites>(MY_FAVOURITES_KEY, current => current && ({
     ...current,
@@ -110,6 +115,8 @@ function OpenFavouritesPage() {
   });
 
   if (!authed) return null;
+  // Open on the site, not yet on the worker: the address is not a page yet (A10-3).
+  if (view.state === 'closed') return <SiteNotFound />;
 
   // A row the Keep control placed before the list was read again has no title yet.
   const articles = (data?.articles ?? []).filter(article => article.title);
