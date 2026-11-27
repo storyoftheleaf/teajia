@@ -394,6 +394,455 @@ export const PART: readonly DraftClaim[] = [
     "pageVisibility": "public"
   },
   {
+    "claimId": "banzhang:history",
+    "pageId": "banzhang",
+    "sectionKey": "history",
+    "label": "A price that rose fast",
+    "axis": "maker_history",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "origin_includes": [
+        "banzhang"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "banzhang",
+    "text": "Prices for fresh leaf and finished tea rose steeply from the early 2000s, and the village became one of the best known names in pu’er.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "banzhang",
+        "text": "Prices for fresh leaf and finished tea rose steeply from the early 2000s, and the village became one of the best known names in pu’er.",
+        "approvedAt": "2026-11-26",
+        "reason": "Approved by Adrian on the Wisdom Base Places review page, 2026-11-27",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "banzhang:in-ripe-pu-er",
+    "pageId": "banzhang",
+    "sectionKey": "in-ripe-pu-er",
+    "label": "Banzhang in ripe pu’er",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "origin_includes": [
+        "banzhang"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "banzhang",
+    "text": "Most of what the trade writes about Banzhang describes raw tea. Ripe cakes with Banzhang in the name do exist, but they are less common than raw ones, and the name is seldom backed by a stated leaf source. Reading Banzhang on a ripe cake as the village itself is not safe. It more often points to a Bulang style of ripe tea, thicker in body and stronger than a plain Menghai blend.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "banzhang",
+        "text": "Most of what the trade writes about Banzhang describes raw tea. Ripe cakes with Banzhang in the name do exist, but they are less common than raw ones, and the name is seldom backed by a stated leaf source. Reading Banzhang on a ripe cake as the village itself is not safe. It more often points to a Bulang style of ripe tea, thicker in body and stronger than a plain Menghai blend.",
+        "approvedAt": "2026-11-26",
+        "reason": "Approved by Adrian on the Wisdom Base Places review page, 2026-11-27",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "banzhang:known-for",
+    "pageId": "banzhang",
+    "sectionKey": "known-for",
+    "label": "The tea Banzhang is known for",
+    "axis": "sensory_observation",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "origin_includes": [
+        "banzhang"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "banzhang",
+    "text": "Banzhang is known for raw pu’er from old trees. The trade describes it as strong and bitter at first, then quickly sweet, with a long aftertaste and a heavy body. It is one of the most expensive named villages in pu’er, and Lao Banzhang is often called the king of raw pu’er.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "banzhang",
+        "text": "Banzhang is known for raw pu’er from old trees. The trade describes it as strong and bitter at first, then quickly sweet, with a long aftertaste and a heavy body. It is one of the most expensive named villages in pu’er, and Lao Banzhang is often called the king of raw pu’er.",
+        "approvedAt": "2026-11-26",
+        "reason": "Approved by Adrian on the Wisdom Base Places review page, 2026-11-27",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "banzhang:old-and-new",
+    "pageId": "banzhang",
+    "sectionKey": "old-and-new",
+    "label": "Lao Banzhang and Xin Banzhang",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "origin_includes": [
+        "banzhang"
+      ]
+    },
+    "terms": [
+      {
+        "original": "老班章",
+        "pinyin": "Lǎo Bānzhāng",
+        "gloss": "Old Banzhang"
+      },
+      {
+        "original": "新班章",
+        "pinyin": "Xīn Bānzhāng",
+        "gloss": "New Banzhang"
+      }
+    ],
+    "rev": 1,
+    "scope": "banzhang",
+    "text": "Xin Banzhang means New Banzhang. It was founded by people who moved out of the old village. The two are priced very differently, with Lao Banzhang far higher. Sellers say Xin Banzhang is less bitter, but too few places agree on that to treat it as settled.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "banzhang",
+        "text": "Xin Banzhang means New Banzhang. It was founded by people who moved out of the old village. The two are priced very differently, with Lao Banzhang far higher. Sellers say Xin Banzhang is less bitter, but too few places agree on that to treat it as settled.",
+        "approvedAt": "2026-11-26",
+        "reason": "Approved by Adrian on the Wisdom Base Places review page, 2026-11-27",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "banzhang:on-a-label",
+    "pageId": "banzhang",
+    "sectionKey": "on-a-label",
+    "label": "Banzhang on a label",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "banzhang"
+      ]
+    },
+    "terms": [
+      {
+        "original": "班章",
+        "pinyin": "Bānzhāng",
+        "gloss": "Banzhang"
+      },
+      {
+        "original": "老班章",
+        "pinyin": "Lǎo Bānzhāng",
+        "gloss": "Old Banzhang"
+      },
+      {
+        "original": "新班章",
+        "pinyin": "Xīn Bānzhāng",
+        "gloss": "New Banzhang"
+      }
+    ],
+    "rev": 1,
+    "scope": "banzhang",
+    "text": "Banzhang on a label is a market name, and it is not proof that the leaf came from the village. The village makes a small amount of tea, and its name sells at a high price, so fakes and blends are widely reported. Some cakes sold under a Banzhang name blend in leaf from other Bulang villages. Lao Banzhang, Xin Banzhang and the wider Banzhang name are three different claims, and a label rarely says which one is meant.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "banzhang",
+        "text": "Banzhang on a label is a market name, and it is not proof that the leaf came from the village. The village makes a small amount of tea, and its name sells at a high price, so fakes and blends are widely reported. Some cakes sold under a Banzhang name blend in leaf from other Bulang villages. Lao Banzhang, Xin Banzhang and the wider Banzhang name are three different claims, and a label rarely says which one is meant.",
+        "approvedAt": "2026-11-26",
+        "reason": "Approved by Adrian on the Wisdom Base Places review page, 2026-11-27",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "banzhang:where-it-is",
+    "pageId": "banzhang",
+    "sectionKey": "where-it-is",
+    "label": "Where Banzhang is",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "banzhang"
+      ]
+    },
+    "terms": [
+      {
+        "original": "班章",
+        "pinyin": "Bānzhāng",
+        "gloss": "Banzhang"
+      },
+      {
+        "original": "老班章",
+        "pinyin": "Lǎo Bānzhāng",
+        "gloss": "Old Banzhang"
+      },
+      {
+        "original": "新班章",
+        "pinyin": "Xīn Bānzhāng",
+        "gloss": "New Banzhang"
+      }
+    ],
+    "rev": 1,
+    "scope": "banzhang",
+    "text": "Banzhang is a group of tea villages inside Bulang Mountain, in the south of Menghai County in Xishuangbanna, Yunnan. The name covers more than one settlement. Lao Banzhang is the old village. Xin Banzhang is a separate village that grew out of it. Altitude is quoted differently from place to place, mostly between about 1,600 and 1,900 metres.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "banzhang",
+        "text": "Banzhang is a group of tea villages inside Bulang Mountain, in the south of Menghai County in Xishuangbanna, Yunnan. The name covers more than one settlement. Lao Banzhang is the old village. Xin Banzhang is a separate village that grew out of it. Altitude is quoted differently from place to place, mostly between about 1,600 and 1,900 metres.",
+        "approvedAt": "2026-11-26",
+        "reason": "Approved by Adrian on the Wisdom Base Places review page, 2026-11-27",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "bulang-mountain:history",
+    "pageId": "bulang-mountain",
+    "sectionKey": "history",
+    "label": "A newer famous mountain",
+    "axis": "maker_history",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "origin_includes": [
+        "bulang mountain"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "bulang-mountain",
+    "text": "Bulang is a pu’er area whose fame is recent. Its reputation grew with the rise of Banzhang, whose price pulled attention to the whole mountain.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "bulang-mountain",
+        "text": "Bulang is a pu’er area whose fame is recent. Its reputation grew with the rise of Banzhang, whose price pulled attention to the whole mountain.",
+        "approvedAt": "2026-11-26",
+        "reason": "Approved by Adrian on the Wisdom Base Places review page, 2026-11-27",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "bulang-mountain:in-ripe-pu-er",
+    "pageId": "bulang-mountain",
+    "sectionKey": "in-ripe-pu-er",
+    "label": "Bulang in ripe pu’er",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "origin_includes": [
+        "bulang mountain"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "bulang-mountain",
+    "text": "Bulang leaf is also used for ripe pu’er, and ripe cakes and loose tea sold under the name Bulang Mountain are common. The raw tea is strong, so ripe tea made from it is described by sellers as thick and full. Sellers disagree on whether it stays bitter after piling, so ripe Bulang tea is better judged cup by cup than from the name.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "bulang-mountain",
+        "text": "Bulang leaf is also used for ripe pu’er, and ripe cakes and loose tea sold under the name Bulang Mountain are common. The raw tea is strong, so ripe tea made from it is described by sellers as thick and full. Sellers disagree on whether it stays bitter after piling, so ripe Bulang tea is better judged cup by cup than from the name.",
+        "approvedAt": "2026-11-26",
+        "reason": "Approved by Adrian on the Wisdom Base Places review page, 2026-11-27",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "bulang-mountain:known-for",
+    "pageId": "bulang-mountain",
+    "sectionKey": "known-for",
+    "label": "The tea it is known for",
+    "axis": "sensory_observation",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "origin_includes": [
+        "bulang mountain"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "bulang-mountain",
+    "text": "Bulang Mountain is known for raw pu’er from old tea gardens. The trade describes the tea as forceful: a strong, bitter start that turns sweet, thick liquor and a strong feel in the throat. It is often set against the softer, sweeter style of Yiwu. Villages differ a good deal. Lao Man’e is known for bitterness, and some other villages make sweeter tea.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "bulang-mountain",
+        "text": "Bulang Mountain is known for raw pu’er from old tea gardens. The trade describes the tea as forceful: a strong, bitter start that turns sweet, thick liquor and a strong feel in the throat. It is often set against the softer, sweeter style of Yiwu. Villages differ a good deal. Lao Man’e is known for bitterness, and some other villages make sweeter tea.",
+        "approvedAt": "2026-11-26",
+        "reason": "Approved by Adrian on the Wisdom Base Places review page, 2026-11-27",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "bulang-mountain:on-a-label",
+    "pageId": "bulang-mountain",
+    "sectionKey": "on-a-label",
+    "label": "Bulang Mountain on a label",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "bulang mountain"
+      ]
+    },
+    "terms": [
+      {
+        "original": "布朗山",
+        "pinyin": "Bùlǎngshān",
+        "gloss": "Bulang Mountain"
+      },
+      {
+        "original": "老曼峨",
+        "pinyin": "Lǎo Màn’é",
+        "gloss": "Lao Man’e village"
+      }
+    ],
+    "rev": 1,
+    "scope": "bulang-mountain",
+    "text": "Bulang Mountain on a label is a broad market name. Leaf from smaller or less famous villages is often sold in bulk, blended, and offered as Bulang tea. A cake called Bulang Mountain rarely names the village, and some makers do not state where the leaf came from. It points to a mountain style more than to one place.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "bulang-mountain",
+        "text": "Bulang Mountain on a label is a broad market name. Leaf from smaller or less famous villages is often sold in bulk, blended, and offered as Bulang tea. A cake called Bulang Mountain rarely names the village, and some makers do not state where the leaf came from. It points to a mountain style more than to one place.",
+        "approvedAt": "2026-11-26",
+        "reason": "Approved by Adrian on the Wisdom Base Places review page, 2026-11-27",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "bulang-mountain:people",
+    "pageId": "bulang-mountain",
+    "sectionKey": "people",
+    "label": "Who lives there",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "origin_includes": [
+        "bulang mountain"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "bulang-mountain",
+    "text": "The mountain takes its name from the Bulang people, who have grown and drunk tea here for a very long time. Lao Man’e is often described as one of their oldest villages, at about fourteen hundred years. Hani villages such as the Banzhang settlements sit in the same mountains.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "bulang-mountain",
+        "text": "The mountain takes its name from the Bulang people, who have grown and drunk tea here for a very long time. Lao Man’e is often described as one of their oldest villages, at about fourteen hundred years. Hani villages such as the Banzhang settlements sit in the same mountains.",
+        "approvedAt": "2026-11-26",
+        "reason": "Approved by Adrian on the Wisdom Base Places review page, 2026-11-27",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "bulang-mountain:where-it-is",
+    "pageId": "bulang-mountain",
+    "sectionKey": "where-it-is",
+    "label": "Where Bulang Mountain is",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "bulang mountain"
+      ]
+    },
+    "terms": [
+      {
+        "original": "布朗山",
+        "pinyin": "Bùlǎngshān",
+        "gloss": "Bulang Mountain"
+      },
+      {
+        "original": "老曼峨",
+        "pinyin": "Lǎo Màn’é",
+        "gloss": "Lao Man’e village"
+      }
+    ],
+    "rev": 1,
+    "scope": "bulang-mountain",
+    "text": "Bulang Mountain lies in the south of Menghai County in Xishuangbanna, Yunnan, next to the border with Myanmar. It covers roughly one thousand square kilometres and is one of the larger tea areas in the county. It is a mountain area with many villages, not a single village. Banzhang, Lao Man’e and Manxinlong are among its named tea villages.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "bulang-mountain",
+        "text": "Bulang Mountain lies in the south of Menghai County in Xishuangbanna, Yunnan, next to the border with Myanmar. It covers roughly one thousand square kilometres and is one of the larger tea areas in the county. It is a mountain area with many villages, not a single village. Banzhang, Lao Man’e and Manxinlong are among its named tea villages.",
+        "approvedAt": "2026-11-26",
+        "reason": "Approved by Adrian on the Wisdom Base Places review page, 2026-11-27",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
     "claimId": "dancong:ageing",
     "pageId": "dancong",
     "sectionKey": "ageing",
@@ -493,466 +942,6 @@ export const PART: readonly DraftClaim[] = [
         "text": "Brew it gongfu style in a small gaiwan or clay pot, with about 3 to 8 grams for 100 to 120 ml and hot water, about 88 to 100°C; Chinese accounts mostly say 95 to 100°C. A quick rinse is common. Steeps start at a few seconds and grow a few seconds each round, and a good Dancong gives about eight to fifteen. Too long, too hot or too much leaf and it turns bitter and astringent.",
         "approvedAt": "2026-11-25",
         "reason": "Adrian approved the Phoenix Dancong kit 2026-11-25",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "dancong:common-impressions",
-    "pageId": "dancong",
-    "sectionKey": "common-impressions",
-    "label": "What people often notice",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "origin_includes": [
-        "phoenix mountain"
-      ]
-    },
-    "terms": [
-      {
-        "original": "山韵",
-        "pinyin": "shān yùn",
-        "gloss": "mountain rhyme"
-      }
-    ],
-    "rev": 1,
-    "scope": "Phoenix Dancong style kit",
-    "text": "Flowers above all, a sweetness that comes back after swallowing, a high scent that lasts, honey, often ripe fruit such as peach, and what the trade calls mountain rhyme, shan yun; a liquor from golden to orange-red or amber.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Phoenix Dancong style kit",
-        "text": "Flowers above all, a sweetness that comes back after swallowing, a high scent that lasts, honey, often ripe fruit such as peach, and what the trade calls mountain rhyme, shan yun; a liquor from golden to orange-red or amber.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the Phoenix Dancong kit 2026-11-25",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "dancong:definition",
-    "pageId": "dancong",
-    "sectionKey": "definition",
-    "label": "What Phoenix Dancong is",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "origin_includes": [
-        "phoenix mountain"
-      ]
-    },
-    "terms": [
-      {
-        "original": "凤凰单丛",
-        "pinyin": "fènghuáng dāncóng",
-        "gloss": "Phoenix single bush"
-      },
-      {
-        "original": "乌岽",
-        "pinyin": "wūdōng",
-        "gloss": "Wudong peak"
-      }
-    ],
-    "rev": 1,
-    "scope": "Phoenix Dancong style kit",
-    "text": "Phoenix Dancong is the oolong of Phoenix Mountain, Fenghuang Shan, in Chao'an, Chaozhou, in eastern Guangdong. Wudong is the peak named most often as its heart. The dry leaf is a long strip, twisted tight, dark and glossy, not rolled into a ball.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Phoenix Dancong style kit",
-        "text": "Phoenix Dancong is the oolong of Phoenix Mountain, Fenghuang Shan, in Chao'an, Chaozhou, in eastern Guangdong. Wudong is the peak named most often as its heart. The dry leaf is a long strip, twisted tight, dark and glossy, not rolled into a ball.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the Phoenix Dancong kit 2026-11-25",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "dancong:history",
-    "pageId": "dancong",
-    "sectionKey": "history",
-    "label": "The local tea",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "origin_includes": [
-        "phoenix mountain"
-      ]
-    },
-    "terms": [
-      {
-        "original": "潮州工夫茶",
-        "pinyin": "cháozhōu gōngfu chá",
-        "gloss": "Chaozhou gongfu tea"
-      }
-    ],
-    "rev": 1,
-    "scope": "Phoenix Dancong style kit",
-    "text": "The old tea of the mountain was called bird-beak tea, and later Shuixian. Dancong is the everyday tea of Chaozhou, and gongfu brewing is tied to Chaozhou, where Chaozhou gongfu tea is still made with small vessels, set ways of pouring, and three cups.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Phoenix Dancong style kit",
-        "text": "The old tea of the mountain was called bird-beak tea, and later Shuixian. Dancong is the everyday tea of Chaozhou, and gongfu brewing is tied to Chaozhou, where Chaozhou gongfu tea is still made with small vessels, set ways of pouring, and three cups.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the Phoenix Dancong kit 2026-11-25",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "dancong:making",
-    "pageId": "dancong",
-    "sectionKey": "making",
-    "label": "How Dancong is made",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "origin_includes": [
-        "phoenix mountain"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Phoenix Dancong style kit",
-    "text": "The leaf is withered in the sun and cooled indoors, then shaken and rested in rounds; this is the step that bruises the leaf edge and builds the scent. It is fixed fast at high heat in a hot pan or drum, rolled into strips, dried, and roasted again as it is refined, sometimes over more than one round. Charcoal is the traditional fire. The roast is a main difference between teas: a light roast keeps the floral scent bright, a heavier one gives a deeper, sweeter cup with caramel in it.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Phoenix Dancong style kit",
-        "text": "The leaf is withered in the sun and cooled indoors, then shaken and rested in rounds; this is the step that bruises the leaf edge and builds the scent. It is fixed fast at high heat in a hot pan or drum, rolled into strips, dried, and roasted again as it is refined, sometimes over more than one round. Charcoal is the traditional fire. The roast is a main difference between teas: a light roast keeps the floral scent bright, a heavier one gives a deeper, sweeter cup with caramel in it.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the Phoenix Dancong kit 2026-11-25",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "dancong:mi-lan-xiang",
-    "pageId": "dancong",
-    "sectionKey": "mi-lan-xiang",
-    "label": "Mi Lan Xiang",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "origin_includes": [
-        "phoenix mountain"
-      ],
-      "name_includes": [
-        "mi",
-        "lan"
-      ]
-    },
-    "terms": [
-      {
-        "original": "蜜兰香",
-        "pinyin": "mìlán xiāng",
-        "gloss": "honey orchid aroma"
-      }
-    ],
-    "rev": 1,
-    "scope": "Phoenix Dancong style kit",
-    "text": "Mi Lan Xiang, honey orchid, is one of the traditional ten aroma types and one of the most widely made, often named as a good first Dancong. It is described as honey-sweet with an orchid scent, with a cooked sweet potato note, and a liquor from golden amber to orange-red, depending on the roast. The one name covers a range of teas.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Phoenix Dancong style kit",
-        "text": "Mi Lan Xiang, honey orchid, is one of the traditional ten aroma types and one of the most widely made, often named as a good first Dancong. It is described as honey-sweet with an orchid scent, with a cooked sweet potato note, and a liquor from golden amber to orange-red, depending on the roast. The one name covers a range of teas.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the Phoenix Dancong kit 2026-11-25",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "dancong:name",
-    "pageId": "dancong",
-    "sectionKey": "name",
-    "label": "Single bush",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "origin_includes": [
-        "phoenix mountain"
-      ]
-    },
-    "terms": [
-      {
-        "original": "单丛",
-        "pinyin": "dāncóng",
-        "gloss": "single bush"
-      },
-      {
-        "original": "单枞",
-        "pinyin": "dāncōng",
-        "gloss": "single bush, other spelling"
-      }
-    ],
-    "rev": 1,
-    "scope": "Phoenix Dancong style kit",
-    "text": "Dancong means single bush: the leaf of one bush picked and made on its own, never mixed with others. The bushes are chosen from the old Phoenix Shuixian plants of the mountain. Today a named Dancong is mostly grown from cuttings or grafts of a chosen bush, so one name no longer means one tree, though some very old trees are still made on their own.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Phoenix Dancong style kit",
-        "text": "Dancong means single bush: the leaf of one bush picked and made on its own, never mixed with others. The bushes are chosen from the old Phoenix Shuixian plants of the mountain. Today a named Dancong is mostly grown from cuttings or grafts of a chosen bush, so one name no longer means one tree, though some very old trees are still made on their own.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the Phoenix Dancong kit 2026-11-25",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "dancong:old-bushes",
-    "pageId": "dancong",
-    "sectionKey": "old-bushes",
-    "label": "Old bushes and Song tea",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "origin_includes": [
-        "phoenix mountain"
-      ]
-    },
-    "terms": [
-      {
-        "original": "老丛",
-        "pinyin": "lǎocóng",
-        "gloss": "old bush"
-      },
-      {
-        "original": "宋种",
-        "pinyin": "sòngzhǒng",
-        "gloss": "Song variety"
-      }
-    ],
-    "rev": 1,
-    "scope": "Phoenix Dancong style kit",
-    "text": "Old bushes, laocong, are prized for depth and a lasting sweetness, and give little leaf; no age is agreed for when a bush counts as old. Song variety, songzhong, is a market label for the oldest named lines, Huangzhi above all, not a proven age. A legend gives the old trees their name: the last Song emperor, fleeing as a boy, was given tea on the mountain by a phoenix.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Phoenix Dancong style kit",
-        "text": "Old bushes, laocong, are prized for depth and a lasting sweetness, and give little leaf; no age is agreed for when a bush counts as old. Song variety, songzhong, is a market label for the oldest named lines, Huangzhi above all, not a proven age. A legend gives the old trees their name: the last Song emperor, fleeing as a boy, was given tea on the mountain by a phoenix.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the Phoenix Dancong kit 2026-11-25",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "dancong:ya-shi-xiang",
-    "pageId": "dancong",
-    "sectionKey": "ya-shi-xiang",
-    "label": "Ya Shi Xiang",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "origin_includes": [
-        "phoenix mountain"
-      ],
-      "name_any": [
-        "ya",
-        "duck"
-      ]
-    },
-    "terms": [
-      {
-        "original": "鸭屎香",
-        "pinyin": "yā shǐ xiāng",
-        "gloss": "duck dung aroma"
-      },
-      {
-        "original": "银花香",
-        "pinyin": "yínhuā xiāng",
-        "gloss": "silver flower aroma"
-      }
-    ],
-    "rev": 1,
-    "scope": "Phoenix Dancong style kit",
-    "text": "Ya Shi Xiang, duck dung aroma, is the market name for a very floral Dancong, and most lists of the ten leave it out even though it sells widely. It is also called Yinhua Xiang, silver flower or honeysuckle aroma, a name put forward in 2014 for a scent likened to the wild honeysuckle of the mountain; many sellers keep the old name. Its line is traced to Pingkengtou village. Three stories explain the name, all told as stories: that it was chosen to put thieves off the bush, that it comes from the yellow local soil called duck dung soil, and that duck droppings lay on the bush. The tea tastes nothing like its name: every account of the cup gives flowers, usually with milk or cream, honey or fruit.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Phoenix Dancong style kit",
-        "text": "Ya Shi Xiang, duck dung aroma, is the market name for a very floral Dancong, and most lists of the ten leave it out even though it sells widely. It is also called Yinhua Xiang, silver flower or honeysuckle aroma, a name put forward in 2014 for a scent likened to the wild honeysuckle of the mountain; many sellers keep the old name. Its line is traced to Pingkengtou village. Three stories explain the name, all told as stories: that it was chosen to put thieves off the bush, that it comes from the yellow local soil called duck dung soil, and that duck droppings lay on the bush. The tea tastes nothing like its name: every account of the cup gives flowers, usually with milk or cream, honey or fruit.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the Phoenix Dancong kit 2026-11-25",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "dark:ageing",
-    "pageId": "dark",
-    "sectionKey": "ageing",
-    "label": "Dark tea and age",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Dark"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Dark tea in general",
-    "text": "Dark tea is made to be kept, and the trade values it more with age. Over years it turns darker and redder in the cup and grows mellower and sweeter. How fast it changes depends on how it is stored, and the trade does not agree on one way: some keep it cool and dry for a slow, clean change, others warmer and more humid for a faster, deeper one. When a tea counts as young or aged differs from style to style, so each style sets its own measure.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Dark tea in general",
-        "text": "Dark tea is made to be kept, and the trade values it more with age. Over years it turns darker and redder in the cup and grows mellower and sweeter. How fast it changes depends on how it is stored, and the trade does not agree on one way: some keep it cool and dry for a slow, clean change, others warmer and more humid for a faster, deeper one. When a tea counts as young or aged differs from style to style, so each style sets its own measure.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "dark:brewing",
-    "pageId": "dark",
-    "sectionKey": "brewing",
-    "label": "Brewing dark tea",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Dark"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Dark tea in general",
-    "text": "Dark tea takes boiling water. Its leaf is mature and dense, so it gives up its flavour slowly and is hard to overbrew. Rinse it first with boiling water and pour that off within seconds: the rinse wakes the leaf and washes off dust and any stale smell from storage, and an old tea may take a second rinse. In a small pot use plenty of leaf, about 7 grams to 120 ml, then steep very briefly at first and a little longer each time; a good dark tea gives many cups.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Dark tea in general",
-        "text": "Dark tea takes boiling water. Its leaf is mature and dense, so it gives up its flavour slowly and is hard to overbrew. Rinse it first with boiling water and pour that off within seconds: the rinse wakes the leaf and washes off dust and any stale smell from storage, and an old tea may take a second rinse. In a small pot use plenty of leaf, about 7 grams to 120 ml, then steep very briefly at first and a little longer each time; a good dark tea gives many cups.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "dark:brewing-pressed",
-    "pageId": "dark",
-    "sectionKey": "brewing-pressed",
-    "label": "Breaking a pressed dark tea",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Dark"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Dark tea in general",
-    "text": "From a brick, cake or basket, ease the leaf off along the edge or from the top with a pick rather than snapping it. Whole pieces give up their flavour steadily; crumbs release it all at once and cloud the cup.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Dark tea in general",
-        "text": "From a brick, cake or basket, ease the leaf off along the edge or from the top with a pick rather than snapping it. Whole pieces give up their flavour steadily; crumbs release it all at once and cloud the cup.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "dark:brewing-simmer",
-    "pageId": "dark",
-    "sectionKey": "brewing-simmer",
-    "label": "Simmering older dark tea",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Dark"
-    },
-    "terms": [
-      {
-        "original": "煮",
-        "pinyin": "zhǔ",
-        "gloss": "simmering"
-      }
-    ],
-    "rev": 1,
-    "scope": "Dark tea in general",
-    "text": "Older or coarse dark tea is often simmered rather than steeped: the leaf goes into a pot of water, comes to a gentle boil and simmers for a few minutes. Thick leaf and long-aged tea release their flavour slowly, and the steady heat gives a fuller, smoother cup than short steeps do.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Dark tea in general",
-        "text": "Older or coarse dark tea is often simmered rather than steeped: the leaf goes into a pot of water, comes to a gentle boil and simmers for a few minutes. Thick leaf and long-aged tea release their flavour slowly, and the steady heat gives a fuller, smoother cup than short steeps do.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
         "evidenceIds": []
       }
     ],

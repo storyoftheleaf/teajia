@@ -14,6 +14,9 @@ last_reviewed: 2026-11-03
 > **The pillar:** [docs/PILLAR.md](docs/PILLAR.md) is what this site is and how it works in one read; keep it true in the same commit that changes the shape of the site.
 > **Documentation hub:** start at [docs/INDEX.md](docs/INDEX.md). Architecture in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Current state in [docs/STATE_OF_THE_SITE.md](docs/STATE_OF_THE_SITE.md). What's next in [docs/CONSOLIDATED_DIRECTION.md](docs/CONSOLIDATED_DIRECTION.md) (the single directional list; per-track build queues in [docs/tracks/](docs/tracks/)). What shipped in [docs/CHANGELOG.md](docs/CHANGELOG.md).
 
+## The Wisdom Base is one place (Adrian, 2026-11-27)
+All tea knowledge (types, places, grades, marks, processes, producers, named teas) lives in the one Wisdom Base at /wisdom: the records in `data/tea-wisdom-source/` and the written pages in `data/tea-reference/pages/`, joined by shared id. Never start a second library, store or set of pages for it. Before posting or composing a tea, check what it needs in the Wisdom Base and write that first. How: [docs/TEA_WISDOM_BASE.md](docs/TEA_WISDOM_BASE.md#one-wisdom-base-two-layers-read-this-before-adding-anything).
+
 ## Tea UI reference
 
 Reuse the shared card, panel summary, and tasting parts documented in [the design system](docs/DESIGN_SYSTEM.md#tea-cards-detail-panels-and-tasting). The interactive reference runs locally at `/preview/tea-ui/`.
