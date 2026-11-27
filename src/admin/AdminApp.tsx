@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { tableCardOpen } from '../lib/tableCard';
-import { Routes, Route, Navigate, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
+import { Routes, Route, Navigate, useNavigate, useLocation, useParams, useSearchParams } from 'react-router-dom';
 import { AlertTriangle } from 'lucide-react';
 import { usePullToRefresh } from '../hooks/usePullToRefresh';
 import { PullToRefreshIndicator } from '../components/shared/PullToRefreshIndicator';
@@ -652,7 +652,8 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
               <Route path="currency" element={<ProtectedRoute hasAccess={!!platformRole} isLoggingIn={!isLoggedIn}><PageTransition><CurrencyRatesView /></PageTransition></ProtectedRoute>} />
               <Route path="mcp-tokens" element={<ProtectedRoute hasAccess={isOwnerTier} isLoggingIn={!isLoggedIn}><PageTransition><MCPTokensView /></PageTransition></ProtectedRoute>} />
               <Route path="oauth-consent" element={<ProtectedRoute hasAccess={isOwnerTier} isLoggingIn={!isLoggedIn}><PageTransition><OAuthConsentView /></PageTransition></ProtectedRoute>} />
-              <Route path="oauth-consent/:requestId" element={<ProtectedRoute hasAccess={isOwnerTier} isLoggingIn={!isLoggedIn}><PageTransition><OAuthConsentView /></PageTransition></ProtectedRoute>} />
+              {/* A signed-in host who is not a shop owner connects their own assistant on the site's page instead. */}
+              <Route path="oauth-consent/:requestId" element={isLoggedIn && !isOwnerTier ? <HostConsentRedirect /> : <ProtectedRoute hasAccess={isOwnerTier} isLoggingIn={!isLoggedIn}><PageTransition><OAuthConsentView /></PageTransition></ProtectedRoute>} />
               <Route path="tasting-notes" element={<ProtectedRoute hasAccess={hasPublishBundle} isLoggingIn={!isLoggedIn}><PageTransition><CustomerNotesView /></PageTransition></ProtectedRoute>} />
               <Route path="catalog-review/teas/:groupId?" element={<ProtectedRoute hasAccess={isOwnerTier} isLoggingIn={!isLoggedIn}><Suspense fallback={null}><CatalogTeaReading /></Suspense></ProtectedRoute>} />
               <Route path="stock/gallery-proposals/:stockId/:proposalId?" element={<ProtectedRoute hasAccess={isOwnerTier} isLoggingIn={!isLoggedIn}><Suspense fallback={null}><StockGalleryProposal /></Suspense></ProtectedRoute>} />
@@ -759,5 +760,12 @@ const AdminApp = ({ onAccountClick, onSearchClick, onCartClick }: AdminAppProps)
     </ToastProvider>
   </ErrorBoundary>
 );
+
+
+/** The host's own connection page, for a person with no shop to approve for. */
+function HostConsentRedirect() {
+  const { requestId = '' } = useParams<{ requestId: string }>();
+  return <Navigate to={`/connect/${encodeURIComponent(requestId)}`} replace />;
+}
 
 export default AdminApp;

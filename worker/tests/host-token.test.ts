@@ -346,3 +346,75 @@ describe('with a switch closed', () => {
     });
   }
 });
+
+// Hosts connect ChatGPT or Claude by signing in (OAuth), from the site's own
+// page, not Manage. The grant is a host's own key: host:self alone, on their
+// own personal account, and only while they may host.
+describe('a host connects their assistant by signing in', () => {
+  const REDIRECT = 'https://claude.ai/api/mcp/auth_callback';
+  const VERIFIER = 'v'.repeat(64);
+
+  async function challenge() {
+    const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(VERIFIER)));
+    return btoa(String.fromCharCode(...digest)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+
+  beforeEach(() => {
+    db.sqlite.prepare(`INSERT INTO oauth_clients (id, client_name, redirect_uris, grant_types, response_types)
+      VALUES ('client-claude', 'Claude', ?, '["authorization_code"]', '["code"]')`).run(JSON.stringify([REDIRECT]));
+  });
+
+  async function approve(who: string, extra: Record<string, unknown> = { host: true }) {
+    const jwt = await signedToken(SECRET, { sub: who, name: who, email: `${who}@test.dev`, role: 'user' });
+    const response = await send('/oauth/authorize/decision', {
+      method: 'POST', bearer: jwt,
+      body: { client_id: 'client-claude', redirect_uri: REDIRECT, code_challenge: await challenge(), code_challenge_method: 'S256', ...extra },
+    });
+    return { status: response.status, body: await response.json() as any };
+  }
+
+  async function exchange(redirectTo: string) {
+    const code = new URL(redirectTo).searchParams.get('code')!;
+    const response = await worker.fetch(new Request('https://api.hosts.test/oauth/token', {
+      method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ grant_type: 'authorization_code', code, code_verifier: VERIFIER, client_id: 'client-claude', redirect_uri: REDIRECT }),
+    }), env(), { waitUntil() {}, passThroughOnException() {} } as any);
+    return { status: response.status, body: await response.json() as any };
+  }
+
+  it('an approved host gets exactly the host tools on their own account, revocable from their page', async () => {
+    const approved = await approve('ana');
+    expect(approved.status, JSON.stringify(approved.body)).toBe(200);
+    const token = await exchange(approved.body.redirect_to);
+    expect(token.status, JSON.stringify(token.body)).toBe(200);
+    expect(token.body.scope).toBe('host:self');
+    expect(await listed(token.body.access_token)).toEqual(HOST_SET);
+    expect(db.sqlite.prepare(`SELECT account_id FROM mcp_tokens WHERE label = 'OAuth: Claude'`).get()).toEqual({ account_id: 'ana-personal' });
+    expect((await call(token.body.access_token, 'get_table_guests', { table_id: 't-bo' })).error).toBe('table_not_found');
+    // It sits with their keys on their own page, and stops when they take it off.
+    const keys = await route('ana', '/api/me/assistant-tokens');
+    const oauthKey = keys.body.tokens.find((key: { label: string }) => key.label === 'OAuth: Claude');
+    expect(oauthKey).toBeTruthy();
+    expect((await route('ana', `/api/me/assistant-tokens/${oauthKey.id}`, 'DELETE')).status).toBe(200);
+    expect((await rpc(token.body.access_token, 'tools/list')).status).toBe(401);
+  });
+
+  it('a person who is not an approved host is refused, and no shop scope rides along', async () => {
+    flags.ANYONE_HOSTS_OPEN = 'false';
+    expect((await approve('cy')).status).toBe(403);
+    const asked = await approve('ana', { host: true, scopes: ['admin:write', 'catalog:write'] });
+    const token = await exchange(asked.body.redirect_to);
+    expect(token.body.scope).toBe('host:self');
+  });
+
+  it('a stopped host’s code is refused at the exchange', async () => {
+    const approved = await approve('ana');
+    db.sqlite.prepare(`UPDATE users SET hosting_stopped_at = '2026-11-27T00:00:00Z', hosting_stopped_by = 'adrian' WHERE id = 'ana'`).run();
+    expect((await exchange(approved.body.redirect_to)).status).toBe(400);
+  });
+
+  it('with host keys closed, nothing is granted', async () => {
+    flags.HOST_TOKENS_OPEN = 'false';
+    expect((await approve('ana')).status).toBe(403);
+  });
+});

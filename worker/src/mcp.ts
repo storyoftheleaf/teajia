@@ -131,7 +131,7 @@ import { reviewedDescription } from './wisdomWordingReview';
 import { mergeProductTasting, readStoredTasting, tastingHasTerms, tastingTermLabel } from './curateImportTasting';
 import { MCP_SERVER_ICONS, MCP_SERVER_WEBSITE } from './siteIcons';
 import { hostCreditStaffFill, settleHostCredit } from './hostCreditLedger';
-import { hostTokenMayAct } from './hostTokens';
+import { hostTokenMayAct, personalAccountId } from './hostTokens';
 import { HOST_SELF_SCOPE } from '../../src/lib/hostTokens';
 
 /** Freight rates are typed only in Logistics (Adrian, 2026-11-27), never on a tea. */
@@ -393,6 +393,34 @@ async function resolveOAuthApprovalContext(
 
   return { userId: user.id, userEmail: user.email || claims.email, accountId, creatorTier: 'account_owner' };
 }
+
+/**
+ * A host connecting their own assistant (ChatGPT or Claude) by OAuth, from the
+ * site's own page (/connect/<request_id>), not Manage. The grant is the same
+ * as a host's own key: `host:self` alone, on their own personal account, and
+ * only while they may host. Never a shop scope, whoever asks.
+ */
+async function resolveHostOAuthContext(request: Request, env: Env): Promise<OAuthApprovalContext | Response> {
+  const claims = await verifyJwt(request, env);
+  if (!claims) return corsJson({ error: 'unauthenticated', error_description: 'Login required before approval' }, 401);
+  let user: { id: string; email: string | null; session_version: number | null } | null;
+  try {
+    user = await env.DB.prepare('SELECT id, email, session_version FROM users WHERE id = ?').bind(claims.sub).first() as typeof user;
+  } catch {
+    return corsJson({ error: 'temporarily_unavailable', error_description: 'Authentication dependency unavailable' }, 503);
+  }
+  if (!user) return corsJson({ error: 'unauthenticated', error_description: 'User no longer exists' }, 401);
+  if (Number(user.session_version || 0) !== Number(claims.session_version || 0)) {
+    return corsJson({ error: 'unauthenticated', error_description: 'Session no longer valid' }, 401);
+  }
+  const accountId = await personalAccountId(env.DB, user.id);
+  if (!accountId || !await hostTokenMayAct(env, user.id, accountId)) {
+    return corsJson({ error: 'access_denied', error_description: 'Connecting an assistant is for a host Teajia has approved.' }, 403);
+  }
+  return { userId: user.id, userEmail: user.email || claims.email, accountId, creatorTier: 'account_owner' };
+}
+
+const HOST_SELF_GRANT = JSON.stringify([HOST_SELF_SCOPE]);
 
 // ── token auth ──
 
@@ -8109,6 +8137,8 @@ export async function oauthAuthorizeDecision(request: Request, env: Env): Promis
   // from the stored authorize request), the legacy flow passes the OAuth params
   // inline. `scopes` (an array) is the user's consent-screen selection.
   const { request_id, account_id, scopes: requestedScopes } = body || {};
+  // A host's own connection (resolveHostOAuthContext): host:self alone.
+  const asHost = body?.host === true;
   let { client_id, redirect_uri, code_challenge, code_challenge_method, state } = body || {};
 
   if (request_id) {
@@ -8129,11 +8159,13 @@ export async function oauthAuthorizeDecision(request: Request, env: Env): Promis
   if (!client_id || !redirect_uri || !code_challenge || code_challenge_method !== 'S256') {
     return corsJson({ error: 'invalid_request', error_description: 'Missing required PKCE params' }, 400);
   }
-  const approval = await resolveOAuthApprovalContext(
-    request,
-    env,
-    typeof account_id === 'string' ? account_id : null,
-  );
+  const approval = asHost
+    ? await resolveHostOAuthContext(request, env)
+    : await resolveOAuthApprovalContext(
+      request,
+      env,
+      typeof account_id === 'string' ? account_id : null,
+    );
   if (approval instanceof Response) return approval;
 
   // Validate the redirect_uri against what the client registered with.
@@ -8154,7 +8186,7 @@ export async function oauthAuthorizeDecision(request: Request, env: Env): Promis
 
   // Scopes the user granted on the consent screen, filtered to the approver's
   // tier. Persisted on the code so token mint honours the selection.
-  const grantedScopes = sanitizeScopesForTier(requestedScopes, approval.creatorTier);
+  const grantedScopes: string[] = asHost ? [HOST_SELF_SCOPE] : sanitizeScopesForTier(requestedScopes, approval.creatorTier);
   if (grantedScopes.length === 0) {
     return corsJson({ error: 'invalid_scope', error_description: 'Select at least one permitted scope' }, 400);
   }
@@ -8249,8 +8281,15 @@ export async function oauthToken(request: Request, env: Env): Promise<Response> 
     (['platform_owner', 'account_owner', 'staff', 'viewer'] as McpCreatorTier[]).includes(codeRow.creator_tier as McpCreatorTier)
       ? (codeRow.creator_tier as McpCreatorTier)
       : 'account_owner';
-  let grantScopes: McpScope[] = DEFAULT_MCP_SCOPES;
-  if (codeRow.scopes != null) {
+  let grantScopes: string[] = DEFAULT_MCP_SCOPES;
+  // A host's own connection carries host:self alone, re-checked at mint.
+  const hostGrant = codeRow.scopes === HOST_SELF_GRANT;
+  if (hostGrant) {
+    if (!await hostTokenMayAct(env, String(codeRow.user_id), String(codeRow.account_id))) {
+      return corsJson({ error: 'invalid_grant', error_description: 'Connecting an assistant is for a host Teajia has approved.' }, 400);
+    }
+    grantScopes = [HOST_SELF_SCOPE];
+  } else if (codeRow.scopes != null) {
     try { grantScopes = sanitizeScopesForTier(JSON.parse(codeRow.scopes as string), grantTier); } catch { grantScopes = []; }
   }
   if (grantScopes.length === 0) {
