@@ -6,12 +6,13 @@ const tea = { type: 'Dark', costAmount: 700, costCurrency: 'Yuan', quantityPurch
 
 describe('clearing a tea’s own freight rate', () => {
   it('prices the tea at its own rate now and at what it would follow once cleared', () => {
-    // Own rate 84 yuan = $12/kg; cleared, it follows $10/kg.
-    const preview = freightClearPreview({ ...tea, shippingRatePerKg: 84 }, rates, 10);
+    // Own rate 84 yuan = $12/kg; cleared, it follows $50/kg.
+    // Freight is passed on at cost: the leaf times three, plus freight once.
+    const preview = freightClearPreview({ ...tea, shippingRatePerKg: 84 }, rates, 50);
     expect(preview.ownPerKgUsd).toBeCloseTo(12, 6);
-    expect(preview.before).toBeCloseTo((0.1 + 0.012) * 3, 6);
-    expect(preview.after).toBeCloseTo((0.1 + 0.01) * 3, 6);
-    expect(clearPriceLine(preview)).toBe('$0.34 → $0.33 a gram');
+    expect(preview.before).toBeCloseTo(0.1 * 3 + 0.012, 6);
+    expect(preview.after).toBeCloseTo(0.1 * 3 + 0.05, 6);
+    expect(clearPriceLine(preview)).toBe('$0.31 → $0.35 a gram');
   });
   it('keeps a typed zero as free freight, not as nothing said', () => {
     const preview = freightClearPreview({ ...tea, shippingRatePerKg: 0 }, rates, 10);
