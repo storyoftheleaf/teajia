@@ -1,5 +1,5 @@
 import { CapturePhotoImage } from '../curate/CapturePhotoImage';
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { Search, X, Trash2, ListChecks, SlidersHorizontal, ArrowDownWideNarrow, ChevronDown } from 'lucide-react';
 import { SessionReview } from './SessionReview';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
@@ -22,6 +22,7 @@ import { isUntriaged, entryDisplayTitle, entryIsSample, entryHasBeenTasted, entr
 import type { TeaCompassEntry, BrowseFilter, BrowseSort } from './types';
 import { LibraryFilterSheet } from './LibraryFilterSheet';
 import { libraryWaiting } from '../curate/teaPath';
+import { matchesShortCode, parseShortCode, teaShortCode } from '../../lib/shortCodes';
 import { useWisdomEntryIds } from '../curate/useWisdomEntryIds';
 import { mapAdminProduct } from '../../admin/productAdapter';
 import { ActiveFilterSummary, activeLibraryFilterCount } from './ActiveFilterSummary';
@@ -209,6 +210,10 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
   // 2026-11-27: "I'm here in the library and I don't see the thumbnail of
   // the person"). Face, else storefront, else business card, else initials.
   const supplierPhotos = useMemo(() => new Map(suppliers.map(supplier => [supplier.id, vendorFacePhoto(supplier)])), [suppliers]);
+  // Short codes (Adrian, 2026-11-27): V1 by the vendor, V1T12 on the tea.
+  const supplierCodes = useMemo(() => new Map(suppliers.filter(supplier => supplier.vendorCode).map(supplier => [supplier.id, supplier.vendorCode!])), [suppliers]);
+  const entryVendorCode = useCallback((entry: TeaCompassEntry) => supplierCodes.get(entry.linkedCustomerId || entry.vendorId || '') ?? null, [supplierCodes]);
+  const supplierShortCodes = useMemo(() => new Map(suppliers.filter(supplier => supplier.vendorShortCode).map(supplier => [supplier.id, supplier.vendorShortCode!])), [suppliers]);
   const resolvedEntries = useMemo(() => {
     const names = new Map(suppliers.map(supplier => [supplier.id, supplier.name]));
     return entries.map(entry => {
@@ -287,11 +292,18 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
 
   const searchResults = useMemo(() => {
     if (!searchQuery.trim()) return null;
+    // "V1T12" finds that one tea, "V1" all of that vendor's teas.
+    const code = parseShortCode(searchQuery);
+    if (code) {
+      const coded = entries.filter(entry => matchesShortCode(code, entryVendorCode(entry), entry.vendorTeaNumber)
+        || matchesShortCode(code, supplierShortCodes.get(entry.linkedCustomerId || entry.vendorId || ''), entry.vendorTeaNumber));
+      if (coded.length) return new Set(coded.map(entry => entry.id));
+    }
     const query = searchQuery.trim().toLowerCase();
     const ids = new Set(fuseInstance.search(searchQuery.trim()).map((r) => r.item.id));
     entries.forEach((entry) => { if (contextText(entry).toLowerCase().includes(query)) ids.add(entry.id); });
     return ids;
-  }, [searchQuery, fuseInstance, entries, contextText]);
+  }, [searchQuery, fuseInstance, entries, contextText, entryVendorCode, supplierShortCodes]);
 
   // ─── Counts (for filter pills) ────────────────────────────────────────────
 
@@ -365,6 +377,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
                 purchaseState={purchases.stateFor({ entryId: entry.id, productId: entry.draftProductId, chosen: entry.decision === 'selected' })}
                 isSelected={selectedEntryId === entry.id}
                 onAcquire={onAcquireEntry}
+                shortCode={teaShortCode(entryVendorCode(entry), entry.vendorTeaNumber)}
               />
             </motion.div>
           );
@@ -429,7 +442,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
                   return next;
                 })}>
                 <span className="library-supplier-name">{group.label}</span>
-                <span className="library-supplier-count">{group.entries.length} {group.entries.length === 1 ? 'tea' : 'teas'}</span>
+                <span className="library-supplier-count">{supplierId(group) && supplierCodes.get(supplierId(group)!) ? <span data-testid="library-supplier-code">{supplierCodes.get(supplierId(group)!)} · </span> : null}{group.entries.length} {group.entries.length === 1 ? 'tea' : 'teas'}</span>
               </button>
               {group.key && <LibrarySupplierActions supplierId={supplierId(group)} supplierName={group.label} />}
               </div>

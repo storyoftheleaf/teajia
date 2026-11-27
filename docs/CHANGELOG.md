@@ -1,3 +1,12 @@
+## 2026-11-27: Short codes for vendors and teas (V1, V1T12)
+
+Adrian: every vendor and every tea or sample has a short code, so he can say "V1T12" instead of typing the vendor and tea names.
+
+- Every vendor gets V1, V2 ... in the order added, and every tea or sample a number within its vendor, so V1T12 is vendor V1's twelfth tea. The database hands them out (migration `0149_short_codes.sql`: counters in `curate_code_counters`, V codes in `curate_vendor_short_codes`, `tea_compass_entries.vendor_tea_number`, filled by triggers whichever door adds the tea). A number is never handed out twice; a tea moved to another vendor takes that vendor's next number.
+- A code typed in the vendor page's Vendor code field is kept and shown; the V code still finds the vendor.
+- Codes show on each Library tea card, under each vendor's name in the Library, and on the vendor page. Library search and the agent's `curate_find` both read "V1T12", "v1 t12", "V1-T12" and "V1" (`src/lib/shortCodes.ts`).
+- Undo ignores the number the database stamps after a recorded write (`SERVER_STAMPED_COLUMNS` in `worker/src/curateMutations.ts`).
+
 ## 2026-11-27: Bringing a tea in, step 1: where each tea is, and what is waiting for you
 
 The first of five steps agreed with Adrian on the board "Bringing a tea in" (one Bring in door, one tea card, one waiting list). It only reads what is already stored and writes nothing.

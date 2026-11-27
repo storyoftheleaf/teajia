@@ -351,6 +351,10 @@ export interface Customer {
   storefront_photo?: string;
   /** A photo of the vendor's face (migration 0082), shown first wherever a
    *  vendor is picked, so a vendor remembered by face can be found by face. */
+  /** The code shown by the vendor's name: typed on the vendor page, else V1. */
+  vendorCode?: string;
+  /** The vendor's automatic V code (migration 0149); finds the vendor too. */
+  vendorShortCode?: string;
   face_photo?: string;
   latitude?: number;
   longitude?: number;

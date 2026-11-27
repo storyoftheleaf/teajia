@@ -7936,3 +7936,4 @@ body.cart-panel-open .commerce-dock {
 @media (max-width:520px) { .journey-track { grid-template-columns:repeat(2, minmax(0, 1fr)); } }
 .journey-items-label { align-self:center; margin-right:var(--space-1); }
 .journey-add { display:flex; flex-wrap:wrap; align-items:center; gap:var(--space-2); width:100%; }
+.library-card-code { margin-inline-end: var(--space-1); white-space: nowrap; align-self: center; }

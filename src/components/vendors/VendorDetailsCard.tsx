@@ -71,6 +71,9 @@ export const VendorDetailsCard: React.FC<{ vendor: VendorRecord; vendorId: strin
   const queryClient = useQueryClient();
   const profile = useQuery({ queryKey: ['curate-vendor-profile', vendorId], queryFn: () => api.curateWorkspace.vendor(vendorId) });
   const vendorCode: string | null = profile.data?.vendor_code || null;
+  // Every vendor has a V code (V1, V2 ...); a code typed here is shown instead.
+  const shortCode: string | null = profile.data?.short_code || null;
+  const shownCode = vendorCode || shortCode;
   const saveCode = async (value: string) => {
     await api.curateWorkspace.saveVendor(vendorId, { vendor_code: value.trim() || null });
     await queryClient.invalidateQueries({ queryKey: ['curate-vendor-profile', vendorId] });
@@ -116,7 +119,7 @@ export const VendorDetailsCard: React.FC<{ vendor: VendorRecord; vendorId: strin
         </div>
         <div className="flex-1 min-w-0 space-y-2">
           <h2 className="h3 break-words">{vendor.name}</h2>
-          {vendorCode && <p className="text-ui-11 uppercase tracking-[0.08em] text-tea-text-sec" data-testid="vendor-code">Code {vendorCode}</p>}
+          {shownCode && <p className="text-ui-11 uppercase tracking-[0.08em] text-tea-text-sec" data-testid="vendor-code">Code {shownCode}{vendorCode && shortCode && vendorCode.toUpperCase() !== shortCode.toUpperCase() ? ` · ${shortCode}` : ''}</p>}
           {vendorSubtitle(vendor) && (
             <p className="text-ui-13 text-tea-text-sec break-words">{vendorSubtitle(vendor)}</p>
           )}

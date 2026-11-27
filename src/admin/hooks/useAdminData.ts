@@ -199,6 +199,9 @@ export const useCustomers = (options?: { enabled?: boolean }) => {
         source: c.source || undefined,
         // Vendor photos: the faces in the vendor gallery and pickers.
         face_photo: c.face_photo || undefined,
+        // Short code shown by the vendor's name: V1, or one typed on the vendor page.
+        vendorCode: c.vendor_code || c.vendor_short_code || undefined,
+        vendorShortCode: c.vendor_short_code || undefined,
         storefront_photo: c.storefront_photo || undefined,
         business_card_photo: c.business_card_photo || undefined,
         type: c.type || 'customer',

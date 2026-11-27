@@ -8342,6 +8342,8 @@ const handleGetCustomers: Handler = async (request, env) => {
   try {
     result = await env.DB.prepare(`
       SELECT c.*,
+        (SELECT NULLIF(TRIM(vp.vendor_code), '') FROM curate_vendor_profiles vp WHERE vp.vendor_id = c.id AND vp.account_id = c.account_id) as vendor_code,
+        (SELECT sc.code FROM curate_vendor_short_codes sc WHERE sc.vendor_id = c.id AND sc.account_id = c.account_id) as vendor_short_code,
         COUNT(DISTINCT i.id) as order_count,
         COALESCE(SUM(
           (SELECT SUM(ili.quantity * ili.price_at_sale) FROM invoice_line_items ili WHERE ili.invoice_id = i.id)
