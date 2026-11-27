@@ -53,7 +53,7 @@ export async function signedWayPhotoUrl(secret: string, key: string, holder: str
   return `${WAY_MEDIA_ORIGIN}${key}?exp=${exp}&for=${encodeURIComponent(holder)}&sig=${await mac(secret, key, exp, holder)}`;
 }
 
-type GuideLike = { steps?: Array<{ image_url?: unknown } & Record<string, unknown>> } & Record<string, unknown>;
+type GuideLike = { steps?: Array<{ image_url?: unknown; video_url?: unknown } & Record<string, unknown>> } & Record<string, unknown>;
 
 function parseGuide(value: unknown): GuideLike | null {
   if (value && typeof value === 'object' && !Array.isArray(value)) return value as GuideLike;
@@ -80,12 +80,19 @@ export async function signWayGuide<T>(secret: string | undefined, guide: T, hold
   const steps = await Promise.all(parsed.steps.map(async step => {
     if (!step || typeof step !== 'object') return step;
     const key = wayPhotoKey(step.image_url);
-    if (!key) return step;
-    if (!secret) {
-      const { image_url: _dropped, ...rest } = step;
-      return rest;
+    const filmKey = wayPhotoKey(step.video_url);
+    if (!key && !filmKey) return step;
+    const signed = { ...step };
+    if (key) {
+      if (secret) signed.image_url = await signedWayPhotoUrl(secret, key, holder, exp);
+      else delete signed.image_url;
     }
-    return { ...step, image_url: await signedWayPhotoUrl(secret, key, holder, exp) };
+    // A film uploaded for the way in is signed as its photograph is.
+    if (filmKey) {
+      if (secret) signed.video_url = await signedWayPhotoUrl(secret, filmKey, holder, exp);
+      else delete signed.video_url;
+    }
+    return signed;
   }));
   const signed: Record<string, unknown> = { ...parsed, steps };
   // The picture of the tea space travels with the way and is signed like a step photograph.
@@ -103,6 +110,7 @@ export function guidePhotoUrls(guide: unknown): Set<string> {
   const urls = new Set<string>();
   for (const step of parsed?.steps ?? []) {
     if (step && typeof step.image_url === 'string' && step.image_url) urls.add(bareWayPhotoUrl(step.image_url));
+    if (step && typeof step.video_url === 'string' && wayPhotoKey(step.video_url)) urls.add(bareWayPhotoUrl(step.video_url));
   }
   if (typeof parsed?.space_image_url === 'string' && parsed.space_image_url) urls.add(bareWayPhotoUrl(parsed.space_image_url));
   return urls;

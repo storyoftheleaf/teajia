@@ -18,6 +18,7 @@ import type { HostedTableWayAnswer, HostedTableWayInput, HostedWayPlace, YourTab
 import type { VenueGuide, VenueGuideStep } from '../../types/events';
 import { Button } from '../shared/Button';
 import { WayStepPhoto } from '../events/WayStepPhoto';
+import { WayStepFilm } from '../events/WayStepFilm';
 import { usePhotoEditor } from '../shared/usePhotoEditor';
 import { hostSmallText, hostText, type HostTablePartProps } from './hostTableParts';
 
@@ -46,7 +47,7 @@ const newKey = () => `step-${++keySeed}`;
 const wayQueryKey = (id: string) => ['host-table-way', id] as const;
 
 function draftFrom(guide: VenueGuide | null, address: string | null, mapLink: string | null): Draft {
-  const steps = (guide?.steps ?? []).map(step => ({ description: step.description ?? '', image_url: step.image_url }));
+  const steps = (guide?.steps ?? []).map(step => ({ description: step.description ?? '', image_url: step.image_url, video_url: step.video_url }));
   return {
     steps,
     keys: steps.map(newKey),
@@ -62,8 +63,12 @@ function draftFrom(guide: VenueGuide | null, address: string | null, mapLink: st
 
 function inputFrom(draft: Draft): HostedTableWayInput {
   const steps = draft.steps
-    .map(step => ({ description: step.description.trim(), ...(step.image_url ? { image_url: step.image_url } : {}) }))
-    .filter(step => step.description || step.image_url);
+    .map(step => ({
+      description: step.description.trim(),
+      ...(step.image_url ? { image_url: step.image_url } : {}),
+      ...(step.video_url ? { video_url: step.video_url } : {}),
+    }))
+    .filter(step => step.description || step.image_url || step.video_url);
   const guide: VenueGuide = { steps };
   if (draft.space_image_url) guide.space_image_url = draft.space_image_url;
   for (const field of ['parking_notes', 'arrival_notes', 'lost_phone', 'transit_notes'] as const) {
@@ -263,6 +268,9 @@ function WayForm({ tableId, answer, tableArea }: { tableId: string; answer: Host
                 <WayStepPhoto step={n} imageUrl={step.image_url}
                   upload={async file => (await api.tables.uploadWayPhoto(tableId, file)).url}
                   onChange={url => changeStep(key, { image_url: url || undefined })} />
+                <WayStepFilm step={n} filmUrl={step.video_url}
+                  upload={async file => (await api.tables.uploadWayFilm(tableId, file)).url}
+                  onChange={url => changeStep(key, { video_url: url || undefined })} />
                 <div className="flex flex-wrap items-center gap-2">
                   <Button type="button" variant="icon" className="tap-target" aria-label={`Move step ${n} up`}
                     disabled={index === 0} onClick={() => moveStep(index, -1)} icon={<ArrowUp size={16} aria-hidden />} />

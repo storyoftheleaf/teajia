@@ -226,6 +226,12 @@ export function createTablesApi({ apiUrl, authedFetch }: HostingApiDependencies)
       form.append('file', file);
       return authedFetch(`${apiUrl}/api/me/tables/${encodeURIComponent(id)}/way/photos`, { method: 'POST', body: form });
     },
+    /** One short film of a step. Kept under venue-guide/ beside the photographs, served private. */
+    uploadWayFilm: (id: string, file: File | Blob): Promise<{ url: string; key: string }> => {
+      const form = new FormData();
+      form.append('file', file);
+      return authedFetch(`${apiUrl}/api/me/tables/${encodeURIComponent(id)}/way/films`, { method: 'POST', body: form });
+    },
   };
 }
 

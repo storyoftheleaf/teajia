@@ -22,6 +22,9 @@ interface Env { WORKER_ORIGIN?: string }
 const READ_UPSTREAM_TIMEOUT_MS = 12_000;
 const WRITE_UPSTREAM_TIMEOUT_MS = 25_000;
 const IMPORT_ANALYSIS_TIMEOUT_MS = 120_000;
+// A film of the way in is tens of megabytes sent from a phone.
+const FILM_UPLOAD_TIMEOUT_MS = 120_000;
+const FILM_UPLOAD_PATH = /^\/api\/me\/tables\/[^/]+\/way\/films$/;
 
 function isTimeoutError(error: unknown): boolean {
   const name = error instanceof Error ? error.name : '';
@@ -45,6 +48,8 @@ export const onRequest: PagesFunction<Env> = async ({ request, env }) => {
   const method = request.method.toUpperCase();
   const timeoutMs = method === 'POST' && (/^\/api\/curate\/imports\/[^/]+\/analyze$/.test(incoming.pathname) || incoming.pathname === '/api/curate/working-material')
     ? IMPORT_ANALYSIS_TIMEOUT_MS
+    : method === 'POST' && FILM_UPLOAD_PATH.test(incoming.pathname)
+      ? FILM_UPLOAD_TIMEOUT_MS
     : method === 'GET' || method === 'HEAD'
       ? READ_UPSTREAM_TIMEOUT_MS
       : WRITE_UPSTREAM_TIMEOUT_MS;

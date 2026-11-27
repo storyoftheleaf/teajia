@@ -91,7 +91,7 @@ const VenueGuide: React.FC<VenueGuideProps> = ({ venueGuide, mapLink, className 
   const step = steps[index];
   const photo = source(photoUrls[index]);
   // A film that is a file plays in place, silent and looping; any other link opens beside the page.
-  const film = step?.video_url && /\.(mp4|webm|mov|m4v)(\?|#|$)/i.test(step.video_url) ? step.video_url : null;
+  const film = step?.video_url && /\.(mp4|webm|mov|m4v)(\?|#|$)/i.test(step.video_url) ? wayPhotoUrl(step.video_url) ?? null : null;
   const notes = [
     venueGuide.parking_notes && { icon: Car, label: 'Parking', text: venueGuide.parking_notes },
     venueGuide.transit_notes && { icon: Train, label: 'Getting here', text: venueGuide.transit_notes },
