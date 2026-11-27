@@ -21,10 +21,17 @@ import { join } from 'node:path';
 const args = process.argv.slice(2);
 const baseArg = args.includes('--base') ? args[args.indexOf('--base') + 1] : null;
 
-const git = (...a) => execFileSync('git', a, { encoding: 'utf8' }).trim();
+const git = (...a) => execFileSync('git', ['-c', 'core.quotepath=off', ...a], { encoding: 'utf8' }).trim();
+// Paths go into shell command lines below: quote each one.
+const q = f => `'${String(f).replace(/'/g, `'\\''`)}'`;
+const qs = list => list.map(q).join(' ');
 const hasRef = ref => { try { git('rev-parse', '--verify', '--quiet', ref); return true; } catch { return false; } };
 
-const upstream = baseArg ?? (hasRef('origin/main') ? 'origin/main' : 'main');
+const upstream = baseArg ?? (hasRef('origin/main') ? 'origin/main' : hasRef('main') ? 'main' : null);
+if (!upstream || !hasRef(upstream)) {
+  console.error(`preflight: no base to compare with (${baseArg ?? 'origin/main or main'} not found). Run \`git fetch origin main\` or pass --base <ref>.`);
+  process.exit(2);
+}
 const base = git('merge-base', 'HEAD', upstream);
 const changed = [...new Set([
   ...git('diff', '--name-only', base).split('\n'),
@@ -83,11 +90,11 @@ const workerEnv = { NODE_OPTIONS: '--experimental-sqlite' };
 
 if (code) step('Type check', 'npx tsc --noEmit');
 step('Color rules', 'bash scripts/lint-colors.sh');
-step('Repo-wide guards (src)', `npx vitest run ${srcGuards.join(' ')}`);
-if (srcChanged.length) step('Unit tests for what changed (src)', `npx vitest related --run ${srcChanged.join(' ')} --dir . --passWithNoTests --exclude='**/*.behavior.test.ts' --exclude='worker/**' --exclude='tests/**' --exclude='scripts/**' --exclude='**/*.spec.ts' --exclude='**/.claude/worktrees/**' --exclude='**/.worktrees/**'`);
+if (srcGuards.length) step('Repo-wide guards (src)', `npx vitest run ${qs(srcGuards)}`);
+if (srcChanged.length) step('Unit tests for what changed (src)', `npx vitest related --run ${qs(srcChanged)} --dir . --passWithNoTests --exclude='**/*.behavior.test.ts' --exclude='worker/**' --exclude='tests/**' --exclude='scripts/**' --exclude='**/*.spec.ts' --exclude='**/.claude/worktrees/**' --exclude='**/.worktrees/**'`);
 if (worker) {
   step('Worker types (ratcheted)', 'node scripts/worker-typecheck-ratchet.mjs');
-  if (workerGuards.length) step('Repo-wide guards (worker)', `npx vitest run ${workerGuards.join(' ')} --testTimeout=20000`, workerEnv);
+  if (workerGuards.length) step('Repo-wide guards (worker)', `npx vitest run ${qs(workerGuards)} --testTimeout=20000`, workerEnv);
   // Not `vitest related`: almost every worker test imports worker/src/index,
   // so related is the whole suite. The tests that import a changed module by
   // name, and the tests that were themselves changed, are the ones that speak
@@ -99,7 +106,7 @@ if (worker) {
     const text = readFileSync(t, 'utf8');
     return named.some(n => text.includes(`/${n}'`) || text.includes(`/${n}"`) || text.includes(`/${n}.ts'`));
   }).filter(t => !skippedSqlite.includes(t) && !workerGuards.includes(t));
-  if (direct.length) step(`Worker tests that import what changed (${direct.length} files)`, `npx vitest run ${direct.join(' ')} --testTimeout=20000`, workerEnv);
+  if (direct.length) step(`Worker tests that import what changed (${direct.length} files)`, `npx vitest run ${qs(direct)} --testTimeout=20000`, workerEnv);
 }
 if (platform) step('Platform hardening', 'node --test scripts/platform-hardening.test.mjs');
 
@@ -130,6 +137,6 @@ for (const f of failed) {
   console.log(f.out.split('\n').slice(-60).join('\n'));
 }
 if (skippedSqlite.length) console.log(`\nLeft to CI: ${skippedSqlite.length} worker test files need the sqlite3 command, which this machine lacks.`);
-if (specs.length) console.log(`\nBrowser specs changed; CI runs them. Here: npx playwright test ${specs.join(' ')}`);
+if (specs.length) console.log(`\nBrowser specs changed; CI runs them. Here: npx playwright test ${qs(specs)}`);
 console.log(failed.length ? `\npreflight: ${failed.length} of ${results.length} checks failed. Fix them before pushing.` : `\npreflight: all ${results.length} checks passed.`);
 process.exit(failed.length ? 1 : 0);

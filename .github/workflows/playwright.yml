@@ -252,7 +252,7 @@ jobs:
     # after the other, about 5 minutes, the longest job on every PR
     # (2026-11-27). Now the browser suite is split in two (the config is
     # fullyParallel, so --shard splits by test) and the admin journeys, which
-    # are vitest and need no browser install, run beside them. `mobile` below
+    # are vitest (they launch Chromium themselves), run beside them. `mobile` below
     # joins the three into the one check it always was.
     runs-on: ubuntu-latest
     needs: gate
@@ -273,8 +273,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # The admin journeys are vitest, but they launch Chromium themselves
+      # (src/admin/components/*.behavior.test.ts), so every lane installs it.
       - name: Install Chromium
-        if: matrix.lane != 'admin-behavior'
         run: npx playwright install --with-deps chromium
 
       - name: Mobile regression suite (half ${{ matrix.lane == 'mobile-1' && '1' || '2' }} of 2)

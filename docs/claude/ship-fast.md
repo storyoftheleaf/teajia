@@ -51,7 +51,7 @@ What a PR runs, all side by side (2026-11-27):
 | `checks-static` | tsc, worker type ratchet, src unit tests, colors | 2 min |
 | `build` | the production bundle | 1.5 min |
 | `worker-tests` ×6 | the worker suite, sharded | 2.5 min |
-| `mobile-lane` ×3 | mobile browser suite in two halves, admin journeys | 2.5 min |
+| `mobile-lane` ×3 | mobile browser suite in two halves, and the admin journeys | 2.5 min |
 | `e2e-changed-shard` ×6 | browser specs the PR changed; lists first and skips the browser install and build when it has none | 0.5 min |
 
 `checks`, `mobile` and `e2e-changed` join their lanes into the three stable
