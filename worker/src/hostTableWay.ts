@@ -15,7 +15,7 @@
 // point a guest's phone at somewhere else.
 
 import type { OwnHostedTable } from './hostTableGuests';
-import { bareWayPhotoUrl, guidePhotoUrls, signWayGuide, WAY_HOST } from './wayMedia';
+import { bareWayPhotoUrl, guidePhotoUrls, signWayGuide, WAY_HOST, wayPhotoKey } from './wayMedia';
 
 export const WAY_MAX_STEPS = 20;
 export const WAY_STEP_MAX = 280;
@@ -25,7 +25,7 @@ export const WAY_LINK_MAX = 1000;
 export const WAY_PLACE_NAME_MAX = 120;
 export const WAY_MAX_PLACES = 50;
 
-export type WayStep = { description: string; image_url?: string };
+export type WayStep = { description: string; image_url?: string; /** A short film of the step, uploaded for the way in. */ video_url?: string };
 export type WayGuide = {
   steps: WayStep[];
   /** A picture of the tea space itself, shown at the head of the way in. */
@@ -136,10 +136,18 @@ export function readTableWayInput(body: Record<string, unknown> | null, accountI
       if (image !== null && (typeof image !== 'string' || !isOwnWayPhoto(image, accountId))) {
         return refuse('table_way_photo', 'Add each photograph through the editor on this page.');
       }
-      // A step with neither words nor a photograph says nothing; leave it out.
-      if (!description.trim() && !image) continue;
+      const film = step.video_url === undefined || step.video_url === null || step.video_url === '' ? null : step.video_url;
+      if (film !== null && (typeof film !== 'string' || !isOwnWayPhoto(film, accountId))) {
+        return refuse('table_way_photo', 'Add each film through the editor on this page.');
+      }
+      // A step with neither words nor a photograph nor a film says nothing; leave it out.
+      if (!description.trim() && !image && !film) continue;
       // Kept bare: the address handed out is signed per answer (wayMedia.ts).
-      steps.push(image ? { description: description.trim(), image_url: bareWayPhotoUrl(image) } : { description: description.trim() });
+      steps.push({
+        description: description.trim(),
+        ...(image ? { image_url: bareWayPhotoUrl(image) } : {}),
+        ...(film ? { video_url: bareWayPhotoUrl(film) } : {}),
+      });
     }
     const notes: Partial<WayGuide> = {};
     for (const [field, words] of [
@@ -193,6 +201,16 @@ export function guardGuideWrite(value: unknown, accountId: string, stored: unkno
         return refuse('table_way_photo', 'Add each photograph through the editor on this page.');
       }
       step.image_url = bare;
+    }
+    // A film uploaded for the way in is stored bare like a photograph; any
+    // other link (a film kept elsewhere) is left as it was written.
+    if (step.video_url !== undefined && typeof step.video_url !== 'string') delete step.video_url;
+    if (typeof step.video_url === 'string' && wayPhotoKey(step.video_url)) {
+      const bareFilm = bareWayPhotoUrl(step.video_url);
+      if (!isOwnWayPhoto(bareFilm, accountId) && !kept.has(bareFilm)) {
+        return refuse('table_way_photo', 'Add each film through the editor on this page.');
+      }
+      step.video_url = bareFilm;
     }
     steps.push(step);
   }

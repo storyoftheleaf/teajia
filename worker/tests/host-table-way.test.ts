@@ -235,6 +235,44 @@ describe('the photographs of the way in', () => {
   });
 });
 
+describe('a short film of a step', () => {
+  const mp4 = () => new File([new Uint8Array([0, 0, 0, 0x18, 0x66, 0x74, 0x79, 0x70, 0x6d, 0x70, 0x34, 0x32])], 'step.mp4', { type: 'video/mp4' });
+
+  it('stores the host’s film beside the photographs, keeps it on its step bare, and signs it for the host', async () => {
+    const form = new FormData();
+    form.append('file', mp4());
+    const response = await call('/api/me/tables/t-ana/way/films', { actor: ana, method: 'POST', form });
+    expect(response.status).toBe(201);
+    const { url, key } = await response.json() as { url: string; key: string };
+    expect(key).toMatch(/^accounts\/ana-personal\/venue-guide\/[0-9a-f-]+\.mp4$/);
+    expect(stored).toEqual([key]);
+    const saved = await call('/api/me/tables/t-ana/way', {
+      actor: ana, method: 'PUT', body: { venue_guide: { steps: [{ description: '', video_url: url }] } },
+    });
+    expect(saved.status).toBe(200);
+    const row = db.sqlite.prepare('SELECT venue_guide FROM events WHERE id = ?').get('t-ana') as Record<string, string>;
+    expect(JSON.parse(row.venue_guide).steps).toEqual([{ description: '', video_url: `https://media.teajia.co/${key}` }]);
+    const read = await (await call('/api/me/tables/t-ana/way', { actor: ana })).json() as Record<string, any>;
+    expect(read.way.venue_guide.steps[0].video_url).toMatch(/\.mp4\?exp=\d+&for=host&sig=[0-9a-f]{64}$/);
+  });
+
+  it('refuses another host, a file that is not a film, and a film that is not this account’s', async () => {
+    const form = new FormData();
+    form.append('file', mp4());
+    expect((await call('/api/me/tables/t-ana/way/films', { actor: bo, method: 'POST', form })).status).toBe(404);
+    const fake = new FormData();
+    fake.append('file', new File([new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0, 0, 0, 0])], 'step.mp4', { type: 'video/mp4' }));
+    expect((await call('/api/me/tables/t-ana/way/films', { actor: ana, method: 'POST', form: fake })).status).toBe(415);
+    expect(stored).toEqual([]);
+    for (const video_url of [`https://media.teajia.co/accounts/${bo.accountId}/venue-guide/x.mp4`, 'https://films.example.test/way.mp4']) {
+      const response = await call('/api/me/tables/t-ana/way', {
+        actor: ana, method: 'PUT', body: { venue_guide: { steps: [{ description: 'Gate', video_url }] } },
+      });
+      expect(response.status).toBe(400);
+    }
+  });
+});
+
 describe('who receives the way is unchanged', () => {
   it('gives the saved way to a confirmed guest and never to one still waiting', async () => {
     await call('/api/me/tables/t-ana/way', { actor: ana, method: 'PUT', body: threeSteps });

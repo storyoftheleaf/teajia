@@ -34,6 +34,7 @@ import { HOST_TEA_MEDIA_KEY, isWalkthroughMedia, mayShowWalkthrough, sessionEnds
 import { CONTRIBUTOR_EFFECTIVELY_PUBLISHED_SQL, publicLeadHostSql } from './sessionHost';
 import { areaGivesAwayTheWay, isAreaRefusal, readTableArea } from './hostTableArea';
 import { signedWayPhotoUrl, signWayGuide, WAY_HOST, WAY_SIGNED_SECONDS, wayMediaVerdict } from './wayMedia';
+import { MAX_WAY_FILM_BYTES, WAY_FILM_KEY, wayFilmExtension, wayFilmRange, wayFilmRefusal } from './wayFilm';
 import { guestLinkSessions, withoutForeignGuestLinks, type GuestLinkCaller } from './guestLinkHolders';
 import { createHostedTable, tableInstant, tableSlug, tableWallTime, type HostedTableDoor } from './hostTable';
 import { changeHostedTable, hostTableGuests, markWhoCame, ownHostedTable, readTableChange, reviewHostedTableGuestBook, sayNoToGuest, SEAT_OF_A_GUEST_STILL_COMING, seatsTaken, seatsTakenSql, waitingGuest, type OwnHostedTable } from './hostTableGuests';
@@ -18277,6 +18278,32 @@ const handleHostedTableWay: Handler = async (request, env, params) => {
   return hostTableJson(await signWayForHost(env.JWT_SECRET, await readTableWay(env.DB, own.table)));
 };
 
+// POST /api/me/tables/:id/way/films (multipart, one short film of a step).
+// Kept beside the step photographs, so it is served as they are (wayFilm.ts).
+const handleHostedTableWayFilm: Handler = async (request, env, params) => {
+  const own = await requireOwnHostedTable(request, env, params.id);
+  if ('error' in own) return own.error;
+  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, 'PROVIDER_LIMITER', `${own.table.account_id}:${own.host.userId}:upload-flyer`);
+  if (limited) return limited;
+  if (!env.MEDIA_BUCKET) return json({ error: 'R2 media bucket not configured' }, 503);
+  if (!(request.headers.get('Content-Type') || '').includes('multipart/form-data')) {
+    return json({ error: 'Expected multipart/form-data' }, 400);
+  }
+  const preReadError = validateContentLength(request, MAX_WAY_FILM_BYTES);
+  if (preReadError) return preReadError;
+  const file = (await request.formData()).get('file') as File | null;
+  if (!file) return json({ error: 'No file provided' }, 400);
+  const refusal = wayFilmRefusal(file.type, file.size, new Uint8Array(await file.slice(0, 16).arrayBuffer()));
+  if (refusal) return restError(refusal.status, refusal.error, refusal.code);
+  const type = file.type.split(';', 1)[0].trim();
+  const key = `accounts/${own.table.account_id}/venue-guide/${crypto.randomUUID()}.${wayFilmExtension(type)}`;
+  await env.MEDIA_BUCKET.put(key, file.stream(), { httpMetadata: { contentType: type } });
+  const url = env.JWT_SECRET
+    ? await signedWayPhotoUrl(env.JWT_SECRET, key, WAY_HOST, Math.floor(Date.now() / 1000) + WAY_SIGNED_SECONDS)
+    : `https://media.teajia.co/${key}`;
+  return hostTableJson({ url, key }, 201);
+};
+
 // PUT /api/me/your-table/:id/shown {shown}: a host turns one of their tea
 // spaces on or off the tea spaces page, where it shows by its area only.
 const handleYourTeaSpaceShown: Handler = async (request, env, params) => {
@@ -34059,6 +34086,7 @@ const routes: [string, string, Handler][] = [
   ['PUT',    '/api/me/tables/:id/space', handleHostedTableSpace],
   ['POST',   '/api/me/tables/:id/way/keep', handleKeepHostedTableWay],
   ['POST',   '/api/me/tables/:id/way/photos', handleHostedTableWayPhoto],
+  ['POST',   '/api/me/tables/:id/way/films', handleHostedTableWayFilm],
   // Launch 4, K4: closed (404) until src/lib/yourTablePlace.ts opens.
   ['GET',    '/api/me/your-table', handleYourTable],
   ['PUT',    '/api/me/your-table', handleYourTable],
@@ -34762,11 +34790,22 @@ const requestHandler = {
       const wayVerdict = familyVerdict === 'not-family'
         ? await wayMediaVerdict(env.DB, env.JWT_SECRET, key, url.searchParams, privateHostDoorSql(env))
         : 'not-step';
-      const obj = familyVerdict === 'refused' || wayVerdict === 'refused' ? null : await env.MEDIA_BUCKET.get(key);
+      // A film of the way in is read a part at a time: a phone will not play
+      // one that cannot answer a byte range (wayFilm.ts).
+      const isFilm = WAY_FILM_KEY.test(key);
+      const filmHead = isFilm && familyVerdict !== 'refused' && wayVerdict !== 'refused' && request.headers.has('Range') ? await env.MEDIA_BUCKET.head(key) : null;
+      const filmRange = filmHead ? wayFilmRange(request.headers.get('Range'), filmHead.size) : null;
+      const obj = familyVerdict === 'refused' || wayVerdict === 'refused' ? null
+        : await env.MEDIA_BUCKET.get(key, filmRange ? { range: filmRange } : undefined);
       if (!obj) return cors(new Response('Not found', { status: 404 }), corsOrigin);
       const headers = new Headers();
       obj.writeHttpMetadata(headers);
       headers.set('etag', obj.httpEtag);
+      if (isFilm) headers.set('Accept-Ranges', 'bytes');
+      if (filmRange && filmHead) {
+        headers.set('Content-Range', `bytes ${filmRange.offset}-${filmRange.offset + filmRange.length - 1}/${filmHead.size}`);
+        headers.set('Content-Length', String(filmRange.length));
+      }
       // Objects are immutable (UUID/slot-keyed), so cache hard at edge and
       // browser, except the photographs of the way to a session, which are
       // private and short-lived (sessionWalkthrough.ts, Launch 2 H7), and a
@@ -34780,7 +34819,7 @@ const requestHandler = {
         : shortLived ? WALKTHROUGH_MEDIA_CACHE : 'public, max-age=31536000, immutable');
       if (walkthrough) headers.set('Referrer-Policy', 'no-referrer');
       const body = request.method === 'HEAD' ? null : obj.body;
-      return cors(new Response(body, { headers }), corsOrigin);
+      return cors(new Response(body, { status: filmRange ? 206 : 200, headers }), corsOrigin);
     }
 
     // MCP server lives outside the regular route table — it speaks JSON-RPC 2.0
