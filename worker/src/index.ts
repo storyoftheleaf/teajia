@@ -15,6 +15,7 @@ import { boughtLineChestState, boughtLineQuantityUnit, keepBoughtLine, type Boug
 import { firstTableOpen } from '../../src/lib/firstTable';
 import { createHostArticleHandlers, isHostArticleId } from './hostArticleOffers';
 import { favouritesRoutes } from './favourites';
+import { practiceColumnsRemoved, practiceLinesRoutes } from './practiceLines';
 import { favouritesOpen } from '../../src/lib/favouritesOpen';
 import { teaTableRoutes } from './teaTable';
 import { knowThisTeaRoutes } from './knowThisTea';
@@ -359,6 +360,8 @@ interface Env extends WorkerReleaseEnv, PayPalSandboxEnv, PayPalLiveEnv, Shippin
   HOST_ARTICLES_OPEN?: string;
   /** "true" or "false" opens or closes favourites (Launch 4); see src/lib/favouritesOpen.ts. */
   FAVOURITES_OPEN?: string;
+  /** "true" or "false" opens or closes the practice lines on a person's page; see src/lib/practiceLines.ts. */
+  PRACTICE_LINES_OPEN?: string;
   TOP_TEAS_OPEN?: string;
   /** "true" or "false" opens or closes Your Table as a page (Launch 4); see src/lib/yourTablePage.ts. */
   YOUR_TABLE_PAGE_OPEN?: string;
@@ -8690,7 +8693,8 @@ function parseContributorWrite(body: Record<string, unknown>) {
 function adminContributor(row: Record<string, any>) {
   let links: unknown[] = [];
   try { links = JSON.parse(row.links || '[]'); } catch { links = []; }
-  return { ...row, links };
+  // The practice lines are served only by their own route (worker/src/practiceLines.ts).
+  return { ...practiceColumnsRemoved(row), links };
 }
 
 // Gallery images (contributor_gallery_images): a row-per-photo collection,
@@ -33505,6 +33509,7 @@ const routes: [string, string, Handler][] = [
   ['DELETE', '/api/me/private-sits/:id/photos/:photoId', handleMemberPrivateSitPhotos],
   ['PUT', '/api/me/private-sits/:id/photos/:photoId/share', handleMemberPrivateSitPhotos],
   ...favouritesRoutes<Env>({ requireUser: requireAuthenticatedUser }),
+  ...practiceLinesRoutes<Env>({ optionalUser: optionalAuthenticatedUser, requireUser: requireAuthenticatedUser }),
   ...teaTableRoutes<Env>({ requireAuthenticatedUser, requireBundle }),
   ...knowThisTeaRoutes<Env>({ requireAuthenticatedUser }),
   ...teaHousesRoutes<Env>({ requireAuthenticatedUser }),

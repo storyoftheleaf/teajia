@@ -8,6 +8,7 @@ import { MyHostArticleOffers } from '../components/article/MyHostArticleOffers';
 import { ProfileFavoritesEditor } from '../components/profile/ProfileFavoritesEditor';
 import { PaymentMethodsEditor } from '../components/profile/PaymentMethodsEditor';
 import { PayAccessPanel } from '../components/profile/PayAccessPanel';
+import { PracticeLines } from '../components/people/PracticeLines';
 import { ProfileShareLinks } from '../components/profile/ProfileShareLinks';
 import { canManageHostedMasterSelection, canStartProfileDraft, primaryTeaMasterAccount, profileReadiness } from '../components/profile/profileDomain';
 import type { FavoriteWrite, PaymentMethodWrite, SelfProfileUpdate } from '../components/profile/types';
@@ -78,6 +79,7 @@ export default function AccountProfilePage() {
         <a href="/account/settings" className="tap-target mt-4 inline-flex text-ui-13 text-tea-gold transition-colors hover:text-tea-gold-lt">Name, sign-in and appearance</a>
       </header>
 
+      {profile && <PracticeLines slug={profile.id} tone="profile" />}
       {hostArticlesOpen() && <MyHostArticleOffers writing={false} onStep={setArticleOfferStep} />}
 
       {!profile ? (
