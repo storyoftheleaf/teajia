@@ -65,7 +65,7 @@ import { eraseFamilyPhotoFiles, familyErasureStatements, familyPhotoKeysForUser 
 import { recordingAudioUrl, linkedRecordingSql, readOwnedRecording, preservePrivateRecordingClips, mergeRecordingClipsSql } from './privateRecordingMedia';
 import { quoteUsCheckoutShipping } from './usCheckoutShipping';
 import { hasPublicStatus } from '../../src/lib/productPublication';
-import { guardFetch } from './allowanceGuard.mjs';
+import { guardFetch } from './allowanceGuard.mjs'; import { classifyTeajiaRequest, noteAgentRefusal } from './agentAllowance';
 import { isCuratedReadPath, isReadPathPublic } from '../../src/pages/read/articleLive';
 import { attachStudioReferrals, hasOpenStudioReferral, referStudioLine, resolveStudioReferral, StudioReferralError, STUDIO_REFERRAL_MESSAGE, STUDIO_REFERRAL_OPEN } from './studioReceiptReferrals';
 import { LogisticsTrackingError, recordLogisticsTrackingUpdate } from './logisticsTracking';
@@ -106,7 +106,7 @@ import { COMPASS_COLUMNS, decodeCompassWrite as decodeCompassWriteCodec, type Co
 import { compassFieldPatch, readCompassFieldHints } from './compassFieldPatch';
 import { receiptHoldingTeaId } from './curateMergeLink';
 import { resolveShopFreightDefault } from './shippingRate';
-import { addPricingFields, lookupRateToUsd, accountFreightDefaults, freightDefaultsByAccount } from './productPricing';
+import { addPricingFields, lookupRateToUsd, accountFreightDefaults, freightDefaultsByAccount } from './productPricing'; import { fillBlankQuotes, withShelfPrices } from './collectionShelf';
 import { INWARD_BALI_LOT, INWARD_ORDERS_PAUSED_SQL, inwardOrdersPaused } from '../../shared/catalog/inwardOrders';
 import { checkNewProductPublication, checkProductPublication, openingStockKnownAt, publicationPatchFromColumns, writeProductPublication } from './productPublication';
 import { deductStockForPaidInvoice } from './orderLifecycle';
@@ -234,7 +234,7 @@ import {
   listTeaReferenceIssues,
   resolveTeaReferenceIssues,
 } from './teaReferenceIssues';
-import { isTeaType, normalizeTeaType, TEA_TYPES } from '../../src/wisdom/vocabulary';
+import { isStoredTeaType, isTeaType, normalizeTeaType, STORED_TEA_TYPES } from '../../src/wisdom/vocabulary';
 import { buildPublicProductHref } from '../../src/lib/publicProductNavigation';
 import {
   isTopTeaSlot, TOP_TEA_SLOTS, TOP_TEA_NAME_LIMIT, TOP_TEA_NOTE_LIMIT, topTeasOpen,
@@ -4440,9 +4440,9 @@ const handleGetEligibleSalesProducts: Handler = async (request, env) => {
          ORDER BY winner.created_at DESC,winner.id DESC LIMIT 1
        )
        WHERE p.account_id=? AND p.status='Active'
-         AND p.type IN (${[...TEA_TYPES,'Teaware'].map(() => '?').join(',')})
+         AND p.type IN (${[...STORED_TEA_TYPES,'Teaware'].map(() => '?').join(',')})
        ORDER BY product_name`
-    ).bind(ctx.userId, ctx.accountId, ...TEA_TYPES,'Teaware').all();
+    ).bind(ctx.userId, ctx.accountId, ...STORED_TEA_TYPES,'Teaware').all();
     const eligible = (rows.results as any[]).flatMap(row => {
       const permission = resolveSalePermission({
         actorRole: ctx.role, actorUserId: ctx.userId, stockOwnerUserId: row.owner_id,
@@ -16466,7 +16466,7 @@ const handleConvertInquiry: Handler = async (request, env, params) => {
       const quantity = packing.packGrams * packing.packs;
       const product = products.get(String(item.id || ''));
       const name = String(product?.given_name || product?.product_name || item.name || 'Item');
-      const linked = product && (isTeaType(String(product.type || ''))||product.type==='Teaware');
+      const linked = product && (isStoredTeaType(String(product.type || ''))||product.type==='Teaware');
       return {
         product_id: linked ? String(product.id) : null,
         custom_name: `${name} (${inquiryPackingLabel({ ...item, category: product?.type === 'Teaware' ? 'ware' : item.category })})`,
@@ -28767,7 +28767,7 @@ const handleGetCollection: Handler = async (request, env, params) => {
   // The old notes' ratings are the shop owner's: the curator, staff and a
   // platform administrator read the words; the owner reads their own tea whole.
   const readsOwnShopScores = await shopScoreGiver(env, ctx);
-  const collectionItems = ((items.results ?? []) as Record<string, any>[]).map(({ product_account_id, ...item }) => (
+  const collectionItems = (await withShelfPrices(env, ctx.accountId, (items.results ?? []) as Record<string, any>[])).map(({ product_account_id, ...item }) => (
     readsOwnShopScores && product_account_id === ctx.accountId
       ? item
       : { ...item, tasting_notes: item.tasting_notes ? tastingJsonWithoutScores(item.tasting_notes) ?? '[]' : item.tasting_notes }
@@ -29870,6 +29870,7 @@ const handleGetPublicCollection: Handler = async (_request, env, params) => {
       ORDER BY ci.position ASC`
   ).bind(pub.collection_id, pub.target_type === 'shop' ? 1 : 0).all();
 
+  if (account) await fillBlankQuotes(env, String(account.id), (items.results ?? []) as any[]); // a blank quote shows the shelf price: collectionShelf.ts
   const visibleItems = ((items.results ?? []) as any[])
     .filter(i => i.product_status === 'Active')
     .map(i => {
@@ -30128,7 +30129,7 @@ const handleConfirmCollectionPicks: Handler = async (request, env, params) => {
       WHERE ci.collection_id = ?`
   ).bind(pub.collection_id).all();
   const byItemId = new Map<string, any>();
-  for (const r of (itemRows.results ?? []) as any[]) byItemId.set(r.id, r);
+  for (const r of (await withShelfPrices(env, accountId, (itemRows.results ?? []) as any[]))) byItemId.set(r.id, r);
 
   const lineItems: Array<{ product_id: string | null; custom_name: string | null; quantity: number; price_at_sale: number; label: string;quantity_unit:'g'|'unit' }> = [];
   for (const pick of picks) {
@@ -30144,10 +30145,10 @@ const handleConfirmCollectionPicks: Handler = async (request, env, params) => {
       quantity,
       recommendedQuantity: row.recommended_quantity == null ? null : Number(row.recommended_quantity),
       recommendedPriceUsd: row.recommended_price_usd == null ? null : Number(row.recommended_price_usd),
-      catalogUnitPriceUsd: row.fixed_retail_price_usd == null ? null : Number(row.fixed_retail_price_usd),
+      catalogUnitPriceUsd: row.catalog_price_usd ?? (row.fixed_retail_price_usd == null ? null : Number(row.fixed_retail_price_usd)),
     });
 
-    const mayRemainLinked = isTeaType(String(row.product_type || ''))||row.product_type==='Teaware';
+    const mayRemainLinked = isStoredTeaType(String(row.product_type || ''))||row.product_type==='Teaware';
     lineItems.push({
       product_id: mayRemainLinked ? row.product_id : null,
       custom_name: mayRemainLinked ? null : row.product_name,
@@ -34607,7 +34608,7 @@ const protectedHandler = {
 export default {
   fetch(request: Request, env: Env, ctx?: ExecutionContext): Promise<Response> {
     if (!(env as any).SHARED_ALLOWANCE && (env as any).SHARED_ALLOWANCE_REQUIRED !== 'true') return protectedHandler.fetch(request, env, ctx);
-    return guardFetch(request, env, ctx, protectedHandler, { project: 'teajia' });
+    return guardFetch(request, env, ctx, protectedHandler, { project: 'teajia', classify: classifyTeajiaRequest }).then(response => noteAgentRefusal(request, response, env.DB, ctx));
   },
   async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
     if (!(env as any).SHARED_ALLOWANCE && (env as any).SHARED_ALLOWANCE_REQUIRED !== 'true') return protectedHandler.scheduled(event, env, ctx);

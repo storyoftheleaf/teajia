@@ -494,6 +494,53 @@ export const GENERATED_TEA_REFERENCE_REGISTRY = {
       ]
     },
     {
+      "id": "gong-ting",
+      "slug": "gong-ting",
+      "kind": "leaf_grade",
+      "label": "Gong Ting",
+      "nativeName": "宫廷",
+      "parentId": "shou",
+      "sourceIds": [],
+      "sections": [
+        {
+          "key": "definition",
+          "label": "What Gong Ting means",
+          "text": "Gong Ting is the finest grade of loose ripe pu’er, sorted out for its small leaf and high share of buds. In the market it sits one step above special grade.",
+          "sourceIds": []
+        },
+        {
+          "key": "appearance",
+          "label": "Reading the leaf",
+          "text": "Dry Gong Ting is tight, straight and fine, thick with golden down on the buds, and carries no stray stems. Because so little of a batch qualifies, it is the scarcest and usually the dearest ripe grade.",
+          "sourceIds": []
+        },
+        {
+          "key": "grade-and-quality",
+          "label": "Grade is not quality",
+          "text": "A grade describes leaf size and the style of the cup, not how good the tea is. A well made coarser grade can drink better than a poorly made Gong Ting, and where each grade line falls differs from one maker to the next.",
+          "sourceIds": []
+        },
+        {
+          "key": "name-on-the-label",
+          "label": "A grade, and a selling word",
+          "text": "Gong Ting is a modern market name, not an old court grade: the trade dates it to Menghai in the late 1990s, and ripe tea itself only began in the 1970s. The Menghai standard grades loose ripe tea only, so Gong Ting printed on a cake or brick is a selling word, not a grade.",
+          "sourceIds": []
+        },
+        {
+          "key": "common-impressions",
+          "label": "What people often notice",
+          "text": "People often notice a smooth, soft and sweet cup with a deep red liquor. Next to coarser grades it is lighter in body and gives fewer good steeps, and a very fine young Gong Ting can show a green or bitter edge. Its small leaf gives up flavour quickly, so short pours suit it.",
+          "sourceIds": []
+        },
+        {
+          "key": "other-names",
+          "label": "Other names and other teas",
+          "text": "Gong Ting is also written Gongting and sold in English as Palace Grade. The older record of the word notes that it is also used for the finest bud and leaf of aged Taiwanese oolong, so the name is not limited to ripe pu’er. That oolong use rests on one record and has not been checked against other places.",
+          "sourceIds": []
+        }
+      ]
+    },
+    {
       "id": "greater-yiwu",
       "slug": "greater-yiwu",
       "kind": "tea_area",

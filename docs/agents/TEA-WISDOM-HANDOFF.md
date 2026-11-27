@@ -1,6 +1,6 @@
 # Tea Wisdom handoff: launching new teas
 
-Read this first, then work from it. Update the "State" and "Open" sections in the same commit as any change you make, so the next agent starts from the truth. Last updated 2026-11-27.
+Read this first, then work from it. Update the "State" and "Open" sections in the same commit as any change you make, so the next agent starts from the truth. Last updated 2026-11-27 (evening).
 
 ## Start here
 
@@ -19,15 +19,24 @@ Models (Adrian kept this split on 2026-11-27): Sonnet researches and writes Wisd
 
 ## Open
 
-1. PR storyoftheleaf/teajia#580 (kits come only through the chain): open, mergeable. Merge on Adrian's word.
+1. Kits now come only through the chain (PR storyoftheleaf/teajia#580, merged 2026-11-27).
 2. Menghai County rewrite and 8 more sections wait on the Wisdom Review page for Adrian's approval.
-3. Palace Grade (`gong-ting`) is a draft: its definition holds a `legacy_import` revision, which public pages refuse. Publishing needs Adrian's yes to drop that revision. When approved, limit its grade claims to `form: Loose`, or pressed "Gong Ting" cakes get loose-grade text.
+3. Palace Grade (`gong-ting`): ready to publish on branch `claude/project-thread-5yn5tp` (legacy revision dropped, every claim limited to `form: Loose`, page public, tests updated). Merges on Adrian's yes. Because of the Loose limit, a tea gets Gong Ting text only when its shop record says Loose.
 4. Pages still needed (record only, no write-up): Hengfengyuan, Golden Bull, Xinghai Tea Factory, Taiwan as a place. Greater Yiwu and Menghai County have no place claims an entry can use, so Yiwu and Menghai teas get no place paragraph.
 5. Liao Fu (5 teas): parked by Adrian. Do not compose.
 6. Seven near-empty records (`cvb`, `red bag`, `High Mountain`, `Organic High Mountain`, `Gaba High Mountain`, `Gaba Gigh Mountain`, `Gaba Taiwan`): Adrian decides fill or archive.
 7. Shop records that contradict themselves (report, never change without Adrian's yes): Fire oolong (year 1979, notes say 1983, $0.04/g); Taiwan Aged Green (1950 vs 1970); Tie Guan Yin 1970 and 1995 (lore says 1988); Dancong Ancient Spirit (1950 vs 1970); Miracle Fate (1,800 g vs 180 g); Bamboo Tube Shou listed as a brick.
 
+## Teas waiting on the shop record (2026-11-27)
+
+Three Huang Wei shou teas went live for an invoice to a friend, with no Wisdom entry yet and empty descriptions. Measured with `needs.mjs` on main at 21ffc77:
+
+- `f8be36d6` Menghai Pre-Qingming Tender-Bud Palace Tea (勐海明前嫩芽宫廷): style and Menghai covered; Gong Ting found from the Chinese name; form is empty, so it needs Loose on the record (Adrian's word) for the Palace Grade text to apply. Ready to compose once Palace Grade is merged and the form is set.
+- `262a3bcf` 1990s Pu'er Tea Brick and `e4531569` 1980s Guogai Bing (八十年代锅盖饼茶): style covered, no origin recorded. Compose after Adrian gives the origin (never guess it from the vendor or the name). "Guogai" (锅盖, pot lid) has no record of its own.
+
 ## Traps
+
+- `needs.mjs` lists Menghai Tea Factory as a producer for any tea with "Menghai" in its name, because "Menghai" is one of the factory's match words. A county name is not a maker: skip that line unless the record names the factory.
 
 - Several sessions share this repo. Push with a temporary index on top of `origin/main` (`git read-tree origin/main`, add only your files, `git commit-tree`, push `"${C}:refs/heads/main"`; in zsh write `${C}`). Never commit `.claude/launch.json`.
 - The Edit tool refuses files in another worktree. Assemble in a scratch copy instead (`git archive origin/main`, symlink `node_modules`).
