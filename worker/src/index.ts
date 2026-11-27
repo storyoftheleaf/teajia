@@ -25577,13 +25577,17 @@ const handleUseMyTeaCredit: Handler = async (request, env, params) => {
   if (!hostCreditOpen(env)) return json({ error: 'Not found' }, 404);
   const user = await optionalAuthenticatedUser(request, env);
   if (!user) return json({ error: 'Sign in to use your tea credit' }, 401);
-  const held = await useHostCreditOnOrder(env, { hostUserId: user.userId, invoiceId: params.id });
+  // An Idempotency-Key makes a retry return the request it first made (A8-8).
+  const held = await useHostCreditOnOrder(env, {
+    hostUserId: user.userId, invoiceId: params.id, requestKey: request.headers.get('Idempotency-Key'),
+  });
   if ('error' in held) {
     if (held.error === 'closed') return json({ error: 'Not found' }, 404);
     if (held.error === 'not_found') return restError(404, 'Order not found', 'invoice_not_found');
     return restError(409, 'Your credit does not cover any more of this order.', 'host_credit_not_covered');
   }
-  return json({ success: true, request: held }, 201);
+  const { replayed, ...made } = held;
+  return replayed ? json({ success: true, request: made, replayed: true }) : json({ success: true, request: made }, 201);
 };
 
 async function requireHostCreditOwner(

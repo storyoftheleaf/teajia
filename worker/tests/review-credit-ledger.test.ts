@@ -121,6 +121,15 @@ it('reopening, correcting and refilling one sale cannot earn it twice', async ()
   expect((await mine()).balances[0].earned).toBe(10);
 });
 
+it('reopened with new lines, two Fills at once still award the sale once', async () => {
+  expect((await fill()).status).toBe(200);
+  expect((await update('sale', { status: 'Pending', payment_status: 'unpaid' })).status).toBe(200);
+  expect((await edit('sale', 100)).status).toBe(200);
+  await Promise.all([update('sale', { status: 'Filled', payment_status: 'paid' }), update('sale', { status: 'Filled', payment_status: 'paid' })]);
+  expect(ledger().filter(r => r.kind === 'earned').map(r => r.amount)).toEqual([10]);
+  expect((await mine()).balances[0]).toMatchObject({ earned: 10, pending: 0 });
+});
+
 it('two simultaneous Fill requests award one sale once', async () => {
   const replies = await Promise.all([fill(), fill()]);
   expect(replies.some(r => r.status === 200)).toBe(true);
@@ -156,14 +165,53 @@ it('approving tea credit reduces the amount due for the tea', async () => {
   const order = await call('GET', 'me/orders/redeem', { as: 'host' });
   expect(order.status).toBe(200);
   expect(order.data.payment.outstanding_usd).toBe(0);
+  // Credit stays apart from cash, and the order's own status says settled.
+  expect(order.data.payment).toMatchObject({ paid_usd: 0, credit_usd: 10 });
+  expect(rows("SELECT payment_status FROM invoices WHERE id='redeem'")).toEqual([{ payment_status: 'paid' }]);
+  expect(rows("SELECT COUNT(*) AS n FROM invoice_payments WHERE invoice_id='redeem'")).toEqual([{ n: 0 }]);
+});
+
+it('credit on part of an order leaves the rest owing, in cash', async () => {
+  db.sqlite.exec("UPDATE invoices SET shipping_cost_usd=5 WHERE id='redeem'");
+  const id = await held();
+  expect((await decide(id)).status).toBe(200);
+  const order = await call('GET', 'me/orders/redeem', { as: 'host' });
+  expect(order.data.payment).toMatchObject({ total_usd: 15, paid_usd: 0, credit_usd: 10, outstanding_usd: 5 });
+  expect(rows("SELECT payment_status FROM invoices WHERE id='redeem'")).toEqual([{ payment_status: 'partial' }]);
 });
 
 it('approval checks the tea still on an edited redemption order', async () => {
   const id = await held();
   const result = await edit('redeem', 1);
   expect(result.status, JSON.stringify(result.data)).toBe(200);
-  await decide(id);
+  const refused = await decide(id);
+  expect(refused).toMatchObject({ status: 409, data: { code: 'host_credit_order_changed' } });
   expect((await mine()).balances[0].spent).toBeLessThanOrEqual(1);
+  // The stale hold is released with its history kept, and the host can ask for what the order now holds.
+  expect(requests()[0]).toMatchObject({ status: 'declined', decided_by_user_id: 'system', release_reason: 'order_changed' });
+  expect((await mine()).balances[0]).toMatchObject({ held: 0, available: 10 });
+  const again = await ask();
+  expect(again.status).toBe(201);
+  expect(again.data.request.amount).toBe(1);
+  expect((await decide(String(again.data.request.id))).status).toBe(200);
+  expect((await mine()).balances[0]).toMatchObject({ spent: 1, available: 9 });
+});
+
+it('approval checks the buyer is still the host', async () => {
+  const id = await held();
+  db.sqlite.exec("UPDATE invoices SET customer_id='other' WHERE id='redeem'");
+  expect((await decide(id)).status).toBe(409);
+  expect(ledger().filter(r => r.kind === 'spent')).toEqual([]);
+});
+
+it('approval checks what is still owed, not only the tea', async () => {
+  const id = await held();
+  db.sqlite.exec(`INSERT INTO invoice_payments (id,invoice_id,account_id,amount_usd,currency,status,claimed_by,claimed_at,confirmed_at)
+    VALUES ('cash','redeem','shop',6,'USD','confirmed','operator',datetime('now'),datetime('now'))`);
+  expect((await decide(id)).status).toBe(409);
+  expect(ledger().filter(r => r.kind === 'spent')).toEqual([]);
+  const again = await ask();
+  expect(again.data.request.amount).toBe(4);
 });
 
 it('voiding an order releases its unapproved hold', async () => {
@@ -171,6 +219,18 @@ it('voiding an order releases its unapproved hold', async () => {
   expect((await voidOrder('redeem')).status).toBe(200);
   expect((await decide(id)).status).toBe(409);
   expect((await mine()).balances[0]).toMatchObject({ held: 0, spent: 0, available: 10 });
+  expect(requests()[0]).toMatchObject({ status: 'declined', decided_by_user_id: 'system', release_reason: 'order_void' });
+});
+
+it('a hold left on a voided order before the fix is released when credit is next read', async () => {
+  expect((await fill()).status).toBe(200);
+  // The old shape: a held request on an order already Void, written as the old code left it.
+  db.sqlite.exec(`UPDATE invoices SET status='Void' WHERE id='redeem';
+    INSERT INTO host_credit_spend_requests (id,account_id,host_user_id,invoice_id,amount,currency,status)
+      VALUES ('old-hold','shop','host','redeem',10,'USD','held')`);
+  expect((await mine()).balances[0]).toMatchObject({ held: 0, available: 10 });
+  expect(requests()[0]).toMatchObject({ id: 'old-hold', status: 'declined', release_reason: 'order_void' });
+  expect((await ask('other-order')).status).toBe(201);
 });
 
 it('Void of the redemption order currently leaves approved credit spent', async () => {
@@ -229,6 +289,31 @@ it('closing the switch freezes the hold and reopening permits one approval', asy
   expect((await mine()).balances[0]).toMatchObject({ held: 0, spent: 10 });
 });
 
+it('a sale Filled while closed never earns, even reopened and Filled again while open', async () => {
+  expect((await fill('sale', { open: false })).status).toBe(200);
+  expect(rows("SELECT credit_open FROM host_credit_fills WHERE invoice_id='sale'")).toEqual([{ credit_open: 0 }]);
+  expect((await update('sale', { status: 'Pending' })).status).toBe(200);
+  expect((await fill()).status).toBe(200);
+  expect(ledger()).toEqual([]);
+});
+
+it('a sale Filled before the record began does not earn on a later edit', async () => {
+  // The old shape: Filled with no first-Fill row, as every order Filled before 0148 is.
+  db.sqlite.exec("UPDATE invoices SET status='Filled' WHERE id='sale'; DELETE FROM host_credit_fills");
+  expect((await update('sale', { notes: 'Packed' })).status).toBe(200);
+  expect(ledger()).toEqual([]);
+});
+
+it('a sale Filled before the record began, already held as pending, still earns once paid', async () => {
+  // The old shape where credit was open: pending at Fill, unpaid, no first-Fill row.
+  db.sqlite.exec(`UPDATE invoices SET status='Filled', payment_status='unpaid' WHERE id='sale'; DELETE FROM host_credit_fills;
+    INSERT INTO host_credit_entries (id,account_id,host_user_id,kind,amount,currency,source_inquiry_id,event_id,invoice_id,
+      invoice_line_id,product_id,basis_amount,basis_currency,created_by)
+    VALUES ('old-pending','shop','host','pending',10,'USD','q-sale','sit','sale','line-sale','tea',100,'USD','system')`);
+  expect((await update('sale', { payment_status: 'paid' })).status).toBe(200);
+  expect(ledger().filter(r => r.kind === 'earned').map(r => r.amount)).toEqual([10]);
+});
+
 it('identical sales Filled while closed have equal credit after reopening', async () => {
   order('twin', true);
   for (const id of ['sale', 'twin']) expect((await fill(id, { open: false })).status).toBe(200);
@@ -242,7 +327,24 @@ it('identical sales Filled while closed have equal credit after reopening', asyn
 it('a Void while closed cannot leave the cancelled award spendable on reopening', async () => {
   expect((await fill()).status).toBe(200);
   expect((await voidOrder('sale', { open: false })).status).toBe(200);
+  expect(ledger().map(r => r.kind)).toEqual(['pending', 'earned', 'reversed']);
   expect((await ask()).status).toBe(409);
+});
+
+it('a Void while closed releases a hold on that order', async () => {
+  const id = await held();
+  expect((await voidOrder('redeem', { open: false })).status).toBe(200);
+  expect(requests()[0]).toMatchObject({ id, status: 'declined', release_reason: 'order_void' });
+});
+
+it('an award left unreversed on a Void order before the fix cannot be spent', async () => {
+  expect((await fill()).status).toBe(200);
+  // The old shape: Void with no reversal, as the closed early return left it.
+  db.sqlite.exec("UPDATE invoices SET status='Void' WHERE id='sale'");
+  expect(ledger().map(r => r.kind)).toEqual(['pending', 'earned']);
+  expect((await ask()).status).toBe(409);
+  expect(ledger().map(r => r.kind)).toEqual(['pending', 'earned', 'reversed']);
+  expect((await mine()).balances[0]).toMatchObject({ available: 0, debt: 0 });
 });
 
 it('stopping a host today preserves their balance and permits later referral earnings and spending', async () => {
@@ -254,10 +356,29 @@ it('stopping a host today preserves their balance and permits later referral ear
   expect((await ask()).status).toBe(201);
 });
 
-it.each([undefined, 'review-ask-once'])('replaying a use request with key %s while held cannot reserve twice', async key => {
+it('replaying a use request without a key while held cannot reserve twice', async () => {
   expect((await fill()).status).toBe(200);
-  expect((await ask('redeem', { key })).status).toBe(201);
-  expect((await ask('redeem', { key })).status).toBe(409);
+  expect((await ask('redeem')).status).toBe(201);
+  expect((await ask('redeem')).status).toBe(409);
+  expect(requests()).toHaveLength(1);
+});
+
+// A8-8 fixed: a keyed replay returns the request the key first made (200), never a second hold.
+it('replaying a use request with a key while held returns the original request', async () => {
+  expect((await fill()).status).toBe(200);
+  const first = await ask('redeem', { key: 'review-ask-once' });
+  expect(first.status).toBe(201);
+  const again = await ask('redeem', { key: 'review-ask-once' });
+  expect(again.status).toBe(200);
+  expect(again.data).toMatchObject({ replayed: true, request: { id: first.data.request.id, amount: 10, status: 'held' } });
+  expect(requests()).toHaveLength(1);
+});
+
+it('two keyed replays at once make one request', async () => {
+  expect((await fill()).status).toBe(200);
+  const replies = await Promise.all([ask('redeem', { key: 'twice' }), ask('redeem', { key: 'twice' })]);
+  expect(replies.map(r => r.status).sort()).toEqual([200, 201]);
+  expect(new Set(replies.map(r => r.data.request.id)).size).toBe(1);
   expect(requests()).toHaveLength(1);
 });
 
@@ -266,8 +387,12 @@ it('a delayed keyed retry cannot reopen a declined spend', async () => {
   const options = { key: 'ask-1' };
   expect((await ask('redeem', options)).status).toBe(201);
   expect((await decide(String(requests()[0].id), 'decline')).status).toBe(200);
-  await ask('redeem', options);
+  const replay = await ask('redeem', options);
+  expect(replay).toMatchObject({ status: 200, data: { replayed: true, request: { status: 'declined' } } });
   expect(requests().map(r => r.status)).toEqual(['declined']);
+  // A deliberate new request carries its own key and is a new request.
+  expect((await ask('redeem', { key: 'ask-2' })).status).toBe(201);
+  expect(requests().map(r => r.status)).toEqual(['declined', 'held']);
 });
 
 it('an approved shop seller cannot award credit without the owner marking Filled', async () => {

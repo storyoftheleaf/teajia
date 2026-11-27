@@ -140,24 +140,10 @@ describe('HOST_CREDIT: credit earned while open, after the switch closes', () =>
     expect(again.body).toEqual(open.body);
   });
 
-  it('A10-1, as it stands: the void settled while closed leaves the earned row unreversed', async () => {
-    const db = shop();
-    const invoice = await checkout(db);
-    db.sqlite.prepare("UPDATE invoices SET status = 'Filled', payment_status = 'paid' WHERE id = ?").run(invoice);
-    await settleHostCredit(creditEnv(db, true), invoice);
-    db.sqlite.prepare("UPDATE invoices SET status = 'Void' WHERE id = ?").run(invoice);
-    expect(await settleHostCredit(creditEnv(db, false), invoice)).toMatchObject({ reversed: 0 });
-    expect(kinds(db, invoice)).toEqual(['pending', 'earned']);
-    const balance = await call(db, { HOST_CREDIT_OPEN: 'true' }, { userId: 'host' }, '/api/me/tea-credit');
-    expect(balance.status).toBe(200);
-    expect(JSON.stringify(balance.body.balances)).toMatch(/"(earned|available)":\s*[1-9]/);
-  });
-
-  // A10-1 (S1): settleHostCredit returns before reading anything while the
-  // switch is closed, so the reversal of a voided order is skipped too. Nothing
-  // settles a Void invoice again, so when the switch reopens the host still
-  // holds credit for an order that was voided.
-  it.fails('A10-1: an order voided while the switch is closed takes its credit back', async () => {
+  // A10-1 (S1), fixed: settleHostCredit records the reversal of a voided order
+  // whether the switch is open or closed (closed earns nothing new, and still
+  // reads no source). todo/review/fixes/credit.md.
+  it('A10-1: an order voided while the switch is closed takes its credit back', async () => {
     const db = shop();
     const invoice = await checkout(db);
     db.sqlite.prepare("UPDATE invoices SET status = 'Filled', payment_status = 'paid' WHERE id = ?").run(invoice);
@@ -166,9 +152,28 @@ describe('HOST_CREDIT: credit earned while open, after the switch closes', () =>
     // Closed: the shop voids the order, and every void path calls settleHostCredit.
     db.sqlite.prepare("UPDATE invoices SET status = 'Void' WHERE id = ?").run(invoice);
     const closedSettle = await settleHostCredit(creditEnv(db, false), invoice);
-    expect(closedSettle.reversed).toBe(0);
-    // Open again: the earned row still stands unreversed.
+    expect(closedSettle.reversed).toBe(1);
     expect(kinds(db, invoice)).toEqual(['pending', 'earned', 'reversed']);
+    // Open again: nothing of the voided order is left to spend.
+    const balance = await call(db, { HOST_CREDIT_OPEN: 'true' }, { userId: 'host' }, '/api/me/tea-credit');
+    expect(balance.status).toBe(200);
+    expect(balance.body.balances[0]).toMatchObject({ earned: 1.4, reversed: 1.4, available: 0 });
+  });
+
+  // A row written before the fix: a Void settled while closed left the award
+  // unreversed. The first read after reopening reverses it before any balance is shown.
+  it('A10-1, an award left unreversed before the fix is reversed when credit reopens', async () => {
+    const db = shop();
+    const invoice = await checkout(db);
+    db.sqlite.prepare("UPDATE invoices SET status = 'Filled', payment_status = 'paid' WHERE id = ?").run(invoice);
+    await settleHostCredit(creditEnv(db, true), invoice);
+    // The old shape: Void with no settle at all, as the closed early return left it.
+    db.sqlite.prepare("UPDATE invoices SET status = 'Void' WHERE id = ?").run(invoice);
+    expect(kinds(db, invoice)).toEqual(['pending', 'earned']);
+    const balance = await call(db, { HOST_CREDIT_OPEN: 'true' }, { userId: 'host' }, '/api/me/tea-credit');
+    expect(balance.status).toBe(200);
+    expect(kinds(db, invoice)).toEqual(['pending', 'earned', 'reversed']);
+    expect(balance.body.balances[0]).toMatchObject({ available: 0 });
   });
 });
 

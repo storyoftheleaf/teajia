@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Leaf, Loader2 } from 'lucide-react';
 import { ApiError } from '../../lib/api';
 import { hostCreditOpen } from '../../lib/hostCredit';
-import { formatCredit, hostCreditApi, type ShopHostRow, type ShopTeaCredit } from '../../lib/hostCreditApi';
+import { formatCredit, hostCreditApi, type ShopHostRow, type ShopSpendRequest, type ShopTeaCredit } from '../../lib/hostCreditApi';
 import { selectIsOwnerTier, useAppStore } from '../../lib/store';
 import { useStepParam } from '../../hooks/useStepParam';
 import { Button } from '../../components/shared/Button';
@@ -36,6 +36,31 @@ const Row: React.FC<{ children: React.ReactNode; label: string }> = ({ children,
   </li>
 );
 
+/** What the owner last heard back about one request or order; `confirm` turns Approve into Approve anyway. */
+export type DecisionNotice = { id: string; text: string; confirm?: boolean } | null;
+export type SpendChoice = { id: string; approve: boolean; confirm?: boolean };
+
+/**
+ * Decline and Approve for one waiting use of credit, the same in the list and
+ * in a host's detail (A8-10). Over the shop's ceiling the worker answers
+ * over_ceiling, and the same button becomes Approve anyway: two clicks, with
+ * the confirmation kept.
+ */
+export const SpendDecisionControls: React.FC<{
+  request: ShopSpendRequest; notice: DecisionNotice; busy: boolean; onDecide: (choice: SpendChoice) => void;
+}> = ({ request, notice, busy, onDecide }) => {
+  const confirm = notice?.id === request.id && Boolean(notice.confirm);
+  return (
+    <div className="flex flex-wrap items-center gap-2 shrink-0">
+      <span className="num text-sm text-tea-text font-medium">{formatCredit(request.amount, request.currency)}</span>
+      <Button variant="secondary" size="sm" disabled={busy} onClick={() => onDecide({ id: request.id, approve: false })}>Decline</Button>
+      <Button size="sm" disabled={busy} onClick={() => onDecide({ id: request.id, approve: true, confirm })}>
+        {confirm ? 'Approve anyway' : 'Approve'}
+      </Button>
+    </div>
+  );
+};
+
 // Closed, nothing below is reached: no store read, no request.
 export const TeaCreditSection: React.FC = () => (hostCreditOpen() ? <OwnerOnly /> : null);
 
@@ -58,11 +83,11 @@ const TeaCreditSectionOpen: React.FC = () => {
   // One host's lines open as a step in the address, so back closes them.
   const [openHost, setOpenHost] = useStepParam('credit');
   const back = useAdminBack('/admin/activity?tab=waiting');
-  const [notice, setNotice] = useState<{ id: string; text: string; confirm?: boolean } | null>(null);
+  const [notice, setNotice] = useState<DecisionNotice>(null);
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ['host-credit'] });
   const decide = useMutation({
-    mutationFn: (v: { id: string; approve: boolean; confirm?: boolean }): Promise<{ ok: true; status: 'approved' | 'declined' }> =>
+    mutationFn: (v: SpendChoice): Promise<{ ok: true; status: 'approved' | 'declined' }> =>
       v.approve ? hostCreditApi.approveSpend(v.id, v.confirm) : hostCreditApi.declineSpend(v.id),
     onSuccess: () => { setNotice(null); void refresh(); },
     onError: (err, v) => {
@@ -97,7 +122,7 @@ const TeaCreditSectionOpen: React.FC = () => {
       ) : isError || !data ? (
         <p className="text-sm text-tea-text-sec py-4">Tea credit could not be read just now.</p>
       ) : chosen ? (
-        <HostLines data={data} host={chosen} onBack={back} />
+        <HostLines data={data} host={chosen} onBack={back} notice={notice} busy={busy} onDecide={choice => decide.mutate(choice)} />
       ) : (
         <div className="flex flex-col gap-6">
           <div>
@@ -113,13 +138,7 @@ const TeaCreditSectionOpen: React.FC = () => {
                       </span>
                       {notice?.id === request.id && <p role="alert" className="text-ui-12 text-tea-text mt-1.5">{notice.text}</p>}
                     </div>
-                    <div className="flex flex-wrap items-center gap-2 shrink-0">
-                      <span className="num text-sm text-tea-text font-medium">{formatCredit(request.amount, request.currency)}</span>
-                      <Button variant="secondary" size="sm" disabled={busy} onClick={() => decide.mutate({ id: request.id, approve: false })}>Decline</Button>
-                      <Button size="sm" disabled={busy} onClick={() => decide.mutate({ id: request.id, approve: true, confirm: notice?.id === request.id && notice.confirm })}>
-                        {notice?.id === request.id && notice.confirm ? 'Approve anyway' : 'Approve'}
-                      </Button>
-                    </div>
+                    <SpendDecisionControls request={request} notice={notice} busy={busy} onDecide={choice => decide.mutate(choice)} />
                   </Row>
                 ))}
               </ul>
@@ -181,7 +200,10 @@ const HostFigures: React.FC<{ host: ShopHostRow }> = ({ host }) => (
   </span>
 );
 
-const HostLines: React.FC<{ data: ShopTeaCredit; host: ShopHostRow; onBack: () => void }> = ({ data, host, onBack }) => {
+export const HostLines: React.FC<{
+  data: ShopTeaCredit; host: ShopHostRow; onBack: () => void;
+  notice: DecisionNotice; busy: boolean; onDecide: (choice: SpendChoice) => void;
+}> = ({ data, host, onBack, notice, busy, onDecide }) => {
   const lines = data.lines.filter(line => line.host_user_id === host.host_user_id);
   const asks = data.spend_requests.filter(request => request.host_user_id === host.host_user_id);
   return (
@@ -197,9 +219,14 @@ const HostLines: React.FC<{ data: ShopTeaCredit; host: ShopHostRow; onBack: () =
           <ul className="flex flex-col gap-2">
             {asks.map(request => (
               <Row key={request.id} label={`Use of credit on ${request.invoice_number ?? 'an order'}`}>
-                <span className="min-w-0 flex-1 text-ui-12 text-tea-text-sec">{[request.invoice_number ? `Order ${request.invoice_number}` : 'An order', formatDay(request.requested_at)].filter(Boolean).join(' · ')}</span>
+                <div className="min-w-0 flex-1">
+                  <span className="block text-ui-12 text-tea-text-sec">{[request.invoice_number ? `Order ${request.invoice_number}` : 'An order', formatDay(request.requested_at)].filter(Boolean).join(' · ')}</span>
+                  {notice?.id === request.id && <p role="alert" className="text-ui-12 text-tea-text mt-1.5">{notice.text}</p>}
+                </div>
                 <span className="text-ui-12 text-tea-text-sec">{request.status === 'held' ? 'Waiting' : request.status === 'approved' ? 'Approved' : 'Declined'}</span>
-                <span className="num text-sm text-tea-text">{formatCredit(request.amount, request.currency)}</span>
+                {request.status === 'held'
+                  ? <SpendDecisionControls request={request} notice={notice} busy={busy} onDecide={onDecide} />
+                  : <span className="num text-sm text-tea-text">{formatCredit(request.amount, request.currency)}</span>}
               </Row>
             ))}
           </ul>
