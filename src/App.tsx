@@ -245,6 +245,7 @@ import { NetworkErrorNotice } from './components/shared/NetworkErrorNotice';
 import { PreloadIndicator } from './components/shared/PreloadIndicator';
 import { CartFlyAnimation } from './components/shared/CartFlyAnimation';
 import { CartToast, type CartToastTone } from './components/shared/CartToast';
+import { addOpensOrder } from './lib/orderVia';
 import { WalkthroughDock } from './components/shared/WalkthroughDock';
 import { ScrollProgressBar, shouldShowGlobalScrollProgress } from './components/shared/ScrollProgressBar';
 import { AnimatedRoutes } from './components/shared/AnimatedRoutes';
@@ -638,6 +639,12 @@ const AppContent = () => {
     });
 
     addToPublicCart(cartItem);
+    // Came from a thank-you: she chose this tea there, so the order opens at once, not a toast to tap (U1-8).
+    if (addOpensOrder()) {
+      setCartToast(null);
+      setIsCartOpen(true);
+      return;
+    }
     // Show cart toast, read fresh count from store (Zustand updates synchronously)
     const freshCart = useAppStore.getState().publicCart;
     setCartToast({

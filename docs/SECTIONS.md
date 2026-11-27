@@ -1,6 +1,6 @@
-# Teajia sections: the proposed overhaul
+# Teajia sections: the overhaul, what is built and what is proposed
 
-> **Launch 4 branch status (2026-11-26).** The feature sections below describe what is in this checkout. The section diagram, new bar words, Home and the full Tea Houses offering are proposals. The current bar reads **read, craft, advise, shop**. See [SITE_MAP.md](SITE_MAP.md) for routes and flag states. The bar change, Home in full and Read's row of three shelves are built behind `HOME_BAR_OPEN` (`src/lib/homeBar.ts`, off). Adrian's words of 2026-11-26 are "Read", "Tea table", "Tea house" and "Shop", one line in `src/components/navSections.ts`, and he has said he doubts the middle two.
+> **Launch 4 branch status (2026-11-26).** The feature sections below describe what is in this checkout. Built and off: the bar words, Home in full and Read's three shelves (`HOME_BAR_OPEN`), and Tea Houses with Visit, Build and Work (`TEA_HOUSES_OPEN`). The bar reads **read, craft, advise, shop** until `HOME_BAR_OPEN` opens. Adrian has not settled the words "Tea table" and "Tea house". See [SITE_MAP.md](SITE_MAP.md) for routes and flag states. The switch for the bar is in `src/lib/homeBar.ts`. Adrian's words of 2026-11-26 are "Read", "Tea table", "Tea house" and "Shop", one line in `src/components/navSections.ts`, and he has said he doubts the middle two.
 
 > **Second pass, 2026-11-25.** Adrian answered five questions the same day, and the answers put two roles at the centre: guests and tea masters. The section called "The centre" below is new, and Home, Tea Table, Tea Houses, the decisions and the build order were revised to fit it. The full reasoning, the gaps found in the code, and the stages are in [guests-and-tea-masters.md](../todo/plans/guests-and-tea-masters.md).
 
@@ -19,7 +19,7 @@ The pillar already says what Teajia is for: a place to source tea, study it, and
 | **Your Table** | the person glyph | Your own table: journal, photographs, Tea Chest, favourites, orders, journey, your page, your tea houses | Anyone signed in | `/account` and `/account/*` | The overlay panel. Same door, a real page behind it |
 | **Manage** | manage (staff only) | The seven working rooms | Adrian, shop owners, staff | `/admin/*` | Nothing. Seven rooms stay |
 
-The bar and the rail stay four words, in the same slots as today: **read, table, (emblem), houses, shop**. Table takes Craft's place and houses takes Advise's. The rail's foot becomes exactly the "Narrow B" drawing Adrian picked on 2026-11-25: search, account, bag, and manage for staff. People and Places leave the foot because each now lives under a word.
+The bar and the rail stay four words, in the same slots as today: **Read, Tea table, (emblem), Tea house, Shop**, set on one line in `src/components/navSections.ts`. Table takes Craft's place and houses takes Advise's. The rail's foot becomes exactly the "Narrow B" drawing Adrian picked on 2026-11-25: search, account, bag, and manage for staff. People and Places leave the foot because each now lives under a word.
 
 Three words to hold apart from now on:
 
@@ -42,7 +42,7 @@ The sections are the parts of one circle:
 | 3. Put on the table | The host sends a thank-you. Guests add words, photographs and what they thought of the teas | Tea Table |
 | 4. Keep | Privately keep articles, shop teas or your own Tea Chest teas | Favourites, behind `FAVOURITES_OPEN` |
 | 5. Find the tea | A favourite or a tasting leads to the tea | Shop |
-| 6. Host | A guest opens their own session and becomes its host | Proposed doors in Home and Your Table |
+| 6. Host | A guest opens their own session and becomes its host | Built: "Host a table" on Home, the Your Table panel and Your Table's sits, shown only while hosting is open, behind `FEW_HOSTS_OPEN` |
 
 Read runs through all of it: it is how people sharpen their skill, and where articles show who people are and why they love tea. Proposed on 2026-11-26: Read is the third leg beside the tea and the tables. An invitation may carry one piece to read, the thank-you links each tea to its reading, sessions become articles, and experienced hosts may offer pieces that Adrian edits. What a regular host gains, and how to explain Teajia in one sentence, is in the plan under "What this is worth to someone who already hosts". The order to build in, as a first version and four widenings, is in the plan under "The first version, and how it grows". Someone who is only ever online has steps 3 to 5 in full.
 
@@ -95,7 +95,7 @@ Full plan: [tea-table.md](../todo/plans/tea-table.md).
 
 ### Tea Houses
 
-**The full offering is proposed.** A tea house is a public place where people sit down and drink tea. The plan gives each house a name, a location, a photograph, a keeper and a record of sessions. A shop is optional. A host’s own table is private and belongs in Your Table. A house can already exist, be added by its keeper or be built with Adrian. The proposed section answers four questions.
+**Built behind `TEA_HOUSES_OPEN` (off).** Overview, Build, Work and each house's page, with Visit. A tea house is a public place where people sit down and drink tea. The plan gives each house a name, a location, a photograph, a keeper and a record of sessions. A shop is optional. A host’s own table is private and belongs in Your Table. A house can already exist, be added by its keeper or be built with Adrian. The section answers four questions.
 
 | View | Address | The question it answers |
 |---|---|---|
@@ -161,12 +161,26 @@ Not proposed: a "Houses" room to track builds. A build is tracked as an inquiry,
 
 ### Home, About and the small pages
 
-- **Home** is the same page for everyone and gains the job it lacks today: saying what this is and what a person can do here. Read from the code, it shows no people, no sessions and no shared tastings, and its four links still name the old sections. Proposed order: one sentence and the four grounding lines (learn tea, sit at a table, find a tea house, find good tea); two doors, "Come to a table" and "Host a table"; up to four fresh strips, each shown only when it has something real (the next session with its tea master and house, the latest three things on the tea table, one person from an article, the selected tea); the three plates it has now, with the consult plate leading to Tea Houses; and the closing house section with 佳 家 嘉, kept in full. Detail in [guests-and-tea-masters.md](../todo/plans/guests-and-tea-masters.md), "Home".
+- **Home** is the same page for everyone and gains the job it lacks today: saying what this is and what a person can do here. With `HOME_BAR_OPEN` off it shows no people, no sessions and no shared tastings. With it on, Home has the new opening lines, the "Come to a table" door, "Host a table", a strip of the latest three things on the Tea Table, a next-session strip, and the consult plate leading to Tea Houses (`src/pages/home/HomeLaunchFour.tsx`). The order planned was: one sentence and the four grounding lines (learn tea, sit at a table, find a tea house, find good tea); two doors, "Come to a table" and "Host a table"; up to four fresh strips, each shown only when it has something real (the next session with its tea master and house, the latest three things on the tea table, one person from an article, the selected tea); the three plates it has now, with the consult plate leading to Tea Houses; and the closing house section with 佳 家 嘉, kept in full. Detail in [guests-and-tea-masters.md](../todo/plans/guests-and-tea-masters.md), "Home".
 - **About** stays thin and gains links to the four sections and to "work with Adrian". Reached from the phone menu and the footer.
 - **Discover** (`/discover`) stays, linked from home and Your Table.
 - **Start** (`/start`): nothing links to it today. Recommendation: forward it to `/discover`.
-- **Phone menu** shrinks to search, bag, about, work with Adrian, and the Manage rooms for staff. Sessions, People, Places and Tea Wisdom leave it because each is now under a word.
+- **Phone menu** (built behind `HOME_BAR_OPEN`) shrinks to search, bag, about, work with Adrian, and the Manage rooms for staff. Sessions, People, Places and Tea Wisdom leave it because each is now under a word.
 - **Footer** keeps privacy, photographs, MCP.
+
+## Launch 5 and the rest
+
+These switches are built, and all but the first are off. Each answers as absent while closed. The opening order is in `todo/plans/guests-and-tea-masters-review-run.md`.
+
+- `FIRST_TABLE_OPEN` (on): the thank-you page, "Keep this tea" and bought tea into the Tea Chest.
+- `FEW_HOSTS_OPEN`: approved hosts at `/account/host`. `ANYONE_HOSTS_OPEN` stands on it.
+- `KNOW_THIS_TEA_OPEN`: "Does anyone know this tea?" on the Tea Table. It also needs `TEA_TABLE_OPEN`.
+- `HOST_CREDIT_OPEN`: tea credit, at `/account/tea-credit` and in Manage, Sales, Waiting.
+- `CIRCLES_OPEN` and `HOST_TOKENS_OPEN`: circles and the host's assistant key on `/account/host`. Both need `FEW_HOSTS_OPEN`.
+- `TABLE_CARD_OPEN`: the printed card at `/admin/events/:slug/card`.
+- `TOP_TEAS_OPEN`: a host's top teas on their page.
+- `HOST_ARTICLES_OPEN`: article offers, reviewed in Publish.
+- `YOUR_TABLE_PLACE_OPEN`: "Add your table". It also needs `FEW_HOSTS_OPEN`.
 
 ## Route map, old to new
 
@@ -189,10 +203,13 @@ For the new routes, a tab or a view is a step and pushes a history entry. A filt
 | `/for-your-space` | forwards to `/tea-houses/build?for=space` | forward |
 | `/spaces` | existing page | proposed forward to Visit is pending |
 | `/find-a-table` | existing page | proposed forward to Visit is pending |
+| (none) | `/account/tea-credit` | `HOST_CREDIT_OPEN` |
+| (none) | `/account/host`, `/account/host/:id` | `FEW_HOSTS_OPEN` |
+| (none) | `/admin/events/:slug/card` | `TABLE_CARD_OPEN` |
 | `/store-launch-playbook` | unchanged; linked from `/tea-houses/build` and from Settings | none |
 | `/store/:slug` | unchanged; lights "houses" | section only |
-| (none) | `/tea-houses/visit` | built, no flag |
-| (none) | `/tea-houses`, `/tea-houses/build`, `/tea-houses/work`, `/tea-houses/work/:slug` | proposed |
+| (none) | `/tea-houses/visit` | `TEA_HOUSES_OPEN` |
+| (none) | `/tea-houses`, `/tea-houses/build`, `/tea-houses/work`, `/tea-houses/work/:slug` | `TEA_HOUSES_OPEN` |
 | `/shop`, `/shop/product/:id` | unchanged | none |
 | `/account` (opens the panel) | `/account` (grouped page) | `YOUR_TABLE_PAGE_OPEN` |
 | panel views `journal`, `cellar` | page-mode tiles use the existing `/account/journal` and `/account/cellar` | `YOUR_TABLE_PAGE_OPEN` |
@@ -203,13 +220,13 @@ For the new routes, a tab or a view is a step and pushes a history entry. A filt
 | `/start` | forwards to `/discover` | forward |
 | `/admin/*` | unchanged | none |
 
-Changing keyboard destinations, section highlighting and navigation labels is still proposed.
+Keys 1 to 5, section highlighting and the navigation labels follow the new words and are built behind `HOME_BAR_OPEN`; the words are Adrian's to confirm.
 
 ## The standing rules
 
 The Tea Table is the one exception to the rule against social feeds. One public page may show, newest first, what people have chosen to put there: shared tastings with their words and photographs, and published session recaps. It shows what has happened. A host may hold their own recap at the top for a while by hand, and Adrian may hold any piece. Nothing rises by itself. A person may keep a piece in their own favourites. Only Adrian can see the number of keeps, in Manage. There are no likes, comments, follows, follower or view counts, scores, streaks, rankings, recommendations or notifications on the Tea Table. The site calls it the Tea Table. A person can take off their own item, and the owner can hide any item.
 
-The Launch 4 run sheet records Adrian’s yes to this exception on 2026-11-26. `CLAUDE.md` still carries its proposal marker. The implementation stays behind `TEA_TABLE_OPEN`, off by default.
+The Launch 4 run sheet records Adrian’s yes to this exception on 2026-11-26. `CLAUDE.md` still carries its proposal marker, and Adrian's own word is needed to change it. The implementation stays behind `TEA_TABLE_OPEN`, off by default.
 
 Quiet acknowledgement comes from one person to another: a host’s thank-you, being quoted by name, “Photograph by”, “Poured with”, or a word Adrian grants by hand on a person’s page. No numbers, levels, titles for volume or nudges. Adrian may decide a host’s reach by hand and that standing stays private. Photo credit, recap credit (“Poured with”) and “Pours at tables” open with `TEA_TABLE_OPEN`: with it off no public answer carries `photograph_by`, `poured_with` or `pours`, and the photographer’s credit choice cannot be changed. The granted word has no switch of its own. The photo credit depends on the family photographer’s explicit first-name choice. A published recap may name public co-hosts and guest hosts, linking any published page. The Tea Table’s tasting photos use the tasting byline and have no separate photographer credit line. “Pours at tables” comes from public credit on a completed or archived session whose date has passed. It does not change the list’s order.
 
@@ -223,8 +240,8 @@ The same guardrails are recorded in [PILLAR.md](PILLAR.md), [CONSOLIDATED_DIRECT
 
 The remaining product decisions include the bar and page labels, enabling Your Table as a page, and Adrian’s facts for the tea house offering. The first-pass decisions below record the original recommendations and where the branch implements them.
 
-1. **The four words.** Recommended: **read, table, houses, shop**, with Craft as the second shelf of Read. The other honest choice: keep **read, craft, houses, shop**, and give the Tea Table the home page and the phone menu instead of a word. The first puts the living part of the site on the bar. The second keeps Craft where you named it. A fifth word does not fit the phone bar or the Narrow B rail without redrawing both.
-2. **The two new labels.** Recommended: "table" and "houses" on the bar, "The Tea Table" and "Tea Houses" as page titles. The existing words are verbs (read, craft, advise, shop), so "gather" and "build" are the alternative if you want to keep that pattern.
+1. **The four words (answered 2026-11-26; he now doubts the middle two).** Recommended: **read, table, houses, shop**, with Craft as the second shelf of Read. The other honest choice: keep **read, craft, houses, shop**, and give the Tea Table the home page and the phone menu instead of a word. The first puts the living part of the site on the bar. The second keeps Craft where you named it. A fifth word does not fit the phone bar or the Narrow B rail without redrawing both.
+2. **The two new labels (built as "Tea table" and "Tea house"; Adrian doubts them).** Recommended: "table" and "houses" on the bar, "The Tea Table" and "Tea Houses" as page titles. The existing words are verbs (read, craft, advise, shop), so "gather" and "build" are the alternative if you want to keep that pattern.
 3. **Advise leaves the bar.** Recommended: yes. The page stays at `/advise` as "work with Adrian" and is reached from Tea Houses, Sessions, Shop and About. Tea house building takes the word because it is the offering you want seen.
 4. **Sharing and the Tea Table.** Built behind `TEA_TABLE_OPEN`. The Share step asks for Tea Table consent under the combined wording. Older shares need a fresh choice.
 5. **Review or hide.** Behind `TEA_TABLE_OPEN`, eligible tastings appear on explicit share. The platform owner can hide or restore a piece in Guest notes.

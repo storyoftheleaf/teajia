@@ -1,4 +1,5 @@
 import React, { useState, lazy, Suspense, useEffect } from 'react';
+import { usableSeat } from '../../lib/mySeat';
 import { Link, useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { MapPin, ChevronDown, Users, BookOpen, Edit3, UserCheck } from 'lucide-react';
@@ -304,11 +305,10 @@ const EventLanding: React.FC = () => {
     if (!slug || !event) return;
     let live = true;
     const keep = (data: any) => {
-      const token = data?.magic_token || data?.magicToken;
-      const status = data?.status;
       if (!live) return true;
-      if (token && status && status !== 'cancelled' && status !== 'denied') {
-        setMyAttendee({ ...data, magic_token: token });
+      const seat = usableSeat(data);
+      if (seat) {
+        setMyAttendee(seat);
         return true;
       }
       return false;
