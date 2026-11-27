@@ -32,6 +32,9 @@ Anywhere a person adds a photo, it opens in the shared editor first (`usePhotoEd
 
 **Never give Adrian a zip file for a handoff.** A handoff is plain files saved on GitHub, given to him as links he can open. No archive as the handoff, and none as a "second copy" either. (Adrian, 2026-11-16.)
 
+## Before every pull request — run the `review-pr` skill
+Implement first, then review. Before `gh pr create`, run `.claude/skills/review-pr/SKILL.md`: a fresh reviewer checks the change against [CODING_STANDARDS.md](CODING_STANDARDS.md), commits its own fixes, and writes the PR's **Merge danger** section (CI's `merge-danger` check refuses a PR without one). A one-way door (row-rewriting migration, customer messages, money or payments, deleted files) waits for Adrian's `owner-approved` label: never add it yourself, never merge it.
+
 ## What this is
 Professional tea infrastructure — sourcing, inventory, education, events, and multi-store management. This is NOT a wellness app, a traditional social network, or a franchise. Adrian's curation is the engine, and the point is bringing people together over tea, not keeping them active on a screen. WhatsApp checkout is intentional — every order is a personal conversation. The app never asks during a tea session: it sends nothing, prompts nothing and shows nothing to scroll while people are sitting. A photo is one tap. A tasting is the one kind of session where writing is the point, and the host chooses it. (Adrian, 2026-11-26; this replaces "never during".)
 
