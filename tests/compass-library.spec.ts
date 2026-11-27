@@ -232,20 +232,20 @@ test.describe('Curate Library decisions and retrieval', () => {
       return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 'inventory-river', alreadyPromoted: false }) });
     });
     await page.getByRole('button', { name: 'Edit details for River Stone', exact: true }).filter({ visible: true }).click();
-    const createAction = page.getByRole('button', { name: 'Create Inventory record' });
+    const createAction = page.getByRole('button', { name: 'Add to Stock' });
     // The control is a .pill now rather than a .tap-target. Both carry the
     // 44px floor, so assert the floor itself: which class delivers it is an
     // implementation detail, and the reason this assertion exists is the
     // target size.
     await expect.poll(async () => (await createAction.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(tapFloor());
     await createAction.click();
-    await expect(page.getByRole('button', { name: /View in Inventory/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: /View in Stock/ })).toBeVisible();
     // Same as above: .pill carries the same 44px floor, so measure the floor.
     await expect
-      .poll(async () => (await page.getByRole('button', { name: /View in Inventory/ }).boundingBox())?.height ?? 0)
+      .poll(async () => (await page.getByRole('button', { name: /View in Stock/ }).boundingBox())?.height ?? 0)
       .toBeGreaterThanOrEqual(tapFloor());
     expect(promotions).toBe(1);
-    await page.getByRole('button', { name: /View in Inventory/ }).click();
+    await page.getByRole('button', { name: /View in Stock/ }).click();
     await expect(page).toHaveURL(/\/admin\/stock\?panel=inventory-river/);
   });
 
@@ -258,7 +258,7 @@ test.describe('Curate Library decisions and retrieval', () => {
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: 'inventory-river', alreadyPromoted: true }) });
     });
     await page.getByRole('button', { name: 'Edit details for River Stone', exact: true }).filter({ visible: true }).click();
-    await page.getByRole('button', { name: 'Create Inventory record' }).click();
+    await page.getByRole('button', { name: 'Add to Stock' }).click();
     await expect(page.getByText('Queued until the connection returns', { exact: true })).toBeVisible();
     expect(await page.evaluate(async () => {
       // @ts-expect-error Vite source import.
@@ -285,7 +285,7 @@ test.describe('Curate Library decisions and retrieval', () => {
       route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify({ error: 'Compass entry not found' }) }),
     );
     await page.getByRole('button', { name: 'Edit details for River Stone', exact: true }).filter({ visible: true }).click();
-    await page.getByRole('button', { name: 'Create Inventory record' }).click();
+    await page.getByRole('button', { name: 'Add to Stock' }).click();
     await expect(page.getByText('Could not create Inventory record: Compass entry not found', { exact: true })).toBeVisible();
     expect(await page.evaluate(async () => {
       // @ts-expect-error Vite source import.
