@@ -3468,8 +3468,8 @@ input[type="number"]::-webkit-outer-spin-button {
   border-right: 1px solid var(--tea-keyline);
 }
 
-/* The staff drawer beside the rail (LeftSidebar), in one of three porcelain
-   looks for Adrian to choose from (manageLook.ts: docked, flush, seamless;
+/* The staff drawer beside the rail (LeftSidebar), in one of three narrow
+   flush looks for Adrian to choose from (manageLook.ts: slim, glyph, word;
    2026-11-27). The word manage no longer folds into the drawer as a tab:
    each look marks it open in its own small way. */
 .nav-drawer { background: var(--tea-surface); }
@@ -3495,27 +3495,35 @@ input[type="number"]::-webkit-outer-spin-button {
   inset: calc(-1 * var(--space-3)) calc(-1 * var(--space-2));
 }
 
-/* Porcelain tiles, attached to the rail, three ways (Adrian, 2026-11-27:
-   "do porcelain. Can we attach it to the side somehow? And make it more
-   sleek"). All three: a glyph over each word in the rail's lowercase serif,
-   hairlines between the tiles, stacked up from the word manage, which is
-   gold with a gold hairline under it while the column is out. */
-:is([data-look="docked"], [data-look="flush"], [data-look="seamless"]) .nav-drawer { justify-content: flex-end; }
-:is([data-look="docked"], [data-look="flush"], [data-look="seamless"]) .nav-drawer-label { display: none; }
-:is([data-look="docked"], [data-look="flush"], [data-look="seamless"]) .nav-drawer-rule { display: none; }
-:is([data-look="docked"], [data-look="flush"], [data-look="seamless"]) .nav-room {
+/* Flush, narrower, three ways (Adrian, 2026-11-27: "Let's go with flush...
+   when I was saying sleek, I mean more narrow"). All three: a full-height
+   porcelain leaf joined to the rail, brightening toward the foot, a gold
+   hairline down its outer edge, rooms stacked up from the word manage with
+   hairlines between them, the room you are in lit gold on a soft gold wash.
+   Open, manage is gold with a gold hairline under it. */
+:is([data-look="slim"], [data-look="glyph"], [data-look="word"]) .nav-drawer {
+  justify-content: flex-end;
+  padding: 0 0 var(--space-3);
+  background: linear-gradient(180deg, var(--tea-surface), var(--tea-elevated));
+  border-right: 1px solid rgb(var(--tea-gold-rgb) / 0.22);
+}
+:is([data-look="slim"], [data-look="glyph"], [data-look="word"]) .nav-drawer-label { display: none; }
+:is([data-look="slim"], [data-look="glyph"], [data-look="word"]) .nav-drawer-rule { display: none; }
+:is([data-look="slim"], [data-look="glyph"], [data-look="word"]) .nav-room {
   flex-direction: column;
   justify-content: center;
-  gap: 5px;
-  padding: var(--space-3) 0;
+  gap: 4px;
+  padding: var(--space-2) 0;
   font-family: var(--font-display);
-  font-size: var(--fs-ui-13);
-  letter-spacing: 0.03em;
+  font-size: var(--fs-ui-12);
+  letter-spacing: 0.02em;
   text-transform: lowercase;
 }
-:is([data-look="docked"], [data-look="flush"], [data-look="seamless"]) .nav-room ~ .nav-room { border-top: 1px solid var(--tea-border); }
-:is([data-look="docked"], [data-look="flush"], [data-look="seamless"]) .nav-room:hover { color: var(--tea-text); }
-:is([data-look="docked"], [data-look="flush"], [data-look="seamless"]) .nav-manage-word[data-open="true"]::before {
+:is([data-look="slim"], [data-look="glyph"], [data-look="word"]) .nav-room ~ .nav-room { border-top: 1px solid var(--tea-border); margin: 0 var(--space-1); }
+:is([data-look="slim"], [data-look="glyph"], [data-look="word"]) .nav-room:hover { color: var(--tea-text); }
+:is([data-look="slim"], [data-look="glyph"], [data-look="word"]) .nav-room[aria-current="page"] { margin: 0; background: rgb(var(--tea-gold-rgb) / 0.08); }
+:is([data-look="slim"], [data-look="glyph"], [data-look="word"]) .nav-room[aria-current="page"] + .nav-room { border-top-color: transparent; }
+:is([data-look="slim"], [data-look="glyph"], [data-look="word"]) .nav-manage-word[data-open="true"]::before {
   content: '';
   position: absolute;
   left: 50%;
@@ -3525,58 +3533,36 @@ input[type="number"]::-webkit-outer-spin-button {
   border-top: 1px solid var(--tea-gold);
 }
 
-/* Docked: the porcelain card, its flat side against the rail, its other
-   corners rounded, a gold-warmed hairline round the open edges. The room you
-   are in wears a fine gold ring. */
-[data-look="docked"] .nav-drawer { background: transparent; padding: 0 var(--space-2) var(--space-3) 0; }
-[data-look="docked"] .nav-drawer-list {
-  padding: var(--space-1) var(--space-1) var(--space-1) 0;
-  border: 1px solid rgb(var(--tea-gold-rgb) / 0.2);
-  border-left: 0;
-  border-radius: 0 var(--radius-xl) var(--radius-xl) 0;
-  background: linear-gradient(180deg, var(--tea-elevated), var(--tea-surface));
-  box-shadow: var(--shadow-md);
-}
-[data-look="docked"] .nav-room[aria-current="page"] {
-  border-radius: var(--radius-lg);
-  background: rgb(var(--tea-gold-rgb) / 0.07);
-  box-shadow: inset 0 0 0 1px rgb(var(--tea-gold-rgb) / 0.5);
-}
-[data-look="docked"] .nav-room[aria-current="page"] + .nav-room { border-top-color: transparent; }
+/* Slim, 56px: the glyph over its word, both drawn smaller. */
+[data-look="slim"] .nav-room { font-size: var(--fs-ui-11); }
 
-/* Flush: a full-height porcelain leaf joined to the rail, brightening
-   toward the foot where the rooms are, a gold hairline down its outer edge.
-   The room you are in is lit gold on a soft gold wash, edge to edge. */
-[data-look="flush"] .nav-drawer {
-  padding: 0 0 var(--space-3);
-  background: linear-gradient(180deg, var(--tea-surface), var(--tea-elevated));
-  border-right: 1px solid rgb(var(--tea-gold-rgb) / 0.22);
-}
-[data-look="flush"] .nav-room ~ .nav-room { border-top: 1px solid var(--tea-border); margin: 0 var(--space-2); }
-[data-look="flush"] .nav-room[aria-current="page"] {
-  margin: 0;
-  padding-inline: var(--space-2);
-  background: rgb(var(--tea-gold-rgb) / 0.08);
-}
-
-/* Seamless: the column is the rail grown wider. Same material, no seam
-   between them, one keyline on the far edge. The room you are in is gold
-   with a gold hairline on the edge nearest the rail. */
-[data-look="seamless"] .nav-rail:has(~ .nav-drawer) { border-right-color: transparent; }
-[data-look="seamless"] .nav-drawer {
-  padding: 0 var(--space-2) var(--space-3) 0;
-  background: color-mix(in srgb, var(--tea-surface) 42%, rgb(var(--tea-bg-rgb)));
-  border-right: 1px solid var(--tea-keyline);
-}
-[data-look="seamless"] .nav-room[aria-current="page"] { font-weight: 600; }
-[data-look="seamless"] .nav-room[aria-current="page"]::before {
-  content: '';
+/* Glyph, 44px: the glyphs alone, the narrowest; a room's word shows beside
+   it on a small porcelain label while the pointer or focus is on it. */
+[data-look="glyph"] .nav-drawer { overflow: visible; }
+[data-look="glyph"] .nav-room { min-height: var(--tap-min); padding: 0; }
+[data-look="glyph"] .nav-room-word {
   position: absolute;
-  left: 0;
-  top: var(--space-3);
-  bottom: var(--space-3);
-  border-left: 1px solid var(--tea-gold);
+  left: calc(100% + var(--space-2));
+  top: 50%;
+  transform: translate(-4px, -50%);
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid rgb(var(--tea-gold-rgb) / 0.22);
+  border-radius: var(--radius-control);
+  background: var(--tea-elevated);
+  box-shadow: var(--shadow-md);
+  font-size: var(--fs-ui-13);
+  color: var(--tea-text);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease, transform 120ms ease;
 }
+[data-look="glyph"] .nav-room:hover .nav-room-word,
+[data-look="glyph"] .nav-room:focus-visible .nav-room-word { opacity: 1; transform: translate(0, -50%); }
+
+/* Word, 52px: the words alone, in the rail's lowercase serif, so the column
+   reads as a second, quieter rail. */
+[data-look="word"] .nav-room-mark { display: none; }
+[data-look="word"] .nav-room { min-height: var(--tap-min); padding: 0; font-size: var(--fs-ui-13); }
 
 /* The rail's words sit close, 14px type on a 20px gap, which is the design
    Adrian picked off the canvas. `.tap-target` would make each word a 44px box

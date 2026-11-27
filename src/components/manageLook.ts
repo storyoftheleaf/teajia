@@ -1,29 +1,29 @@
 // Three looks for the Manage column beside the rail, for Adrian to choose
-// from. All three are his porcelain tiles, attached to the rail and made
-// sleeker (2026-11-27: "do porcelain. Can we attach it to the side somehow?
-// And make it more sleek? Three more options."). Once he picks one, the
+// from. All three are his pick, flush (a full-height porcelain leaf joined
+// to the rail), made narrower (2026-11-27: "when I was saying sleek, I mean
+// more narrow. Give me three more narrow options."). Once he picks one, the
 // other two and this switch come out.
 //
-//   docked    the porcelain card, its flat side against the rail.
-//   flush     a full-height porcelain leaf joined to the rail.
-//   seamless  the rail itself grown wider, no seam between them.
+//   slim   56px: the glyph over its word, both smaller.
+//   glyph  44px: the glyphs alone; a room's word shows beside it on hover.
+//   word   52px: the words alone, a second, quieter rail.
 //
-// Pick one with ?manage=docked, ?manage=flush or ?manage=seamless on any
-// address; the choice is remembered in this browser.
+// Pick one with ?manage=slim, ?manage=glyph or ?manage=word on any address;
+// the choice is remembered in this browser.
 
-export type ManageLook = 'docked' | 'flush' | 'seamless';
+export type ManageLook = 'slim' | 'glyph' | 'word';
 
 const KEY = 'teajia_manage_look';
-const LOOKS: readonly ManageLook[] = ['docked', 'flush', 'seamless'];
+const LOOKS: readonly ManageLook[] = ['slim', 'glyph', 'word'];
 
 /** How wide each look's column is, in rem. */
-export const MANAGE_LOOK_WIDTH_REM: Record<ManageLook, number> = { docked: 4.75, flush: 4.5, seamless: 4.5 };
+export const MANAGE_LOOK_WIDTH_REM: Record<ManageLook, number> = { slim: 3.5, glyph: 2.75, word: 3.25 };
 
 function isLook(value: string | null | undefined): value is ManageLook {
   return !!value && (LOOKS as readonly string[]).includes(value);
 }
 
-/** The look for this browser: the address first, then the one picked last, then docked. */
+/** The look for this browser: the address first, then the one picked last, then slim. */
 export function manageLook(search: string): ManageLook {
   const asked = new URLSearchParams(search).get('manage');
   if (isLook(asked)) {
@@ -34,5 +34,5 @@ export function manageLook(search: string): ManageLook {
     const kept = window.localStorage.getItem(KEY);
     if (isLook(kept)) return kept;
   } catch { /* storage refused */ }
-  return 'docked';
+  return 'slim';
 }

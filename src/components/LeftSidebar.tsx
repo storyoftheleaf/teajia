@@ -333,7 +333,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
             {today && (
               <>
                 <Link to={today.path} className="nav-room" aria-current={isTodayActive ? 'page' : undefined}>
-                  <span className="nav-room-mark"><SunHorizon className="nav-room-glyph" size={18} weight="light" aria-hidden="true" /></span>
+                  <span className="nav-room-mark"><SunHorizon className="nav-room-glyph" size={17} weight="light" aria-hidden="true" /></span>
                   <span className="nav-room-word">{today.label}</span>
                 </Link>
                 <span className="nav-drawer-rule" aria-hidden="true" />
@@ -343,7 +343,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
               const isActive = here(item.path) || (item.children?.some(c => here(c.path)) ?? false);
               return (
                 <Link key={item.id} to={item.path} className="nav-room" aria-current={isActive ? 'page' : undefined}>
-                  <span className="nav-room-mark"><item.Icon className="nav-room-glyph" size={18} weight="light" aria-hidden="true" /></span>
+                  <span className="nav-room-mark"><item.Icon className="nav-room-glyph" size={17} weight="light" aria-hidden="true" /></span>
                   <span className="nav-room-word">{item.label}</span>
                 </Link>
               );
