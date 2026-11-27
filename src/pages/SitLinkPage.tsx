@@ -3,22 +3,25 @@
 // holding the link sees this. A signed-in person who was there takes their
 // seat with one press and lands on the thank-you page a seated guest already
 // has, where notes, photographs and keeping a tea live.
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Button } from '../components/shared/Button';
 import VenueGuide from '../components/events/VenueGuide';
+import { SessionTeaRow, sessionOfferItem } from '../components/sessions/SessionTeaRow';
+import { LinkTeaPage } from '../components/shop/LinkTeaPage';
+import { useOpenLinkTea } from '../components/shop/useOpenLinkTea';
 import { TYPOGRAPHY_CLASSES } from '../designTokens';
 import { useAuth } from '../hooks/useAuth';
 import { currentSignInToken } from '../lib/api';
 import { holdAfterSitCredential } from '../lib/afterSitAccess';
 import { authPagePath } from '../lib/authNavigation';
-import { mediaUrl } from '../lib/mediaUrl';
 import { joinSit, readSitLink, type SitLink } from '../lib/sitLink';
 import type { PublicSessionTea } from '../../shared/sessionTea';
+import type { InventoryItem } from '../types';
 
 type State = { status: 'loading' | 'missing' | 'error' } | { status: 'ready'; sit: SitLink };
 
-export default function SitLinkPage() {
+export default function SitLinkPage({ onAddToCart }: { onAddToCart?: (item: InventoryItem, grams: number, totalUsd: number) => void }) {
   const { code = '' } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -83,9 +86,7 @@ export default function SitLinkPage() {
           {state.sit.teas.length > 0 && (
             <section aria-labelledby="sit-teas" className="border-t border-tea-border pt-4">
               <h2 id="sit-teas" className={TYPOGRAPHY_CLASSES.h2}>The teas</h2>
-              <ol className="mt-3 flex flex-col divide-y divide-tea-border">
-                {state.sit.teas.map((tea, index) => <Tea key={tea.id ?? index} tea={tea} place={index + 1} />)}
-              </ol>
+              <Teas teas={state.sit.teas} onAddToCart={onAddToCart} />
             </section>
           )}
           {state.sit.happened && (
@@ -132,26 +133,46 @@ function Way({ way }: { way: NonNullable<SitLink['way']> }) {
   );
 }
 
-function Tea({ tea, place }: { tea: PublicSessionTea; place: number }) {
-  const product = tea.kind === 'tea' ? tea.offer?.product : undefined;
-  const image = typeof product?.imageUrl === 'string' ? product.imageUrl : typeof product?.image_url === 'string' ? product.image_url : null;
-  const facts = tea.kind === 'tea' ? [tea.type, tea.year, tea.place].filter(Boolean).join(' · ') : '';
-  // Led by words: the numeral and the name carry the row, a picture joins only where one exists.
-  const body = (
-    <>
-      <span aria-hidden="true" className="w-10 shrink-0 font-display text-5xl leading-none text-tea-gold">{place}</span>
-      <span className="flex min-w-0 flex-1 flex-col gap-1">
-        {facts && <span className="text-ui-11 uppercase tracking-widest text-tea-text-sec">{facts}</span>}
-        <span className="break-words font-display text-ui-24 leading-tight text-tea-text">{tea.name}</span>
-      </span>
-      {image && <img src={mediaUrl(image)} alt="" loading="lazy" className="h-14 w-14 shrink-0 rounded-md object-cover" />}
-    </>
-  );
+/**
+ * The teas of the sit, each the shop's own row: its Save box and, where it is
+ * sold, its price. A tea the shop sells opens as the shop's own page over the
+ * link, to read about it, taste it and order it (Adrian, 2026-11-27: "a place
+ * to read about it and buy it and save it").
+ */
+function Teas({ teas, onAddToCart }: { teas: PublicSessionTea[]; onAddToCart?: (item: InventoryItem, grams: number, totalUsd: number) => void }) {
+  const { openId, open, move, close } = useOpenLinkTea();
+  // One entry per product: a tea poured twice is one page, so the arrows never step onto the page already open.
+  const sold = useMemo(() => {
+    const seen = new Set<string>();
+    return teas.flatMap(tea => {
+      if (tea.kind !== 'tea' || !tea.offer) return [];
+      const item = sessionOfferItem(tea.offer.product);
+      if (seen.has(item.id)) return [];
+      seen.add(item.id);
+      return [item];
+    });
+  }, [teas]);
+  const at = openId ? sold.findIndex(item => item.id === openId) : -1;
   return (
-    <li className="py-4">
-      {tea.kind === 'tea' && tea.href
-        ? <Link to={tea.href} className="flex items-center gap-4 tap-target">{body}</Link>
-        : <div className="flex items-center gap-4">{body}</div>}
-    </li>
+    <div className="mt-3">
+      {teas.map((tea, index) => {
+        const item = tea.kind === 'tea' && tea.offer ? sessionOfferItem(tea.offer.product) : null;
+        return <SessionTeaRow key={tea.id ?? index} tea={tea} onOpen={item ? () => open(item.id) : undefined} />;
+      })}
+      {at >= 0 && (
+        <LinkTeaPage
+          item={sold[at]}
+          onClose={close}
+          onAddToCart={onAddToCart}
+          yoursLine="Poured at this sit"
+          yoursNav={{
+            index: at + 1,
+            count: sold.length,
+            onPrev: at > 0 ? () => move(sold[at - 1].id) : undefined,
+            onNext: at < sold.length - 1 ? () => move(sold[at + 1].id) : undefined,
+          }}
+        />
+      )}
+    </div>
   );
 }
