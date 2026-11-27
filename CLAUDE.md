@@ -35,6 +35,9 @@ Anywhere a person adds a photo, it opens in the shared editor first (`usePhotoEd
 ## What this is
 Professional tea infrastructure — sourcing, inventory, education, events, and multi-store management. This is NOT a wellness app, a traditional social network, or a franchise. Adrian's curation is the engine, and the point is bringing people together over tea, not keeping them active on a screen. WhatsApp checkout is intentional — every order is a personal conversation. The app never asks during a tea session: it sends nothing, prompts nothing and shows nothing to scroll while people are sitting. A photo is one tap. A tasting is the one kind of session where writing is the point, and the host chooses it. (Adrian, 2026-11-26; this replaces "never during".)
 
+## No fine print (Adrian, 2026-11-27)
+A page never carries a small-print paragraph: no disclaimers, no "this page does not…", no notes explaining how the page works or who keeps it up to date. Nobody reads them and they make the page heavier. If something must be said, say it once in the page's own words where it matters, or leave it out.
+
 ## Stack & constraints
 - React 19 + Vite 6 + TypeScript + Tailwind v3 (CSS-variable tokens, not Tailwind defaults)
 - Zustand (`src/lib/store.ts`) for client state; React Query for server state

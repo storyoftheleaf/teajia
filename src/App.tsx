@@ -562,7 +562,9 @@ const AppContent = () => {
   const teaInventory = useMemo(() => inventory.filter(i => i.category === 'tea'), [inventory]);
   const teawareInventory = useMemo(() => inventory.filter(i => i.category === 'ware'), [inventory]);
 
-  const handleAddToCart = (item: InventoryItem, qty: number, total: number) => {
+  // `link` is set when the tea is added from a collection link: the line belongs
+  // to that link's store and carries the link, so the order keeps its price.
+  const handleAddToCart = (item: InventoryItem, qty: number, total: number, link?: { storeSlug: string; storeName: string; collectionSlug: string; quoted: boolean }) => {
     if (item.stock_g !== undefined && item.stock_g <= 0) {
       /* Reported, not confirmed. The band carries its own label per tone, so
          the name stays the name and the state stops being smuggled into it. */
@@ -573,7 +575,8 @@ const AppContent = () => {
     const pricePerGram = item.category === 'tea'
       ? parseFloat(item.price_per_gram || '0')
       : parseFloat(item.price_50g || '0');
-    const browsingStoreName = activeStore?.slug === browsingStoreSlug
+    const lineStoreSlug = link?.storeSlug ?? browsingStoreSlug;
+    const browsingStoreName = link ? link.storeName : activeStore?.slug === browsingStoreSlug
       ? activeStore.name
       : cart[0]?.storeSlug === browsingStoreSlug
         ? cart[0].storeName
@@ -583,8 +586,9 @@ const AppContent = () => {
       name: item.name,
       variant: item.variant,
       category: item.category,
-      storeSlug: browsingStoreSlug,
+      storeSlug: lineStoreSlug,
       storeName: browsingStoreName,
+      ...(link ? { collectionSlug: link.collectionSlug, linkQuoted: link.quoted } : {}),
       quantityGrams: qty,
       /* One pack of this weight. The store adds a second pack rather than a
          heavier one when the same size is added again. */
@@ -905,9 +909,12 @@ const AppContent = () => {
 
   const isAdminRoute = location.pathname.startsWith('/admin');
   // Focused, standalone pages with no app chrome (nav, footer, bottom bar), link
-  // recipients who aren't logged in. Public collection links (/c/:slug) belong here
-  // too: a sent link should be a clean single-purpose page, not the full app shell.
-  const isFocusedShareRoute = location.pathname.startsWith('/share/') || location.pathname.startsWith('/c/');
+  // recipients who aren't logged in. A collection link (/c/:slug) is not one of
+  // them: it is part of the shop and carries the shop's rail and bottom bar
+  // (Adrian, 2026-11-27: "It's not a separate thing. It's integrated into
+  // everything."). It owns its gutter, as the creator pages do.
+  const isFocusedShareRoute = location.pathname.startsWith('/share/');
+  const isCollectionLink = location.pathname.startsWith('/c/');
   // The hand-built Read long-reads (/read and /read/*) and the Advise landing
   // (/advise), built in the same frame,
   // are full-bleed editorial experiences with their own sticky nav and
@@ -995,7 +1002,7 @@ const AppContent = () => {
         </Suspense>
       ) : (
       <>
-      <main id="main-content" className={`${isFocusedShareRoute || isImmersiveRead ? 'px-0 pb-0' : `${isProductPage || isPeopleRoute ? 'px-0 lg:px-10' : 'px-4 md:px-6 lg:px-10'} pb-nav-gap-lg lg:pb-8`} pt-0 lg:pt-0 min-h-screen w-full flex-1 transition-opacity duration-300`}>
+      <main id="main-content" className={`${isFocusedShareRoute || isImmersiveRead ? 'px-0 pb-0' : `${isCollectionLink ? 'px-0' : isProductPage || isPeopleRoute ? 'px-0 lg:px-10' : 'px-4 md:px-6 lg:px-10'} pb-nav-gap-lg lg:pb-8`} pt-0 lg:pt-0 min-h-screen w-full flex-1 transition-opacity duration-300`}>
           <AnimatePresence mode="wait">
           {viewState === 'BROWSE' && (
             <AnimatedRoutes location={displayLocation}>
@@ -1306,7 +1313,7 @@ const AppContent = () => {
                 <Route path="/invite/:token" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><GuestInviteClaimPage /></Suspense></ErrorBoundary>} />
                 <Route path="/s/:sampleId" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><SamplePage /></Suspense></ErrorBoundary>} />
                 <Route path="/share/:token" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><ShareCardPage /></Suspense></ErrorBoundary>} />
-                <Route path="/c/:slug" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><PublicCollectionPage /></Suspense></ErrorBoundary>} />
+                <Route path="/c/:slug" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><PublicCollectionPage onAddToCart={handleAddToCart} onOpenCart={handleOpenCart} /></Suspense></ErrorBoundary>} />
                 <Route path="/session/:id" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><SessionPage /></Suspense></ErrorBoundary>} />
                 <Route path="/join" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><JoinPage /></Suspense></ErrorBoundary>} />
                 <Route path="/join/:code" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><JoinPage /></Suspense></ErrorBoundary>} />
