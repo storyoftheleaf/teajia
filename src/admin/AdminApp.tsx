@@ -182,6 +182,7 @@ const CompassWithMode: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         type: developType || undefined,
       } : undefined}
       initialCaptureOption={initialCaptureOption}
+      initialBringIn={params.get('bring') === '1'}
       initialSampleOrder={sampleOrder === 'manage' ? 'manage' : sampleOrder === 'open' ? 'open' : undefined}
       initialSampleSetId={sampleSetId || undefined}
       // A screen change inside Curate is its own history entry, so browser back
@@ -574,7 +575,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
                       isLoading={loading}
                       onDraftCreated={refetchProducts}
                       onImportClick={() => setIsImportOpen(true)}
-                      onAddClick={() => setIsCreateModalOpen(true)}
+                      onAddClick={() => navigate('/admin/compass?tab=library&bring=1')}
                       rates={rates}
                     />
                   </PageTransition>
@@ -612,7 +613,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
                       isError={productsError}
                       error={productsErrorObj}
                       onImportClick={() => setIsImportOpen(true)}
-                      onAddClick={() => setIsCreateModalOpen(true)}
+                      onAddClick={() => navigate('/admin/compass?tab=library&bring=1')}
                       onRefresh={refetchProducts}
                       onProductsChanged={reconcileProducts}
                       onProductDeleted={removeProduct}
@@ -738,7 +739,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
           rates={rates}
         />
 
-        <CommandPalette onAddProduct={() => setIsCreateModalOpen(true)} externalOpen={isCommandPaletteOpen} onOpenChange={setIsCommandPaletteOpen} />
+        <CommandPalette onAddProduct={() => navigate('/admin/compass?tab=library&bring=1')} externalOpen={isCommandPaletteOpen} onOpenChange={setIsCommandPaletteOpen} />
 
       </main>
     </div>
