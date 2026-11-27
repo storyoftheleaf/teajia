@@ -9261,7 +9261,11 @@ interface PersonCollectionRow {
 /**
  * The person's collection: the destination the profile's tea section points
  * at. A collection this user curated (created or named as curator), still
- * active, published to a person. Newest publication wins. `live` keeps only
+ * active, published to this person's own page (target_id is their
+ * contributor row). A link the person sent to someone else (Daniel's
+ * samples, a "send my saved teas" link) is also a 'person' publication but
+ * names no page of theirs, so it is never their page's collection, and its
+ * teas are never rewritten from their favorites. Newest publication wins. `live` keeps only
  * an open publication, which is what the public reads want; the self read and
  * the self write pass `live: false` so that renaming a collection that was
  * taken down republishes the same one instead of minting a second.
@@ -9276,9 +9280,10 @@ async function personCollectionForUser(env: Env, userId: string | null | undefin
          ON cp.collection_id = c.id AND cp.target_type = 'person'${options.live ? ' AND cp.unpublished_at IS NULL' : ''}
       WHERE c.status = 'active'
         AND (c.created_by_user_id = ? OR c.curator_user_id = ?)
+        AND cp.target_id IN (SELECT id FROM contributors WHERE user_id = ?)
       ORDER BY (cp.unpublished_at IS NULL) DESC, cp.published_at DESC
       LIMIT 1`
-  ).bind(userId, userId).first<Record<string, any>>();
+  ).bind(userId, userId, userId).first<Record<string, any>>();
   if (!row) return null;
   return {
     collection_id: String(row.collection_id),

@@ -44,7 +44,7 @@ export default function TeaHousesWorkPage() {
   if (view.state === 'closed') return <SiteNotFound />;
   return (
     <div className="w-full max-w-3xl mx-auto pt-12 pb-16" data-testid="tea-houses-work">
-      <Helmet><title>{`Work | ${TEA_HOUSES_TITLE} | Teajia`}</title></Helmet>
+      <Helmet><title>{`Work · ${TEA_HOUSES_TITLE} · Teajia`}</title></Helmet>
       <header className="text-center mb-8">
         <Link to="/tea-houses" className={`${T.label} text-tea-text-dim tap-target inline-flex items-center`}>{TEA_HOUSES_TITLE}</Link>
         <h1 className={`${T.h1} mt-3`}>Houses I have worked on</h1>

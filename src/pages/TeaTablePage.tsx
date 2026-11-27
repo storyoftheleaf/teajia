@@ -23,6 +23,7 @@ import { PhotographThumb, PhotographZoom, type ZoomPhotograph } from '../compone
 import { SessionPhoto } from '../components/sessions/SessionPhoto';
 import { TeaCard, TeaCardMeta, TeaCardTitle } from '../components/tea/TeaCard';
 import { AskAboutATea, AskForm, QuestionPage, QuestionPiece } from '../components/teaTable/KnowThisTea';
+import { useHeldTitle } from '../hooks/useHeldTitle';
 
 // The Tea Table (todo/plans/tea-table.md; the rule is "The Tea Table" in
 // CLAUDE.md). What people chose to put on the table, newest first, grouped by
@@ -231,6 +232,7 @@ function groupByDay(items: TeaTableStreamItem[]) {
 }
 
 export default function TeaTablePage() {
+  useHeldTitle('The Tea Table · Teajia');
   const [showParam, setShow] = useStepParam('show', 'all');
   const [before, setBefore] = useStepParam('before');
   const [questionId, setQuestion] = useStepParam('question');

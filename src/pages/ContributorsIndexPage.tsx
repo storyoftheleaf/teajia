@@ -8,6 +8,7 @@ import { useContributors } from '../hooks/useContributor';
 import { PEOPLE_LIST_FAMILY_SHOWN, type PeopleListGroup } from '../lib/familyContract';
 import { mediaUrl } from '../lib/mediaUrl';
 import type { ContributorListItem } from '../types';
+import { useHeldTitle } from '../hooks/useHeldTitle';
 
 // /people. The directory, in the Read section's language: the sticky Teajia
 // nav with the eyebrow "People", "The People of Tea" with the italic gold
@@ -106,6 +107,7 @@ function FamilyRow({ person }: { person: ContributorListItem }) {
 }
 
 export default function ContributorsIndexPage() {
+  useHeldTitle('The People of Tea · Teajia');
   const { data, isLoading } = useContributors();
   const [everyone, setEveryone] = useState(false);
   const rootRef = useReveals([data?.length, everyone]);
