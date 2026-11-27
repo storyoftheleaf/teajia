@@ -31,10 +31,12 @@ describe('wisdomNeeds', () => {
     expect(find(wisdomNeeds(palace, publicOnly), 'grade')).toMatchObject({ covered: false, state: 'record' });
   });
 
-  it('Golden Bull Hengfengyuan: a mark and a producer held as records only', () => {
+  it('Golden Bull Hengfengyuan: the mark and the producer are drafted, not yet written', () => {
     const needs = wisdomNeeds(goldenBull, withDrafts);
-    expect(find(needs, 'grade')).toMatchObject({ label: 'Golden Bull', covered: false, state: 'record' });
-    expect(find(needs, 'producer')).toMatchObject({ label: 'Hengfengyuan', covered: false, state: 'record' });
+    expect(find(needs, 'grade')).toMatchObject({ label: 'Golden Bull', covered: false, state: 'drafted' });
+    expect(find(needs, 'producer')).toMatchObject({ label: 'Hengfengyuan', covered: false, state: 'drafted' });
+    // Without the drafts (the shop's view) both are records only.
+    expect(find(wisdomNeeds(goldenBull, publicOnly), 'grade')).toMatchObject({ covered: false, state: 'record' });
     expect(needs.filter(item => item.kind === 'producer')).toHaveLength(1);
   });
 
@@ -77,9 +79,10 @@ describe('wisdomNeeds', () => {
 
 describe('gradeIdFor', () => {
   it('reads Palace Grade and Gong Ting as the gong-ting grade, and a mark without a grade page as no grade', () => {
+    // Golden Bull has a drafted page (2026-11-27), so the published layer is the one without it.
     expect(gradeIdFor(['Banzhang Palace Grade Shou Cha'], GENERATED_DRAFT_PAGES)).toBe('gong-ting');
     expect(gradeIdFor(['Banzhang Gongting', '班章宫廷手扎龙珠'], GENERATED_DRAFT_PAGES)).toBe('gong-ting');
-    expect(gradeIdFor(['Golden Bull Hengfengyuan Shou Cha'], GENERATED_DRAFT_PAGES)).toBeUndefined();
+    expect(gradeIdFor(['Golden Bull Hengfengyuan Shou Cha'], GENERATED_TEA_REFERENCE_PAGES)).toBeUndefined();
     expect(gradeIdFor(['Ripe Puerh Brick'], GENERATED_DRAFT_PAGES)).toBeUndefined();
   });
 });

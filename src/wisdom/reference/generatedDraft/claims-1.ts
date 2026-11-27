@@ -394,6 +394,340 @@ export const PART: readonly DraftClaim[] = [
     "pageVisibility": "public"
   },
   {
+    "claimId": "anhua:history",
+    "pageId": "anhua",
+    "sectionKey": "history",
+    "label": "How Anhua became a tea county",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "origin_includes": [
+        "anhua"
+      ]
+    },
+    "terms": [
+      {
+        "original": "唐家观",
+        "pinyin": "Tángjiāguān",
+        "gloss": "Tangjiaguan, old tea trading town"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Anhua was set up as a county in the Northern Song, after the Meishan hill country was opened to the outside world, and tea has been recorded in the area since the Tang. The trade grew under the Ming and Qing, when Anhua tea went north and north-west by road and river to the north-west and on to Russia. Old stone paths and merchant towns such as Tangjiaguan, a stop on the long tea road, still show where that trade passed. For the tea itself, how it was made and what it became, see the Anhua dark tea page.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Anhua was set up as a county in the Northern Song, after the Meishan hill country was opened to the outside world, and tea has been recorded in the area since the Tang. The trade grew under the Ming and Qing, when Anhua tea went north and north-west by road and river to the north-west and on to Russia. Old stone paths and merchant towns such as Tangjiaguan, a stop on the long tea road, still show where that trade passed. For the tea itself, how it was made and what it became, see the Anhua dark tea page.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "anhua:tea-today",
+    "pageId": "anhua",
+    "sectionKey": "tea-today",
+    "label": "Tea in the county today",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "origin_includes": [
+        "anhua"
+      ]
+    },
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "Tea is the main industry of Anhua. Tea gardens cover a large part of the hills, more than two hundred firms process the leaf, and hundreds of thousands of people in and around the county make a living from tea in some way. Visitors come to the tea museum, the old tea roads and the tea farms on Yuntai Mountain, so the place is also a destination in its own right.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Tea is the main industry of Anhua. Tea gardens cover a large part of the hills, more than two hundred firms process the leaf, and hundreds of thousands of people in and around the county make a living from tea in some way. Visitors come to the tea museum, the old tea roads and the tea farms on Yuntai Mountain, so the place is also a destination in its own right.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "anhua:where-it-is",
+    "pageId": "anhua",
+    "sectionKey": "where-it-is",
+    "label": "Where Anhua is",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "anhua"
+      ]
+    },
+    "terms": [
+      {
+        "original": "安化",
+        "pinyin": "Ānhuà",
+        "gloss": "Anhua"
+      },
+      {
+        "original": "益阳",
+        "pinyin": "Yìyáng",
+        "gloss": "Yiyang"
+      },
+      {
+        "original": "资江",
+        "pinyin": "Zījiāng",
+        "gloss": "Zi river"
+      },
+      {
+        "original": "雪峰山",
+        "pinyin": "Xuěfēng Shān",
+        "gloss": "Xuefeng mountains"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Anhua is a mountain county in north-central Hunan, in the city of Yiyang. It lies on the middle stretch of the Zi river, at the northern foot of the Xuefeng mountains, and is the southernmost and westernmost county of Yiyang. Most of the land is hills and steep valleys, with streams running down to the river. It is a place where rice is hard to grow and tea does well.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Anhua is a mountain county in north-central Hunan, in the city of Yiyang. It lies on the middle stretch of the Zi river, at the northern foot of the Xuefeng mountains, and is the southernmost and westernmost county of Yiyang. Most of the land is hills and steep valleys, with streams running down to the river. It is a place where rice is hard to grow and tea does well.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "anhua:why-people-value-it",
+    "pageId": "anhua",
+    "sectionKey": "why-people-value-it",
+    "label": "Why people value Anhua",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "anhua"
+      ]
+    },
+    "terms": [
+      {
+        "original": "云台山",
+        "pinyin": "Yúntái Shān",
+        "gloss": "Yuntai Mountain"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "People value Anhua first as the home of Chinese dark tea, and then for the ground the tea grows in. The county is warm and very wet, with four clear seasons, a short cold spell, and cloud and mist on the high mountains such as Yuntai. The slopes on both sides of the river are deep, loose, slightly acidic soil weathered from shale, which drains well. A large share of the county is forest, and the tea sits among it, not on cleared plains. The local large-leaf tea, best known from Yuntai Mountain, has thick, soft leaf that suits dark tea making. In Anhua the same wet, warm air that helps the tea grow is also the air the tea is piled, pressed and aged in, which is why the trade ties the character of the finished tea to the place and not only to the method.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "People value Anhua first as the home of Chinese dark tea, and then for the ground the tea grows in. The county is warm and very wet, with four clear seasons, a short cold spell, and cloud and mist on the high mountains such as Yuntai. The slopes on both sides of the river are deep, loose, slightly acidic soil weathered from shale, which drains well. A large share of the county is forest, and the tea sits among it, not on cleared plains. The local large-leaf tea, best known from Yuntai Mountain, has thick, soft leaf that suits dark tea making. In Anhua the same wet, warm air that helps the tea grow is also the air the tea is piled, pressed and aged in, which is why the trade ties the character of the finished tea to the place and not only to the method.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "anxi:history",
+    "pageId": "anxi",
+    "sectionKey": "history",
+    "label": "A tea county with a long trading past",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "anxi"
+      ]
+    },
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "Anxi has grown tea for many centuries, and local sources trace it back to the late Tang. Tieguanyin itself is told as a story of the 1700s in Xiping, and the stories are folk accounts and not records. Oolong from southern Fujian was shipped out through Quanzhou and later Xiamen, and families from Anxi, many of them from Xiping, carried the tea and the trade to Southeast Asia, where they opened tea houses. Tea is still the main income of the county. Until the 1990s Anxi was one of the poorer counties in Fujian, and the Tieguanyin boom that followed changed that.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Anxi has grown tea for many centuries, and local sources trace it back to the late Tang. Tieguanyin itself is told as a story of the 1700s in Xiping, and the stories are folk accounts and not records. Oolong from southern Fujian was shipped out through Quanzhou and later Xiamen, and families from Anxi, many of them from Xiping, carried the tea and the trade to Southeast Asia, where they opened tea houses. Tea is still the main income of the county. Until the 1990s Anxi was one of the poorer counties in Fujian, and the Tieguanyin boom that followed changed that.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "anxi:inner-outer",
+    "pageId": "anxi",
+    "sectionKey": "inner-outer",
+    "label": "Inner and outer Anxi",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "anxi"
+      ]
+    },
+    "terms": [
+      {
+        "original": "内安溪",
+        "pinyin": "nèi Ānxī",
+        "gloss": "inner Anxi, the high mountain areas"
+      },
+      {
+        "original": "外安溪",
+        "pinyin": "wài Ānxī",
+        "gloss": "outer Anxi, the lower land"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Sellers often speak of inner Anxi, the high mountain areas, and outer Anxi, the lower, warmer land nearer the county town. Inner Anxi is said to give the deeper, longer-lasting tea, and outer Anxi a quicker, brighter fragrance but a thinner cup. Places draw the line between the two in different ways, so treat it as a rough guide to height and not as a fixed border.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Sellers often speak of inner Anxi, the high mountain areas, and outer Anxi, the lower, warmer land nearer the county town. Inner Anxi is said to give the deeper, longer-lasting tea, and outer Anxi a quicker, brighter fragrance but a thinner cup. Places draw the line between the two in different ways, so treat it as a rough guide to height and not as a fixed border.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "anxi:known-for",
+    "pageId": "anxi",
+    "sectionKey": "known-for",
+    "label": "What Anxi is known for",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "anxi"
+      ]
+    },
+    "terms": [
+      {
+        "original": "黄金桂",
+        "pinyin": "Huángjīnguì",
+        "gloss": "Golden Osmanthus, an Anxi cultivar"
+      },
+      {
+        "original": "本山",
+        "pinyin": "Běnshān",
+        "gloss": "Benshan, an Anxi cultivar"
+      },
+      {
+        "original": "毛蟹",
+        "pinyin": "Máoxiè",
+        "gloss": "Hairy Crab, an Anxi cultivar"
+      },
+      {
+        "original": "梅占",
+        "pinyin": "Méizhàn",
+        "gloss": "Meizhan, an Anxi cultivar"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Anxi is known for oolong, and above all for Tieguanyin, which fills most of the county's tea land. Anxi is also where the trade places the craft of oolong making in southern Fujian, and where farmers learned to grow new plants from cuttings and layers instead of seed. Alongside Tieguanyin, four other local cultivars are well known: Huangjingui (also called Huangdan), Benshan, Maoxie and Meizhan. Each is sold as its own tea, and none of them is Tieguanyin. For the tea itself, how it is made and how it is sorted, see the Tieguanyin page.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Anxi is known for oolong, and above all for Tieguanyin, which fills most of the county's tea land. Anxi is also where the trade places the craft of oolong making in southern Fujian, and where farmers learned to grow new plants from cuttings and layers instead of seed. Alongside Tieguanyin, four other local cultivars are well known: Huangjingui (also called Huangdan), Benshan, Maoxie and Meizhan. Each is sold as its own tea, and none of them is Tieguanyin. For the tea itself, how it is made and how it is sorted, see the Tieguanyin page.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "anxi:on-a-label",
+    "pageId": "anxi",
+    "sectionKey": "on-a-label",
+    "label": "Anxi on a label",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "anxi"
+      ]
+    },
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "Anxi Tieguanyin is a protected name, and Anxi on a label is a statement about where the leaf grew. It says nothing about the style, which can be light and green or roasted, and nothing about the grade. Not every tea sold as Tieguanyin comes from Anxi: some is grown elsewhere, and some is made from other cultivars under the name. A township on a label, such as Xiping or Xianghua, is a narrower claim than Anxi, and a label rarely proves it.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Anxi Tieguanyin is a protected name, and Anxi on a label is a statement about where the leaf grew. It says nothing about the style, which can be light and green or roasted, and nothing about the grade. Not every tea sold as Tieguanyin comes from Anxi: some is grown elsewhere, and some is made from other cultivars under the name. A township on a label, such as Xiping or Xianghua, is a narrower claim than Anxi, and a label rarely proves it.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "anxi:townships",
+    "pageId": "anxi",
+    "sectionKey": "townships",
+    "label": "Xiping, Xianghua, Gande and the others",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "anxi"
+      ]
+    },
+    "terms": [
+      {
+        "original": "西坪",
+        "pinyin": "Xīpíng",
+        "gloss": "Xiping, the township where Tieguanyin is said to have begun"
+      },
+      {
+        "original": "祥华",
+        "pinyin": "Xiánghuá",
+        "gloss": "Xianghua township"
+      },
+      {
+        "original": "感德",
+        "pinyin": "Gǎndé",
+        "gloss": "Gande township"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Trade writing treats a few Anxi townships as names in their own right. Xiping, in the west, is where Tieguanyin is said to have begun, and its teas are usually described as the traditional kind, more oxidised and often roasted. Xianghua is high and often in cloud, and its tea is known for a strong, lasting taste. Gande is the newest of the three, lower, with younger bushes, and is tied to the lighter, greener style. Changkeng is often named as a fourth. Away from Tieguanyin, Daping is linked to Maoxie, Huqiu to Huangjingui and Lutian to Meizhan. A township is a pointer to the style of tea you may meet and is not a grade.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Trade writing treats a few Anxi townships as names in their own right. Xiping, in the west, is where Tieguanyin is said to have begun, and its teas are usually described as the traditional kind, more oxidised and often roasted. Xianghua is high and often in cloud, and its tea is known for a strong, lasting taste. Gande is the newest of the three, lower, with younger bushes, and is tied to the lighter, greener style. Changkeng is often named as a fourth. Away from Tieguanyin, Daping is linked to Maoxie, Huqiu to Huangjingui and Lutian to Meizhan. A township is a pointer to the style of tea you may meet and is not a grade.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "anxi:where-it-is",
+    "pageId": "anxi",
+    "sectionKey": "where-it-is",
+    "label": "Where Anxi is",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "anxi"
+      ]
+    },
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "Anxi is a county in southern Fujian, in the prefecture of Quanzhou, inland from the coast and north of Xiamen. It sits on the southern side of the Daiyun mountains. The county town lies in a low basin, and the land rises into hills and ridges all round it. Anxi is the home of Tieguanyin and one of the main oolong counties of China.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Anxi is a county in southern Fujian, in the prefecture of Quanzhou, inland from the coast and north of Xiamen. It sits on the southern side of the Daiyun mountains. The county town lies in a low basin, and the land rises into hills and ridges all round it. Anxi is the home of Tieguanyin and one of the main oolong counties of China.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "anxi:why-tea",
+    "pageId": "anxi",
+    "sectionKey": "why-tea",
+    "label": "Why tea does well here",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "anxi"
+      ]
+    },
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "Anxi is warm, wet and misty, with mild winters and rain through most of the year. The mountains are weathered granite, which breaks down into acidic, free-draining red and yellow soil, the kind tea likes. Farmers build terraced gardens on the slopes, keep forest on the ridges above, and farm the foothills and river valleys below. The higher gardens have cooler nights, more fog and slower growth, and sellers connect that with a more concentrated, more fragrant leaf. The soil is not strongly mineral the way Wuyi rock is, so Anxi tea is usually described through its cultivar and its making more than through its ground.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Anxi is warm, wet and misty, with mild winters and rain through most of the year. The mountains are weathered granite, which breaks down into acidic, free-draining red and yellow soil, the kind tea likes. Farmers build terraced gardens on the slopes, keep forest on the ridges above, and farm the foothills and river valleys below. The higher gardens have cooler nights, more fog and slower growth, and sellers connect that with a more concentrated, more fragrant leaf. The soil is not strongly mineral the way Wuyi rock is, so Anxi tea is usually described through its cultivar and its making more than through its ground.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
     "claimId": "banzhang:history",
     "pageId": "banzhang",
     "sectionKey": "history",
@@ -623,325 +957,6 @@ export const PART: readonly DraftClaim[] = [
         "text": "Banzhang is a group of tea villages inside Bulang Mountain, in the south of Menghai County in Xishuangbanna, Yunnan. The name covers more than one settlement. Lao Banzhang is the old village. Xin Banzhang is a separate village that grew out of it. Altitude is quoted differently from place to place, mostly between about 1,600 and 1,900 metres.",
         "approvedAt": "2026-11-26",
         "reason": "Approved by Adrian on the Wisdom Base Places review page, 2026-11-27",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "bulang-mountain:history",
-    "pageId": "bulang-mountain",
-    "sectionKey": "history",
-    "label": "A newer famous mountain",
-    "axis": "maker_history",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "origin_includes": [
-        "bulang mountain"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "bulang-mountain",
-    "text": "Bulang is a pu’er area whose fame is recent. Its reputation grew with the rise of Banzhang, whose price pulled attention to the whole mountain.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "bulang-mountain",
-        "text": "Bulang is a pu’er area whose fame is recent. Its reputation grew with the rise of Banzhang, whose price pulled attention to the whole mountain.",
-        "approvedAt": "2026-11-26",
-        "reason": "Approved by Adrian on the Wisdom Base Places review page, 2026-11-27",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "bulang-mountain:in-ripe-pu-er",
-    "pageId": "bulang-mountain",
-    "sectionKey": "in-ripe-pu-er",
-    "label": "Bulang in ripe pu’er",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "origin_includes": [
-        "bulang mountain"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "bulang-mountain",
-    "text": "Bulang leaf is also used for ripe pu’er, and ripe cakes and loose tea sold under the name Bulang Mountain are common. The raw tea is strong, so ripe tea made from it is described by sellers as thick and full. Sellers disagree on whether it stays bitter after piling, so ripe Bulang tea is better judged cup by cup than from the name.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "bulang-mountain",
-        "text": "Bulang leaf is also used for ripe pu’er, and ripe cakes and loose tea sold under the name Bulang Mountain are common. The raw tea is strong, so ripe tea made from it is described by sellers as thick and full. Sellers disagree on whether it stays bitter after piling, so ripe Bulang tea is better judged cup by cup than from the name.",
-        "approvedAt": "2026-11-26",
-        "reason": "Approved by Adrian on the Wisdom Base Places review page, 2026-11-27",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "bulang-mountain:known-for",
-    "pageId": "bulang-mountain",
-    "sectionKey": "known-for",
-    "label": "The tea it is known for",
-    "axis": "sensory_observation",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "origin_includes": [
-        "bulang mountain"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "bulang-mountain",
-    "text": "Bulang Mountain is known for raw pu’er from old tea gardens. The trade describes the tea as forceful: a strong, bitter start that turns sweet, thick liquor and a strong feel in the throat. It is often set against the softer, sweeter style of Yiwu. Villages differ a good deal. Lao Man’e is known for bitterness, and some other villages make sweeter tea.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "bulang-mountain",
-        "text": "Bulang Mountain is known for raw pu’er from old tea gardens. The trade describes the tea as forceful: a strong, bitter start that turns sweet, thick liquor and a strong feel in the throat. It is often set against the softer, sweeter style of Yiwu. Villages differ a good deal. Lao Man’e is known for bitterness, and some other villages make sweeter tea.",
-        "approvedAt": "2026-11-26",
-        "reason": "Approved by Adrian on the Wisdom Base Places review page, 2026-11-27",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "bulang-mountain:on-a-label",
-    "pageId": "bulang-mountain",
-    "sectionKey": "on-a-label",
-    "label": "Bulang Mountain on a label",
-    "axis": "place",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "origin_includes": [
-        "bulang mountain"
-      ]
-    },
-    "terms": [
-      {
-        "original": "布朗山",
-        "pinyin": "Bùlǎngshān",
-        "gloss": "Bulang Mountain"
-      },
-      {
-        "original": "老曼峨",
-        "pinyin": "Lǎo Màn’é",
-        "gloss": "Lao Man’e village"
-      }
-    ],
-    "rev": 1,
-    "scope": "bulang-mountain",
-    "text": "Bulang Mountain on a label is a broad market name. Leaf from smaller or less famous villages is often sold in bulk, blended, and offered as Bulang tea. A cake called Bulang Mountain rarely names the village, and some makers do not state where the leaf came from. It points to a mountain style more than to one place.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "bulang-mountain",
-        "text": "Bulang Mountain on a label is a broad market name. Leaf from smaller or less famous villages is often sold in bulk, blended, and offered as Bulang tea. A cake called Bulang Mountain rarely names the village, and some makers do not state where the leaf came from. It points to a mountain style more than to one place.",
-        "approvedAt": "2026-11-26",
-        "reason": "Approved by Adrian on the Wisdom Base Places review page, 2026-11-27",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "bulang-mountain:people",
-    "pageId": "bulang-mountain",
-    "sectionKey": "people",
-    "label": "Who lives there",
-    "axis": "place",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "origin_includes": [
-        "bulang mountain"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "bulang-mountain",
-    "text": "The mountain takes its name from the Bulang people, who have grown and drunk tea here for a very long time. Lao Man’e is often described as one of their oldest villages, at about fourteen hundred years. Hani villages such as the Banzhang settlements sit in the same mountains.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "bulang-mountain",
-        "text": "The mountain takes its name from the Bulang people, who have grown and drunk tea here for a very long time. Lao Man’e is often described as one of their oldest villages, at about fourteen hundred years. Hani villages such as the Banzhang settlements sit in the same mountains.",
-        "approvedAt": "2026-11-26",
-        "reason": "Approved by Adrian on the Wisdom Base Places review page, 2026-11-27",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "bulang-mountain:where-it-is",
-    "pageId": "bulang-mountain",
-    "sectionKey": "where-it-is",
-    "label": "Where Bulang Mountain is",
-    "axis": "place",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "origin_includes": [
-        "bulang mountain"
-      ]
-    },
-    "terms": [
-      {
-        "original": "布朗山",
-        "pinyin": "Bùlǎngshān",
-        "gloss": "Bulang Mountain"
-      },
-      {
-        "original": "老曼峨",
-        "pinyin": "Lǎo Màn’é",
-        "gloss": "Lao Man’e village"
-      }
-    ],
-    "rev": 1,
-    "scope": "bulang-mountain",
-    "text": "Bulang Mountain lies in the south of Menghai County in Xishuangbanna, Yunnan, next to the border with Myanmar. It covers roughly one thousand square kilometres and is one of the larger tea areas in the county. It is a mountain area with many villages, not a single village. Banzhang, Lao Man’e and Manxinlong are among its named tea villages.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "bulang-mountain",
-        "text": "Bulang Mountain lies in the south of Menghai County in Xishuangbanna, Yunnan, next to the border with Myanmar. It covers roughly one thousand square kilometres and is one of the larger tea areas in the county. It is a mountain area with many villages, not a single village. Banzhang, Lao Man’e and Manxinlong are among its named tea villages.",
-        "approvedAt": "2026-11-26",
-        "reason": "Approved by Adrian on the Wisdom Base Places review page, 2026-11-27",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "dancong:ageing",
-    "pageId": "dancong",
-    "sectionKey": "ageing",
-    "label": "Keeping Dancong",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "origin_includes": [
-        "phoenix mountain"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Phoenix Dancong style kit",
-    "text": "Freshly roasted Dancong is rested for some months before it is at its best; how many months is not agreed. Keep it sealed, dry, cool and out of the light.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Phoenix Dancong style kit",
-        "text": "Freshly roasted Dancong is rested for some months before it is at its best; how many months is not agreed. Keep it sealed, dry, cool and out of the light.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the Phoenix Dancong kit 2026-11-25",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "dancong:aromas",
-    "pageId": "dancong",
-    "sectionKey": "aromas",
-    "label": "Aroma types",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "origin_includes": [
-        "phoenix mountain"
-      ]
-    },
-    "terms": [
-      {
-        "original": "香型",
-        "pinyin": "xiāngxíng",
-        "gloss": "aroma type"
-      }
-    ],
-    "rev": 1,
-    "scope": "Phoenix Dancong style kit",
-    "text": "Dancong is sorted and sold by its aroma type, named for a flower, fruit or spice the scent recalls. The scent comes from the bush and the making, not from anything added: an orchid or almond Dancong names a smell, not an ingredient. The trade speaks of the ten aroma types. Nine names turn up in every full list: Huangzhi, yellow sprig; Zhilan, orchid; Milan, honey orchid; Yulan, magnolia; Xingren, almond; Jianghua, ginger flower; Guihua, osmanthus; Yelai, night-blooming flower; and Rougui, cinnamon. The tenth is most often jasmine.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Phoenix Dancong style kit",
-        "text": "Dancong is sorted and sold by its aroma type, named for a flower, fruit or spice the scent recalls. The scent comes from the bush and the making, not from anything added: an orchid or almond Dancong names a smell, not an ingredient. The trade speaks of the ten aroma types. Nine names turn up in every full list: Huangzhi, yellow sprig; Zhilan, orchid; Milan, honey orchid; Yulan, magnolia; Xingren, almond; Jianghua, ginger flower; Guihua, osmanthus; Yelai, night-blooming flower; and Rougui, cinnamon. The tenth is most often jasmine.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the Phoenix Dancong kit 2026-11-25",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "dancong:brewing",
-    "pageId": "dancong",
-    "sectionKey": "brewing",
-    "label": "Brewing Dancong",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "origin_includes": [
-        "phoenix mountain"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Phoenix Dancong style kit",
-    "text": "Brew it gongfu style in a small gaiwan or clay pot, with about 3 to 8 grams for 100 to 120 ml and hot water, about 88 to 100°C; Chinese accounts mostly say 95 to 100°C. A quick rinse is common. Steeps start at a few seconds and grow a few seconds each round, and a good Dancong gives about eight to fifteen. Too long, too hot or too much leaf and it turns bitter and astringent.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Phoenix Dancong style kit",
-        "text": "Brew it gongfu style in a small gaiwan or clay pot, with about 3 to 8 grams for 100 to 120 ml and hot water, about 88 to 100°C; Chinese accounts mostly say 95 to 100°C. A quick rinse is common. Steeps start at a few seconds and grow a few seconds each round, and a good Dancong gives about eight to fifteen. Too long, too hot or too much leaf and it turns bitter and astringent.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the Phoenix Dancong kit 2026-11-25",
         "evidenceIds": []
       }
     ],

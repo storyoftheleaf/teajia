@@ -8322,6 +8322,1516 @@
         }
       ],
       "withdrawn": null
+    },
+    {
+      "claim_id": "anhua:where-it-is",
+      "basis": "trade_knowledge",
+      "axis": "place",
+      "listing_eligible": true,
+      "applies_when": {
+        "origin_includes": [
+          "anhua"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "安化",
+          "pinyin": "Ānhuà",
+          "gloss": "Anhua"
+        },
+        {
+          "original": "益阳",
+          "pinyin": "Yìyáng",
+          "gloss": "Yiyang"
+        },
+        {
+          "original": "资江",
+          "pinyin": "Zījiāng",
+          "gloss": "Zi river"
+        },
+        {
+          "original": "雪峰山",
+          "pinyin": "Xuěfēng Shān",
+          "gloss": "Xuefeng mountains"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "anhua:why-people-value-it",
+      "basis": "trade_knowledge",
+      "axis": "place",
+      "listing_eligible": true,
+      "applies_when": {
+        "origin_includes": [
+          "anhua"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "云台山",
+          "pinyin": "Yúntái Shān",
+          "gloss": "Yuntai Mountain"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "anhua:history",
+      "basis": "trade_knowledge",
+      "axis": "place",
+      "listing_eligible": false,
+      "applies_when": {
+        "origin_includes": [
+          "anhua"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "唐家观",
+          "pinyin": "Tángjiāguān",
+          "gloss": "Tangjiaguan, old tea trading town"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "anhua:tea-today",
+      "basis": "trade_knowledge",
+      "axis": "place",
+      "listing_eligible": false,
+      "applies_when": {
+        "origin_includes": [
+          "anhua"
+        ]
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "anxi:where-it-is",
+      "basis": "trade_knowledge",
+      "axis": "place",
+      "listing_eligible": true,
+      "applies_when": {
+        "origin_includes": [
+          "anxi"
+        ]
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "anxi:why-tea",
+      "basis": "trade_knowledge",
+      "axis": "place",
+      "listing_eligible": true,
+      "applies_when": {
+        "origin_includes": [
+          "anxi"
+        ]
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "anxi:known-for",
+      "basis": "trade_knowledge",
+      "axis": "place",
+      "listing_eligible": true,
+      "applies_when": {
+        "origin_includes": [
+          "anxi"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "黄金桂",
+          "pinyin": "Huángjīnguì",
+          "gloss": "Golden Osmanthus, an Anxi cultivar"
+        },
+        {
+          "original": "本山",
+          "pinyin": "Běnshān",
+          "gloss": "Benshan, an Anxi cultivar"
+        },
+        {
+          "original": "毛蟹",
+          "pinyin": "Máoxiè",
+          "gloss": "Hairy Crab, an Anxi cultivar"
+        },
+        {
+          "original": "梅占",
+          "pinyin": "Méizhàn",
+          "gloss": "Meizhan, an Anxi cultivar"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "anxi:townships",
+      "basis": "trade_knowledge",
+      "axis": "place",
+      "listing_eligible": true,
+      "applies_when": {
+        "origin_includes": [
+          "anxi"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "西坪",
+          "pinyin": "Xīpíng",
+          "gloss": "Xiping, the township where Tieguanyin is said to have begun"
+        },
+        {
+          "original": "祥华",
+          "pinyin": "Xiánghuá",
+          "gloss": "Xianghua township"
+        },
+        {
+          "original": "感德",
+          "pinyin": "Gǎndé",
+          "gloss": "Gande township"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "anxi:inner-outer",
+      "basis": "trade_knowledge",
+      "axis": "place",
+      "listing_eligible": true,
+      "applies_when": {
+        "origin_includes": [
+          "anxi"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "内安溪",
+          "pinyin": "nèi Ānxī",
+          "gloss": "inner Anxi, the high mountain areas"
+        },
+        {
+          "original": "外安溪",
+          "pinyin": "wài Ānxī",
+          "gloss": "outer Anxi, the lower land"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "anxi:history",
+      "basis": "trade_knowledge",
+      "axis": "place",
+      "listing_eligible": true,
+      "applies_when": {
+        "origin_includes": [
+          "anxi"
+        ]
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "anxi:on-a-label",
+      "basis": "trade_knowledge",
+      "axis": "place",
+      "listing_eligible": true,
+      "applies_when": {
+        "origin_includes": [
+          "anxi"
+        ]
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "china-national-tea-corporation:what-it-is",
+      "basis": "trade_knowledge",
+      "axis": "maker_history",
+      "listing_eligible": false,
+      "applies_when": {
+        "origin_includes": [
+          "yunnan"
+        ],
+        "name_any": [
+          "zhongcha",
+          "cnnp"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "中国茶叶公司",
+          "pinyin": "Zhōngguó Cháyè Gōngsī",
+          "gloss": "China Tea Company"
+        },
+        {
+          "original": "中茶",
+          "pinyin": "Zhōngchá",
+          "gloss": "short name of the company and its brand"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "china-national-tea-corporation:zhong-cha-mark",
+      "basis": "trade_knowledge",
+      "axis": "maker_history",
+      "listing_eligible": false,
+      "applies_when": {
+        "origin_includes": [
+          "yunnan"
+        ],
+        "name_any": [
+          "zhongcha",
+          "cnnp"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "八中",
+          "pinyin": "bā zhōng",
+          "gloss": "eight zhong, nickname of the mark"
+        },
+        {
+          "original": "中茶牌",
+          "pinyin": "Zhōngchá pái",
+          "gloss": "Zhong Cha trademark"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "china-national-tea-corporation:many-factories",
+      "basis": "trade_knowledge",
+      "axis": "maker_history",
+      "listing_eligible": false,
+      "applies_when": {
+        "origin_includes": [
+          "yunnan"
+        ],
+        "name_any": [
+          "zhongcha",
+          "cnnp"
+        ]
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "china-national-tea-corporation:mark-and-tea",
+      "basis": "trade_knowledge",
+      "axis": "maker_history",
+      "listing_eligible": false,
+      "applies_when": {
+        "origin_includes": [
+          "yunnan"
+        ],
+        "name_any": [
+          "zhongcha",
+          "cnnp"
+        ]
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "china-national-tea-corporation:today",
+      "basis": "trade_knowledge",
+      "axis": "maker_history",
+      "listing_eligible": false,
+      "applies_when": {
+        "origin_includes": [
+          "yunnan"
+        ],
+        "name_any": [
+          "zhongcha",
+          "cnnp"
+        ]
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "golden-bull:what-it-is",
+      "basis": "trade_knowledge",
+      "axis": "terminology",
+      "listing_eligible": false,
+      "applies_when": {
+        "grade": "golden-bull"
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "金牛",
+          "pinyin": "jīn niú",
+          "gloss": "golden ox or bull; used here as a product name"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "golden-bull:maker",
+      "basis": "trade_knowledge",
+      "axis": "maker_history",
+      "listing_eligible": false,
+      "applies_when": {
+        "grade": "golden-bull"
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "恒丰源",
+          "pinyin": "héng fēng yuán",
+          "gloss": "Hengfengyuan, Changtai's ripe tea brand"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "greater-yiwu:where-it-is",
+      "basis": "trade_knowledge",
+      "axis": "place",
+      "listing_eligible": true,
+      "applies_when": {
+        "origin_includes": [
+          "yiwu"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "易武",
+          "pinyin": "Yìwǔ",
+          "gloss": "Yiwu"
+        },
+        {
+          "original": "勐腊",
+          "pinyin": "Měnglà",
+          "gloss": "Mengla"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "greater-yiwu:known-for",
+      "basis": "trade_knowledge",
+      "axis": "sensory_observation",
+      "listing_eligible": false,
+      "applies_when": {
+        "origin_includes": [
+          "yiwu"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "易武",
+          "pinyin": "Yìwǔ",
+          "gloss": "Yiwu"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "greater-yiwu:on-a-label",
+      "basis": "trade_knowledge",
+      "axis": "place",
+      "listing_eligible": true,
+      "applies_when": {
+        "origin_includes": [
+          "yiwu"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "易武",
+          "pinyin": "Yìwǔ",
+          "gloss": "Yiwu"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "guangxi:where-it-is",
+      "basis": "trade_knowledge",
+      "axis": "place",
+      "listing_eligible": false,
+      "applies_when": {
+        "origin_includes": [
+          "guangxi"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "广西",
+          "pinyin": "Guǎngxī",
+          "gloss": "Guangxi"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "guangxi:wuzhou-and-cangwu",
+      "basis": "trade_knowledge",
+      "axis": "place",
+      "listing_eligible": true,
+      "applies_when": {
+        "origin_includes": [
+          "guangxi"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "梧州",
+          "pinyin": "Wúzhōu",
+          "gloss": "Wuzhou"
+        },
+        {
+          "original": "苍梧",
+          "pinyin": "Cāngwú",
+          "gloss": "Cangwu"
+        },
+        {
+          "original": "六堡",
+          "pinyin": "Liùbǎo",
+          "gloss": "Liubao"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "guangxi:land-and-climate",
+      "basis": "trade_knowledge",
+      "axis": "place",
+      "listing_eligible": true,
+      "applies_when": {
+        "origin_includes": [
+          "guangxi"
+        ]
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "guangxi:known-for-liu-bao",
+      "basis": "trade_knowledge",
+      "axis": "place",
+      "listing_eligible": true,
+      "applies_when": {
+        "origin_includes": [
+          "guangxi"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "六堡茶",
+          "pinyin": "Liùbǎo chá",
+          "gloss": "Liu Bao tea"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "guangxi:hengzhou-jasmine",
+      "basis": "trade_knowledge",
+      "axis": "place",
+      "listing_eligible": false,
+      "applies_when": {
+        "origin_includes": [
+          "guangxi"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "横州",
+          "pinyin": "Héngzhōu",
+          "gloss": "Hengzhou"
+        },
+        {
+          "original": "茉莉花茶",
+          "pinyin": "mòlìhuā chá",
+          "gloss": "jasmine tea"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "guangxi:on-a-label",
+      "basis": "trade_knowledge",
+      "axis": "place",
+      "listing_eligible": true,
+      "applies_when": {
+        "origin_includes": [
+          "guangxi"
+        ]
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "hengfengyuan:who",
+      "basis": "trade_knowledge",
+      "axis": "maker_history",
+      "listing_eligible": false,
+      "applies_when": {
+        "name_any": [
+          "hengfengyuan",
+          "heng feng yuan"
+        ],
+        "origin_includes": [
+          "yunnan"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "恒丰源",
+          "pinyin": "héngfēngyuán",
+          "gloss": "Hengfengyuan, a brand name"
+        },
+        {
+          "original": "昌泰",
+          "pinyin": "chāngtài",
+          "gloss": "Changtai, the company that owns the brand"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "hengfengyuan:ripe-brand",
+      "basis": "trade_knowledge",
+      "axis": "maker_history",
+      "listing_eligible": false,
+      "applies_when": {
+        "name_any": [
+          "hengfengyuan",
+          "heng feng yuan"
+        ],
+        "origin_includes": [
+          "yunnan"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "熟茶",
+          "pinyin": "shúchá",
+          "gloss": "ripe tea (shou)"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "hengfengyuan:golden-bull",
+      "basis": "trade_knowledge",
+      "axis": "maker_history",
+      "listing_eligible": false,
+      "applies_when": {
+        "name_any": [
+          "hengfengyuan",
+          "heng feng yuan"
+        ],
+        "origin_includes": [
+          "yunnan"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "金牛",
+          "pinyin": "jīnniú",
+          "gloss": "golden bull"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "menghai-county:peoples",
+      "basis": "trade_knowledge",
+      "axis": "place",
+      "listing_eligible": true,
+      "applies_when": {
+        "origin_includes": [
+          "menghai"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "布朗族",
+          "pinyin": "Bùlǎngzú",
+          "gloss": "Bulang people"
+        },
+        {
+          "original": "拉祜族",
+          "pinyin": "Lāhùzú",
+          "gloss": "Lahu people"
+        },
+        {
+          "original": "哈尼族",
+          "pinyin": "Hānízú",
+          "gloss": "Hani people"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "menghai-county:county-and-factory",
+      "basis": "trade_knowledge",
+      "axis": "place",
+      "listing_eligible": true,
+      "applies_when": {
+        "origin_includes": [
+          "menghai"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "勐海茶厂",
+          "pinyin": "Měnghǎi Cháchǎng",
+          "gloss": "Menghai Tea Factory"
+        },
+        {
+          "original": "大益",
+          "pinyin": "Dàyì",
+          "gloss": "Dayi"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "menghai-county:old-gardens",
+      "basis": "trade_knowledge",
+      "axis": "place",
+      "listing_eligible": true,
+      "applies_when": {
+        "origin_includes": [
+          "menghai"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "古茶园",
+          "pinyin": "gǔ cháyuán",
+          "gloss": "old tea garden"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "nantou:where-it-is",
+      "basis": "trade_knowledge",
+      "axis": "place",
+      "listing_eligible": true,
+      "applies_when": {
+        "origin_includes": [
+          "nantou"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "南投",
+          "pinyin": "Nántóu",
+          "gloss": "Nantou; south head"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "nantou:why-people-value-it",
+      "basis": "trade_knowledge",
+      "axis": "place",
+      "listing_eligible": true,
+      "applies_when": {
+        "origin_includes": [
+          "nantou"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "南投",
+          "pinyin": "Nántóu",
+          "gloss": "Nantou"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "nantou:altitude-bands",
+      "basis": "trade_knowledge",
+      "axis": "place",
+      "listing_eligible": true,
+      "applies_when": {
+        "origin_includes": [
+          "nantou"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "高山茶",
+          "pinyin": "gāoshān chá",
+          "gloss": "high mountain tea"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "nantou:lugu-dong-ding",
+      "basis": "trade_knowledge",
+      "axis": "place",
+      "listing_eligible": true,
+      "applies_when": {
+        "origin_includes": [
+          "nantou"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "鹿谷",
+          "pinyin": "Lùgǔ",
+          "gloss": "Lugu; Dong Ding township"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "nantou:shan-lin-xi",
+      "basis": "trade_knowledge",
+      "axis": "place",
+      "listing_eligible": true,
+      "applies_when": {
+        "origin_includes": [
+          "nantou"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "杉林溪",
+          "pinyin": "Shānlínxī",
+          "gloss": "Shan Lin Xi"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "nantou:ren-ai-and-lishan",
+      "basis": "trade_knowledge",
+      "axis": "place",
+      "listing_eligible": true,
+      "applies_when": {
+        "origin_includes": [
+          "nantou"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "仁愛",
+          "pinyin": "Rén'ài",
+          "gloss": "Ren'ai Township"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "nantou:sun-moon-lake",
+      "basis": "trade_knowledge",
+      "axis": "place",
+      "listing_eligible": false,
+      "applies_when": {
+        "origin_includes": [
+          "nantou"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "魚池",
+          "pinyin": "Yúchí",
+          "gloss": "Yuchi Township"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "phoenix-mountain:where-it-is",
+      "basis": "trade_knowledge",
+      "axis": "place",
+      "listing_eligible": true,
+      "applies_when": {
+        "origin_includes": [
+          "phoenix mountain"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "凤凰山",
+          "pinyin": "Fènghuáng Shān",
+          "gloss": "Phoenix Mountain"
+        },
+        {
+          "original": "凤凰镇",
+          "pinyin": "Fènghuáng zhèn",
+          "gloss": "Fenghuang town"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "phoenix-mountain:mist-and-climate",
+      "basis": "trade_knowledge",
+      "axis": "place",
+      "listing_eligible": true,
+      "applies_when": {
+        "origin_includes": [
+          "phoenix mountain"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "山韵",
+          "pinyin": "shān yùn",
+          "gloss": "mountain rhyme"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "phoenix-mountain:wudong-and-villages",
+      "basis": "trade_knowledge",
+      "axis": "place",
+      "listing_eligible": true,
+      "applies_when": {
+        "origin_includes": [
+          "phoenix mountain"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "乌岽",
+          "pinyin": "Wūdōng",
+          "gloss": "Wudong"
+        },
+        {
+          "original": "大庵",
+          "pinyin": "Dà'ān",
+          "gloss": "Da'an"
+        },
+        {
+          "original": "石古坪",
+          "pinyin": "Shígǔpíng",
+          "gloss": "Shiguping"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "phoenix-mountain:old-trees",
+      "basis": "trade_knowledge",
+      "axis": "place",
+      "listing_eligible": true,
+      "applies_when": {
+        "origin_includes": [
+          "phoenix mountain"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "古茶树",
+          "pinyin": "gǔ cháshù",
+          "gloss": "old tea tree"
+        },
+        {
+          "original": "宋种",
+          "pinyin": "Sòngzhǒng",
+          "gloss": "Song variety"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "phoenix-mountain:people",
+      "basis": "trade_knowledge",
+      "axis": "place",
+      "listing_eligible": true,
+      "applies_when": {
+        "origin_includes": [
+          "phoenix mountain"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "畲族",
+          "pinyin": "Shēzú",
+          "gloss": "She people"
+        },
+        {
+          "original": "潮州工夫茶",
+          "pinyin": "Cháozhōu gōngfū chá",
+          "gloss": "Chaozhou gongfu tea"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "taiwan:where-it-is",
+      "basis": "trade_knowledge",
+      "axis": "place",
+      "listing_eligible": true,
+      "applies_when": {
+        "origin_includes": [
+          "taiwan"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "台灣",
+          "pinyin": "Táiwān",
+          "gloss": "Taiwan"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "taiwan:known-for",
+      "basis": "trade_knowledge",
+      "axis": "place",
+      "listing_eligible": true,
+      "applies_when": {
+        "origin_includes": [
+          "taiwan"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "烏龍茶",
+          "pinyin": "wūlóng chá",
+          "gloss": "oolong tea"
+        },
+        {
+          "original": "高山茶",
+          "pinyin": "gāoshān chá",
+          "gloss": "high mountain tea"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "taiwan:areas",
+      "basis": "trade_knowledge",
+      "axis": "place",
+      "listing_eligible": true,
+      "applies_when": {
+        "origin_includes": [
+          "taiwan"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "南投",
+          "pinyin": "Nántóu",
+          "gloss": "Nantou"
+        },
+        {
+          "original": "嘉義",
+          "pinyin": "Jiāyì",
+          "gloss": "Chiayi"
+        },
+        {
+          "original": "坪林",
+          "pinyin": "Pínglín",
+          "gloss": "Pinglin"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "taiwan:history",
+      "basis": "trade_knowledge",
+      "axis": "place",
+      "listing_eligible": true,
+      "applies_when": {
+        "origin_includes": [
+          "taiwan"
+        ]
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "taiwan:on-a-label",
+      "basis": "trade_knowledge",
+      "axis": "place",
+      "listing_eligible": false,
+      "applies_when": {
+        "origin_includes": [
+          "taiwan"
+        ]
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "wuyi-mountains:where-it-is",
+      "basis": "trade_knowledge",
+      "axis": "place",
+      "listing_eligible": false,
+      "applies_when": {
+        "origin_includes": [
+          "wuyi mountains"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "武夷山",
+          "pinyin": "Wǔyíshān",
+          "gloss": "Wuyi Mountains; also the city of Wuyishan"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "wuyi-mountains:nature",
+      "basis": "trade_knowledge",
+      "axis": "place",
+      "listing_eligible": true,
+      "applies_when": {
+        "origin_includes": [
+          "wuyi mountains"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "岩",
+          "pinyin": "yán",
+          "gloss": "rock; cliff"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "wuyi-mountains:zones",
+      "basis": "trade_knowledge",
+      "axis": "place",
+      "listing_eligible": true,
+      "applies_when": {
+        "origin_includes": [
+          "wuyi mountains"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "正岩",
+          "pinyin": "zhèngyán",
+          "gloss": "true rock; the core zone"
+        },
+        {
+          "original": "半岩",
+          "pinyin": "bànyán",
+          "gloss": "half rock; the ring around the core"
+        },
+        {
+          "original": "洲茶",
+          "pinyin": "zhōuchá",
+          "gloss": "river-bank or islet tea"
+        },
+        {
+          "original": "外山茶",
+          "pinyin": "wàishānchá",
+          "gloss": "outer-mountain tea"
+        },
+        {
+          "original": "三坑两涧",
+          "pinyin": "sān kēng liǎng jiàn",
+          "gloss": "three pits and two streams; the best-known core sites"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "wuyi-mountains:two-teas",
+      "basis": "trade_knowledge",
+      "axis": "place",
+      "listing_eligible": true,
+      "applies_when": {
+        "origin_includes": [
+          "wuyi mountains"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "桐木",
+          "pinyin": "Tóngmù",
+          "gloss": "Tongmu village, source of Lapsang Souchong"
+        },
+        {
+          "original": "正山小种",
+          "pinyin": "zhèngshān xiǎozhǒng",
+          "gloss": "Lapsang Souchong"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "wuyi-mountains:on-a-label",
+      "basis": "trade_knowledge",
+      "axis": "place",
+      "listing_eligible": true,
+      "applies_when": {
+        "origin_includes": [
+          "wuyi mountains"
+        ]
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "xinghai-tea-factory:maker-history",
+      "basis": "trade_knowledge",
+      "axis": "maker_history",
+      "listing_eligible": false,
+      "applies_when": {
+        "name_any": [
+          "xinghai"
+        ],
+        "origin_includes": [
+          "yunnan"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "兴海茶厂",
+          "pinyin": "xīnghǎi cháchǎng",
+          "gloss": "Xinghai Tea Factory"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "yuchi:where-it-is",
+      "basis": "trade_knowledge",
+      "axis": "place",
+      "listing_eligible": true,
+      "applies_when": {
+        "origin_includes": [
+          "yuchi"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "魚池",
+          "pinyin": "Yúchí",
+          "gloss": "fish pond; the township name"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "yuchi:why-red-tea",
+      "basis": "trade_knowledge",
+      "axis": "place",
+      "listing_eligible": true,
+      "applies_when": {
+        "origin_includes": [
+          "yuchi"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "紅茶",
+          "pinyin": "hóngchá",
+          "gloss": "red tea (black tea in English)"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "yuchi:assam-planting",
+      "basis": "trade_knowledge",
+      "axis": "place",
+      "listing_eligible": true,
+      "applies_when": {
+        "origin_includes": [
+          "yuchi"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "紅茶",
+          "pinyin": "hóngchá",
+          "gloss": "red tea (black tea in English)"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "yuchi:research-station",
+      "basis": "trade_knowledge",
+      "axis": "place",
+      "listing_eligible": true,
+      "applies_when": {
+        "origin_includes": [
+          "yuchi"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "臺茶18號 紅玉",
+          "pinyin": "Táichá shíbā hào Hóngyù",
+          "gloss": "Taicha 18, Ruby"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "yuchi:decline-and-return",
+      "basis": "trade_knowledge",
+      "axis": "place",
+      "listing_eligible": false,
+      "applies_when": {
+        "origin_includes": [
+          "yuchi"
+        ]
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
     }
   ]
 }

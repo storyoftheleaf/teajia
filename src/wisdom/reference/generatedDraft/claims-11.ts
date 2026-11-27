@@ -5,173 +5,266 @@ import type { DraftClaim } from '../claims';
 
 export const PART: readonly DraftClaim[] = [
   {
-    "claimId": "yunnan-white:definition",
-    "pageId": "yunnan-white",
-    "sectionKey": "definition",
-    "label": "What Yunnan white is",
+    "claimId": "tieguanyin:guanyin-rhyme",
+    "pageId": "tieguanyin",
+    "sectionKey": "guanyin-rhyme",
+    "label": "Guanyin rhyme",
     "axis": "type",
     "basis": "trade_knowledge",
     "listingEligible": true,
     "appliesWhen": {
-      "type": "White",
+      "type": "Oolong",
       "origin_includes": [
-        "yunnan"
+        "anxi"
       ]
     },
-    "terms": [],
+    "terms": [
+      {
+        "original": "观音韵",
+        "pinyin": "guānyīn yùn",
+        "gloss": "Guanyin rhyme"
+      }
+    ],
     "rev": 1,
-    "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
-    "text": "Yunnan white is white tea made from Yunnan’s large-leaf tea plants, rather than from the small and medium-leaf bush cultivars of Fujian. It is mostly picked in spring, as buds or a bud with one to three leaves, and its buds are typically large and silver-haired. Unlike Fuding white tea it is mostly not sold by grade.",
+    "scope": "Oolong from Anxi; osmanthus only on teas named for it",
+    "text": "The quality the trade prizes in good Tieguanyin is called Guanyin rhyme, guanyin yun. It is a tasting word for the whole effect: an orchid or floral fragrance, a thick, sweet taste, and an aftertaste and throat feeling that lingers. Good Tieguanyin is said to stay fragrant after seven infusions, a trade saying rather than a tested limit.",
     "sourceIds": [],
     "reviewState": "approved",
     "previousRevisions": [
       {
         "rev": 1,
         "origin": "approved",
-        "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
-        "text": "Yunnan white is white tea made from Yunnan’s large-leaf tea plants, rather than from the small and medium-leaf bush cultivars of Fujian. It is mostly picked in spring, as buds or a bud with one to three leaves, and its buds are typically large and silver-haired. Unlike Fuding white tea it is mostly not sold by grade.",
+        "scope": "Oolong from Anxi; osmanthus only on teas named for it",
+        "text": "The quality the trade prizes in good Tieguanyin is called Guanyin rhyme, guanyin yun. It is a tasting word for the whole effect: an orchid or floral fragrance, a thick, sweet taste, and an aftertaste and throat feeling that lingers. Good Tieguanyin is said to stay fragrant after seven infusions, a trade saying rather than a tested limit.",
         "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 18)",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 20)",
         "evidenceIds": []
       }
     ],
     "pageVisibility": "public"
   },
   {
-    "claimId": "yunnan-white:history",
-    "pageId": "yunnan-white",
+    "claimId": "tieguanyin:history",
+    "pageId": "tieguanyin",
     "sectionKey": "history",
-    "label": "How Yunnan white began",
+    "label": "How Tieguanyin began",
     "axis": "type",
     "basis": "trade_knowledge",
     "listingEligible": true,
     "appliesWhen": {
-      "type": "White",
+      "type": "Oolong",
       "origin_includes": [
-        "yunnan"
+        "anxi"
       ]
     },
     "terms": [],
     "rev": 1,
-    "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
-    "text": "Yunnan white is a recent tea in the market. The name Moonlight White and the trade in Yunnan white tea have grown popular only in recent years, though local practice may be older.",
+    "scope": "Oolong from Anxi; osmanthus only on teas named for it",
+    "text": "Two stories are told of how Tieguanyin began, both set in Xiping and both folk accounts, not records. In one, a farmer named Wei dreams of Guanyin, is led to a tea plant and grows it, in the Yongzheng reign of the 1720s and 1730s. In the other, a scholar named Wang finds a tea plant and presents its tea to the Qianlong emperor, who names it. Anxi sources date the making of oolong in Anxi to about 1725 to 1735.",
     "sourceIds": [],
     "reviewState": "approved",
     "previousRevisions": [
       {
         "rev": 1,
         "origin": "approved",
-        "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
-        "text": "Yunnan white is a recent tea in the market. The name Moonlight White and the trade in Yunnan white tea have grown popular only in recent years, though local practice may be older.",
+        "scope": "Oolong from Anxi; osmanthus only on teas named for it",
+        "text": "Two stories are told of how Tieguanyin began, both set in Xiping and both folk accounts, not records. In one, a farmer named Wei dreams of Guanyin, is led to a tea plant and grows it, in the Yongzheng reign of the 1720s and 1730s. In the other, a scholar named Wang finds a tea plant and presents its tea to the Qianlong emperor, who names it. Anxi sources date the making of oolong in Anxi to about 1725 to 1735.",
         "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 18)",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 20)",
         "evidenceIds": []
       }
     ],
     "pageVisibility": "public"
   },
   {
-    "claimId": "yunnan-white:making",
-    "pageId": "yunnan-white",
+    "claimId": "tieguanyin:making",
+    "pageId": "tieguanyin",
     "sectionKey": "making",
-    "label": "How Yunnan white is made",
+    "label": "How Tieguanyin is made",
     "axis": "type",
     "basis": "trade_knowledge",
     "listingEligible": true,
     "appliesWhen": {
-      "type": "White",
+      "type": "Oolong",
       "origin_includes": [
-        "yunnan"
+        "anxi"
+      ]
+    },
+    "terms": [
+      {
+        "original": "绿叶红镶边",
+        "pinyin": "lǜyè hóng xiāngbiān",
+        "gloss": "green leaf, red rim"
+      },
+      {
+        "original": "包揉",
+        "pinyin": "bāo róu",
+        "gloss": "cloth-wrap rolling"
+      }
+    ],
+    "rev": 1,
+    "scope": "Oolong from Anxi; osmanthus only on teas named for it",
+    "text": "The leaf is picked when the shoot has opened, withered in the late-afternoon sun, cooled, then shaken and rested in rounds. Shaking bruises the leaf edges so they turn red while the middle stays green, the green leaf with a red rim. The leaf is fixed in a hot pan or drum and rolled. To make the balls, it is wrapped in cloth, rolled and pressed, dried a little, and wrapped again, several times over, each round tightening it. It is finished with a slow drying at low heat.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Oolong from Anxi; osmanthus only on teas named for it",
+        "text": "The leaf is picked when the shoot has opened, withered in the late-afternoon sun, cooled, then shaken and rested in rounds. Shaking bruises the leaf edges so they turn red while the middle stays green, the green leaf with a red rim. The leaf is fixed in a hot pan or drum and rolled. To make the balls, it is wrapped in cloth, rolled and pressed, dried a little, and wrapped again, several times over, each round tightening it. It is finished with a slow drying at low heat.",
+        "approvedAt": "2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 20)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "tieguanyin:notice-aged",
+    "pageId": "tieguanyin",
+    "sectionKey": "notice-aged",
+    "label": "What people often notice in aged Tieguanyin",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "anxi"
       ]
     },
     "terms": [],
     "rev": 1,
-    "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
-    "text": "Yunnan white follows the white tea way: the leaf is withered and then dried, never heated to stop its change and never rolled. The withering is done indoors or in shade rather than in hot midday sun, and the leaf is then dried by air, without the final low bake that Fujian white tea usually gets. A longer or darker wither gives a darker, redder cup. It is sold loose and pressed, in the cake, coin and brick shapes of pu’er.",
+    "scope": "Oolong from Anxi; osmanthus only on teas named for it",
+    "text": "A smoother, rounder, softer cup with the fire gone, a liquor turned orange-red or reddish-brown, and often a soft fruity sourness.",
     "sourceIds": [],
     "reviewState": "approved",
     "previousRevisions": [
       {
         "rev": 1,
         "origin": "approved",
-        "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
-        "text": "Yunnan white follows the white tea way: the leaf is withered and then dried, never heated to stop its change and never rolled. The withering is done indoors or in shade rather than in hot midday sun, and the leaf is then dried by air, without the final low bake that Fujian white tea usually gets. A longer or darker wither gives a darker, redder cup. It is sold loose and pressed, in the cake, coin and brick shapes of pu’er.",
+        "scope": "Oolong from Anxi; osmanthus only on teas named for it",
+        "text": "A smoother, rounder, softer cup with the fire gone, a liquor turned orange-red or reddish-brown, and often a soft fruity sourness.",
         "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 18)",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 20)",
         "evidenceIds": []
       }
     ],
     "pageVisibility": "public"
   },
   {
-    "claimId": "yunnan-white:moonlight-white",
-    "pageId": "yunnan-white",
-    "sectionKey": "moonlight-white",
-    "label": "Moonlight White",
+    "claimId": "tieguanyin:osmanthus",
+    "pageId": "tieguanyin",
+    "sectionKey": "osmanthus",
+    "label": "Osmanthus Tieguanyin",
     "axis": "type",
     "basis": "trade_knowledge",
     "listingEligible": true,
     "appliesWhen": {
-      "type": "White",
+      "type": "Oolong",
       "origin_includes": [
-        "yunnan"
+        "anxi"
       ],
       "name_includes": [
-        "moonlight"
+        "osmanthus"
       ]
     },
     "terms": [
       {
-        "original": "月光白",
-        "pinyin": "yuè guāng bái",
-        "gloss": "Moonlight White"
+        "original": "桂花铁观音",
+        "pinyin": "guìhuā tiěguānyīn",
+        "gloss": "osmanthus Tieguanyin"
       }
     ],
     "rev": 1,
-    "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
-    "text": "Moonlight White, yue guang bai, is the best-known Yunnan white. Its home is Jinggu County in Pu’er City, and the Jinggu tea is made from the Jinggu Da Bai Cha variety, whose mother tree grows in Yangta village; other Yunnan makers use the name too. Two explanations are given for the name: the look of the leaf, dark on top and silver beneath, like the moon in a dark sky, and a story that it was picked or withered by moonlight.",
+    "scope": "Oolong from Anxi; osmanthus only on teas named for it",
+    "text": "Osmanthus Tieguanyin is a scented tea. Fresh osmanthus flowers are layered with the finished tea, which takes up their scent, and the tea is then dried again.",
     "sourceIds": [],
     "reviewState": "approved",
     "previousRevisions": [
       {
         "rev": 1,
         "origin": "approved",
-        "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
-        "text": "Moonlight White, yue guang bai, is the best-known Yunnan white. Its home is Jinggu County in Pu’er City, and the Jinggu tea is made from the Jinggu Da Bai Cha variety, whose mother tree grows in Yangta village; other Yunnan makers use the name too. Two explanations are given for the name: the look of the leaf, dark on top and silver beneath, like the moon in a dark sky, and a story that it was picked or withered by moonlight.",
+        "scope": "Oolong from Anxi; osmanthus only on teas named for it",
+        "text": "Osmanthus Tieguanyin is a scented tea. Fresh osmanthus flowers are layered with the finished tea, which takes up their scent, and the tea is then dried again.",
         "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 18)",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 20)",
         "evidenceIds": []
       }
     ],
     "pageVisibility": "public"
   },
   {
-    "claimId": "yunnan-white:yabao",
-    "pageId": "yunnan-white",
-    "sectionKey": "yabao",
-    "label": "Yabao",
+    "claimId": "tieguanyin:styles",
+    "pageId": "tieguanyin",
+    "sectionKey": "styles",
+    "label": "Light, roasted and aged",
     "axis": "type",
     "basis": "trade_knowledge",
     "listingEligible": true,
     "appliesWhen": {
-      "type": "White",
+      "type": "Oolong",
       "origin_includes": [
-        "yunnan"
-      ],
-      "name_includes": [
-        "yabao"
+        "anxi"
       ]
     },
     "terms": [
       {
-        "original": "芽苞",
-        "pinyin": "yá bāo",
-        "gloss": "bud"
+        "original": "清香",
+        "pinyin": "qīngxiāng",
+        "gloss": "light fragrance"
+      },
+      {
+        "original": "浓香",
+        "pinyin": "nóngxiāng",
+        "gloss": "strong fragrance"
+      },
+      {
+        "original": "陈香",
+        "pinyin": "chénxiāng",
+        "gloss": "aged fragrance"
+      }
+    ],
+    "rev": 1,
+    "scope": "Oolong from Anxi; osmanthus only on teas named for it",
+    "text": "Anxi Tieguanyin is sorted by style. The light-fragrance kind, qingxiang, is lightly oxidised and lightly roasted or not roasted at all, with a fresh orchid fragrance and a green-gold liquor. The strong-fragrance kind, nongxiang, is more oxidised and roasted, with a darker leaf, a gold to amber liquor and toasted, caramel and fruit notes. A third kind, chenxiang or old Tie, is Tieguanyin kept for years. The roasted style is the older one; the light green style is newer and took over in Anxi from the 1990s, and the roasted style is said to be slowly coming back.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Oolong from Anxi; osmanthus only on teas named for it",
+        "text": "Anxi Tieguanyin is sorted by style. The light-fragrance kind, qingxiang, is lightly oxidised and lightly roasted or not roasted at all, with a fresh orchid fragrance and a green-gold liquor. The strong-fragrance kind, nongxiang, is more oxidised and roasted, with a darker leaf, a gold to amber liquor and toasted, caramel and fruit notes. A third kind, chenxiang or old Tie, is Tieguanyin kept for years. The roasted style is the older one; the light green style is newer and took over in Anxi from the 1990s, and the roasted style is said to be slowly coming back.",
+        "approvedAt": "2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 20)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "white:ageing",
+    "pageId": "white",
+    "sectionKey": "ageing",
+    "label": "Keeping and ageing white tea",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "White"
+    },
+    "terms": [
+      {
+        "original": "老白茶",
+        "pinyin": "lǎo bái chá",
+        "gloss": "old white tea"
       }
     ],
     "rev": 1,
     "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
-    "text": "Yabao is made from the buds of wild-growing or old trees in south-west Yunnan, picked in late winter or early spring before they open and sun-dried with little else done to them. It is mostly sold as white tea. Which plant the buds come from is not settled: some are said to be from a wild tea species, not the cultivated tea plant.",
+    "text": "Well-made, dry white tea is kept to age, and the trade speaks of new white tea and old white tea, lao bai cha. Over the years it changes rather than going stale: the fresh hay and floral notes give way to honey, dried fruit, jujube, herbs and wood, the liquor turns deeper and redder, and the body rounder and thicker. There is no agreed number of years at which white tea counts as aged. Keep it dry, sealed and away from light, damp and strong smells.",
     "sourceIds": [],
     "reviewState": "approved",
     "previousRevisions": [
@@ -179,7 +272,7 @@ export const PART: readonly DraftClaim[] = [
         "rev": 1,
         "origin": "approved",
         "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
-        "text": "Yabao is made from the buds of wild-growing or old trees in south-west Yunnan, picked in late winter or early spring before they open and sun-dried with little else done to them. It is mostly sold as white tea. Which plant the buds come from is not settled: some are said to be from a wild tea species, not the cultivated tea plant.",
+        "text": "Well-made, dry white tea is kept to age, and the trade speaks of new white tea and old white tea, lao bai cha. Over the years it changes rather than going stale: the fresh hay and floral notes give way to honey, dried fruit, jujube, herbs and wood, the liquor turns deeper and redder, and the body rounder and thicker. There is no agreed number of years at which white tea counts as aged. Keep it dry, sealed and away from light, damp and strong smells.",
         "approvedAt": "2026-11-24",
         "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 18)",
         "evidenceIds": []
@@ -188,96 +281,676 @@ export const PART: readonly DraftClaim[] = [
     "pageVisibility": "public"
   },
   {
-    "claimId": "yunnan:geographic-frame",
-    "pageId": "yunnan",
-    "sectionKey": "geographic-frame",
-    "label": "The geographic frame",
+    "claimId": "white:brewing",
+    "pageId": "white",
+    "sectionKey": "brewing",
+    "label": "Brewing white tea",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "White"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
+    "text": "The more delicate the leaf, the cooler the water. Silver Needle and young White Peony take water well below the boil, roughly 75 to 95°C; Shou Mei and aged white tea take water near or at the boil. In a gaiwan or small pot, about 3 to 7 grams to 100 to 150 ml, with short steeps that lengthen each round. White tea is light and bulky, so weigh it rather than measure by the spoon.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
+        "text": "The more delicate the leaf, the cooler the water. Silver Needle and young White Peony take water well below the boil, roughly 75 to 95°C; Shou Mei and aged white tea take water near or at the boil. In a gaiwan or small pot, about 3 to 7 grams to 100 to 150 ml, with short steeps that lengthen each round. White tea is light and bulky, so weigh it rather than measure by the spoon.",
+        "approvedAt": "2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 18)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "white:common-impressions",
+    "pageId": "white",
+    "sectionKey": "common-impressions",
+    "label": "What people often notice",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "White"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
+    "text": "In young white tea: a sweet, light cup, often floral, with hay and a honeyed finish. Silver Needle is the softest, with hay and gentle flowers; White Peony is fuller; Gong Mei and Shou Mei are stronger and rounder, with dried fruit and herbs.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
+        "text": "In young white tea: a sweet, light cup, often floral, with hay and a honeyed finish. Silver Needle is the softest, with hay and gentle flowers; White Peony is fuller; Gong Mei and Shou Mei are stronger and rounder, with dried fruit and herbs.",
+        "approvedAt": "2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 18)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "white:definition",
+    "pageId": "white",
+    "sectionKey": "definition",
+    "label": "What white tea is",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "White"
+    },
+    "terms": [
+      {
+        "original": "白茶",
+        "pinyin": "bái chá",
+        "gloss": "white tea"
+      }
+    ],
+    "rev": 1,
+    "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
+    "text": "White tea is the tea made with the fewest steps: the leaf is only withered and dried. It is never heated to stop its change, never rolled and never bruised, so the leaf keeps its natural shape and the white down on its buds stays, which gives the tea its name. It oxidises only lightly and slowly as it withers, by the leaf’s own enzymes; the Chinese trade calls it slightly fermented. White tea is made mainly in Fujian, and other regions, Yunnan among them, now make it too.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
+        "text": "White tea is the tea made with the fewest steps: the leaf is only withered and dried. It is never heated to stop its change, never rolled and never bruised, so the leaf keeps its natural shape and the white down on its buds stays, which gives the tea its name. It oxidises only lightly and slowly as it withers, by the leaf’s own enzymes; the Chinese trade calls it slightly fermented. White tea is made mainly in Fujian, and other regions, Yunnan among them, now make it too.",
+        "approvedAt": "2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 18)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "white:fuding-and-zhenghe",
+    "pageId": "white",
+    "sectionKey": "fuding-and-zhenghe",
+    "label": "Fuding and Zhenghe",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "White"
+    },
+    "terms": [
+      {
+        "original": "福鼎大白",
+        "pinyin": "fúdǐng dàbái",
+        "gloss": "Fuding Da Bai"
+      },
+      {
+        "original": "政和大白",
+        "pinyin": "zhènghé dàbái",
+        "gloss": "Zhenghe Da Bai"
+      }
+    ],
+    "rev": 1,
+    "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
+    "text": "The two main homes of white tea are Fuding and Zhenghe, both in Fujian, and each grows its own cultivar: Fuding Da Bai, with large, plump, downy buds, and Zhenghe Da Bai, a taller bush with smaller buds. Fuding is the home of Silver Needle and of the best-known white tea; Zhenghe, further inland, is described as making a fuller tea. Jianyang is a white tea county too, known mostly for Gong Mei and Shou Mei.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
+        "text": "The two main homes of white tea are Fuding and Zhenghe, both in Fujian, and each grows its own cultivar: Fuding Da Bai, with large, plump, downy buds, and Zhenghe Da Bai, a taller bush with smaller buds. Fuding is the home of Silver Needle and of the best-known white tea; Zhenghe, further inland, is described as making a fuller tea. Jianyang is a white tea county too, known mostly for Gong Mei and Shou Mei.",
+        "approvedAt": "2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 18)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "white:grades",
+    "pageId": "white",
+    "sectionKey": "grades",
+    "label": "The kinds of white tea",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "White"
+    },
+    "terms": [
+      {
+        "original": "白毫银针",
+        "pinyin": "báiháo yínzhēn",
+        "gloss": "Silver Needle"
+      },
+      {
+        "original": "白牡丹",
+        "pinyin": "bái mǔdān",
+        "gloss": "White Peony"
+      },
+      {
+        "original": "贡眉",
+        "pinyin": "gòng méi",
+        "gloss": "Gong Mei"
+      },
+      {
+        "original": "寿眉",
+        "pinyin": "shòu méi",
+        "gloss": "Shou Mei"
+      }
+    ],
+    "rev": 1,
+    "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
+    "text": "White tea is sold by how the leaf was picked. Silver Needle, the top grade and picked in spring, is buds alone. White Peony is a bud with one or two leaves. Gong Mei and Shou Mei are larger, more mature leaf, often picked later in the year, and are the usual leaf for pressed cakes. A grade name says how the leaf was picked; it says nothing about where it grew.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
+        "text": "White tea is sold by how the leaf was picked. Silver Needle, the top grade and picked in spring, is buds alone. White Peony is a bud with one or two leaves. Gong Mei and Shou Mei are larger, more mature leaf, often picked later in the year, and are the usual leaf for pressed cakes. A grade name says how the leaf was picked; it says nothing about where it grew.",
+        "approvedAt": "2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 18)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "white:history",
+    "pageId": "white",
+    "sectionKey": "history",
+    "label": "How white tea began",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "White"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
+    "text": "White tea in its present form is a Fujian tea of roughly the last two centuries, from the late Qing dynasty. Older Chinese writings use the name white tea for other teas, and the exact year and place of the first white tea are not settled.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
+        "text": "White tea in its present form is a Fujian tea of roughly the last two centuries, from the late Qing dynasty. Older Chinese writings use the name white tea for other teas, and the exact year and place of the first white tea are not settled.",
+        "approvedAt": "2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 18)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "white:making",
+    "pageId": "white",
+    "sectionKey": "making",
+    "label": "How white tea is made",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "White"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
+    "text": "Withering is the step that makes white tea. The leaf is spread out and left to lose its water slowly, over roughly one to three days, and in that time small changes soften its grassy edge and shape its aroma and taste. It can be withered in the sun, indoors in moving air, or indoors with gentle warmth, and many makers combine them, choosing by the weather. Too short a wither leaves the tea grassy and bitter; too long leaves it thin and dull, and the maker judges by the leaf’s softness and smell. The leaf is then dried at low heat until it keeps, and sorted.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
+        "text": "Withering is the step that makes white tea. The leaf is spread out and left to lose its water slowly, over roughly one to three days, and in that time small changes soften its grassy edge and shape its aroma and taste. It can be withered in the sun, indoors in moving air, or indoors with gentle warmth, and many makers combine them, choosing by the weather. Too short a wither leaves the tea grassy and bitter; too long leaves it thin and dull, and the maker judges by the leaf’s softness and smell. The leaf is then dried at low heat until it keeps, and sorted.",
+        "approvedAt": "2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 18)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "white:notice-aged",
+    "pageId": "white",
+    "sectionKey": "notice-aged",
+    "label": "What people often notice in aged white tea",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "White"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
+    "text": "Honey, dried fruit or jujube, something herbal and woody, a rounder, thicker body and a darker, redder liquor, with less lift in the aroma than a young tea.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
+        "text": "Honey, dried fruit or jujube, something herbal and woody, a rounder, thicker body and a darker, redder liquor, with less lift in the aroma than a young tea.",
+        "approvedAt": "2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 18)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "white:pressing",
+    "pageId": "white",
+    "sectionKey": "pressing",
+    "label": "Pressed white tea",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "White"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
+    "text": "White tea was sold loose until recently. Pressed cakes appeared in the 2000s and became common in the 2010s, mostly made from Shou Mei and Gong Mei, because a cake is easier to keep. Pressed and kept, white tea moves from light and floral towards something deeper and sweeter.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
+        "text": "White tea was sold loose until recently. Pressed cakes appeared in the 2000s and became common in the 2010s, mostly made from Shou Mei and Gong Mei, because a cake is easier to keep. Pressed and kept, white tea moves from light and floral towards something deeper and sweeter.",
+        "approvedAt": "2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 18)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "wuyi-mountains:nature",
+    "pageId": "wuyi-mountains",
+    "sectionKey": "nature",
+    "label": "Why tea grows well here",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "wuyi mountains"
+      ]
+    },
+    "terms": [
+      {
+        "original": "岩",
+        "pinyin": "yán",
+        "gloss": "rock; cliff"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Wuyi is steep, wet and misty. The mountains hold in warm air from the sea, so rain is heavy and fog is common through the year. In the eastern part, red sandstone peaks rise out of the Nine-Bend River gorge as cliffs with flat tops. The west is mostly volcanic rock and granite. Tea bushes grow in the thin, stony soil of the ravines, on ledges and between rocks, where the ground drains fast and mist settles on the slopes. This is the reason people give for the mineral, stony character they look for in Wuyi tea, and for the slow growth of the bushes.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Wuyi is steep, wet and misty. The mountains hold in warm air from the sea, so rain is heavy and fog is common through the year. In the eastern part, red sandstone peaks rise out of the Nine-Bend River gorge as cliffs with flat tops. The west is mostly volcanic rock and granite. Tea bushes grow in the thin, stony soil of the ravines, on ledges and between rocks, where the ground drains fast and mist settles on the slopes. This is the reason people give for the mineral, stony character they look for in Wuyi tea, and for the slow growth of the bushes.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "wuyi-mountains:on-a-label",
+    "pageId": "wuyi-mountains",
+    "sectionKey": "on-a-label",
+    "label": "Wuyi on a label",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "wuyi mountains"
+      ]
+    },
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "Wuyi is a famous name, and it is used on a wide range of tea. The strict meaning of Wuyi rock tea is tea grown inside the Wuyi scenic area from the local cultivars and made by the Wuyi method. Tea from the outer mountain, the river banks or other parts of Fujian can still be sold with a Wuyi style name, and the name Da Hong Pao in particular is used loosely. A label that says only Wuyi or Wuyi Mountains, without naming a zone or a pit, does not say how close to the core the tea grew. Ask for the zone and the cultivar when you want to know.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Wuyi is a famous name, and it is used on a wide range of tea. The strict meaning of Wuyi rock tea is tea grown inside the Wuyi scenic area from the local cultivars and made by the Wuyi method. Tea from the outer mountain, the river banks or other parts of Fujian can still be sold with a Wuyi style name, and the name Da Hong Pao in particular is used loosely. A label that says only Wuyi or Wuyi Mountains, without naming a zone or a pit, does not say how close to the core the tea grew. Ask for the zone and the cultivar when you want to know.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "wuyi-mountains:two-teas",
+    "pageId": "wuyi-mountains",
+    "sectionKey": "two-teas",
+    "label": "Two kinds of tea, two parts of the mountain",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "wuyi mountains"
+      ]
+    },
+    "terms": [
+      {
+        "original": "桐木",
+        "pinyin": "Tóngmù",
+        "gloss": "Tongmu village, source of Lapsang Souchong"
+      },
+      {
+        "original": "正山小种",
+        "pinyin": "zhèngshān xiǎozhǒng",
+        "gloss": "Lapsang Souchong"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Wuyi is known for two very different teas, and they come from different ground. Rock oolong, such as Da Hong Pao, Rougui and Shui Xian, comes from the rocky valleys and cliffs lower down. Lapsang Souchong, the original smoked black tea, comes from the high northern edge of the range around Tongmu village, close to the Jiangxi border, in forested country that is also protected. Tongmu is widely called the birthplace of Chinese black tea. Both are sold as Wuyi tea, so a Wuyi label does not tell you which kind you have. The pages on rock tea and Lapsang cover each.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Wuyi is known for two very different teas, and they come from different ground. Rock oolong, such as Da Hong Pao, Rougui and Shui Xian, comes from the rocky valleys and cliffs lower down. Lapsang Souchong, the original smoked black tea, comes from the high northern edge of the range around Tongmu village, close to the Jiangxi border, in forested country that is also protected. Tongmu is widely called the birthplace of Chinese black tea. Both are sold as Wuyi tea, so a Wuyi label does not tell you which kind you have. The pages on rock tea and Lapsang cover each.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "wuyi-mountains:where-it-is",
+    "pageId": "wuyi-mountains",
+    "sectionKey": "where-it-is",
+    "label": "Where the Wuyi Mountains are",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "origin_includes": [
+        "wuyi mountains"
+      ]
+    },
+    "terms": [
+      {
+        "original": "武夷山",
+        "pinyin": "Wǔyíshān",
+        "gloss": "Wuyi Mountains; also the city of Wuyishan"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "The Wuyi Mountains run along the border of northern Fujian and Jiangxi in south-east China. The tea town is Wuyishan City, in Fujian. The range is a UNESCO World Heritage site, listed in 1999, and much of it is protected forest and nature reserve. Tea grows in several different parts of it, from the river valleys to the high northern edge, and the parts make different teas.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "The Wuyi Mountains run along the border of northern Fujian and Jiangxi in south-east China. The tea town is Wuyishan City, in Fujian. The range is a UNESCO World Heritage site, listed in 1999, and much of it is protected forest and nature reserve. Tea grows in several different parts of it, from the river valleys to the high northern edge, and the parts make different teas.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "wuyi-mountains:zones",
+    "pageId": "wuyi-mountains",
+    "sectionKey": "zones",
+    "label": "The core, the edge and the river banks",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "wuyi mountains"
+      ]
+    },
+    "terms": [
+      {
+        "original": "正岩",
+        "pinyin": "zhèngyán",
+        "gloss": "true rock; the core zone"
+      },
+      {
+        "original": "半岩",
+        "pinyin": "bànyán",
+        "gloss": "half rock; the ring around the core"
+      },
+      {
+        "original": "洲茶",
+        "pinyin": "zhōuchá",
+        "gloss": "river-bank or islet tea"
+      },
+      {
+        "original": "外山茶",
+        "pinyin": "wàishānchá",
+        "gloss": "outer-mountain tea"
+      },
+      {
+        "original": "三坑两涧",
+        "pinyin": "sān kēng liǎng jiàn",
+        "gloss": "three pits and two streams; the best-known core sites"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "The trade sorts Wuyi tea by how stony the ground is and how close it is to the scenic core. Zheng yan, true rock, is the core of about 70 square kilometres, with steep rocky ground. Its best-known part is the three pits and two streams, among them Niulan Keng and Huiyuan Keng. Ban yan, half rock, is the ring around the core, with less rock in the soil. Zhou cha is tea from the flat, sandy ground along the river. Wai shan, outer mountain, is tea from farther away still. Most buyers and growers say the stony character fades with distance from the core, though the zones are a trade habit and not a guarantee of any one cup. The shop's page on Wuyi rock tea covers how these teas are made and judged.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "The trade sorts Wuyi tea by how stony the ground is and how close it is to the scenic core. Zheng yan, true rock, is the core of about 70 square kilometres, with steep rocky ground. Its best-known part is the three pits and two streams, among them Niulan Keng and Huiyuan Keng. Ban yan, half rock, is the ring around the core, with less rock in the soil. Zhou cha is tea from the flat, sandy ground along the river. Wai shan, outer mountain, is tea from farther away still. Most buyers and growers say the stony character fades with distance from the core, though the zones are a trade habit and not a guarantee of any one cup. The shop's page on Wuyi rock tea covers how these teas are made and judged.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "xinghai-tea-factory:maker-history",
+    "pageId": "xinghai-tea-factory",
+    "sectionKey": "maker-history",
+    "label": "A Menghai maker with a thin record",
+    "axis": "maker_history",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "name_any": [
+        "xinghai"
+      ],
+      "origin_includes": [
+        "yunnan"
+      ]
+    },
+    "terms": [
+      {
+        "original": "兴海茶厂",
+        "pinyin": "xīnghǎi cháchǎng",
+        "gloss": "Xinghai Tea Factory"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Xinghai Tea Factory is a pu’er maker in the Menghai area of Xishuangbanna, Yunnan. It is not one of the big named state factories, so little is written about it, and what is written comes mostly from sellers and from the company itself. Sellers describe it as a ripe pu’er maker that took up wet piling early among the smaller Menghai factories. That is the reason its ripe bricks and cakes, including aged ones, turn up with collectors. The factory’s start date is not settled. The company’s own page says 2002, while one seller calls it an early private factory of the 1990s and sells a Xinghai brick dated 1997. Until that is cleared up, treat the name as a maker’s name only, and do not read a date or a style from it.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Xinghai Tea Factory is a pu’er maker in the Menghai area of Xishuangbanna, Yunnan. It is not one of the big named state factories, so little is written about it, and what is written comes mostly from sellers and from the company itself. Sellers describe it as a ripe pu’er maker that took up wet piling early among the smaller Menghai factories. That is the reason its ripe bricks and cakes, including aged ones, turn up with collectors. The factory’s start date is not settled. The company’s own page says 2002, while one seller calls it an early private factory of the 1990s and sells a Xinghai brick dated 1997. Until that is cleared up, treat the name as a maker’s name only, and do not read a date or a style from it.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "xishuangbanna-tea-mountains:living-culture",
+    "pageId": "xishuangbanna-tea-mountains",
+    "sectionKey": "living-culture",
+    "label": "Living tea culture",
     "axis": "place",
     "basis": "sourced",
     "listingEligible": false,
     "appliesWhen": {},
     "terms": [],
-    "rev": 1,
-    "scope": "Yunnan Pu’er Regions",
-    "text": "Pu’er is unusually place-bound for a broad tea family. Yunnan is the central geographic frame, while comparable processing outside the province does not by itself make a tea Yunnan Pu’er.",
+    "rev": null,
+    "scope": "",
+    "text": "Tea in Xishuangbanna is inseparable from the knowledge and daily work of communities including Bulang, Hani, and Dai peoples. Trade routes, tribute history, cultivation, processing, and contemporary protection efforts all contribute to the region’s place in Pu’er culture.",
     "sourceIds": [
-      "teadb-yunnan-overview"
+      "ctma-xishuangbanna-twelve-mountains-2025"
+    ],
+    "reviewState": "draft",
+    "pendingText": "Tea in Xishuangbanna is inseparable from the knowledge and daily work of communities including Bulang, Hani, and Dai peoples. Trade routes, tribute history, cultivation, processing, and contemporary protection efforts all contribute to the region’s place in Pu’er culture.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "xishuangbanna-tea-mountains:mountain-names",
+    "pageId": "xishuangbanna-tea-mountains",
+    "sectionKey": "mountain-names",
+    "label": "Mountain names",
+    "axis": "place",
+    "basis": "sourced",
+    "listingEligible": false,
+    "appliesWhen": {},
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "One contemporary grouping names Youle, Gedeng, Yibang, Mangzhi, Manzhuan, Yiwu, Xiao Mengsong, Nannuo, Hekai, Mengsong, Bulang, and Bada. Some names denote mountains, others broader tea areas, and their scale should remain visible whenever they are connected to an individual tea.",
+    "sourceIds": [
+      "ctma-xishuangbanna-twelve-mountains-2025"
+    ],
+    "reviewState": "draft",
+    "pendingText": "One contemporary grouping names Youle, Gedeng, Yibang, Mangzhi, Manzhuan, Yiwu, Xiao Mengsong, Nannuo, Hekai, Mengsong, Bulang, and Bada. Some names denote mountains, others broader tea areas, and their scale should remain visible whenever they are connected to an individual tea.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "xishuangbanna-tea-mountains:regional-grouping",
+    "pageId": "xishuangbanna-tea-mountains",
+    "sectionKey": "regional-grouping",
+    "label": "A regional grouping",
+    "axis": "place",
+    "basis": "sourced",
+    "listingEligible": false,
+    "appliesWhen": {},
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "Xishuangbanna is a warm, humid southern prefecture whose tea history is often introduced through a group of old tea mountains. The familiar list joins places across the prefecture for orientation; it should not be mistaken for a single administrative level or one continuous origin.",
+    "sourceIds": [
+      "ctma-xishuangbanna-twelve-mountains-2025"
+    ],
+    "reviewState": "draft",
+    "pendingText": "Xishuangbanna is a warm, humid southern prefecture whose tea history is often introduced through a group of old tea mountains. The familiar list joins places across the prefecture for orientation; it should not be mistaken for a single administrative level or one continuous origin.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "y562:designers",
+    "pageId": "y562",
+    "sectionKey": "designers",
+    "label": "A tiger and a hand-painted carton",
+    "axis": "named_tea_history",
+    "basis": "sourced",
+    "listingEligible": true,
+    "appliesWhen": {
+      "named_tea": "y562"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Jixing Y562 export tea and its documented historical versions.",
+    "text": "Designer Yin Huize recalled taking hand-painted cartons to the spring Canton Fair with his colleague Tang Zheng. Buyers placed orders from the samples. Tang drew on an openwork jade tiger pendant for the Jixing mark. Yin framed the lettering on the black box with patterns inspired by Chinese lacquerware. The design later appeared on a miniature 15 g carton that airlines gave to passengers.",
+    "sourceIds": [
+      "puer-magazine-export-cartons",
+      "puer-magazine-jixing-design"
     ],
     "reviewState": "approved",
     "previousRevisions": [
       {
         "rev": 1,
         "origin": "approved",
-        "scope": "Yunnan Pu’er Regions",
-        "text": "Pu’er is unusually place-bound for a broad tea family. Yunnan is the central geographic frame, while comparable processing outside the province does not by itself make a tea Yunnan Pu’er.",
+        "scope": "Jixing Y562 export tea and its documented historical versions.",
+        "text": "Designer Yin Huize recalled taking hand-painted cartons to the spring Canton Fair with his colleague Tang Zheng. Buyers placed orders from the samples. Tang drew on an openwork jade tiger pendant for the Jixing mark. Yin framed the lettering on the black box with patterns inspired by Chinese lacquerware. The design later appeared on a miniature 15 g carton that airlines gave to passengers.",
         "approvedAt": "2026-11-23",
-        "reason": "Backfilled from pages",
+        "reason": "Adrian approved the researched Y562 story for Tea Wisdom and matching listings.",
         "evidenceIds": [
-          "EVIDENCE-FD526336F67070D4C3DD64DF"
+          "EVIDENCE-6C6F4F073EDB7261F39C85AB",
+          "EVIDENCE-F630243D3CB7302997F8EC8E",
+          "EVIDENCE-2410F22AE4B69A942FA64699"
         ]
       }
     ],
     "pageVisibility": "public"
   },
   {
-    "claimId": "yunnan:reading-labels",
-    "pageId": "yunnan",
-    "sectionKey": "reading-labels",
-    "label": "Read labels with care",
-    "axis": "place",
+    "claimId": "y562:export-trade",
+    "pageId": "y562",
+    "sectionKey": "export-trade",
+    "label": "The box was part of the tea’s story",
+    "axis": "named_tea_history",
     "basis": "sourced",
-    "listingEligible": false,
-    "appliesWhen": {},
+    "listingEligible": true,
+    "appliesWhen": {
+      "named_tea": "y562"
+    },
     "terms": [],
     "rev": 1,
-    "scope": "Yunnan Pu’er Regions",
-    "text": "Regional schemes are editorial aids rather than a single settled ladder. Boundaries, spellings, and the prominence given to one place over another vary, and famous names also function as commercial language. A place label is useful context, not proof of a tea’s exact origin.",
+    "scope": "Jixing Y562 export tea and its documented historical versions.",
+    "text": "Much of Yunnan’s loose pu’er once travelled in bulk. In Japan, importers repacked it under their own labels. In 1980, Yunnan brought packaging and tea export designers together so a box could reach a shop counter carrying the province’s own brand. Y562 had Chinese lettering on the front and the English name “Superior Yunnan Pu-erh Tea” on the back. Its companion in the range was Y671, the “little yellow box.”",
     "sourceIds": [
-      "teadb-yunnan-overview"
+      "puer-magazine-export-cartons"
     ],
     "reviewState": "approved",
     "previousRevisions": [
       {
         "rev": 1,
         "origin": "approved",
-        "scope": "Yunnan Pu’er Regions",
-        "text": "Regional schemes are editorial aids rather than a single settled ladder. Boundaries, spellings, and the prominence given to one place over another vary, and famous names also function as commercial language. A place label is useful context, not proof of a tea’s exact origin.",
+        "scope": "Jixing Y562 export tea and its documented historical versions.",
+        "text": "Much of Yunnan’s loose pu’er once travelled in bulk. In Japan, importers repacked it under their own labels. In 1980, Yunnan brought packaging and tea export designers together so a box could reach a shop counter carrying the province’s own brand. Y562 had Chinese lettering on the front and the English name “Superior Yunnan Pu-erh Tea” on the back. Its companion in the range was Y671, the “little yellow box.”",
         "approvedAt": "2026-11-23",
-        "reason": "Backfilled from pages",
+        "reason": "Adrian approved the researched Y562 story for Tea Wisdom and matching listings.",
         "evidenceIds": [
-          "EVIDENCE-3EE3ABDD50251B7812F1C99A"
+          "EVIDENCE-F15BA92DF3957EB2BB4959D9",
+          "EVIDENCE-55FC506828F74D8F0C72ADAB"
         ]
       }
     ],
     "pageVisibility": "public"
   },
   {
-    "claimId": "yunnan:regional-map",
-    "pageId": "yunnan",
-    "sectionKey": "regional-map",
-    "label": "A map of regions",
-    "axis": "place",
+    "claimId": "y562:little-black-box",
+    "pageId": "y562",
+    "sectionKey": "little-black-box",
+    "label": "Yunnan’s little black box",
+    "axis": "named_tea_history",
     "basis": "sourced",
-    "listingEligible": false,
-    "appliesWhen": {},
+    "listingEligible": true,
+    "appliesWhen": {
+      "named_tea": "y562"
+    },
     "terms": [],
     "rev": 1,
-    "scope": "Yunnan Pu’er Regions",
-    "text": "Reference maps commonly begin with Xishuangbanna, Pu’er Prefecture, and Lincang, then move toward counties, mountain areas, villages, and local names. Xishuangbanna is often divided into eastern and western tea areas, while other production extends through Yunnan beyond those best-known centers.",
+    "scope": "Jixing Y562 export tea and its documented historical versions.",
+    "text": "Y562 is the export code for a loose ripe pu’er from Yunnan. Drinkers nicknamed it the “little black box” after its carton. The Jixing brand mark on the front shows a tiger coming downhill. China Tea’s catalogue lists Y562 in the classic 100 g format.",
     "sourceIds": [
-      "teadb-yunnan-overview"
+      "china-tea-catalogue-y562",
+      "puer-magazine-jixing-design"
     ],
     "reviewState": "approved",
     "previousRevisions": [
       {
         "rev": 1,
         "origin": "approved",
-        "scope": "Yunnan Pu’er Regions",
-        "text": "Reference maps commonly begin with Xishuangbanna, Pu’er Prefecture, and Lincang, then move toward counties, mountain areas, villages, and local names. Xishuangbanna is often divided into eastern and western tea areas, while other production extends through Yunnan beyond those best-known centers.",
+        "scope": "Jixing Y562 export tea and its documented historical versions.",
+        "text": "Y562 is the export code for a loose ripe pu’er from Yunnan. Drinkers nicknamed it the “little black box” after its carton. The Jixing brand mark on the front shows a tiger coming downhill. China Tea’s catalogue lists Y562 in the classic 100 g format.",
         "approvedAt": "2026-11-23",
-        "reason": "Backfilled from pages",
+        "reason": "Adrian approved the researched Y562 story for Tea Wisdom and matching listings.",
         "evidenceIds": [
-          "EVIDENCE-F9F875FFED47BD47BC79EC6C"
+          "EVIDENCE-99F92222EEA66297BE2ECBA5",
+          "EVIDENCE-E21387EE2A807C8BD28E7236",
+          "EVIDENCE-6C6F4F073EDB7261F39C85AB"
         ]
       }
     ],

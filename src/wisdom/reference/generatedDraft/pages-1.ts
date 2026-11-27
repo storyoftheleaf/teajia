@@ -5,6 +5,37 @@ import type { DraftReferencePage } from '../claims';
 
 export const PART: readonly DraftReferencePage[] = [
   {
+    "id": "anhua",
+    "slug": "anhua",
+    "kind": "major_region",
+    "label": "Anhua",
+    "visibility": "draft",
+    "nativeName": "安化",
+    "sourceIds": [],
+    "sections": [
+      {
+        "key": "where-it-is",
+        "label": "Where Anhua is",
+        "sourceIds": []
+      },
+      {
+        "key": "why-people-value-it",
+        "label": "Why people value Anhua",
+        "sourceIds": []
+      },
+      {
+        "key": "history",
+        "label": "How Anhua became a tea county",
+        "sourceIds": []
+      },
+      {
+        "key": "tea-today",
+        "label": "Tea in the county today",
+        "sourceIds": []
+      }
+    ]
+  },
+  {
     "id": "anhua-dark",
     "slug": "anhua-dark",
     "kind": "tea_type",
@@ -62,6 +93,52 @@ export const PART: readonly DraftReferencePage[] = [
       {
         "key": "notice-aged",
         "label": "What people often notice in Anhua tea kept for years",
+        "sourceIds": []
+      }
+    ]
+  },
+  {
+    "id": "anxi",
+    "slug": "anxi",
+    "kind": "major_region",
+    "label": "Anxi",
+    "visibility": "draft",
+    "nativeName": "安溪",
+    "sourceIds": [],
+    "sections": [
+      {
+        "key": "where-it-is",
+        "label": "Where Anxi is",
+        "sourceIds": []
+      },
+      {
+        "key": "why-tea",
+        "label": "Why tea does well here",
+        "sourceIds": []
+      },
+      {
+        "key": "known-for",
+        "label": "What Anxi is known for",
+        "sourceIds": []
+      },
+      {
+        "key": "townships",
+        "label": "Xiping, Xianghua, Gande and the others",
+        "sourceIds": []
+      },
+      {
+        "key": "inner-outer",
+        "label": "Inner and outer Anxi",
+        "sourceIds": []
+      },
+      {
+        "key": "history",
+        "label": "A tea county with a long trading past",
+        "sourceIds": []
+      },
+      {
+        "key": "on-a-label",
+        "label": "Anxi on a label",
         "sourceIds": []
       }
     ]
@@ -146,6 +223,42 @@ export const PART: readonly DraftReferencePage[] = [
       {
         "key": "in-ripe-pu-er",
         "label": "Bulang in ripe pu’er",
+        "sourceIds": []
+      }
+    ]
+  },
+  {
+    "id": "china-national-tea-corporation",
+    "slug": "china-national-tea-corporation",
+    "kind": "reference_topic",
+    "label": "China National Tea Corporation",
+    "visibility": "draft",
+    "nativeName": "中国茶叶公司",
+    "sourceIds": [],
+    "sections": [
+      {
+        "key": "what-it-is",
+        "label": "What the company is",
+        "sourceIds": []
+      },
+      {
+        "key": "zhong-cha-mark",
+        "label": "The Zhong Cha mark",
+        "sourceIds": []
+      },
+      {
+        "key": "many-factories",
+        "label": "Many factories, one mark",
+        "sourceIds": []
+      },
+      {
+        "key": "mark-and-tea",
+        "label": "Reading the mark on a tea",
+        "sourceIds": []
+      },
+      {
+        "key": "today",
+        "label": "Where the company stands now",
         "sourceIds": []
       }
     ]
@@ -435,6 +548,28 @@ export const PART: readonly DraftReferencePage[] = [
     ]
   },
   {
+    "id": "golden-bull",
+    "slug": "golden-bull",
+    "kind": "leaf_grade",
+    "label": "Golden Bull",
+    "visibility": "draft",
+    "nativeName": "金牛",
+    "parentId": "shou",
+    "sourceIds": [],
+    "sections": [
+      {
+        "key": "what-it-is",
+        "label": "A product name, not a grade",
+        "sourceIds": []
+      },
+      {
+        "key": "maker",
+        "label": "Who Hengfengyuan is",
+        "sourceIds": []
+      }
+    ]
+  },
+  {
     "id": "gong-ting",
     "slug": "gong-ting",
     "kind": "leaf_grade",
@@ -508,6 +643,21 @@ export const PART: readonly DraftReferencePage[] = [
         "sourceIds": [
           "teadb-greater-yiwu"
         ]
+      },
+      {
+        "key": "where-it-is",
+        "label": "Where Yiwu is",
+        "sourceIds": []
+      },
+      {
+        "key": "known-for",
+        "label": "What Yiwu is known for",
+        "sourceIds": []
+      },
+      {
+        "key": "on-a-label",
+        "label": "Yiwu on a label",
+        "sourceIds": []
       }
     ]
   },
@@ -553,6 +703,73 @@ export const PART: readonly DraftReferencePage[] = [
       {
         "key": "common-impressions",
         "label": "What people often notice",
+        "sourceIds": []
+      }
+    ]
+  },
+  {
+    "id": "guangxi",
+    "slug": "guangxi",
+    "kind": "major_region",
+    "label": "Guangxi",
+    "visibility": "draft",
+    "nativeName": "广西",
+    "sourceIds": [],
+    "sections": [
+      {
+        "key": "where-it-is",
+        "label": "Where Guangxi is",
+        "sourceIds": []
+      },
+      {
+        "key": "wuzhou-and-cangwu",
+        "label": "How Wuzhou and Cangwu sit inside it",
+        "sourceIds": []
+      },
+      {
+        "key": "land-and-climate",
+        "label": "What the land gives the tea",
+        "sourceIds": []
+      },
+      {
+        "key": "known-for-liu-bao",
+        "label": "What Guangxi is known for in dark tea",
+        "sourceIds": []
+      },
+      {
+        "key": "hengzhou-jasmine",
+        "label": "Hengzhou jasmine tea",
+        "sourceIds": []
+      },
+      {
+        "key": "on-a-label",
+        "label": "Guangxi on a label",
+        "sourceIds": []
+      }
+    ]
+  },
+  {
+    "id": "hengfengyuan",
+    "slug": "hengfengyuan",
+    "kind": "reference_topic",
+    "label": "Hengfengyuan",
+    "visibility": "draft",
+    "nativeName": "恒丰源",
+    "sourceIds": [],
+    "sections": [
+      {
+        "key": "who",
+        "label": "Who Hengfengyuan is",
+        "sourceIds": []
+      },
+      {
+        "key": "ripe-brand",
+        "label": "A name for ripe tea",
+        "sourceIds": []
+      },
+      {
+        "key": "golden-bull",
+        "label": "Golden Bull is a separate mark",
         "sourceIds": []
       }
     ]
@@ -761,210 +978,6 @@ export const PART: readonly DraftReferencePage[] = [
       {
         "key": "notice-aged",
         "label": "What people often notice in Liu An kept for years",
-        "sourceIds": []
-      }
-    ]
-  },
-  {
-    "id": "liu-bao",
-    "slug": "liu-bao",
-    "kind": "tea_type",
-    "label": "Liu Bao",
-    "visibility": "public",
-    "nativeName": "六堡茶",
-    "parentId": "dark",
-    "sourceIds": [],
-    "sections": [
-      {
-        "key": "definition",
-        "label": "What Liu Bao is",
-        "sourceIds": []
-      },
-      {
-        "key": "nanyang-trade",
-        "label": "Who drank it, and why",
-        "sourceIds": []
-      },
-      {
-        "key": "making-traditional",
-        "label": "The farmhouse way",
-        "sourceIds": []
-      },
-      {
-        "key": "making-factory",
-        "label": "The factory way",
-        "sourceIds": []
-      },
-      {
-        "key": "history",
-        "label": "How the trade fell and returned",
-        "sourceIds": []
-      },
-      {
-        "key": "age-young",
-        "label": "Young Liu Bao",
-        "sourceIds": []
-      },
-      {
-        "key": "age-settling",
-        "label": "Five to ten years",
-        "sourceIds": []
-      },
-      {
-        "key": "age-aged",
-        "label": "Ten years and more",
-        "sourceIds": []
-      },
-      {
-        "key": "old-stock",
-        "label": "Old stock",
-        "sourceIds": []
-      },
-      {
-        "key": "brewing",
-        "label": "Brewing Liu Bao",
-        "sourceIds": []
-      },
-      {
-        "key": "common-impressions",
-        "label": "What people often notice",
-        "sourceIds": []
-      },
-      {
-        "key": "notice-aged",
-        "label": "What people often notice in aged Liu Bao",
-        "sourceIds": []
-      }
-    ]
-  },
-  {
-    "id": "mahei",
-    "slug": "mahei",
-    "kind": "tea_area",
-    "label": "Mahei",
-    "visibility": "public",
-    "nativeName": "麻黑",
-    "parentId": "greater-yiwu",
-    "sourceIds": [
-      "ma-zhefeng-mahei-road",
-      "mengla-mahei-spring"
-    ],
-    "sections": [
-      {
-        "key": "village-road-and-harvest",
-        "label": "The road through Mahei",
-        "sourceIds": [
-          "ma-zhefeng-mahei-road",
-          "mengla-mahei-spring"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "mahei-gushu-red",
-    "slug": "mahei-gushu-red",
-    "kind": "named_tea",
-    "label": "Mahei Gushu Red",
-    "visibility": "public",
-    "nativeName": "麻黑古树红茶",
-    "sourceIds": [
-      "teajia-mahei-red"
-    ],
-    "sections": [
-      {
-        "key": "tea-name",
-        "label": "Reading the tea’s name",
-        "sourceIds": [
-          "teajia-mahei-red"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "malaysian-returned-liu-bao",
-    "slug": "malaysian-returned-liu-bao",
-    "kind": "named_tea",
-    "label": "Malaysian Returned Liu Bao",
-    "visibility": "public",
-    "nativeName": "马来回流六堡茶",
-    "sourceIds": [
-      "cns-malaysia-liubao-trade",
-      "guangxi-archives-liubao",
-      "teajia-malaysian-returned"
-    ],
-    "sections": [
-      {
-        "key": "returned",
-        "label": "Why the tea is called “returned”",
-        "sourceIds": [
-          "cns-malaysia-liubao-trade",
-          "teajia-malaysian-returned"
-        ]
-      },
-      {
-        "key": "river-trade",
-        "label": "The river route to Malaya",
-        "sourceIds": [
-          "guangxi-archives-liubao"
-        ]
-      },
-      {
-        "key": "tea-came-back",
-        "label": "How older tea found its way back",
-        "sourceIds": [
-          "cns-malaysia-liubao-trade"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "menghai-county",
-    "slug": "menghai-county",
-    "kind": "tea_area",
-    "label": "Menghai County",
-    "visibility": "public",
-    "nativeName": "勐海县",
-    "parentId": "yunnan",
-    "sourceIds": [
-      "teadb-menghai-county"
-    ],
-    "sections": [
-      {
-        "key": "why-people-value-it",
-        "label": "Why people value Menghai",
-        "sourceIds": []
-      },
-      {
-        "key": "scope",
-        "label": "Western Xishuangbanna",
-        "sourceIds": [
-          "teadb-menghai-county"
-        ]
-      },
-      {
-        "key": "common-character",
-        "label": "A forceful reputation",
-        "sourceIds": [
-          "teadb-menghai-county"
-        ]
-      },
-      {
-        "key": "history",
-        "label": "Why the name is so well known",
-        "sourceIds": [
-          "teadb-menghai-county"
-        ]
-      },
-      {
-        "key": "mengsong-naka",
-        "label": "Mengsong and Naka",
-        "sourceIds": [
-          "teadb-menghai-county"
-        ]
-      },
-      {
-        "key": "ripe-origins",
-        "label": "Where ripe pu’er began",
         "sourceIds": []
       }
     ]
