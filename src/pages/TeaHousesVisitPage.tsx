@@ -87,7 +87,7 @@ export default function TeaHousesVisitPage() {
   return (
     <div className="w-full max-w-3xl mx-auto pt-12 pb-16" data-testid="tea-houses-visit">
       <Helmet>
-        <title>Find a tea house | Teajia</title>
+        <title>Find a tea house · Teajia</title>
         <meta
           name="description"
           content="Tea houses in the Teajia network, each independent, each with its own character. Choose one to visit."

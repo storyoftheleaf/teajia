@@ -53,7 +53,7 @@ export default function TeaHousePortfolioPage() {
   return (
     <div className="w-full max-w-3xl mx-auto pt-12 pb-16" data-testid="tea-house-page">
       <Helmet>
-        <title>{query.data ? `${query.data.house.name} | ${TEA_HOUSES_TITLE} | Teajia` : `${TEA_HOUSES_TITLE} | Teajia`}</title>
+        <title>{query.data ? `${query.data.house.name} · ${TEA_HOUSES_TITLE} · Teajia` : `${TEA_HOUSES_TITLE} · Teajia`}</title>
       </Helmet>
       <Link to="/tea-houses/work" className={`${T.link} tap-target inline-flex items-center`}>{TEA_HOUSES_TITLE}</Link>
 

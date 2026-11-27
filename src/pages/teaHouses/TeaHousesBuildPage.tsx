@@ -23,7 +23,7 @@ export default function TeaHousesBuildPage() {
   if (view.state === 'closed') return <SiteNotFound />;
   return (
     <div className="w-full max-w-3xl mx-auto pt-12 pb-16" data-testid="tea-houses-build">
-      <Helmet><title>{`Build | ${TEA_HOUSES_TITLE} | Teajia`}</title></Helmet>
+      <Helmet><title>{`Build · ${TEA_HOUSES_TITLE} · Teajia`}</title></Helmet>
       <header className="text-center mb-10">
         <Link to="/tea-houses" className={`${T.label} text-tea-text-dim tap-target inline-flex items-center`}>{TEA_HOUSES_TITLE}</Link>
         <h1 className={`${T.h1} mt-3`}>This is what I can do for your room</h1>
