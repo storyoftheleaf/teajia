@@ -77,24 +77,14 @@ test('the tea page reads in editing order and Next keeps the part you are on', a
   await page.waitForTimeout(400);
   await page.screenshot({ path: testInfo.outputPath('tea-page-top.png') });
 
-  // The tea only names the service it travels by; each says the price it gives before it is
-  // picked: Liu Bao costs 0.50 a gram, so Airmail at 2 dollars a kilo sells at 1.51. Nothing
-  // on the tea edits a freight price: the rates are set in Logistics.
-  const freight = tea.getByRole('combobox', { name: 'Travels by' });
-  await expect(freight).toHaveValue('');
-  await expect(freight.locator('option')).toHaveText(['Shop rate', 'Guangzhou · Airmail, $1.51 a gram']);
+  // Shipping is one line on the tea, and it is a link to the shipment (Adrian, 2026-11-27):
+  // when it arrives, what shipping adds to a gram, and by what. Nothing on the tea edits freight.
+  const shipping = tea.getByTestId('tea-shipping');
+  await expect(shipping).toHaveText(/^Arrives 4 Dec · .* · shop default$/);
+  await expect(shipping).toHaveAttribute('href', '/admin/purchase-orders?shipmentId=ship-1');
+  await expect(tea.getByRole('combobox', { name: 'Travels by' })).toHaveCount(0);
   await expect(tea.getByRole('spinbutton', { name: /freight/i })).toHaveCount(0);
-  await expect(tea.getByRole('button', { name: 'Rates are set in Logistics' })).toBeVisible();
-  // The shipments this tea is on are links, each with the service it travels by.
-  await expect(tea.getByTestId('tea-shipments').getByRole('link', { name: /Due 4 Dec/ })).toHaveAttribute('href', '/admin/purchase-orders?shipmentId=ship-1');
-  await expect(tea.getByTestId('tea-shipments').getByRole('link', { name: /Due 4 Dec.*Guangzhou · Airmail/ })).toBeVisible();
-  const saved = page.waitForRequest(r => r.url().includes('/api/products/liu-bao/commercial') && r.method() === 'PUT');
-  await page.route('**/api/products/liu-bao/commercial', r => r.fulfill({ json: { success: true } }));
-  await freight.selectOption('air');
-  expect((await saved).postDataJSON()).toEqual({ freight_service_id: 'air' });
-  // Once it travels by a service, the service itself is a link.
-  await expect(tea.getByTestId('tea-freight-service-link').getByRole('link')).toHaveAttribute('href', '/admin/purchase-orders?serviceId=air');
-  await tea.getByTestId('tea-shipments').scrollIntoViewIfNeeded();
+  await shipping.scrollIntoViewIfNeeded();
   await page.waitForTimeout(300);
   await page.screenshot({ path: testInfo.outputPath('tea-page-journey.png') });
 
@@ -129,15 +119,17 @@ test('a tea that kept its own older freight rate shows it read-only, with Clear 
   await page.locator('tr[data-product-id="liu-bao"]').dispatchEvent('click', { metaKey: true });
   await page.getByRole('toolbar', { name: 'Selection actions' }).getByRole('button', { name: 'Edit', exact: true }).click();
   const tea = page.getByTestId('tea-page');
-  await expect(tea.getByTestId('tea-freight-rate')).toHaveText('$6.00 / kg');
+  // $6.00 a kilo is $0.006 a gram, and the line says it is the tea's own rate.
+  await expect(tea.getByTestId('tea-shipping')).toHaveText('Arrives 4 Dec · $0.006/g shipping · its own rate');
   await expect(tea.getByRole('spinbutton', { name: /freight/i })).toHaveCount(0);
+  const sheet = tea;
   // 0.50 a gram of tea: (0.50 + 0.006) × 3 now, and (0.50 + 0.01) × 3 once it follows 70 yuan.
-  await expect(tea.getByTestId('tea-freight-clear-preview')).toHaveText('Clear, $1.52 → $1.53 a gram');
-  await tea.getByTestId('tea-freight-clear-preview').scrollIntoViewIfNeeded();
+  await expect(sheet.getByTestId('tea-freight-clear-preview')).toHaveText('Clear → $1.53/g');
+  await tea.getByTestId('tea-shipping').scrollIntoViewIfNeeded();
   await page.waitForTimeout(300);
   await page.screenshot({ path: testInfo.outputPath('tea-page-freight-clear.png') });
   const saved = page.waitForRequest(r => r.url().includes('/api/products/liu-bao/commercial') && r.method() === 'PUT');
   await page.route('**/api/products/liu-bao/commercial', r => r.fulfill({ json: { success: true } }));
-  await tea.getByRole('button', { name: /^Clear this tea's rate/ }).click();
+  await sheet.getByRole('button', { name: /^Clear this tea's rate/ }).click();
   expect((await saved).postDataJSON()).toEqual({ shipping_rate_per_kg: null });
 });

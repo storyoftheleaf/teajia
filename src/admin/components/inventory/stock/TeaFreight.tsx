@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
-import { serviceHref, shipmentHref, SHIPMENT_STATE_WORD, teaShipments } from '../logisticsLinks';
+import { Link } from 'react-router-dom';
+import { serviceHref, shipmentHref, SHIPMENT_STATE_WORD, shipmentIsComing, teaShipments } from '../logisticsLinks';
 import { JourneyChip } from '../ServiceJourneyCard';
 import { Button } from '../../../../components/shared/Button';
 import { api } from '../../../../lib/api';
@@ -61,44 +62,25 @@ export function TeaFreight({ product, shopPerKgUsd, rates, costRateToUsd, onChoo
     : 'Following the shop rate.';
 
   const onBoard = teaShipments(product.id, data);
-  return <>
-    <TeaLine label="Travels by">
-      <div className="relative flex-1">
-        <select aria-label="Travels by" value={product.freightServiceId ?? ''} onChange={event => void onChoose(event.target.value || null)}
-          className="w-full bg-transparent border-0 rounded-none py-1 px-0 pr-4 outline-none appearance-none cursor-pointer text-left text-admin-text focus-visible:ring-1 focus-visible:ring-tea-gold">
-          <option value="" className="bg-tea-surface text-tea-text">{option('Shop rate', shopPerKgUsd)}</option>
-          {services.map(service => {
-            const quote = quotes[service.id] ? serviceQuotePerKgUsd(quotes[service.id], { id: product.id, form: product.form }, data?.packing_sizes) : null;
-            return <option key={service.id} value={service.id} className="bg-tea-surface text-tea-text">
-              {option(`${service.logistics_company_name} · ${service.name}`, quote ?? shopPerKgUsd)}
-            </option>;
-          })}
-          {chosen && !chosen.active && <option value={chosen.id} className="bg-tea-surface text-tea-text">{chosen.logistics_company_name} · {chosen.name} (no longer active)</option>}
-        </select>
-      </div>
-    </TeaLine>
-    {chosen && <TeaLine label="Service">
-      <span data-testid="tea-freight-service-link" className="journey-items flex-1 justify-end"><JourneyChip item={{ key: chosen.id, label: `${chosen.logistics_company_name} · ${chosen.name}`, detail: serviceRateLabel(chosen), href: serviceHref(chosen.id) }}/></span>
-    </TeaLine>}
-    {onBoard.length > 0 && <TeaLine label="Shipments">
-      <span data-testid="tea-shipments" className="journey-items flex-1 justify-end">
-        {onBoard.slice(0, 4).map(({ shipment, service }) => <JourneyChip key={shipment.id} item={{
-          key: shipment.id,
-          label: shipment.eta && shipment.state !== 'received' ? `Due ${new Date(`${shipment.eta}T00:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' })}` : SHIPMENT_STATE_WORD[shipment.state],
-          detail: service ? `${shipment.logistics_company_name} · ${service.name}` : shipment.logistics_company_name,
-          href: shipmentHref(shipment.id),
-        }}/>)}
-      </span>
-    </TeaLine>}
-    <TeaLine label="Freight">
-      <span data-testid="tea-freight-rate" className="text-admin-text tabular-nums">{usd(shown) ?? '—'} / kg</span>
-    </TeaLine>
-    <div className="tea-page-note">
-      {note}{' '}
-      {ownRate && onClearOwnRate && clearPreview && <Button variant="plain" type="button" className="tap-target text-tea-gold" aria-label={`Clear this tea's rate: ${clearPriceLine(clearPreview)}`} onClick={() => void onClearOwnRate()}>
-        <span data-testid="tea-freight-clear-preview" className="tabular-nums">{`Clear, ${clearPriceLine(clearPreview)}`}</span>
-      </Button>}{' '}
-      <Button variant="plain" type="button" className="tap-target text-tea-gold" onClick={onOpenLogistics}>Rates are set in Logistics</Button>
+  const due = (shipment: { eta: string | null; state: string }) => shipment.eta && shipment.state !== 'received' ? new Date(`${shipment.eta}T00:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' }) : null;
+  const next = onBoard.find(({ shipment }) => shipmentIsComing(shipment) && shipment.eta);
+  // One line on the tea page, and it is a link (Adrian, 2026-11-27): when it
+  // arrives, what shipping adds to a gram, and by what. The detail lives with
+  // the shipment or the service, not on the tea.
+  const perGram = shown == null ? null : shown / 1000;
+  const coming = next?.shipment ?? onBoard.find(({ shipment }) => shipmentIsComing(shipment))?.shipment ?? null;
+  const target = coming ? shipmentHref(coming.id) : chosen ? serviceHref(chosen.id) : '/admin/purchase-orders';
+  const summary = [
+    coming ? (due(coming) ? `Arrives ${due(coming)}` : SHIPMENT_STATE_WORD[coming.state]) : null,
+    perGram == null ? 'shipping cost unknown' : `$${perGram === 0 ? 0 : Number(perGram.toPrecision(2))}/g shipping`,
+    chosen ? `${chosen.logistics_company_name} · ${chosen.name}` : ownRate ? 'its own rate' : 'shop default',
+  ].filter(Boolean).join(' · ');
+  return <TeaLine label="Shipping">
+    <div className="flex min-w-0 flex-1 items-baseline justify-end gap-x-3">
+      <Link data-testid="tea-shipping" className="tap-target min-w-0 max-w-full justify-start overflow-hidden text-admin-text tabular-nums hover:text-tea-gold-lt" title={summary} to={target}><span className="min-w-0 truncate">{summary}</span></Link>
+      {ownRate && onClearOwnRate && clearPreview && <button type="button" className="tap-target shrink-0 text-ui-12 text-tea-gold" aria-label={`Clear this tea's rate: ${clearPriceLine(clearPreview)}`} onClick={() => void onClearOwnRate()}>
+        <span data-testid="tea-freight-clear-preview" className="tabular-nums">{clearPreview.after == null ? "Clear" : `Clear → $${clearPreview.after.toFixed(2)}/g`}</span>
+      </button>}
     </div>
-  </>;
+  </TeaLine>;
 }
