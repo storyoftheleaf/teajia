@@ -18,7 +18,7 @@ import EditablePhoto from './read/EditablePhoto';
 import StoryEditorBar from './read/StoryEditorBar';
 import type { PublicProduct } from '../types';
 import { homeBarOpen } from '../lib/homeBar';
-import { ComeToATable, FromTheTeaTable, HOME_LINES_TODAY, TeaHousesStrip, consultPlatePath, homeLinesLaunchFour } from './home/HomeLaunchFour';
+import { ComeToATable, FromTheTeaTable, HOME_LINES_TODAY, HomeFourDoors, TeaHousesStrip, consultPlatePath } from './home/HomeLaunchFour';
 
 /**
  * The home page. Cover C from the 2026-09-20 round, built beside the old page
@@ -190,16 +190,17 @@ const HomeV2Page: React.FC = () => {
           pastes or is chosen into it, and Publish makes it live. Until one is
           published the table photograph stands in. */}
       <section aria-label="Teajia" className="grid grid-cols-1 lg:grid-cols-[var(--teajia-sidebar-w)_minmax(0,1.45fr)_minmax(0,1fr)] lg:min-h-[88vh]">
-        <div className={`lg:col-start-2 px-6 sm:px-10 lg:pl-[4rem] lg:pr-16 pt-14 sm:pt-20 lg:pt-0 pb-10 lg:pb-0 flex flex-col justify-center`}>
+        <div className={`lg:col-start-2 px-6 sm:px-10 lg:pl-[4rem] lg:pr-16 ${launchFour ? 'pt-10' : 'pt-14'} sm:pt-20 lg:pt-0 ${launchFour ? 'pb-7' : 'pb-10'} lg:pb-0 flex flex-col justify-center`}>
           <h1
-            className="font-display font-light text-tea-text max-w-[26ch] text-[clamp(38px,3.9vw,66px)] leading-[1.06] tracking-[0.005em]"
+            className={`font-display font-light text-tea-text max-w-[26ch] ${launchFour ? 'text-[clamp(26px,7.7vw,36px)] lg:text-[clamp(38px,3.9vw,66px)]' : 'text-[clamp(38px,3.9vw,66px)]'} leading-[1.06] tracking-[0.005em]`}
             style={{ textWrap: 'balance' }}
           >
             Tea deepens with what<br className="hidden xl:inline" /> you bring to the table<br className="hidden xl:inline" /> and what you leave behind.
           </h1>
           {/* No tap-target here: it sets a 44px floor per line, which read as a blank line between each. The 26px line box clears the 24px AA target size on its own. */}
+          {launchFour ? <HomeFourDoors /> : (
           <nav aria-label="Homepage destinations" className="mt-8 flex flex-col items-start gap-0">
-            {(launchFour ? homeLinesLaunchFour() : HOME_LINES_TODAY).map(item => (
+            {HOME_LINES_TODAY.map(item => (
               <Link
                 key={item.to}
                 to={item.to}
@@ -210,6 +211,7 @@ const HomeV2Page: React.FC = () => {
               </Link>
             ))}
           </nav>
+          )}
           {/* The opener's way in: the Start Here page, six paths into the
               practice. Discover your tea lives in Craft now, not here. */}
           <p className={`${BODY} italic mt-5 text-tea-text-sec`}>

@@ -341,6 +341,7 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({ embedd
               hint="Used for event timing and account operations."
             />
           </div>
+          <p className="text-ui-12 text-tea-text-sec">The shop's shipping rate, and each logistics service's, are in <Link to="/admin/purchase-orders?serviceId=shop" className="text-tea-gold-lt hover:text-tea-gold">Shipping rates</Link>.</p>
           <label className="flex items-start gap-3 pt-2">
             <input
               type="checkbox"
@@ -503,7 +504,7 @@ const LaunchReadinessPanel: React.FC<{
         { label: 'Public products available', done: audit.products.readyPublic > 0 },
         { label: 'Checkout/contact route exists', done: !!account.whatsapp_number || !!account.contact_email },
         ...(person ? [
-          { label: 'Your Tea Master profile is published', done: person.isPublished },
+          { label: 'Your host profile is published', done: person.isPublished },
           { label: 'A public payment method to be paid through', done: person.publishedPaymentMethods > 0 },
         ] : []),
       ],

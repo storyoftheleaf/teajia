@@ -15,7 +15,7 @@ import { FAMILY_PAGE_WORDS } from '../../lib/familyContract';
 export function contributorsLoadError(error: unknown): string {
   const status = error instanceof ApiError ? error.status : undefined;
   if (status === 401) return 'Your sign-in has expired. Sign in again, then come back here.';
-  if (status === 403) return 'Tea Masters is looked after from a shop you own. Switch to that shop in Your Table, then retry.';
+  if (status === 403) return 'Hosts are looked after from a shop you own. Switch to that shop in Your Table, then retry.';
   if (status && status >= 500) return 'The shop had a problem answering. Retry in a moment.';
   if (!status) return 'The shop did not answer. Check the connection, then retry.';
   return error instanceof Error ? error.message : 'Could not load contributors.';
@@ -43,7 +43,7 @@ export const ContributorsView: React.FC = () => {
         <header className="flex flex-wrap items-end justify-between gap-4 border-b border-tea-border pb-5">
           <div>
             <p className="text-ui-11 text-tea-text-sec">Publishing identities</p>
-            <h1 className={`${TYPOGRAPHY_CLASSES.h2} mt-1 text-tea-text`}>Tea Masters</h1>
+            <h1 className={`${TYPOGRAPHY_CLASSES.h2} mt-1 text-tea-text`}>Hosts</h1>
           </div>
           <div className="flex items-center gap-2">
             <button type="button" aria-label="Refresh contributors" onClick={() => query.refetch()} disabled={query.isFetching} className="tap-target rounded-md p-2 text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text disabled:opacity-50"><RefreshCw size={16} className={query.isFetching ? 'animate-spin' : ''} /></button>
@@ -56,7 +56,7 @@ export const ContributorsView: React.FC = () => {
         ) : query.isError ? (
           <div className="py-20 text-center"><p className="text-ui-14 text-tea-text">Could not load contributors.</p><p className="mx-auto mt-2 max-w-[44ch] text-ui-13 leading-relaxed text-tea-text-sec" data-testid="contributors-load-reason">{contributorsLoadError(query.error)}</p><button type="button" onClick={() => query.refetch()} className="tap-target mt-3 text-ui-13 text-tea-gold hover:text-tea-gold-lt">Retry</button></div>
         ) : contributors.length === 0 ? (
-          <div className="py-20 text-center"><UsersRound size={28} className="mx-auto text-tea-text-dim" /><p className="mt-4 text-ui-14 text-tea-text">No tea masters yet.</p><p className="mt-1 text-ui-13 text-tea-text-sec">Create the first editorial identity when its voice and profile are ready.</p><button type="button" onClick={() => setSelected(null)} className="tap-target mt-5 text-ui-13 text-tea-gold hover:text-tea-gold-lt">Create contributor</button></div>
+          <div className="py-20 text-center"><UsersRound size={28} className="mx-auto text-tea-text-dim" /><p className="mt-4 text-ui-14 text-tea-text">No hosts yet.</p><p className="mt-1 text-ui-13 text-tea-text-sec">Create the first editorial identity when its voice and profile are ready.</p><button type="button" onClick={() => setSelected(null)} className="tap-target mt-5 text-ui-13 text-tea-gold hover:text-tea-gold-lt">Create contributor</button></div>
         ) : (
           <div className="mt-4 divide-y divide-tea-border">
             {contributors.map(contributor => (

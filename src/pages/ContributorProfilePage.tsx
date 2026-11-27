@@ -2,6 +2,7 @@ import { ProfileSessions } from '../components/sessions/ProfileSessions';
 import { SaleTeaRow } from '../components/sessions/SessionTeaRow';
 import { ProfileSitRecaps } from '../components/people/ProfileSitRecaps';
 import { TopTeasSection } from '../components/people/TopTeasSection';
+import { PracticeLines } from '../components/people/PracticeLines';
 import { topTeasOpen } from '../lib/topTeas';
 import { teaTableOpen } from '../lib/teaTable';
 import { useEffect, useState } from 'react';
@@ -425,6 +426,8 @@ export default function ContributorProfilePage() {
           )}
           {/* The hub: three cells at most, side by side, sharing the width. It
               stays: someone who came to pay should not have to scroll. */}
+          {/* With tea since, what draws me, what I do: the practice, never a title. */}
+          <PracticeLines slug={data.id} />
           <HubCells cells={cells} testId="profile-hub" />
           <ProfileSitRecaps slug={data.id} />
         </header>

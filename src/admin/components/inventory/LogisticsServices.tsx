@@ -12,7 +12,7 @@ import type { LogisticsService, LogisticsTracking } from '../../../lib/logistics
 import type { LogisticsMutation } from './LogisticsControls';
 import { useLogisticsAction, LogisticsActionError } from './useLogisticsAction';
 import { logisticsNumber } from './LogisticsControls';
-import { ShopFreightDefault, shopFreightCurrency, useShopDefaultAccount } from './ShopFreightDefault';
+import { ShopFreightDefault, shopDefaultLabel, shopFreightCurrency, useShopDefaultAccount } from './ShopFreightDefault';
 import { addMySuitcase, hasSuitcase } from './mySuitcase';
 import { companyFor, emptyDraft, rateLabel, serviceFromDraft, type ServiceDraft } from './serviceDraft';
 export function serviceRateLabel(service: Pick<LogisticsService, 'rate' | 'currency' | 'basis'>): string {
@@ -24,15 +24,18 @@ const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
 export function LogisticsServices({ services, tracking, accountId, busy, mutate: save }: { services: LogisticsService[]; tracking?: LogisticsTracking | null; accountId: string | null; busy: boolean; mutate: LogisticsMutation }) {
   const { mutate, error } = useLogisticsAction(save);
   const [params, setParams] = useSearchParams();
+  // Shipping rates is a step in the address (Adrian, 2026-11-27): "shop default"
+  // on a tea opens it at ?serviceId=shop, the header button at ?rates=open, and
+  // back closes it. A service link opens it at that service.
   const linkedService = params.get('serviceId');
-  const [open, setOpen] = useState(Boolean(linkedService));
-  useEffect(() => { if (linkedService) setOpen(true); }, [linkedService]);
+  const open = Boolean(linkedService) || params.get('rates') === 'open';
+  const openRates = () => setParams(current => { const next = new URLSearchParams(current); next.set('rates', 'open'); return next; });
   useEffect(() => {
     if (!open || !linkedService) return;
-    const frame = requestAnimationFrame(() => document.querySelector(`[data-testid="service-journey-${CSS.escape(linkedService)}"]`)?.scrollIntoView({ block: 'nearest' }));
+    const frame = requestAnimationFrame(() => document.querySelector(linkedService === 'shop' ? '[data-testid="shop-freight-default"]' : `[data-testid="service-journey-${CSS.escape(linkedService)}"]`)?.scrollIntoView({ block: 'nearest' }));
     return () => cancelAnimationFrame(frame);
   }, [open, linkedService]);
-  const close = () => { setOpen(false); if (linkedService) setParams(current => { const next = new URLSearchParams(current); next.delete('serviceId'); return next; }); };
+  const close = () => setParams(current => { const next = new URLSearchParams(current); next.delete('serviceId'); next.delete('rates'); return next; });
   const { data: products = [] } = useProducts({ enabled: open });
   const queryClient = useQueryClient();
   const teaLabel = (product: (typeof products)[number]) => [product.givenName || product.productName, product.year].filter(Boolean).join(' ');
@@ -50,8 +53,13 @@ export function LogisticsServices({ services, tracking, accountId, busy, mutate:
     return rows.filter((row: CompanyContact) => row.id && row.name).map((row: CompanyContact) => ({ id: row.id, name: row.name }));
   }, enabled: open, staleTime: 60_000 });
   const contacts = [...new Map([...(contactsQuery.data || []), ...services.map(service => ({ id: service.logistics_company_id, name: service.logistics_company_name }))].map(contact => [contact.id, contact])).values()].sort((a, b) => a.name.localeCompare(b.name));
-  const shopDefault = useShopDefaultAccount(accountId, open);
+  // Read while closed too: the header button shows the shop default's figure.
+  const shopDefault = useShopDefaultAccount(accountId, true);
   const active = services.filter(service => service.active);
+  const activeIds = new Set(active.map(service => service.id));
+  const teas = products.filter(product => product.type !== 'Teaware');
+  const ownRate = teas.filter(product => product.shippingRatePerKg != null);
+  const onShopDefault = teas.filter(product => product.shippingRatePerKg == null && (!product.freightServiceId || !activeIds.has(product.freightServiceId))).length;
   const addSuitcase = () => void mutate(async () => {
     try {
       await addMySuitcase({
@@ -101,8 +109,10 @@ export function LogisticsServices({ services, tracking, accountId, busy, mutate:
         <span className="text-tea-text-dim">{details ? 'Saved rates fill new shipment estimates. Existing quotes and final bills stay as recorded.' : `${draft.mode === 'sea' ? 'By boat' : 'By air'}, ${draft.basis === 'fixed' ? 'a fixed price' : draft.basis === 'm3' ? 'per m³' : 'per kg'}, in ${draft.currency || shopCurrency}. More details to change.`}</span>
       </div>
     </form>;
-  return <><button type="button" className="tap-target purchase-tracking-button" aria-label="Logistics services" onClick={() => setOpen(true)}>Services <span className="text-tea-text-dim">{active.length}</span></button><TrackingTask open={open} onClose={close} title="Logistics services"><div className="logistics-form journey-list">
-    <ShopFreightDefault accountId={accountId} account={shopDefault.data} busy={busy} run={action => mutate(action)}/>
+  return <><button type="button" className="tap-target purchase-tracking-button" aria-label="Shipping rates" onClick={openRates}>Shipping rates <span className="text-tea-text-dim">{shopDefault.data ? shopDefaultLabel(shopDefault.data).replace(' (platform default)', '') : active.length}</span></button><TrackingTask open={open} onClose={close} title="Shipping rates"><div className="logistics-form journey-list">
+    <p className="text-tea-text-sec" data-testid="shipping-rates-rule">Every tea pays the shop default, unless it travels by one of the services below. Freight is added at cost, after the tea cost × 3.</p>
+    <ShopFreightDefault accountId={accountId} account={shopDefault.data} busy={busy} run={action => mutate(action)} startEditing={linkedService === 'shop'} teasFollowing={products.length ? onShopDefault : null}/>
+    {active.length > 0 && <h3 className="label-caps text-tea-text-dim">Logistics services</h3>}
     {active.map(service => <ServiceJourneyCard key={service.id} service={service} journey={serviceJourney(service, tracking, products)} rate={serviceRateLabel(service)}
       busy={busy} onEdit={() => chooseEditor(service)} onGo={close}
       addable={products.filter(product => product.type !== 'Teaware' && product.freightServiceId !== service.id).map(product => ({ id: product.id, label: teaLabel(product) }))}
@@ -110,6 +120,11 @@ export function LogisticsServices({ services, tracking, accountId, busy, mutate:
     {!active.length && <p className="text-tea-text-sec">Save a company's services and quoted rates here, then choose one when preparing a shipment.</p>}
     {!editing && <div className="logistics-actions"><button type="button" className="tap-target purchase-tracking-button logistics-add-service" onClick={() => chooseEditor()}>+ Logistics company</button>{!hasSuitcase(services) && <button type="button" className="tap-target purchase-tracking-button" disabled={busy || shopDefault.isLoading} onClick={addSuitcase}>+ My suitcase</button>}</div>}
     {editing === 'new' && editorForm}
+    {ownRate.length > 0 && <section className="journey-card journey-card-quiet" data-testid="teas-with-own-rate">
+      <div className="text-ui-16 text-tea-text">Teas with their own older rate</div>
+      <p className="text-tea-text-dim">These were given a rate before rates moved here. It wins over the shop default and any service until it is cleared on the tea.</p>
+      <p className="flex flex-wrap gap-x-3">{ownRate.map(product => <Link key={product.id} className="tap-target underline text-tea-gold" to={`/admin/stock?panel=${encodeURIComponent(product.id)}`}>{teaLabel(product)}</Link>)}</p>
+    </section>}
     <LogisticsActionError message={error} recovery="Your entries are kept. Retry the same company or service action."/>
   </div></TrackingTask></>;
 }

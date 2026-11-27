@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../../lib/api';
 import { rateToUsd } from '../../../lib/currency';
@@ -31,7 +31,7 @@ export function useShopDefaultAccount(accountId: string | null, enabled: boolean
   return useQuery({ queryKey: [SHOP_DEFAULT_KEY, accountId], enabled: enabled && Boolean(accountId), staleTime: 60_000, queryFn: () => api.accounts.get(accountId!) as Promise<ShopRate> });
 }
 
-export function ShopFreightDefault({ accountId, account, busy, run }: { accountId: string | null; account: ShopRate | null | undefined; busy: boolean; run: (action: () => Promise<void>) => Promise<void> | void }) {
+export function ShopFreightDefault({ accountId, account, busy, run, startEditing = false, teasFollowing = null }: { accountId: string | null; account: ShopRate | null | undefined; busy: boolean; run: (action: () => Promise<void>) => Promise<void> | void; startEditing?: boolean; teasFollowing?: number | null }) {
   const queryClient = useQueryClient();
   const { data: rates = [] } = useRates();
   const [editing, setEditing] = useState(false);
@@ -42,6 +42,9 @@ export function ShopFreightDefault({ accountId, account, busy, run }: { accountI
     setCurrencyText(account?.default_shipping_rate_currency || FALLBACK_SHIPPING_RATE_CURRENCY);
     setEditing(true);
   };
+  // Opened from "shop default" on a tea: the form is the point, so it opens ready.
+  const loaded = account !== undefined;
+  useEffect(() => { if (startEditing && loaded) open(); }, [startEditing, loaded]); // eslint-disable-line react-hooks/exhaustive-deps
   const typed = rateText.trim() === '' ? null : Number(rateText);
   const valid = typed === null || (Number.isFinite(typed) && typed >= 0);
   const fx = rateToUsd(rates, currencyText.trim() || FALLBACK_SHIPPING_RATE_CURRENCY);
@@ -52,7 +55,7 @@ export function ShopFreightDefault({ accountId, account, busy, run }: { accountI
     : `$${(typed / fx).toFixed(2)} USD/kg today, adding $${(typed / fx / 1000).toFixed(3)} a gram on the shelf, at cost.`;
   return <div className="journey-card journey-card-quiet" data-testid="shop-freight-default">
     <div className="journey-head">
-      <div className="min-w-0"><div className="text-ui-16 text-tea-text">Shop default</div><div className="text-ui-12 text-tea-text-dim">Teas with no service, or one that cannot price them</div></div>
+      <div className="min-w-0"><div className="text-ui-16 text-tea-text">Shop default</div><div className="text-ui-12 text-tea-text-dim">{teasFollowing == null ? 'Teas with no service, or one that cannot price them' : `${teasFollowing} ${teasFollowing === 1 ? 'tea follows' : 'teas follow'} it: no service, or one that cannot price them`}</div></div>
       <div className="journey-rate text-ui-16 text-tea-text tabular-nums">{shopDefaultLabel(account)}</div>
       {!editing && <button type="button" className="btn-quiet btn-sm" aria-label="Edit shop default" disabled={busy || !accountId} onClick={open}>Edit</button>}
     </div>
