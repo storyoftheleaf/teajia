@@ -33,6 +33,8 @@ import { useLibraryPurchases, purchaseStateLabel } from '../../lib/libraryPurcha
 import { LibraryReceiptActions } from './LibraryReceiptActions';
 import { teaPath } from '../curate/teaPath';
 import { recordRequested } from '../curate/recordOnOpen';
+import { StockFromQuote } from '../curate/StockFromQuote';
+import { LeafUsedAfterTasting } from '../curate/LeafUsedAfterTasting';
 import { TeaPathLine, type TeaPathActions } from '../curate/TeaPathLine';
 import { useWisdomWriteup, wisdomWriteupHint } from '../curate/useWisdomWriteup';
 import { useWisdomEntryIds } from '../curate/useWisdomEntryIds';
@@ -78,6 +80,7 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
   const purchases = useLibraryPurchases();
   const stockProducts = useProducts({ enabled: !previewEntry });
   const [tastingOpen, setTastingOpen] = useState(false);
+  const [askLeafUsed, setAskLeafUsed] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [activeSection, setActiveSection] = useState('tea');
   const [moreFieldsOpen, setMoreFieldsOpen] = useState(false);
@@ -85,7 +88,7 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
   const materialRef = useRef<HTMLElement>(null);
   const [newNote, setNewNote] = useState('');
   const [noteMessage, setNoteMessage] = useState('');
-  useEffect(() => { setConfirmDelete(false); setNewNote(''); setNoteMessage(''); setActiveSection(recordRequested(entryId) ? 'notes' : 'tea'); setMoreFieldsOpen(false); setQuoteOpen(false); }, [entryId, accountScopeRevision]);
+  useEffect(() => { setConfirmDelete(false); setNewNote(''); setNoteMessage(''); setActiveSection(recordRequested(entryId) ? 'notes' : 'tea'); setAskLeafUsed(false); setMoreFieldsOpen(false); setQuoteOpen(false); }, [entryId, accountScopeRevision]);
   // The write-up step reads the Wisdom Base check for this tea (wisdomNeeds).
   const wisdom = useWisdomWriteup({
     id: entry?.id, type: entry?.type ?? null, form: entry?.form ?? null, product_name: entry?.name ?? null,
@@ -136,8 +139,8 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
     taste: { label: 'Taste', run: () => setTastingOpen(true) },
     decide: { label: '', hint: 'Want or Reject, above' },
     stock: { label: '', hint: 'Add to Stock, below' },
-    amount: stockProductId ? { label: 'Open in Stock', run: openStock } : undefined,
-    cost: stockProductId ? { label: 'Open in Stock', run: openStock } : undefined,
+    amount: stockProductId ? { label: '', hint: 'Fill it in below' } : undefined,
+    cost: stockProductId ? { label: '', hint: 'Fill it in below' } : undefined,
     // Pages still missing: the Stock panel's Wisdom Base fold lists them.
     writeup: !storyHref ? undefined : wisdom && wisdom.open > 0
       ? { label: 'See what’s needed', run: openStock, hint: wisdomWriteupHint(wisdom) }
@@ -224,6 +227,9 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
         <button type="button" onClick={() => setTastingOpen(true)} className="tea-record-taste tap-target inline-flex min-h-tap items-center gap-1.5 rounded-md px-3 text-ui-13 font-medium" aria-label="Taste"><TeaCupIcon />Taste</button>
       </div>
       {!previewEntry && !purchases.isLoading && <TeaPathLine path={path} actions={pathActions} />}
+      {askLeafUsed && !tastingOpen && stockProduct && workingStock && Number(stockProduct.stockGrams ?? 0) > 0 && <LeafUsedAfterTasting stock={stockProduct} entryId={entry.id} onDone={() => setAskLeafUsed(false)} />}
+      {!previewEntry && stockProduct && (['amount', 'cost'] as const).some(id => path.steps.find(step => step.id === id)?.done === false) && <StockFromQuote key={stockProduct.id} entry={entry} stock={stockProduct}
+        needsAmount={path.steps.find(step => step.id === 'amount')?.done === false} needsCost={path.steps.find(step => step.id === 'cost')?.done === false} />}
       {purchaseSummary}
       <div role="tablist" aria-label="Tea workspace" className="tea-record-tabs">
         {([['tea', 'Tea'], ['notes', 'Notes'], ['orders', 'Orders'], ['files', 'Files']] as const).map(([key, label]) => <button key={key} role="tab" type="button" aria-selected={activeSection === key} aria-controls={`record-panel-${entry.id}`} className="tap-target min-h-tap text-ui-13" onClick={() => setActiveSection(key)}>{label}</button>)}
@@ -354,6 +360,6 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
       <div className="px-3"><TeaRecordFields key={`${entry.id}:quote`} entry={entry} section="quote" flat onChange={patch => updateEntry(entry.id, patch)} /></div>
     </BottomSheet>
     <BottomSheet open={moreFieldsOpen} onOpenChange={setMoreFieldsOpen} title="Tea details"><StructuredTeaFields flat entry={{ ...entry, draftProductId: stockProductId ?? entry.draftProductId }} onChange={patch => updateEntry(entry.id, patch)} /></BottomSheet>
-    {tastingOpen && <TastingSession initialData={entry.tasting ?? entry.tastingHistory?.at(-1)?.data} item={{ id: entry.id, name: entry.name, type: entry.type, image: validPhotos[0], sourceType: 'compass', compassEntryId: entry.id }} onClose={() => setTastingOpen(false)} onAfterSave={(data: TastingData, verdict, _wouldBuy, record) => updateEntry(entry.id, curateTastingUpdate(useTeaCompassStore.getState().getEntry(entry.id) ?? entry, data, verdict, { record }))} />}
+    {tastingOpen && <TastingSession initialData={entry.tasting ?? entry.tastingHistory?.at(-1)?.data} item={{ id: entry.id, name: entry.name, type: entry.type, image: validPhotos[0], sourceType: 'compass', compassEntryId: entry.id }} onClose={() => setTastingOpen(false)} onAfterSave={(data: TastingData, verdict, _wouldBuy, record) => { setAskLeafUsed(true); return updateEntry(entry.id, curateTastingUpdate(useTeaCompassStore.getState().getEntry(entry.id) ?? entry, data, verdict, { record })); }} />}
   </div>;
 };
