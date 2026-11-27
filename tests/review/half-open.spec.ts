@@ -129,6 +129,7 @@ test.describe(`half-open: site ${SITE_SET}, worker ${WORKER_SET}`, () => {
 // two-tap budget in test-results/review/steps.json.
 test.describe(`the doors, walked: site ${SITE_SET}, worker ${WORKER_SET}`, () => {
   const siteOpen = (name: string) => SITE_SET === 'all' || SITE_SET.includes(name);
+  const workerOpen = (name: string) => WORKER_SET === 'all' || WORKER_SET.includes(name);
 
   test('host: from Home to connecting an assistant (HOST_TOKENS)', async ({ page }, info) => {
     await signIn(page, 'host');
@@ -152,7 +153,9 @@ test.describe(`the doors, walked: site ${SITE_SET}, worker ${WORKER_SET}`, () =>
     await signIn(page, 'owner');
     await page.goto('/admin/dashboard');
     await settle(page);
-    if (!siteOpen('TEA_TABLE')) {
+    // The section shows only when both sides are open: with the worker still
+    // closed its list answers 404 and the section stays quiet (A10-3).
+    if (!siteOpen('TEA_TABLE') || !workerOpen('TEA_TABLE')) {
       await page.goto('/admin/tasting-notes');
       await settle(page);
       await expect(page.getByRole('heading', { name: 'The Tea Table' })).toHaveCount(0);

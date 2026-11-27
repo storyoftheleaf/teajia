@@ -2,12 +2,14 @@ import { MemberSitsJourney } from '../components/account/MemberSitsJourney';
 import { SessionReflectionArchive } from '../components/account/SessionReflectionArchive';
 import { KeptSetupsArchive } from '../components/account/KeptSetupsArchive';
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, Navigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Leaf, ExternalLink, Send } from 'lucide-react';
 import { api } from '../lib/api';
 import { hasToken } from '../lib/api';
+import { authPagePath } from '../lib/authNavigation';
+import { LoadFailed } from '../components/shared/LoadFailed';
 import { useAppStore as useStore } from '../lib/store';
 import type { JourneySeal, JourneyImpression } from '../types/events';
 
@@ -386,26 +388,16 @@ const AccountJourneyPage: React.FC = () => {
 
   const isLoggedIn = hasToken();
 
-  const { data: journey, isLoading } = useQuery<MyJourneyData>({
+  const { pathname, search } = useLocation();
+  const { data: journey, isLoading, isError, refetch } = useQuery<MyJourneyData>({
     queryKey: ['me-journey'],
     queryFn: () => api.me.journey(),
     enabled: isLoggedIn,
     staleTime: 60_000,
   });
 
-  if (!isLoggedIn) {
-    return (
-      <div className="min-h-screen bg-tea-bg flex items-center justify-center px-6">
-        <div className="text-center max-w-sm">
-          <p className="h2 mb-3">Your journey awaits</p>
-          <p className="text-ui-13 text-tea-text-sec mb-6">Sign in to see your sessions, teas, and tasting notes.</p>
-          <button onClick={() => navigate('/')} className="inline-flex items-center gap-1.5 text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors">
-            <ArrowLeft size={14} /> Go home
-          </button>
-        </div>
-      </div>
-    );
-  }
+  // Signed out, the sign-in door, which comes back here (W5-5), as every other account page does.
+  if (!isLoggedIn) return <Navigate replace to={authPagePath('signin', pathname + search)} />;
 
   if (isLoading) {
     return (
@@ -430,6 +422,8 @@ const AccountJourneyPage: React.FC = () => {
             <Link to="/account/profile" className="btn-quiet tap-target">Your profile</Link>
           </div>
           <h1 className="h1 mb-4">Your Journey</h1>
+          {/* A failed read is not an empty Journey (W5-4). */}
+          {isError && <LoadFailed className="mb-6" sentence="We could not open your Journey just now." onRetry={() => void refetch()} />}
           <KeptSetupsArchive />
           <MemberSitsJourney />
           <SessionReflectionArchive />
@@ -450,7 +444,7 @@ const AccountJourneyPage: React.FC = () => {
             </>
           )}
 
-          {!hasSomething && (
+          {!hasSomething && !isError && (
             <div className="mt-10 flex gap-3">
               <button onClick={() => navigate('/events')} className="btn-primary">
                 <Leaf size={13} />

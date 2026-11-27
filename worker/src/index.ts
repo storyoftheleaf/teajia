@@ -14205,11 +14205,14 @@ async function updateEvent(env: Env, accountId: string, eventId: string, input: 
   }
   if (body.event_format === undefined) delete body.event_format;
   // Tasting and contribution are Launch 3's (J8, J11). While its switch is
-  // off they are not written, whoever sends them (A3).
+  // off they are not written, whoever sends them (A3), and the answer names
+  // what was not kept, so a site already open is not told it was (A10-2).
+  const notKept: string[] = [];
   if (!anyoneHostsOpen(env)) {
-    delete body.is_tasting;
-    delete body.contribution_kind;
-    delete body.contribution_note;
+    for (const field of ['is_tasting', 'contribution_kind', 'contribution_note']) {
+      if (body[field] !== undefined) notKept.push(field);
+      delete body[field];
+    }
   }
   if (body.contribution_kind !== undefined) {
     if (body.contribution_kind === '' ) body.contribution_kind = null;
@@ -14298,7 +14301,7 @@ async function updateEvent(env: Env, accountId: string, eventId: string, input: 
   }
   if (Number(result.meta?.changes || 0) === 0) return json({ error: 'Event not found' }, 404);
 
-  return json({ success: true });
+  return json(notKept.length ? { success: true, not_kept: notKept } : { success: true });
 }
 
 const handleDeleteEvent: Handler = async (request, env, params) => {

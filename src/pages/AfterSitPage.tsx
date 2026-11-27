@@ -10,6 +10,7 @@ import { PaperNotesLine } from '../components/events/PaperNotesLine';
 import { TYPOGRAPHY_CLASSES } from '../designTokens';
 import { anyoneHostsOpen } from '../lib/anyoneHosts';
 import { currentSignInToken } from '../lib/api';
+import { authPagePath } from '../lib/authNavigation';
 import { firstTableOpen } from '../lib/firstTable';
 import { afterSitDeviceKey, getAfterSitCredential, lookupAfterSitRecap, subscribeAfterSitCredential, type AfterSitRecap } from '../lib/afterSitAccess';
 
@@ -144,7 +145,7 @@ function DeviceSetup({ recap, deviceKey, onRemoved }: { recap?: AfterSitRecap; d
       </div>
       {recap && (
         <p className={`${TYPOGRAPHY_CLASSES.bodyLight} mt-2`}>
-          To save in Journey, <Link to="/signin" className={TYPOGRAPHY_CLASSES.link}>sign in</Link> with the account linked to your seat, then reopen the message from your host.
+          To save in Journey, <Link to={authPagePath('signin', '/after-sit')} className={TYPOGRAPHY_CLASSES.link}>sign in</Link> with the account linked to your seat, then reopen the message from your host.
         </p>
       )}
       {error && <p role="alert" className={TYPOGRAPHY_CLASSES.bodyLight}>This browser couldn’t update your saved setup.</p>}

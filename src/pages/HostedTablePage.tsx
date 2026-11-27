@@ -4,8 +4,9 @@
 // between them. Each part is one component other slices fill; see
 // src/components/host/hostTableParts.ts for the mount points.
 //
-// While Launch 2 is closed, and for anyone who is not this table's host, the
-// page says the same thing: the table was not found.
+// While Launch 2 is closed (on the site, or still on the worker), and for
+// anyone who is not this table's host, the page is the site's own not-found
+// page, the same as an address that never existed (A10-3, A10-8).
 import type { ReactElement } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Navigate, useLocation, useParams } from 'react-router-dom';
@@ -24,6 +25,9 @@ import { useStepParam } from '../hooks/useStepParam';
 import { api, hasToken } from '../lib/api';
 import { authPagePath } from '../lib/authNavigation';
 import { fewHostsOpen } from '../lib/fewHosts';
+import { PART_QUERY, partView } from '../lib/closedPart';
+import { SiteNotFound } from '../components/SiteNotFound';
+import { LoadFailed } from '../components/shared/LoadFailed';
 
 const PART_NAMES: Record<HostTablePart, string> = { guests: 'Guests', teas: 'Teas', way: 'The way in', after: 'After' };
 const PART_COMPONENTS: Record<HostTablePart, (props: HostTablePartProps) => ReactElement> = {
@@ -33,16 +37,9 @@ const PART_COMPONENTS: Record<HostTablePart, (props: HostTablePartProps) => Reac
   after: HostTableAfter,
 };
 
-function NotFound() {
-  return <p className={hostText} role="status">This table was not found.</p>;
-}
-
 export default function HostedTablePage() {
-  return (
-    <main className="mx-auto w-full max-w-lg px-4 pt-6 pb-nav" data-host-page="table">
-      {fewHostsOpen() ? <OwnTable /> : <NotFound />}
-    </main>
-  );
+  if (!fewHostsOpen()) return <SiteNotFound />;
+  return <OwnTable />;
 }
 
 function OwnTable() {
@@ -54,18 +51,21 @@ function OwnTable() {
     queryKey: hostTableQueryKey(id),
     queryFn: () => api.tables.get(id),
     enabled: signedIn && isSessionReady && Boolean(id),
-    retry: false,
+    ...PART_QUERY,
   });
+  const view = partView(table);
 
   if (!signedIn) return <Navigate replace to={authPagePath('signin', pathname + search)} />;
-  if (!isSessionReady || table.isPending) return <p className={hostText} role="status">Opening the table…</p>;
-  if (table.isError) {
-    const status = (table.error as { status?: number }).status;
-    return status === 404 || status === 403
-      ? <NotFound />
-      : <p className={hostText} role="alert">Could not open the table. Reload to try again.</p>;
-  }
-  return <TableParts tableId={id} detail={table.data} />;
+  if (!id || view.state === 'closed' || (table.error as { status?: number } | null)?.status === 403) return <SiteNotFound />;
+  let content;
+  if (!isSessionReady || view.state === 'loading' || view.state === 'off') content = <p className={hostText} role="status">Opening the table…</p>;
+  else if (view.state === 'failed') content = <LoadFailed sentence="Could not open the table just now." onRetry={view.retry} />;
+  else content = <TableParts tableId={id} detail={view.data} />;
+  return (
+    <main className="mx-auto w-full max-w-lg px-4 pt-6 pb-nav" data-host-page="table">
+      {content}
+    </main>
+  );
 }
 
 function TableParts(props: HostTablePartProps) {
