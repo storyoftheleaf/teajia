@@ -1,3 +1,7 @@
+## 2026-11-27: The rail's two-word labels stack, and the Manage drawer is a slim column
+
+Adrian chose the final desktop look from the alternatives. "tea table" and "tea spaces" in the rail now sit on two close lines (`.rail-stacked`). The Manage drawer is a 56px porcelain column of small glyph-over-word tiles joined to the rail with a gold hairline, the room you are in lit gold, so the aside is `7.25rem` with the drawer out (was `9rem`). The other looks tried and their `?manage=` switch are gone. Files: `LeftSidebar.tsx`, `card-utilities.css`; the rules are in `docs/claude/layout.md`.
+
 ## 2026-11-27: Checks and worker deploys wait less
 
 A pull request's checks took 11 to 13 minutes, 9 of them the worker suite run in one piece, and a worker deploy ran that same suite again for about 9 of its 10 minutes. The suite now runs as four shards beside the type check and build (`worker-tests` and `checks-static` in `playwright.yml`; `checks` still passes only when every part did). A deploy skips the suite when Playwright already proved the exact tree it is about to ship, which is a squash merge of a PR that was up to date with main, and otherwise runs the same four shards. The dry-run build stays above the migrations.
