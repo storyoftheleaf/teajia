@@ -23,7 +23,7 @@ Taken from the personas, the vision and the Advise copy already on the site:
 
 - **A founder opening a dedicated tea house.** Knows tea, has often never run a room. Wants to open faster and run better than they could alone.
 - **A hotel, retreat, studio, office or private home** making tea part of its daily welcome. A room inside a larger place. This is what `/for-your-space` speaks to today.
-- **A tea master who already has a room** and wants the tools, the sourcing and the company of the network, without anyone redesigning their house.
+- **A host who already has a room** and wants the tools, the sourcing and the company of the network, without anyone redesigning their house.
 - **A traveller or guest** who is not building anything and only wants to find a table. They use the Visit view.
 
 Someone making a corner at home is not a client of this offering. Craft's "Tea Spaces" and the "Guided Practice Setup" session serve them, and each should link to the other.
