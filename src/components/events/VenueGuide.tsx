@@ -1,8 +1,11 @@
 // The way to the house, for a guest with a phone in one hand (Launch 2, slice
 // H8: todo/plans/guests-and-tea-masters-launch-2-run.md, "Sol, H8").
 //
-// One step at a time: a large photograph, the line beneath, and Back and Next
-// as large targets at the bottom, where a thumb reaches. "Open in maps" sits
+// One step at a time, filling a tall card: the step's photograph or film
+// behind a large numeral and the line, or the numeral and the line alone where
+// there is no picture (Adrian, 2026-11-27: led by words, a picture only where
+// one exists). Back and Next are large targets at the bottom, where a thumb
+// reaches, and the whole way is listed beneath, each step a tap away. "Open in maps" sits
 // at the top. Given `keep`, the steps and photographs are kept on the phone
 // (src/lib/keptWay.ts) so the page still opens where the signal ends; given
 // `fromKept`, the photographs are read from what was kept. Who receives the
@@ -85,6 +88,8 @@ const VenueGuide: React.FC<VenueGuideProps> = ({ venueGuide, mapLink, className 
 
   const step = steps[index];
   const photo = source(photoUrls[index]);
+  // A film that is a file plays in place, silent and looping; any other link opens beside the page.
+  const film = step?.video_url && /\.(mp4|webm|mov|m4v)(\?|#|$)/i.test(step.video_url) ? step.video_url : null;
   const notes = [
     venueGuide.parking_notes && { icon: Car, label: 'Parking', text: venueGuide.parking_notes },
     venueGuide.transit_notes && { icon: Train, label: 'Getting here', text: venueGuide.transit_notes },
@@ -107,30 +112,38 @@ const VenueGuide: React.FC<VenueGuideProps> = ({ venueGuide, mapLink, className 
 
       {step && (
         <div
-          className="mb-6 overflow-hidden rounded-md border border-tea-border bg-tea-surface"
+          className={`relative mb-6 flex aspect-[3/4] w-full flex-col justify-end overflow-hidden rounded-md border border-tea-border sm:aspect-[4/3] ${photoUrls[index] ? 'bg-tea-elevated' : 'bg-tea-surface'}`}
           onTouchStart={e => setTouchStart(e.touches[0].clientX)}
           onTouchEnd={handleTouchEnd}
           data-way-reader
         >
-          {photoUrls[index] && (
-            <div className="aspect-[3/4] w-full overflow-hidden bg-tea-elevated sm:aspect-[4/3]">
-              {photo && (
-                <img src={photo} alt={step.description || `Step ${index + 1}`} className="h-full w-full object-cover"
-                  data-way-photo={index + 1} />
-              )}
+          {/* The step's own picture or film fills the card; with neither, the numeral and the line carry it. */}
+          {film ? (
+            <video key={film} src={film} autoPlay muted loop playsInline className="absolute inset-0 h-full w-full object-cover" data-way-film={index + 1} />
+          ) : photo && (
+            <img src={photo} alt={step.description || `Step ${index + 1}`} className="absolute inset-0 h-full w-full object-cover"
+              data-way-photo={index + 1} />
+          )}
+          {(film || photoUrls[index]) && <div className="absolute inset-0 bg-gradient-to-t from-tea-bg via-tea-bg/60 to-transparent" aria-hidden />}
+          {steps.length > 1 && (
+            <div className="absolute inset-x-3 top-3 flex gap-1" aria-hidden>
+              {steps.map((_, at) => (
+                <span key={at} className={`h-0.5 flex-1 rounded-full ${at <= index ? 'bg-tea-gold' : 'bg-tea-text-dim opacity-40'}`} />
+              ))}
             </div>
           )}
-          <div className="space-y-2 p-4" aria-live="polite">
+          <div className="relative space-y-2 p-4" aria-live="polite">
+            <p className={`font-display leading-none ${film || photoUrls[index] ? 'text-7xl text-tea-text' : 'text-9xl text-tea-gold'}`} aria-hidden>{index + 1}</p>
             <p className="text-ui-12 uppercase tracking-[0.15em] text-tea-text-sec">
               Step {index + 1} of {steps.length}
             </p>
-            {step.description && <p className="type-body text-tea-text" data-way-line>{step.description}</p>}
-            {step.video_url && (
+            {step.description && <p className="font-display text-3xl leading-tight text-tea-text" data-way-line>{step.description}</p>}
+            {step.video_url && !film && (
               <a href={step.video_url} target="_blank" rel="noopener noreferrer" className="type-link">Watch the way in</a>
             )}
           </div>
           {steps.length > 1 && (
-            <div className="grid grid-cols-2 gap-3 px-4 pb-4">
+            <div className="relative grid grid-cols-2 gap-3 px-4 pb-4">
               <Button type="button" variant="secondary" size="lg" fullWidth onClick={goPrev} disabled={index === 0}
                 className="tap-target disabled:opacity-40">
                 Back
@@ -142,6 +155,25 @@ const VenueGuide: React.FC<VenueGuideProps> = ({ venueGuide, mapLink, className 
             </div>
           )}
         </div>
+      )}
+
+      {steps.length > 1 && (
+        <ol className="mb-6 flex flex-col" aria-label="The whole way">
+          {steps.map((one, at) => {
+            const thumb = source(photoUrls[at]);
+            return (
+              <li key={at}>
+                <Button type="button" variant="plain" onClick={() => setActiveStep(at)} aria-current={at === index ? 'step' : undefined}
+                  className="flex w-full items-center gap-3 border-l border-tea-border py-2 pl-4 text-left transition-colors active:bg-tea-elevated aria-[current=step]:border-tea-gold">
+                  {thumb
+                    ? <img src={thumb} alt="" loading="lazy" className="h-12 w-12 shrink-0 rounded-full object-cover" />
+                    : <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-tea-border font-display text-xl text-tea-gold" aria-hidden>{at + 1}</span>}
+                  <span className="type-body min-w-0 flex-1 break-words text-tea-text">{one.description || `Step ${at + 1}`}</span>
+                </Button>
+              </li>
+            );
+          })}
+        </ol>
       )}
 
       {(notes.length > 0 || phone) && (
