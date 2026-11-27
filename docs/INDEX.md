@@ -8,6 +8,7 @@
 
 | Document | Authority |
 |---|---|
+| [plans/README.md](plans/README.md) | **Every plan in one folder (2026-11-27):** links to all repo docs, plus copies of the plans that lived only on Adrian's Mac and the project's shared notes. Point ChatGPT or any reader here |
 | [PILLAR.md](PILLAR.md) | What the site is and how it works, in one read; the file every session is pointed at first |
 | [STATE_OF_THE_SITE.md](STATE_OF_THE_SITE.md) | Snapshot verified 2026-08-10 (marked stale 2026-11-25; PILLAR is current) |
 | [agents/TEA-SYSTEM-MAP.md](agents/TEA-SYSTEM-MAP.md) | **The tea system, end to end (2026-11-27):** the ten steps from finding a tea to after the cup, where each is done, its agent tools, its owner doc, and what is missing between them. Has a whiteboard twin |
