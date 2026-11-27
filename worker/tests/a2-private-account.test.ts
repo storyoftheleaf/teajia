@@ -30,16 +30,20 @@ const GUIDE = JSON.stringify({ steps: [{ description: 'Blue gate', image_url: GA
 
 let db: SqliteD1;
 const allow = { limit: async () => ({ success: true }) };
+const FILM_BYTES = 'abcdefghij';
 const bucket = {
-  get: async (key: string) => ({
+  head: async (key: string) => (key.endsWith('.mp4') ? { size: FILM_BYTES.length } : null),
+  get: async (key: string, options?: { range?: { offset: number; length: number } }) => ({
     writeHttpMetadata: (headers: Headers) => headers.set('content-type', 'image/jpeg'),
-    httpEtag: `"${key}"`, body: 'jpeg',
+    httpEtag: `"${key}"`,
+    body: key.endsWith('.mp4') ? FILM_BYTES.slice(options?.range?.offset ?? 0, (options?.range?.offset ?? 0) + (options?.range?.length ?? FILM_BYTES.length)) : 'jpeg',
   }),
 };
 
-async function call(path: string, options: { actor?: Actor; method?: string; body?: unknown; open?: boolean } = {}) {
-  const { actor, body, method = 'GET', open = true } = options;
+async function call(path: string, options: { actor?: Actor; method?: string; body?: unknown; open?: boolean; range?: string } = {}) {
+  const { actor, body, method = 'GET', open = true, range } = options;
   const headers = new Headers({ 'Content-Type': 'application/json', 'CF-Connecting-IP': '203.0.113.9' });
+  if (range) headers.set('Range', range);
   if (actor) {
     const token = await signedToken(SECRET, {
       sub: actor.userId, name: actor.name, email: `${actor.userId}@test.dev`, active_account_id: actor.accountId, role: 'user',
@@ -369,5 +373,33 @@ describe('a host’s tea photographs', () => {
     const response = await call('/api/media/accounts/ana-personal/host-teas/ana-table/tea.jpg');
     expect(response.status).toBe(200);
     expect(response.headers.get('Cache-Control')).toBe('private, max-age=300');
+  });
+});
+
+describe('a film of the way in is read by byte range only once its address is signed', () => {
+  it('answers 206 with its range to a signed seat and gives a refused request nothing', async () => {
+    table('ana-table', ana.accountId, { hostUserId: 'ana' });
+    guest('mei', 'ana-table', ana.accountId, 'confirmed');
+    const film = `${MEDIA}accounts/ana-personal/venue-guide/gate.mp4`;
+    db.sqlite.prepare('UPDATE events SET venue_guide = ? WHERE id = ?')
+      .run(JSON.stringify({ steps: [{ description: 'Gate', video_url: film }] }), 'ana-table');
+    const page = await (await call('/api/rsvp/token-mei')).json() as { event: { venue_guide: string } };
+    const signed = JSON.parse(page.event.venue_guide).steps[0].video_url as string;
+    expect(signed).toMatch(/gate\.mp4\?exp=\d+&for=mei&sig=[0-9a-f]{64}$/);
+    const path = (url: string) => `/api/media/${url.slice(MEDIA.length)}`;
+
+    const part = await call(path(signed), { range: 'bytes=2-5' });
+    expect(part.status).toBe(206);
+    expect(part.headers.get('Content-Range')).toBe('bytes 2-5/10');
+    expect(part.headers.get('Content-Length')).toBe('4');
+    expect(part.headers.get('Accept-Ranges')).toBe('bytes');
+    expect(await part.text()).toBe('cdef');
+    expect((await call(path(signed))).status).toBe(200);
+
+    // Unsigned, wrongly signed, or a seat no longer confirmed: 404, even with a range.
+    expect((await call(path(film), { range: 'bytes=0-1' })).status).toBe(404);
+    expect((await call(path(signed.replace('for=mei', 'for=host')), { range: 'bytes=0-1' })).status).toBe(404);
+    db.sqlite.prepare(`UPDATE event_attendees SET status = 'cancelled' WHERE id = 'mei'`).run();
+    expect((await call(path(signed), { range: 'bytes=0-1' })).status).toBe(404);
   });
 });

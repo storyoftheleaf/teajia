@@ -34793,7 +34793,7 @@ const requestHandler = {
       // A film of the way in is read a part at a time: a phone will not play
       // one that cannot answer a byte range (wayFilm.ts).
       const isFilm = WAY_FILM_KEY.test(key);
-      const filmHead = isFilm && wayVerdict !== 'refused' && request.headers.has('Range') ? await env.MEDIA_BUCKET.head(key) : null;
+      const filmHead = isFilm && familyVerdict !== 'refused' && wayVerdict !== 'refused' && request.headers.has('Range') ? await env.MEDIA_BUCKET.head(key) : null;
       const filmRange = filmHead ? wayFilmRange(request.headers.get('Range'), filmHead.size) : null;
       const obj = familyVerdict === 'refused' || wayVerdict === 'refused' ? null
         : await env.MEDIA_BUCKET.get(key, filmRange ? { range: filmRange } : undefined);

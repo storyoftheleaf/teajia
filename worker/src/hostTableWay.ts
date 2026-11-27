@@ -204,6 +204,7 @@ export function guardGuideWrite(value: unknown, accountId: string, stored: unkno
     }
     // A film uploaded for the way in is stored bare like a photograph; any
     // other link (a film kept elsewhere) is left as it was written.
+    if (step.video_url !== undefined && typeof step.video_url !== 'string') delete step.video_url;
     if (typeof step.video_url === 'string' && wayPhotoKey(step.video_url)) {
       const bareFilm = bareWayPhotoUrl(step.video_url);
       if (!isOwnWayPhoto(bareFilm, accountId) && !kept.has(bareFilm)) {
