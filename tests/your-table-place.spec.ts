@@ -68,7 +68,7 @@ test('a host chooses a saved place as their table, writes its area, and undoes i
   const section = page.getByTestId('your-table');
   await expect(section.getByText('It stays private: people see only the area you write.')).toBeVisible();
 
-  await section.getByRole('button', { name: 'Add your table' }).click();
+  await section.getByRole('button', { name: 'Add your tea space' }).click();
   await expect(page).toHaveURL(/[?&]your-table=choose/);
   // Back closes the chooser: it is a step in the address.
   await page.goBack();
@@ -86,19 +86,19 @@ test('a host chooses a saved place as their table, writes its area, and undoes i
 
   expect(state.puts).toEqual([{ place_id: 'p-studio', area_hint: 'Ubud, near the market' }]);
   const chosen = section.getByTestId('your-table-chosen');
-  await expect(chosen.getByText('Studio is your table.')).toBeVisible();
+  await expect(chosen.getByText('Studio is your tea space.')).toBeVisible();
   await expect(chosen.getByText(/see only “Ubud, near the market”/)).toBeVisible();
   await expect(page).not.toHaveURL(/your-table=/);
   await noSideScroll(page);
 
   await chosen.getByRole('button', { name: 'Undo' }).click();
   expect(state.deletes).toBe(1);
-  await expect(section.getByRole('button', { name: 'Add your table' })).toBeVisible();
+  await expect(section.getByRole('button', { name: 'Add your tea space' })).toBeVisible();
   await expect(section.getByTestId('your-table-chosen')).toHaveCount(0);
 });
 
 test('a host with no saved place is told how to keep one', async ({ page }) => {
   await openHostPage(page, []);
-  await expect(page.getByText('Keep the way in to a place from a table’s page, and you can name it as your table here.')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Add your table' })).toHaveCount(0);
+  await expect(page.getByText('Keep the way in to a place from a table’s page, and you can name it as your tea space here.')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Add your tea space' })).toHaveCount(0);
 });

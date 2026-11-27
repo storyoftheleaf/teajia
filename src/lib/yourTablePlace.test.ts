@@ -9,9 +9,9 @@ describe('Add your table (Launch 4, K4)', () => {
   });
 
   it('describes a session at a table by whose table and the area, and nothing more', () => {
-    expect(yourTableLine({ area: 'Ubud, near the market' }, 'Ana')).toBe('Ana’s table, Ubud, near the market');
-    expect(yourTableLine({ area: null }, 'Ana')).toBe('Ana’s table');
-    expect(yourTableLine({ area: 'Ubud' })).toBe('The host’s table, Ubud');
+    expect(yourTableLine({ area: 'Ubud, near the market' }, 'Ana')).toBe('Ana’s tea space, Ubud, near the market');
+    expect(yourTableLine({ area: null }, 'Ana')).toBe('Ana’s tea space');
+    expect(yourTableLine({ area: 'Ubud' })).toBe('The host’s tea space, Ubud');
     expect(yourTableLine(undefined, 'Ana')).toBeUndefined();
   });
 });

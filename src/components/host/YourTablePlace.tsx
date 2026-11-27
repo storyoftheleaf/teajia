@@ -42,14 +42,14 @@ export function YourTablePlaceSection() {
       {answer.isPending && <p className={hostSmallText} role="status">Opening your places…</p>}
       {view.state === 'failed' && <LoadFailed sentence="Could not open your places just now." onRetry={view.retry} />}
       {answer.data && !places.length && (
-        <p className={hostText}>Keep the way in to a place from a table’s page, and you can name it as your table here.</p>
+        <p className={hostText}>Keep the way in to a place from a table’s page, and you can name it as your tea space here.</p>
       )}
       {answer.data && places.length > 0 && !choosing && (
         table ? (
           <div className="space-y-2" data-testid="your-table-chosen">
-            <p className={hostText}>{table.name} is your table.</p>
+            <p className={hostText}>{table.name} is your tea space.</p>
             <p className={hostSmallText}>
-              People looking at your sessions there see only “{table.area_hint ?? 'your table'}”. The address and the way in stay with guests you say yes to.
+              People looking at your sessions there see only “{table.area_hint ?? 'your tea space'}”. The address and the way in stay with guests you say yes to.
             </p>
             <div className="flex flex-wrap items-center gap-2">
               <Button type="button" variant="secondary" className="tap-target" disabled={undo.isPending} onClick={() => undo.mutate()}>
@@ -61,9 +61,9 @@ export function YourTablePlaceSection() {
           </div>
         ) : (
           <div className="space-y-2">
-            <p className={hostText}>Name one of your places as your table. It stays private: people see only the area you write.</p>
+            <p className={hostText}>Name one of your places as your tea space. It stays private: people see only the area you write.</p>
             <div className="flex flex-wrap items-center gap-2">
-              <Button type="button" variant="secondary" className="tap-target" onClick={() => setStep('choose')}>Add your table</Button>
+              <Button type="button" variant="secondary" className="tap-target" onClick={() => setStep('choose')}>Add your tea space</Button>
             </div>
           </div>
         )
@@ -92,7 +92,7 @@ function ChooseTable({ places, current, onDone, onCancel }: {
   return (
     <form className="space-y-3" onSubmit={submit} data-testid="your-table-choose">
       <fieldset>
-        <legend className={`${TYPOGRAPHY_CLASSES.label} text-tea-text-sec`}>Which place is your table</legend>
+        <legend className={`${TYPOGRAPHY_CLASSES.label} text-tea-text-sec`}>Which place is your tea space</legend>
         {places.map(place => (
           <label key={place.id} className={`${hostText} flex min-h-tap items-center gap-2`}>
             <input type="radio" name="your-table-place" value={place.id} checked={placeId === place.id}

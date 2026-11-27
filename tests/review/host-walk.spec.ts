@@ -271,14 +271,14 @@ for (const who of ['ana', 'jun'] as const) {
     }
     await w.page.goto('/account/host');
     await step(w, '3b', 'name the place as her table in Your Table', { clicks: 2 }, async () => {
-      const add = w.page.getByRole('button', { name: 'Add your table' }).or(w.page.getByRole('button', { name: 'Choose another place' }));
+      const add = w.page.getByRole('button', { name: 'Add your tea space' }).or(w.page.getByRole('button', { name: 'Choose another place' }));
       await add.first().click();
       await w.page.getByRole('radio', { name: 'Ubud house' }).check();
       const area = w.page.getByLabel('The area people see');
       note(w, 'form', `area people see, before typing: "${await area.inputValue()}"`);
       await area.fill('Ubud, near the market');
       await w.page.getByRole('button', { name: 'Make this my table' }).click();
-      await expect(w.page.getByText('Ubud house is your table.')).toBeVisible();
+      await expect(w.page.getByText('Ubud house is your tea space.')).toBeVisible();
     });
 
     // ── 6. A request, the waiting list, a freed seat (1 each from the table's page) ──

@@ -200,7 +200,7 @@ function WayForm({ tableId, answer, tableArea }: { tableId: string; answer: Host
       queryClient.setQueryData(['your-table', 'way', tableId], next);
       void queryClient.invalidateQueries({ queryKey: ['your-table'] });
       const chosen = next.places.find(place => place.is_table);
-      setNotice(`${chosen?.name ?? 'This place'} is your table. People see only “${chosen?.area_hint ?? ''}”.`);
+      setNotice(`${chosen?.name ?? 'This place'} is your tea space. People see only “${chosen?.area_hint ?? ''}”.`);
     },
   });
 
@@ -347,7 +347,7 @@ function WayForm({ tableId, answer, tableArea }: { tableId: string; answer: Host
             <p className={`${hostSmallText} min-w-0 flex-1`}>Make {offer.place.name} your table? People would see only “{offer.area}”, never the address or the way in.</p>
             <Button type="button" className="tap-target" loading={makeTable.isPending} disabled={makeTable.isPending}
               onClick={() => makeTable.mutate({ place_id: offer.place.id, area_hint: offer.area })}>
-              Make this your table
+              Make this your tea space
             </Button>
           </div>
         )}

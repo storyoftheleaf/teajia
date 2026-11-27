@@ -14,13 +14,13 @@ const barOn = () => test.info().project.metadata.bar === 'on';
 const isPhone = () => (test.info().project.use.viewport?.width ?? 1280) < 1024;
 
 const TODAY = ['Read', 'Advise', 'Shop'];
-const LAUNCH_FOUR = ['Read', 'Tea table', 'Tea house', 'Shop'];
+const LAUNCH_FOUR = ['Read', 'Tea table', 'Tea spaces', 'Shop'];
 const words = () => (barOn() ? LAUNCH_FOUR : TODAY);
 
-/** Where each word leads. The Tea Table and the Tea Houses portfolio are shut on both sites, so their words take their open doors. */
+/** Where each word leads. The Tea Table and the tea spaces page are open on both sites (every switch on, 2026-11-27). */
 const DOORS: Record<string, string> = {
   Read: '/read', Craft: '/craft', Advise: '/advise', Shop: '/shop',
-  'Tea table': '/events', 'Tea house': '/advise',
+  'Tea table': '/tea-table', 'Tea spaces': '/tea-houses',
 };
 
 async function mockApi(page: Page) {
@@ -148,7 +148,7 @@ test('Home: today\'s lines, or the four doors and "Come to a table"', async ({ p
       'Source fine tea and teaware, found by hand',
     ]);
     // Each door goes where its bar word goes.
-    const bar = [DOORS.Read, DOORS['Tea table'], DOORS['Tea house'], DOORS.Shop];
+    const bar = [DOORS.Read, DOORS['Tea table'], DOORS['Tea spaces'], DOORS.Shop];
     for (const [index, href] of bar.entries()) await expect(doors.nth(index)).toHaveAttribute('href', href);
     for (let index = 0; index < 4; index++) {
       const box = await doors.nth(index).boundingBox();
