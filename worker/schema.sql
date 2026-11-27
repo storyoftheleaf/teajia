@@ -4258,7 +4258,7 @@ CREATE TABLE IF NOT EXISTS tea_table_question_notes (
   UNIQUE (question_id, writer_user_id)
 );
 
--- 0148_practice_lines.sql
+-- 0150_practice_lines.sql
 ALTER TABLE contributors ADD COLUMN practice_since INTEGER CHECK (practice_since IS NULL OR practice_since BETWEEN 1930 AND 2200);
 ALTER TABLE contributors ADD COLUMN practice_drawn TEXT CHECK (practice_drawn IS NULL OR length(practice_drawn) BETWEEN 1 AND 140);
 ALTER TABLE contributors ADD COLUMN practice_doings TEXT CHECK (practice_doings IS NULL OR length(practice_doings) BETWEEN 1 AND 200);

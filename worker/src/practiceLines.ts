@@ -15,7 +15,7 @@ import { CONTRIBUTOR_EFFECTIVELY_PUBLISHED_SQL } from './sessionHost';
 //       takes off one or more lines. Applied at once, like the gallery: three
 //       short answers about oneself do not go through the profile review.
 //
-// The three columns (migration 0148) are never handed out by any other route:
+// The three columns (migration 0150) are never handed out by any other route:
 // practiceColumnsRemoved strips them from every contributor row the worker
 // spreads into an answer. Nothing here counts, ranks or computes anything.
 
