@@ -9,6 +9,7 @@
 import { TEA_TYPES } from '../../src/wisdom/vocabulary';
 import { findEligibleSeat } from './afterSitAccess';
 import { findPartyRecap } from './afterSitPartyLinks';
+import { EXPLICIT_INVOICE_ACCESS_SQL } from './payInvoiceKeep';
 import type { PublicProductReader } from './sessionTeas';
 import { sessionServedTeas } from './sessionServedTeas';
 
@@ -132,7 +133,7 @@ export async function keepSessionTea(
  * invoice_line_items rows joined to products (product_name, type,
  * piece_weight_g, year, origin_country, origin_region). `payment` is the
  * result of resolveInvoicePayment. `linkedToUser` is true only when the
- * order's customer row is linked to this user (the strongest ownership match).
+ * order has an explicit buyer link or an invoice save for this user.
  */
 export type BoughtOrder = {
   userId: string;
@@ -212,12 +213,12 @@ export async function keepBoughtLine(
      FROM invoices i
      WHERE i.id = ? AND i.account_id = ? AND i.deleted_at IS NULL AND i.cancelled_at IS NULL
        AND i.status IN ('Pending', 'Filled') AND COALESCE(i.refund_required, 0) = 0
-       AND i.customer_id IN (SELECT id FROM customers WHERE user_id = ? AND account_id = i.account_id)
+       AND ${EXPLICIT_INVOICE_ACCESS_SQL}
        AND EXISTS (SELECT 1 FROM invoice_line_items l WHERE l.id = ? AND l.invoice_id = i.id AND l.account_id = i.account_id)
      ON CONFLICT(owner_user_id, source_invoice_line_id) WHERE source_invoice_line_id IS NOT NULL DO NOTHING`,
   ).bind(`cellar_${crypto.randomUUID().replace(/-/g, '')}`, order.userId,
     line.custom_name || line.product_name, line.type, year, origin, grams, amount, amount === null ? null : 'USD',
-    lineId, order.invoice.id, order.invoice.account_id, order.userId, lineId).run();
+    lineId, order.invoice.id, order.invoice.account_id, order.userId, order.userId, lineId).run();
   const row = await read();
   return row ? ownedCellarItemToApi(row) : null;
 }

@@ -190,7 +190,7 @@ export async function settleHostCredit(
     const invoice = await env.DB.prepare(
       `SELECT i.id, i.account_id, i.status, i.deleted_at, i.cancelled_at, i.refund_required,
               i.source_inquiry_id, c.user_id AS buyer_user_id
-         FROM invoices i LEFT JOIN customers c ON c.id = i.customer_id AND c.account_id = i.account_id
+         FROM invoices i LEFT JOIN invoice_buyer_identity c ON c.invoice_id = i.id AND c.account_id = i.account_id
         WHERE i.id = ?`,
     ).bind(invoiceId).first<InvoiceRow>();
     if (!invoice) return { ...NOTHING };
@@ -420,8 +420,8 @@ async function earnInvoiceCredit(env: CreditEnv, invoice: InvoiceRow, approvedBy
         WHERE i.id = ?9 AND i.account_id = ?2 AND i.deleted_at IS NULL AND i.cancelled_at IS NULL
           AND i.status IS NOT 'Void'
           AND (?4 = 'pending' OR (i.status = 'Filled' AND COALESCE(i.refund_required, 0) != 1))
-          AND NOT EXISTS (SELECT 1 FROM customers c
-            WHERE c.id = i.customer_id AND c.account_id = i.account_id AND c.user_id = ?3)
+          AND NOT EXISTS (SELECT 1 FROM invoice_buyer_identity c
+            WHERE c.invoice_id = i.id AND c.account_id = i.account_id AND c.user_id = ?3)
       )
       -- Once per sale, in the write itself: no award on this order for a line
       -- outside this batch (a line since replaced, or a racing settle).
@@ -752,7 +752,7 @@ async function ownOrdersForCredit(
                WHERE o.invoice_id = i.id AND o.account_id = i.account_id AND o.status IN ('held','approved')), 0) AS already,
             ${OWED_SQL} - ${HELD_ON_ORDER_SQL} AS owed_after_holds
        FROM invoices i
-       JOIN customers c ON c.id = i.customer_id AND c.account_id = i.account_id AND c.user_id = ?
+       JOIN invoice_buyer_identity c ON c.invoice_id = i.id AND c.account_id = i.account_id AND c.user_id = ?
        LEFT JOIN accounts a ON a.id = i.account_id
       WHERE i.account_id IN (${shops.map(() => '?').join(', ')})
         AND i.status IN ('Draft','Pending') AND i.deleted_at IS NULL
@@ -810,7 +810,7 @@ export async function useHostCreditOnOrder(
   }
   const invoice = await env.DB.prepare(
     `SELECT i.id, i.account_id FROM invoices i
-       JOIN customers c ON c.id = i.customer_id AND c.account_id = i.account_id AND c.user_id = ?
+       JOIN invoice_buyer_identity c ON c.invoice_id = i.id AND c.account_id = i.account_id AND c.user_id = ?
       WHERE i.id = ? AND i.status IN ('Draft','Pending') AND i.deleted_at IS NULL`,
   ).bind(input.hostUserId, input.invoiceId).first<{ id: string; account_id: string }>();
   if (!invoice) return { error: 'not_found' };
@@ -925,7 +925,7 @@ async function readOrdersAwaitingApproval(
  * more than is still owed (A8-3). Rechecked in the statement that posts the spend.
  */
 const ORDER_STILL_TAKES_SQL = `EXISTS (SELECT 1 FROM invoices i
-    JOIN customers c ON c.id = i.customer_id AND c.account_id = i.account_id AND c.user_id = r.host_user_id
+    JOIN invoice_buyer_identity c ON c.invoice_id = i.id AND c.account_id = i.account_id AND c.user_id = r.host_user_id
    WHERE i.id = r.invoice_id AND i.account_id = r.account_id
      AND i.status IS NOT 'Void' AND i.deleted_at IS NULL AND i.cancelled_at IS NULL
      AND r.amount + ${CREDIT_SPENT_SQL} <= ${TEA_TOTAL_SQL} + 0.004
@@ -952,7 +952,7 @@ export async function holdHostCreditSpend(
     `INSERT INTO host_credit_spend_requests (id, account_id, host_user_id, invoice_id, amount, currency, status, request_key)
      SELECT ?4, ?1, ?2, ?5, ?6, ?3, 'held', ?7
       WHERE EXISTS (SELECT 1 FROM invoices i
-              JOIN customers c ON c.id = i.customer_id AND c.account_id = i.account_id AND c.user_id = ?2
+              JOIN invoice_buyer_identity c ON c.invoice_id = i.id AND c.account_id = i.account_id AND c.user_id = ?2
              WHERE i.id = ?5 AND i.account_id = ?1 AND i.status IN ('Draft','Pending') AND i.deleted_at IS NULL
                AND ?6 + ${HELD_ON_ORDER_SQL} <= ${OWED_SQL} + 0.004)
         AND ?6 + COALESCE((SELECT SUM(o.amount) FROM host_credit_spend_requests o
