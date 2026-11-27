@@ -302,3 +302,31 @@ describe('revocable answers are not cached', () => {
     expect(gone.headers.get('Cache-Control')).toBe('no-store');
   });
 });
+
+// The launch-5 flags-off audit (todo/reviews/launch-5-flags-off-audit.md):
+// hiding one tasting takes its own photographs and no other, and the people
+// list never points a card at a photograph the media door refuses.
+describe('a hidden tasting and the photographs it does not own', () => {
+  const shownIds = (tea: any) => [tea.lead?.id, ...tea.placed.map((p: any) => p.id), ...tea.family.map((p: any) => p.id)].filter(Boolean);
+  const hide = (env: any) => call(env, OWNER, '/api/admin/family/hide', { method: 'POST', body: { target_kind: 'tasting', target_id: 'journal-one' } });
+
+  it('leaves a photograph of another tasting of the same tea on show', async () => {
+    const { env, db } = setup();
+    db.sqlite.prepare(`UPDATE member_photographs SET journal_entry_id = 'journal-two' WHERE id = 'photo-2'`).run();
+    expect((await hide(env)).status).toBe(200);
+    expect((await call(env, null, '/api/media/family-photos/photo-1/small.jpg')).status).toBe(404);
+    expect((await call(env, null, '/api/media/family-photos/photo-2/small.jpg')).status).toBe(200);
+    expect(shownIds(await read(env, null, '/api/family/teas/tea-a/photographs'))).toEqual(['photo-2']);
+  });
+
+  it('gives a person card no portrait the media door would refuse', async () => {
+    const { env } = setup();
+    const portraits = async () => ((await read(env, null, '/api/people')).contributors as Array<{ card_image_url?: string | null }>)
+      .map(person => person.card_image_url ?? '').filter(url => url.includes('family-photos/'));
+    // Before the hide the card shows the newest shared photograph.
+    expect(await portraits()).toEqual(['https://media.teajia.co/family-photos/photo-2/small.jpg']);
+    expect((await hide(env)).status).toBe(200);
+    for (const id of ['photo-1', 'photo-2']) expect((await call(env, null, `/api/media/family-photos/${id}/small.jpg`)).status).toBe(404);
+    expect(await portraits()).toEqual([]);
+  });
+});

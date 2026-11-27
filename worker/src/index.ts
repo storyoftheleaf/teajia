@@ -13198,7 +13198,8 @@ const handleRSVP: Handler = async (request, env, params) => {
   // guest who asks goes on its waiting list, and goes back to asking when a
   // seat frees (worker/src/waitingList.ts returnWaitingToAsking).
   let answeredStatus: string = status;
-  if (doorRule === 'request' && status === 'requested') {
+  // Launch 3's: while it is closed the guest stays asking, as on main.
+  if (anyoneHostsOpen(env) && doorRule === 'request' && status === 'requested') {
     const taken = await seatsTaken(env.DB, { id: String(event.id), account_id: accountId });
     if (Number(event.total_capacity) - taken < seats.length) {
       const queued = await env.DB.prepare(
@@ -13468,11 +13469,16 @@ const handleUpdateRSVP: Handler = async (request, env, params) => {
   // Handle cancellation: the guest gives back every seat their party holds,
   // guarded on their status, and the freed seats are offered on (J9).
   if (update.action === 'cancel') {
+    // While Launch 3 is closed the guest's pending invitations are left as main left them.
     const result = await cancelGuestSeat(env.DB, {
       accountId: attendee.account_id as string, eventId: attendee.eid as string,
       attendeeId: attendee.id as string, cancellationNote: update.cancellationNote,
+      keepInvitations: !anyoneHostsOpen(env),
     });
-    return result ? json(result) : restError(409, 'This seat can no longer be changed here.', 'state_conflict');
+    if (!result) return restError(409, 'This seat can no longer be changed here.', 'state_conflict');
+    // Main answered a repeated cancel the same way, note and all.
+    if (!anyoneHostsOpen(env) && update.cancellationNote !== undefined) return json({ ...result, cancellation_note: update.cancellationNote });
+    return json(result);
   }
 
   const plusOneUpdate = body.plus_one === undefined ? null : {
@@ -13610,6 +13616,14 @@ const handleClaimSpot: Handler = async (_request, env, params) => {
 
   // The host is told on their table page and in Manage. Nothing is sent.
   await recordSeatNotice(env.DB, { ...scope, attendeeId: attendee.id as string, kind: 'claimed', seats: 1 });
+  // Seat notices show in Manage only with Launch 3 open; closed, the claim stays
+  // visible in the Notifications list through main's spot_claimed record.
+  if (!anyoneHostsOpen(env)) {
+    await env.DB.prepare(
+      `INSERT INTO event_notifications (id, account_id, event_id, attendee_id, type, message_template, status)
+       VALUES (?, ?, ?, ?, 'spot_claimed', 'You have claimed your spot!', 'sent')`
+    ).bind(crypto.randomUUID(), scope.accountId, scope.eventId, attendee.id).run();
+  }
 
   return json({ success: true, status: 'confirmed' });
 };
@@ -14571,6 +14585,7 @@ const handleUpdateAttendee: Handler = async (request, env, params) => {
       accountId, eventId: attendee.eid as string, attendeeId: params.id,
       // A guest said no to can be marked cancelled too, as on main (A3).
       from: ['confirmed', 'requested', 'waitlist', 'denied'], kind: 'released',
+      keepInvitations: !anyoneHostsOpen(env),
     });
     if (!released) return json({ error: 'This seat changed while you were looking. Open it again.', code: 'state_conflict' }, 409);
     // Offered on whatever was held: a live offer is a seat with no seat row (A3).
@@ -26134,9 +26149,13 @@ const handleGetSession: Handler = async (request, env, params) => {
   // see one another by first name only, never an account id, username or the
   // session's invitation, which stays with its host (A3).
   const guestView = Boolean(session.event_id) && session.created_by_user_id !== userId;
+  // While Launch 3 is closed a member keeps main's invitation to pass on, except
+  // at a table's own tasting, whose id anyone with the event's id can work out.
+  // Other members stay first names only either way: their ids are theirs.
+  const hideInvite = guestView && (anyoneHostsOpen(env) || session.id === eventTastingId(String(session.event_id)));
   const { invite_token: _invite, ...sessionWithoutInvite } = session;
   return json({
-    session: { ...(guestView ? sessionWithoutInvite : session), event_title: origin?.title ?? null },
+    session: { ...(hideInvite ? sessionWithoutInvite : session), event_title: origin?.title ?? null },
     teas: teas.results.map((t: any) => ({
       ...t,
       tea_metadata: t.tea_metadata ? JSON.parse(t.tea_metadata) : {},
@@ -26192,7 +26211,9 @@ const handleJoinSession: Handler = async (request, env, params) => {
   // /api/rsvp/:token/tasting) or by its host's join code, never by its id
   // alone: a table's tasting has an id anyone with the event's id can work
   // out (A3). Someone already in it may still open it.
-  if (session.event_id && session.created_by_user_id !== userId) {
+  // While Launch 3 is closed an older event session (a random id) is joined by its id, as on main.
+  if (session.event_id && session.created_by_user_id !== userId
+    && (anyoneHostsOpen(env) || session.id === eventTastingId(String(session.event_id)))) {
     const already = await env.DB.prepare(
       'SELECT 1 AS ok FROM tasting_session_members WHERE session_id = ? AND user_id = ?'
     ).bind(params.id, userId).first<{ ok: number }>();
@@ -27182,7 +27203,7 @@ const handleCreateArticle: Handler = async (request, env) => {
 const handleUpdateArticle: Handler = async (request, env, params) => {
   const ctx = await requireBundle(request, env, 'publish');
   if ('error' in ctx) return ctx.error;
-  if (isHostArticleId(params.id)) {
+  if (isHostArticleId(params.id, env)) {
     const denied = await requirePlatformOwner(request, env);
     if (denied) return denied;
   }
@@ -27208,7 +27229,7 @@ const handleUpdateArticle: Handler = async (request, env, params) => {
   if (Array.isArray(body.blocks)) body.blocks = JSON.stringify(body.blocks);
   const existing = await readArticleReview(env.DB, accountId, params.id);
   if (!existing) return json({ error: 'Article not found' }, 404);
-  if (isHostArticleId(params.id) && Object.hasOwn(body, 'author_id')
+  if (isHostArticleId(params.id, env) && Object.hasOwn(body, 'author_id')
     && (body.author_id || null) !== (existing.author_id || null)) {
     return restError(400, 'This article keeps the byline chosen by its writer.', 'host_article_byline');
   }
@@ -27260,7 +27281,7 @@ function handleArticlePublication(status: 'published' | 'draft' | 'archived'): H
   return async (request, env, params) => {
     const ctx = await requireBundle(request, env, 'publish');
     if ('error' in ctx) return ctx.error;
-    if (isHostArticleId(params.id)) {
+    if (isHostArticleId(params.id, env)) {
       const denied = await requirePlatformOwner(request, env);
       if (denied) return denied;
     }

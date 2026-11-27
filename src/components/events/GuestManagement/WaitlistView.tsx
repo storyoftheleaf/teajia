@@ -3,6 +3,7 @@ import { Clock } from 'lucide-react';
 import type { EventAttendee, TeaEvent } from '../../../types/events';
 import { formatEventDate, formatTime, getClaimTimeRemaining } from './helpers';
 import CancelConfirmModal from './CancelConfirmModal';
+import { anyoneHostsOpen } from '../../../lib/anyoneHosts';
 
 interface WaitlistViewProps {
   attendee: EventAttendee;
@@ -33,6 +34,8 @@ const WaitlistView: React.FC<WaitlistViewProps> = ({
   onConfirmCancel,
   cancelPending,
 }) => {
+  // A person's table's wording is Launch 3's (J13); closed, the guest sees their place in line, as on main.
+  const personsTableWords = event.privateHost === true && anyoneHostsOpen();
   const hasClaimOffer =
     !!attendee.claimExpiresAt &&
     new Date(attendee.claimExpiresAt).getTime() > Date.now();
@@ -111,10 +114,10 @@ const WaitlistView: React.FC<WaitlistViewProps> = ({
             Your Status
           </p>
           <h2 className="font-serif text-xl text-tea-text-sec mb-2">
-            {event.privateHost ? "You're on the waiting list." : "You're on the list."}
+            {personsTableWords ? "You're on the waiting list." : "You're on the list."}
           </h2>
           <p className="text-sm text-tea-text-sec leading-relaxed">
-            {event.privateHost
+            {personsTableWords
               // A person's table: a freed seat sends the guest back to asking, and the host answers (J13 finding 1).
               ? 'The table is full. If a seat opens, the host will answer you.'
               : attendee.waitlistPosition
