@@ -125,7 +125,8 @@ test.describe('the pay gate', () => {
     await page.goto(`/people/kenji-tanaka/pay?t=${KENJI_SHARE_TOKEN}`);
     const sheet = page.getByTestId('pay-sheet');
     await expect(sheet).toContainText(KENJI_BANK_DETAIL);
-    await expect(sheet).toContainText('You opened this from my link.');
+    // No fine print on the sheet (Adrian, 2026-11-27): the methods are the page.
+    await expect(sheet).not.toContainText('This page does not verify');
     await expect(page.getByTestId('pay-gate')).toHaveCount(0);
     expect(calls.some(call => call.startsWith('GET /api/public/people/kenji-tanaka/pay-access') && call.includes(`t=${KENJI_SHARE_TOKEN}`))).toBe(true);
     expect(calls.some(call => call.startsWith('GET /api/public/people/kenji-tanaka/payment-methods') && call.includes(`t=${KENJI_SHARE_TOKEN}`))).toBe(true);

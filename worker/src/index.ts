@@ -108,7 +108,7 @@ import { COMPASS_COLUMNS, decodeCompassWrite as decodeCompassWriteCodec, type Co
 import { compassFieldPatch, readCompassFieldHints } from './compassFieldPatch';
 import { receiptHoldingTeaId } from './curateMergeLink';
 import { resolveShopFreightDefault } from './shippingRate';
-import { addPricingFields, lookupRateToUsd, accountFreightDefaults, freightDefaultsByAccount } from './productPricing'; import { fillBlankQuotes, withShelfPrices } from './collectionShelf';
+import { addPricingFields, lookupRateToUsd, accountFreightDefaults, freightDefaultsByAccount } from './productPricing'; import { fillBlankQuotes, withShelfPrices } from './collectionShelf'; import { collectionCartTeas, collectionLineTotal } from './collectionCart'; import { linkTeaDetail, linkTeaPhotos, loadPayLinkTeaLines, LINK_TEA_DETAIL_SQL, type PayLinkTeaLine } from './publicLinkTea';
 import { INWARD_BALI_LOT, INWARD_ORDERS_PAUSED_SQL, inwardOrdersPaused } from '../../shared/catalog/inwardOrders';
 import { checkNewProductPublication, checkProductPublication, openingStockKnownAt, publicationPatchFromColumns, writeProductPublication } from './productPublication';
 import { deductStockForPaidInvoice } from './orderLifecycle';
@@ -15863,12 +15863,17 @@ async function pausedInwardProductIds(env: Env, accountId: string, productIds: s
 
 async function pricedRequestLines(env: Env, accountId: string, items: Array<Record<string, any>>, sellerUserId: string | null) {
   const productIds = catalogProductIds(items);
+  // A tea added from a live collection link may be one the shop does not list,
+  // and carries the price the link quoted (collectionCart.ts).
+  const fromLinks = await collectionCartTeas(env.DB, accountId, items);
+  const linkIds = [...fromLinks.keys()];
+  const linkClause = linkIds.length ? ` OR (p.status = 'Active' AND p.id IN (${linkIds.map(() => '?').join(',')}))` : '';
   const [productRows, rateRows] = await Promise.all([
     productIds.length ? env.DB.prepare(
       `SELECT p.*, COALESCE(tp.form, p.form) AS form
          FROM products p LEFT JOIN tea_profiles tp ON tp.id='prof_' || p.id
-        WHERE p.account_id=? AND ${PUBLIC_REQUEST_PRODUCT} AND p.id IN (${productIds.map(() => '?').join(',')})`
-    ).bind(accountId, ...productIds).all() : Promise.resolve({ results: [] }),
+        WHERE p.account_id=? AND ((${PUBLIC_REQUEST_PRODUCT})${linkClause}) AND p.id IN (${productIds.map(() => '?').join(',')})`
+    ).bind(accountId, ...linkIds, ...productIds).all() : Promise.resolve({ results: [] }),
     env.DB.prepare('SELECT currency,rate_to_usd FROM exchange_rates').all(),
   ]);
   if ((productRows.results ?? []).length !== productIds.length) throw new Error('Store or items not found');
@@ -15897,12 +15902,15 @@ async function pricedRequestLines(env: Env, accountId: string, items: Array<Reco
       requestedOffers.add(product.id);
     }
     const name = String(product?.given_name || product?.product_name || item.name || 'Item');
+    const linkRate = product && typeof item.collectionSlug === 'string' ? fromLinks.get(String(product.id))?.pricePerGram ?? null : null;
     return {
       product_id: product ? String(product.id) : null,
       custom_name: `${name} (${inquiryPackingLabel({ ...item, category: product?.type === 'Teaware' ? 'ware' : item.category })})`,
       quantity,
       quantity_unit: product?.type === 'Teaware' ? 'unit' as const : 'g' as const,
-      price_at_sale: product ? quoteInquiryLine(item, product) / quantity : 0,
+      price_at_sale: !product ? 0
+        : linkRate != null ? collectionLineTotal(linkRate, quantity) / quantity
+        : quoteInquiryLine(item, product) / quantity,
     };
   });
 }
@@ -16640,6 +16648,9 @@ const handleConvertInquiry: Handler = async (request, env, params) => {
     products.set(row.id as string, priced);
   }
 
+  // A line added from a collection link keeps the link's price (collectionCart.ts).
+  const fromLinks = await collectionCartTeas(env.DB, accountId, items);
+  const linkRate = (item: Record<string, any>) => typeof item.collectionSlug === 'string' ? fromLinks.get(String(item.id || ''))?.pricePerGram ?? null : null;
   let lineItems: Array<{ product_id: string | null; custom_name: string | null; quantity: number; price_at_sale: number;quantity_unit:'g'|'unit' }>;
   try {
     lineItems = items.map(item => {
@@ -16653,7 +16664,9 @@ const handleConvertInquiry: Handler = async (request, env, params) => {
         product_id: linked ? String(product.id) : null,
         custom_name: `${name} (${inquiryPackingLabel({ ...item, category: product?.type === 'Teaware' ? 'ware' : item.category })})`,
         quantity,quantity_unit:product?.type==='Teaware'?'unit':'g',
-        price_at_sale: product ? quoteInquiryLine(item, product) / quantity : 0,
+        price_at_sale: !product ? 0
+          : linkRate(item) != null ? collectionLineTotal(linkRate(item)!, quantity) / quantity
+          : quoteInquiryLine(item, product) / quantity,
       };
     });
   } catch (error) {
@@ -28576,7 +28589,7 @@ const handleGetPayAccess: Handler = async (request, env, params) => {
   const { decision, link, grant, refusal } = await resolvePayAccess(env, contributor, viewer, url.searchParams.get(PAY_LINK_PARAM));
   if (refusal) return json(refusal, 409);
 
-  let invoice: { invoice_number: string | null; outstanding_usd: number } | null = null;
+  let invoice: { invoice_number: string | null; outstanding_usd: number; lines: PayLinkTeaLine[] } | null = null;
   if (link) {
     await env.DB.prepare(
       `UPDATE payment_share_links SET open_count = open_count + 1, last_opened_at = datetime('now') WHERE id = ?`
@@ -28600,7 +28613,10 @@ const handleGetPayAccess: Handler = async (request, env, params) => {
       if (ledgerInvoice) {
         const ledger = await loadInvoiceLedgerTotals(env, [ledgerInvoice.id]);
         const money = invoiceMoney(ledgerInvoice.total_usd, ledgerInvoice.payment_status, ledger.get(ledgerInvoice.id));
-        invoice = { invoice_number: ledgerInvoice.invoice_number, outstanding_usd: money.outstanding_usd };
+        // The teas on the invoice, shown on the pay page as the shop shows
+        // them. Only a holder of this invoice's own link reaches this line.
+        const lines = await loadPayLinkTeaLines(env, ledgerInvoice.id, link.account_id);
+        invoice = { invoice_number: ledgerInvoice.invoice_number, outstanding_usd: money.outstanding_usd, lines };
       }
     }
   }
@@ -30093,7 +30109,7 @@ const handleGetPublicCollection: Handler = async (_request, env, params) => {
 
   // Account for WhatsApp deep link.
   const account = await env.DB.prepare(
-    `SELECT id, name, whatsapp_number, status, public_enabled FROM accounts WHERE id = (
+    `SELECT id, slug, name, whatsapp_number, status, public_enabled FROM accounts WHERE id = (
        SELECT account_id FROM collections WHERE id = ?
      )`
   ).bind(pub.collection_id).first();
@@ -30109,7 +30125,9 @@ const handleGetPublicCollection: Handler = async (_request, env, params) => {
             p.id AS product_id, p.type AS product_type,
             COALESCE(p.given_name, p.product_name) AS product_name,
             p.chinese_name, p.year, p.origin_country, p.origin_region,
-            p.image_url, p.description, p.tasting_notes,
+            p.image_url, p.additional_images, p.form, p.slug AS product_slug, p.piece_weight_g,
+            CASE WHEN p.is_public = 1 AND p.shown_in_shop = 1 THEN 1 ELSE 0 END AS in_shop,
+            p.description, p.tasting_notes, ${LINK_TEA_DETAIL_SQL},
             p.status AS product_status, p.stock_grams, p.quantity_units
        FROM collection_items ci
        JOIN products p ON p.id = ci.product_id
@@ -30119,6 +30137,9 @@ const handleGetPublicCollection: Handler = async (_request, env, params) => {
       ORDER BY ci.position ASC`
   ).bind(pub.collection_id, pub.target_type === 'shop' ? 1 : 0).all();
 
+  // Whether the curator quoted a price, read before a blank quote is filled:
+  // a quoted price is kept as it is, a blank one follows the shop's own rule.
+  for (const row of (items.results ?? []) as any[]) row.price_quoted = row.recommended_price_usd != null;
   if (account) await fillBlankQuotes(env, String(account.id), (items.results ?? []) as any[]); // a blank quote shows the shelf price: collectionShelf.ts
   const visibleItems = ((items.results ?? []) as any[])
     .filter(i => i.product_status === 'Active')
@@ -30130,7 +30151,19 @@ const handleGetPublicCollection: Handler = async (_request, env, params) => {
       const outOfStock = i.product_type === 'Teaware'
         ? (i.quantity_units ?? 0) <= 0
         : (i.stock_grams ?? 0) <= 0;
-      return { ...i, description: reviewedDescription(i.product_id, i.description), out_of_stock: outOfStock };
+      // The shop's photos ride along so the link looks like the shop. A tea's
+      // shop address is given only when the tea is on the shop's shelf; a
+      // private tea stays private.
+      const { additional_images, product_slug, in_shop, lore, terroir, processing_notes, mood, experience, cultivar, tasting, variant_name, ...rest } = i;
+      return {
+        ...rest,
+        ...linkTeaDetail({ lore, terroir, processing_notes, mood, experience, cultivar, tasting, variant_name }),
+        images: linkTeaPhotos(i.image_url, additional_images),
+        in_shop: in_shop === 1,
+        product_slug: in_shop === 1 ? (product_slug ?? null) : null,
+        description: reviewedDescription(i.product_id, i.description),
+        out_of_stock: outOfStock,
+      };
     });
 
   return json({
@@ -30143,7 +30176,7 @@ const handleGetPublicCollection: Handler = async (_request, env, params) => {
         : null,
     },
     items: visibleItems,
-    account: account ? { name: account.name, whatsapp_number: account.whatsapp_number } : null,
+    account: account ? { name: account.name, slug: account.slug ?? null, whatsapp_number: account.whatsapp_number } : null,
     publication: { slug: pub.slug, view_count: pub.view_count },
   });
 };

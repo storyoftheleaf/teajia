@@ -173,9 +173,6 @@ export function PaymentChooser({ contributorName, methods, context, local, summa
         visibleMethods.map(method => <Method key={method.id} method={method} />)
       )}
 
-      <p className="mt-8 font-sans text-ui-11 leading-[1.5] text-tea-text-dim">
-        Teajia displays transfer instructions only. Complete the transfer with the selected provider, then confirm it with the host. This page does not verify or record payment.
-      </p>
     </div>
   );
 }

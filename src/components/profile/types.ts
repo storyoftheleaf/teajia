@@ -1,3 +1,4 @@
+import type { LinkTeaDetailFields } from '../shop/linkTea';
 export type ProfilePublicationState = 'draft' | 'awaiting_approval' | 'published' | 'unpublished';
 export type ProfileApprovalState = 'pending' | 'approved' | 'changes_requested';
 
@@ -246,7 +247,23 @@ export interface PayAccessResponse {
   contributor: { id: string; display_name: string; business_name: string | null; portrait_url: string | null };
   viewer: { signed_in: boolean; is_owner: boolean; request_status: 'pending' | 'approved' | null };
   /** Set when the link came from an invoice: the sheet names the order. */
-  invoice: { invoice_number: string | null; outstanding_usd: number } | null;
+  invoice: { invoice_number: string | null; outstanding_usd: number; lines?: PayLinkTeaLine[] } | null;
+}
+
+/** One tea on an invoice, as its pay page shows it. */
+export interface PayLinkTeaLine extends LinkTeaDetailFields {
+  product_id: string | null;
+  name: string;
+  type: string | null;
+  chinese_name: string | null;
+  year: number | null;
+  origin_region: string | null;
+  origin_country: string | null;
+  form: string | null;
+  image_url: string | null;
+  quantity: number;
+  unit: 'g' | 'piece';
+  line_total_usd: number;
 }
 
 /** The admin's share sheet, from an invoice. */

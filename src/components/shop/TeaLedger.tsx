@@ -3,7 +3,7 @@ import { Leaf } from 'lucide-react';
 import { TeaSaveTile } from './TeaSaveTile';
 import { getTeaLedgerTones } from '../../designTokens';
 import { teaPurchaseQuote } from '../../lib/shopPurchase';
-import { TeaWeighControl } from './TeaWeighControl';
+import { TeaWeighControl, type WeighOption } from './TeaWeighControl';
 import { useTheme } from '../../context/ThemeContext';
 import type { InventoryItem } from '../../types';
 
@@ -32,6 +32,8 @@ interface TeaLedgerProps {
   onOpenProduct: (item: InventoryItem) => void;
   onChooseAmount?: (item: InventoryItem) => void;
   onAddToCart?: (item: InventoryItem, grams: number, totalUsd: number) => void;
+  /** A collection link's own amounts and prices for a tea; the shop's when absent. */
+  weighOptionsFor?: (item: InventoryItem) => WeighOption[] | undefined;
 }
 
 /**
@@ -102,6 +104,7 @@ export function TeaLedger({
   onOpenProduct,
   onChooseAmount,
   onAddToCart,
+  weighOptionsFor,
 }: TeaLedgerProps) {
   return (
     <div className="flex flex-col animate-[fadeIn_0.5s_ease-out]">
@@ -131,7 +134,8 @@ export function TeaLedger({
 
             {group.items.map(item => {
               const isFavorite = favoriteIds.has(item.id);
-              const purchase = teaPurchaseQuote(item, priceWeight);
+              const linkOptions = weighOptionsFor?.(item);
+              const purchase = linkOptions ? (linkOptions.length ? linkOptions[0] : null) : teaPurchaseQuote(item, priceWeight);
               const stockG = item.stock_g ?? 0;
               const showType = activeType !== 'All' || specialFilter !== 'None';
               const soldOut = item.category === 'tea' && stockG <= 0;
@@ -150,7 +154,7 @@ export function TeaLedger({
                   recommended={showShopRecommendations && !!purchase && SHOP_RECOMMENDATIONS.has(item.id)}
                   trailing={purchase ? (
                     <TeaWeighControl item={item} preferredGrams={priceWeight} formatPrice={formatPrice}
-                      onAddToCart={onAddToCart} onChooseAmount={onChooseAmount} />
+                      onAddToCart={onAddToCart} onChooseAmount={onChooseAmount} options={linkOptions} />
                   ) : (
                     <span className="text-ui-11 uppercase tracking-[0.1em] text-tea-text-dim">
                       {item.ordersPaused ? 'Ordering paused' : soldOut ? 'Sold out' : 'Unavailable'}

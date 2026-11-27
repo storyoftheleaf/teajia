@@ -51,6 +51,8 @@ interface TeaWeighControlProps {
    */
   href?: string;
   count?: 'pack' | 'weigh';
+  /** The amounts to step through, when they are not the shop's own (a collection's quoted price). */
+  options?: WeighOption[];
 }
 
 /**
@@ -58,8 +60,8 @@ interface TeaWeighControlProps {
  * the cart; minus and plus step through the amounts and the price follows.
  * Weigh itself opens the full amount list, for a size the steps do not reach.
  */
-export function TeaWeighControl({ item, preferredGrams, formatPrice, onAddToCart, onChooseAmount, href, count }: TeaWeighControlProps) {
-  const options = useMemo(() => weighOptions(item), [item]);
+export function TeaWeighControl({ item, preferredGrams, formatPrice, onAddToCart, onChooseAmount, href, count, options: given }: TeaWeighControlProps) {
+  const options = useMemo(() => given ?? weighOptions(item), [given, item]);
   const [index, setIndex] = useState(() => startingIndex(options, preferredGrams));
   const [added, setAdded] = useState(false);
   const addedTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
