@@ -1,3 +1,7 @@
+## 2026-11-27: A person's page says their practice, not a title (behind its flag)
+
+Built on `build/practice-lines`, off until shipped (`PRACTICE_LINES_OPEN` in `src/lib/practiceLines.ts`, `VITE_PRACTICE_LINES_OPEN` on the site). Part of K6 and K8 (Adrian, 2026-11-26: "Okay, let's do these, but we will have to refine them"). A person's page carries three optional lines: "With tea since" a year, what draws them to tea in one short line (typed, or said through `/api/transcribe`), and what they do, tapped from a short fixed list. The owner answers each one in place, on their page at `/people/:slug` or on their profile at `/account/profile`; opening a line is a step in the address (`?practice=since|drawn|doings`), and a visitor sees only the lines that were answered. The three prompts, the field words and the list of things-you-do (a draft for Adrian) live in that one module, and the worker checks answers with the same code. No "studied with" line, no lineage, no title, no level, and nothing is counted or ranked from these. Routes: `GET` and `PUT /api/public/people/:slug/practice`, 404 while closed. Migration `0148_practice_lines.sql` adds `contributors.practice_since`, `practice_drawn` and `practice_doings`, columns only; no other answer ever carries them. Guards: `worker/tests/practice-lines.test.ts`, `src/components/people/PracticeLines.test.tsx`; browser check `tests/person-practice.spec.ts` at 320, 390 and 1280 wide.
+
 ## 2026-11-26: Launch 5 ready to ship (behind its flags)
 
 Finished on `build/l5-finish`, every part off until Adrian says "ship".
