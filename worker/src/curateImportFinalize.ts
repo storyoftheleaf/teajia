@@ -5,7 +5,7 @@ export type StockBearingFinalizeDisposition = Exclude<FinalizeImportDisposition,
 
 export type FinalizeDisposition = 'created' | 'reused';
 export interface FinalizeResolution { id: string; disposition: FinalizeDisposition }
-export interface CurateFinalizeBatch { id: string; accountId: string; journeyId: string | null; journeyName: string | null; reviewState: string; shippingRatePerKg: number }
+export interface CurateFinalizeBatch { id: string; accountId: string; journeyId: string | null; journeyName: string | null; reviewState: string }
 export interface CurateFinalizeGroup { id: string; vendorId: string | null; vendorName: string | null; position: number }
 export interface CurateFinalizeItem {
   id: string; groupId: string; category: 'tea' | 'teaware'; name: string;

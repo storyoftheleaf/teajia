@@ -166,11 +166,15 @@ describe('nothing else in the shop decides the rate', () => {
   });
 
   it('lets the rate be changed without a deploy', () => {
-    // The point of moving it onto the account. If Store Settings cannot write
-    // it, the number is a constant again and a better freight deal costs a
-    // release.
+    // The point of moving it onto the account. If nothing can write it, the
+    // number is a constant again and a better freight deal costs a release.
+    // Its editor lives in Logistics with the services (Adrian, 2026-11-27),
+    // and Store Settings no longer types it.
+    const logistics = read('../../src/admin/components/inventory/ShopFreightDefault.tsx');
+    expect(logistics, 'Logistics lost the shop default editor').toContain('default_shipping_rate_per_kg');
+    expect(read('../../src/admin/components/inventory/LogisticsServices.tsx'), 'the shop default is not shown with the services').toContain('<ShopFreightDefault');
     const view = read('../../src/admin/views/AccountSettingsView.tsx');
-    expect(view, 'Store Settings lost the freight field').toContain('default_shipping_rate_per_kg');
+    expect(view, 'Store Settings types a freight rate again').not.toContain('default_shipping_rate_per_kg');
     expect(worker, 'the account update route will not accept the freight rate')
       .toContain("'default_shipping_rate_per_kg', 'default_shipping_rate_currency',");
     const mcp = read('../src/mcp.ts');
@@ -279,30 +283,15 @@ describe('nothing else in the shop decides the rate', () => {
     expect(offences, 'an admin surface pinned its own freight rate; read the constant instead').toEqual([]);
   });
 
-  it('lets the Add Product form follow the shop rate instead of pinning one', () => {
-    /* Three faults in one field, all of them the same fault. The form
-       PRE-FILLED the shop's rate as a VALUE, so every tea added by hand was
-       pinned to whatever the rate happened to be that day and stopped following
-       a renegotiation, with a gold dot claiming Adrian had chosen it. Clearing
-       the field ran `parseFloat('') || 0` and saved ZERO, which is free
-       shipping, so there was no way to say "just use the shop's". And the
-       placeholder still advertised 13.00, one of the four rates this shop was
-       charging at once and a number it never actually charged.
-
-       The rule the edit panel was given on 2026-09-06, which this form missed:
-       NULL means follow the shop, 0 means Adrian said free. */
+  it('lets the Add Product form follow the shop rate instead of typing one', () => {
+    /* The form once PRE-FILLED the shop's rate as a value, pinning every tea
+       added by hand, and once saved a cleared field as ZERO. Since 2026-11-27
+       it types no rate at all (rates live in Logistics): a new tea is created
+       with NULL, and an edited tea keeps its stored rate unless Clear sends NULL. */
     const form = read('../../src/admin/components/AddProductModal.tsx');
-
-    expect(form, 'a blank freight field is saved as free shipping again')
-      .not.toMatch(/parseFloat\(formData\.shippingRateUSD\)\s*\|\|\s*0/);
-    expect(form, 'the freight field no longer goes through the entered-vs-absent boundary')
-      .toMatch(/enteredNumber\(formData\.shippingRateUSD\)/);
-
-    /* The shop rate belongs in the placeholder, never in the value: a value is
-       a decision the tea then carries, a placeholder is what it will follow. */
-    const field = form.slice(form.indexOf('name="shippingRateUSD"'));
-    expect(field.slice(0, 800), 'the freight placeholder names a rate rather than reading the shop\'s')
-      .not.toMatch(/placeholder="\d/);
+    expect(form, 'the form has a freight input again').not.toMatch(/name="shippingRateUSD"|id="product-shipping-input"/);
+    expect(form, 'a new tea no longer follows the shop by default').toMatch(/:\s*\{\s*shipping_rate_per_kg:\s*null\s*\}/);
+    expect(form, 'Clear no longer hands the tea back as NULL').toMatch(/ownRateCleared \? \{ shipping_rate_per_kg: null \}/);
   });
 
   it('leaves no instruction naming a different rate', () => {

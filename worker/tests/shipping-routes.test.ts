@@ -4,8 +4,8 @@ import { RouteRefusal, learnFromBills, listRoutes, removeRoute, saveRoute } from
 
 /**
  * Shipping routes (migration 0042), driven against the database the migration
- * ledger builds, which is the shape the live shop has. An empty rate stays
- * unknown, never zero; a rate states its currency; one shop never reads
+ * ledger builds, which is the shape the live shop has. A route holds no rate
+ * (rates are set in Logistics) and keeps one it already had; one shop never reads
  * another's; what past bills say is worked out from the bills, never stored.
  */
 const A = 'acct-a';
@@ -13,9 +13,9 @@ const B = 'acct-b';
 const db = () => new SqliteD1('migrations') as unknown as D1Database;
 
 describe('shipping routes', () => {
-  it('saves a route, and an empty rate stays unknown rather than free', async () => {
+  it('saves a route with no rate: freight rates are set in Logistics', async () => {
     const d = db();
-    const r = await saveRoute(d, A, null, { mode: 'air', carrier: 'Bali Air Cargo', destination: 'Teajia Bali', rate_per_kg: '', packing_percent: '35', billing_step_kg: 1 });
+    const r = await saveRoute(d, A, null, { mode: 'air', carrier: 'Bali Air Cargo', destination: 'Teajia Bali', packing_percent: '35', billing_step_kg: 1 });
     expect(r.rate_per_kg).toBeNull();
     expect(r.rate_currency).toBeNull();
     expect(r.packing_percent).toBe(35);
@@ -23,17 +23,12 @@ describe('shipping routes', () => {
     expect(listed).toMatchObject({ mode: 'air', carrier: 'Bali Air Cargo', rate_per_kg: null, billing_step_kg: 1 });
   });
 
-  it('keeps a typed zero as zero', async () => {
-    const r = await saveRoute(db(), A, null, { mode: 'sea', rate_per_kg: 0, rate_currency: 'Yuan', packing_percent: 0 });
-    expect(r.rate_per_kg).toBe(0);
-    expect(r.packing_percent).toBe(0);
-  });
-
-  it('refuses a rate with no currency, and spells the currency the shop way', async () => {
+  it('refuses a rate or its currency on a route, zero and blank included', async () => {
     const d = db();
-    await expect(saveRoute(d, A, null, { mode: 'air', rate_per_kg: 85 })).rejects.toBeInstanceOf(RouteRefusal);
-    const r = await saveRoute(d, A, null, { mode: 'air', rate_per_kg: 85, rate_currency: 'cny' });
-    expect(r.rate_currency).toBe('Yuan');
+    for (const body of [{ rate_per_kg: 85, rate_currency: 'Yuan' }, { rate_per_kg: 0 }, { rate_per_kg: '' }, { rate_currency: 'cny' }]) {
+      await expect(saveRoute(d, A, null, { mode: 'air', ...body })).rejects.toThrow(/Logistics/);
+    }
+    expect(await listRoutes(d, A)).toHaveLength(0);
   });
 
   it('refuses nonsense by name instead of storing it', async () => {
@@ -45,10 +40,12 @@ describe('shipping routes', () => {
 
   it('an edit changes only what it names, and one shop never touches another', async () => {
     const d = db();
-    const r = await saveRoute(d, A, null, { mode: 'sea', carrier: 'Keelung', rate_per_kg: 12, rate_currency: 'Yuan', minimum_kg: 5 });
+    const r = await saveRoute(d, A, null, { mode: 'sea', carrier: 'Keelung', minimum_kg: 5 });
+    // A rate typed before 2026-11-27 stays in its row, unread, and an edit never drops it.
+    await d.prepare('UPDATE shipping_routes SET rate_per_kg = 12, rate_currency = ? WHERE id = ?').bind('Yuan', r.id).run();
     await saveRoute(d, A, r.id, { carrier: 'Keelung sea freight' });
     const [after] = await listRoutes(d, A);
-    expect(after).toMatchObject({ carrier: 'Keelung sea freight', rate_per_kg: 12, minimum_kg: 5 });
+    expect(after).toMatchObject({ carrier: 'Keelung sea freight', rate_per_kg: 12, rate_currency: 'Yuan', minimum_kg: 5 });
     await expect(saveRoute(d, B, r.id, { carrier: 'stolen' })).rejects.toThrow(/No such route/);
     expect(await removeRoute(d, B, r.id)).toBe(false);
     expect(await listRoutes(d, B)).toHaveLength(0);

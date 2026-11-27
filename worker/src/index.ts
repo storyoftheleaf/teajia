@@ -1,4 +1,5 @@
 import { casualSitPublicationRoutes } from './casualSitPublications';
+import { freightRateWriteRefusal } from './freightRateDoor';
 import { publicSitRoutes, publishedSitRecap } from './publicSitConnections';
 import { formalSessionCardsFor, publicSessionRoutes } from './publicSessions';
 import type { PublicProductReader } from './sessionTeas';
@@ -3103,6 +3104,8 @@ const handleCreateProduct: Handler = async (request, env) => {
   }
   const capabilityError = validateProductCreateCapabilities(ctx, body);
   if (capabilityError) return capabilityError;
+  const freightRefusal = freightRateWriteRefusal(body, 'create');
+  if (freightRefusal) return restError(400, freightRefusal, 'freight_rate_in_logistics');
   /* After the unknown-field check, so `cost_currency_source` is not a field a
      caller may send: it records that this process saw a currency arrive. */
   stampCostCurrencySource(body);
@@ -3248,6 +3251,8 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
     }
     const capabilityError = validateProductCreateCapabilities(ctx, raw, { costRefusedPerRow: true });
     if (capabilityError) return capabilityError;
+    const freightRefusal = freightRateWriteRefusal(raw, 'create');
+    if (freightRefusal) return restError(400, freightRefusal, 'freight_rate_in_logistics');
     const ownerError = await validateProductOwnerAssignment(env, ctx, raw);
     if (ownerError) return ownerError;
   }
@@ -3657,6 +3662,14 @@ async function applyProductUpdate(
       .bind(params.id, accountId).first() as { cost_currency?: string | null } | null;
     const costRefusal = costMissingItsCurrency(body, existingCost?.cost_currency);
     if (costRefusal) return costRefusal;
+  }
+  // Freight rates are typed in Logistics, not here (worker/src/freightRateDoor.ts).
+  if ('shipping_rate_per_kg' in body) {
+    const existingFreight = await env.DB.prepare('SELECT shipping_rate_per_kg, cost_currency FROM products WHERE id = ? AND account_id = ?')
+      .bind(params.id, accountId).first() as { shipping_rate_per_kg?: number | null; cost_currency?: string | null } | null;
+    const freightRefusal = freightRateWriteRefusal(body, existingFreight);
+    if (freightRefusal) return restError(400, freightRefusal, 'freight_rate_in_logistics');
+    if (body.shipping_rate_per_kg === '') body.shipping_rate_per_kg = null;
   }
   // How the tea travels home: one of this shop's active logistics services, or
   // nothing said (src/lib/freightSource.ts). The rate stays on the service.
