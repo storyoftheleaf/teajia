@@ -5,7 +5,7 @@ kind: major_region
 label: Anhui
 native_name: 安徽
 parent: none
-visibility: draft
+visibility: public
 ---
 
 ## Where Anhui is {#where-it-is}
@@ -18,7 +18,7 @@ The tea hills have a humid, subtropical climate with four clear seasons, plenty 
 
 ## What Anhui is known for {#known-for}
 
-Anhui is one of the great tea provinces of China, and it is best known for green tea. Three green teas carry most of its name: Huangshan Maofeng from the Huangshan area, Taiping Houkui from the Taiping area, and Lu'an Guapian from the Lu'an area in the west. Its one world-famous red tea is Keemun, from Qimen County. Several of these are on the lists of China's famous teas, and the trade often counts Anhui as the province with the most famous teas of any. Besides these, Anhui makes smaller teas such as Huoshan Huangya, a rare yellow tea, and Liu An basket tea, a dark tea.
+Anhui is one of the great tea provinces of China, and it is best known for green tea. Three green teas carry most of its name: Huangshan Maofeng from the Huangshan area, Taiping Houkui from the Taiping area, and Lu'an Guapian from the Lu'an area in the west. Its one world-famous red tea is Keemun, from Qimen County. Several of these are on the lists of China's famous teas and the trade often names Anhui among the provinces with many famous teas. Besides these, Anhui makes smaller teas such as Huoshan Huangya, a rare yellow tea, and Liu An basket tea, a dark tea.
 
 ## The places inside Anhui {#places-inside}
 

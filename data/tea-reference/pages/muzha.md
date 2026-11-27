@@ -5,7 +5,7 @@ kind: tea_area
 label: Muzha
 native_name: 木柵
 parent: taiwan
-visibility: draft
+visibility: public
 ---
 
 ## Where Muzha is {#where-it-is}

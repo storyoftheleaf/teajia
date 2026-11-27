@@ -5,7 +5,7 @@ kind: leaf_grade
 label: Three Cranes
 native_name: 三鹤
 parent: liu-bao
-visibility: draft
+visibility: public
 ---
 
 ## A factory's mark, not a style or a place {#definition}

@@ -5,6 +5,135 @@ import type { DraftClaim } from '../claims';
 
 export const PART: readonly DraftClaim[] = [
   {
+    "claimId": "anhui:lu-an-names",
+    "pageId": "anhui",
+    "sectionKey": "lu-an-names",
+    "label": "Lu'an, Liu An and Lu'an Guapian",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "origin_includes": [
+        "anhui"
+      ]
+    },
+    "terms": [
+      {
+        "original": "六安",
+        "pinyin": "Lù'ān",
+        "gloss": "Lu'an, the city"
+      },
+      {
+        "original": "六安篮茶",
+        "pinyin": "Liù'ān lánchá",
+        "gloss": "Liu An basket tea"
+      }
+    ],
+    "rev": 1,
+    "scope": "The difference between Lu'an Guapian and Liu An basket tea",
+    "text": "The names Lu'an and Liu An look alike and are easy to mix up. Lu'an Guapian is a green tea from the city of Lu'an in western Anhui. Liu An basket tea is a dark tea made in Qimen County, in the south. It takes its name from the old Liu An way of making and trading, not from the city, and it is not green tea. A label that says Liu An or Lu'an needs the rest of the name to tell which tea is meant.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "The difference between Lu'an Guapian and Liu An basket tea",
+        "text": "The names Lu'an and Liu An look alike and are easy to mix up. Lu'an Guapian is a green tea from the city of Lu'an in western Anhui. Liu An basket tea is a dark tea made in Qimen County, in the south. It takes its name from the old Liu An way of making and trading, not from the city, and it is not green tea. A label that says Liu An or Lu'an needs the rest of the name to tell which tea is meant.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "anhui:places-inside",
+    "pageId": "anhui",
+    "sectionKey": "places-inside",
+    "label": "The places inside Anhui",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "origin_includes": [
+        "anhui"
+      ]
+    },
+    "terms": [
+      {
+        "original": "黄山",
+        "pinyin": "Huángshān",
+        "gloss": "Yellow Mountain"
+      },
+      {
+        "original": "祁门",
+        "pinyin": "Qímén",
+        "gloss": "Qimen"
+      },
+      {
+        "original": "六安",
+        "pinyin": "Lù'ān",
+        "gloss": "Lu'an"
+      }
+    ],
+    "rev": 1,
+    "scope": "Four main tea areas of Anhui and the tea each gives",
+    "text": "Four areas hold most of the fame. Huangshan, in the south, gives Huangshan Maofeng, a green tea with fine down on slightly curled leaf. Taiping, now part of the Huangshan area, gives Taiping Houkui, a long, flat green tea. Qimen, in the south-west, gives Keemun. Lu'an, in the west, gives Lu'an Guapian, a green tea made from single leaves with no bud and no stem, which is why it looks like a melon seed. Each of these is a separate tea with its own method, and none is a grade of another.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Four main tea areas of Anhui and the tea each gives",
+        "text": "Four areas hold most of the fame. Huangshan, in the south, gives Huangshan Maofeng, a green tea with fine down on slightly curled leaf. Taiping, now part of the Huangshan area, gives Taiping Houkui, a long, flat green tea. Qimen, in the south-west, gives Keemun. Lu'an, in the west, gives Lu'an Guapian, a green tea made from single leaves with no bud and no stem, which is why it looks like a melon seed. Each of these is a separate tea with its own method, and none is a grade of another.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "anhui:where-it-is",
+    "pageId": "anhui",
+    "sectionKey": "where-it-is",
+    "label": "Where Anhui is",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "origin_includes": [
+        "anhui"
+      ]
+    },
+    "terms": [
+      {
+        "original": "安徽",
+        "pinyin": "Ānhuī",
+        "gloss": "Anhui"
+      }
+    ],
+    "rev": 1,
+    "scope": "Where Anhui lies and which parts grow tea",
+    "text": "Anhui is a province in eastern China, inland from the coast and crossed by the Yangtze. Tea is grown only in its south and west, in the hills and mountains: the Huangshan range and the country around it in the south, and the Dabie Mountains in the west. The flat north of the province grows none. Most Anhui tea sits in a few separate pockets, each with its own famous tea, so the name Anhui on a label says less than the name of the county or mountain does.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Where Anhui lies and which parts grow tea",
+        "text": "Anhui is a province in eastern China, inland from the coast and crossed by the Yangtze. Tea is grown only in its south and west, in the hills and mountains: the Huangshan range and the country around it in the south, and the Dabie Mountains in the west. The flat north of the province grows none. Most Anhui tea sits in a few separate pockets, each with its own famous tea, so the name Anhui on a label says less than the name of the county or mountain does.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
     "claimId": "anxi:history",
     "pageId": "anxi",
     "sectionKey": "history",
@@ -18,14 +147,23 @@ export const PART: readonly DraftClaim[] = [
       ]
     },
     "terms": [],
-    "rev": null,
-    "scope": "",
+    "rev": 1,
+    "scope": "Anxi County: tea history in outline; Tieguanyin origin stories are folk accounts",
     "text": "Anxi has grown tea for many centuries, and local sources trace it back to the late Tang. Tieguanyin itself is told as a story of the 1700s in Xiping, and the stories are folk accounts and not records. Oolong from southern Fujian was shipped out through Quanzhou and later Xiamen, and families from Anxi, many of them from Xiping, carried the tea and the trade to Southeast Asia, where they opened tea houses. Tea is still the main income of the county. Until the 1990s Anxi was one of the poorer counties in Fujian, and the Tieguanyin boom that followed changed that.",
     "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "Anxi has grown tea for many centuries, and local sources trace it back to the late Tang. Tieguanyin itself is told as a story of the 1700s in Xiping, and the stories are folk accounts and not records. Oolong from southern Fujian was shipped out through Quanzhou and later Xiamen, and families from Anxi, many of them from Xiping, carried the tea and the trade to Southeast Asia, where they opened tea houses. Tea is still the main income of the county. Until the 1990s Anxi was one of the poorer counties in Fujian, and the Tieguanyin boom that followed changed that.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Anxi County: tea history in outline; Tieguanyin origin stories are folk accounts",
+        "text": "Anxi has grown tea for many centuries, and local sources trace it back to the late Tang. Tieguanyin itself is told as a story of the 1700s in Xiping, and the stories are folk accounts and not records. Oolong from southern Fujian was shipped out through Quanzhou and later Xiamen, and families from Anxi, many of them from Xiping, carried the tea and the trade to Southeast Asia, where they opened tea houses. Tea is still the main income of the county. Until the 1990s Anxi was one of the poorer counties in Fujian, and the Tieguanyin boom that followed changed that.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
   },
   {
     "claimId": "anxi:inner-outer",
@@ -52,14 +190,23 @@ export const PART: readonly DraftClaim[] = [
         "gloss": "outer Anxi, the lower land"
       }
     ],
-    "rev": null,
-    "scope": "",
+    "rev": 1,
+    "scope": "The trade habit of splitting Anxi into inner and outer; the boundary is not fixed",
     "text": "Sellers often speak of inner Anxi, the high mountain areas, and outer Anxi, the lower, warmer land nearer the county town. Inner Anxi is said to give the deeper, longer-lasting tea, and outer Anxi a quicker, brighter fragrance but a thinner cup. Places draw the line between the two in different ways, so treat it as a rough guide to height and not as a fixed border.",
     "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "Sellers often speak of inner Anxi, the high mountain areas, and outer Anxi, the lower, warmer land nearer the county town. Inner Anxi is said to give the deeper, longer-lasting tea, and outer Anxi a quicker, brighter fragrance but a thinner cup. Places draw the line between the two in different ways, so treat it as a rough guide to height and not as a fixed border.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "The trade habit of splitting Anxi into inner and outer; the boundary is not fixed",
+        "text": "Sellers often speak of inner Anxi, the high mountain areas, and outer Anxi, the lower, warmer land nearer the county town. Inner Anxi is said to give the deeper, longer-lasting tea, and outer Anxi a quicker, brighter fragrance but a thinner cup. Places draw the line between the two in different ways, so treat it as a rough guide to height and not as a fixed border.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
   },
   {
     "claimId": "anxi:known-for",
@@ -96,14 +243,23 @@ export const PART: readonly DraftClaim[] = [
         "gloss": "Meizhan, an Anxi cultivar"
       }
     ],
-    "rev": null,
-    "scope": "",
+    "rev": 1,
+    "scope": "Anxi County: what it is known for as a whole; not a description of any single tea",
     "text": "Anxi is known for oolong, and above all for Tieguanyin, which fills most of the county's tea land. Anxi is also where the trade places the craft of oolong making in southern Fujian, and where farmers learned to grow new plants from cuttings and layers instead of seed. Alongside Tieguanyin, four other local cultivars are well known: Huangjingui (also called Huangdan), Benshan, Maoxie and Meizhan. Each is sold as its own tea, and none of them is Tieguanyin. For the tea itself, how it is made and how it is sorted, see the Tieguanyin page.",
     "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "Anxi is known for oolong, and above all for Tieguanyin, which fills most of the county's tea land. Anxi is also where the trade places the craft of oolong making in southern Fujian, and where farmers learned to grow new plants from cuttings and layers instead of seed. Alongside Tieguanyin, four other local cultivars are well known: Huangjingui (also called Huangdan), Benshan, Maoxie and Meizhan. Each is sold as its own tea, and none of them is Tieguanyin. For the tea itself, how it is made and how it is sorted, see the Tieguanyin page.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Anxi County: what it is known for as a whole; not a description of any single tea",
+        "text": "Anxi is known for oolong, and above all for Tieguanyin, which fills most of the county's tea land. Anxi is also where the trade places the craft of oolong making in southern Fujian, and where farmers learned to grow new plants from cuttings and layers instead of seed. Alongside Tieguanyin, four other local cultivars are well known: Huangjingui (also called Huangdan), Benshan, Maoxie and Meizhan. Each is sold as its own tea, and none of them is Tieguanyin. For the tea itself, how it is made and how it is sorted, see the Tieguanyin page.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
   },
   {
     "claimId": "anxi:on-a-label",
@@ -119,14 +275,23 @@ export const PART: readonly DraftClaim[] = [
       ]
     },
     "terms": [],
-    "rev": null,
-    "scope": "",
+    "rev": 1,
+    "scope": "What Anxi means on a label; place only, not style or grade",
     "text": "Anxi Tieguanyin is a protected name, and Anxi on a label is a statement about where the leaf grew. It says nothing about the style, which can be light and green or roasted, and nothing about the grade. Not every tea sold as Tieguanyin comes from Anxi: some is grown elsewhere, and some is made from other cultivars under the name. A township on a label, such as Xiping or Xianghua, is a narrower claim than Anxi, and a label rarely proves it.",
     "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "Anxi Tieguanyin is a protected name, and Anxi on a label is a statement about where the leaf grew. It says nothing about the style, which can be light and green or roasted, and nothing about the grade. Not every tea sold as Tieguanyin comes from Anxi: some is grown elsewhere, and some is made from other cultivars under the name. A township on a label, such as Xiping or Xianghua, is a narrower claim than Anxi, and a label rarely proves it.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "What Anxi means on a label; place only, not style or grade",
+        "text": "Anxi Tieguanyin is a protected name, and Anxi on a label is a statement about where the leaf grew. It says nothing about the style, which can be light and green or roasted, and nothing about the grade. Not every tea sold as Tieguanyin comes from Anxi: some is grown elsewhere, and some is made from other cultivars under the name. A township on a label, such as Xiping or Xianghua, is a narrower claim than Anxi, and a label rarely proves it.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
   },
   {
     "claimId": "anxi:townships",
@@ -158,14 +323,23 @@ export const PART: readonly DraftClaim[] = [
         "gloss": "Gande township"
       }
     ],
-    "rev": null,
-    "scope": "",
+    "rev": 1,
+    "scope": "Named Anxi townships and the styles trade writing links them with; a pointer, not a grade or a guarantee",
     "text": "Trade writing treats a few Anxi townships as names in their own right. Xiping, in the west, is where Tieguanyin is said to have begun, and its teas are usually described as the traditional kind, more oxidised and often roasted. Xianghua is high and often in cloud, and its tea is known for a strong, lasting taste. Gande is the newest of the three, lower, with younger bushes, and is tied to the lighter, greener style. Changkeng is often named as a fourth. Away from Tieguanyin, Daping is linked to Maoxie, Huqiu to Huangjingui and Lutian to Meizhan. A township is a pointer to the style of tea you may meet and is not a grade.",
     "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "Trade writing treats a few Anxi townships as names in their own right. Xiping, in the west, is where Tieguanyin is said to have begun, and its teas are usually described as the traditional kind, more oxidised and often roasted. Xianghua is high and often in cloud, and its tea is known for a strong, lasting taste. Gande is the newest of the three, lower, with younger bushes, and is tied to the lighter, greener style. Changkeng is often named as a fourth. Away from Tieguanyin, Daping is linked to Maoxie, Huqiu to Huangjingui and Lutian to Meizhan. A township is a pointer to the style of tea you may meet and is not a grade.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Named Anxi townships and the styles trade writing links them with; a pointer, not a grade or a guarantee",
+        "text": "Trade writing treats a few Anxi townships as names in their own right. Xiping, in the west, is where Tieguanyin is said to have begun, and its teas are usually described as the traditional kind, more oxidised and often roasted. Xianghua is high and often in cloud, and its tea is known for a strong, lasting taste. Gande is the newest of the three, lower, with younger bushes, and is tied to the lighter, greener style. Changkeng is often named as a fourth. Away from Tieguanyin, Daping is linked to Maoxie, Huqiu to Huangjingui and Lutian to Meizhan. A township is a pointer to the style of tea you may meet and is not a grade.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
   },
   {
     "claimId": "anxi:where-it-is",
@@ -181,14 +355,23 @@ export const PART: readonly DraftClaim[] = [
       ]
     },
     "terms": [],
-    "rev": null,
-    "scope": "",
+    "rev": 1,
+    "scope": "Anxi County as a place: location and landscape",
     "text": "Anxi is a county in southern Fujian, in the prefecture of Quanzhou, inland from the coast and north of Xiamen. It sits on the southern side of the Daiyun mountains. The county town lies in a low basin, and the land rises into hills and ridges all round it. Anxi is the home of Tieguanyin and one of the main oolong counties of China.",
     "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "Anxi is a county in southern Fujian, in the prefecture of Quanzhou, inland from the coast and north of Xiamen. It sits on the southern side of the Daiyun mountains. The county town lies in a low basin, and the land rises into hills and ridges all round it. Anxi is the home of Tieguanyin and one of the main oolong counties of China.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Anxi County as a place: location and landscape",
+        "text": "Anxi is a county in southern Fujian, in the prefecture of Quanzhou, inland from the coast and north of Xiamen. It sits on the southern side of the Daiyun mountains. The county town lies in a low basin, and the land rises into hills and ridges all round it. Anxi is the home of Tieguanyin and one of the main oolong counties of China.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
   },
   {
     "claimId": "anxi:why-tea",
@@ -204,14 +387,23 @@ export const PART: readonly DraftClaim[] = [
       ]
     },
     "terms": [],
-    "rev": null,
-    "scope": "",
+    "rev": 1,
+    "scope": "Anxi County: climate, soil and gardens, as the trade describes them in general; not any one garden",
     "text": "Anxi is warm, wet and misty, with mild winters and rain through most of the year. The mountains are weathered granite, which breaks down into acidic, free-draining red and yellow soil, the kind tea likes. Farmers build terraced gardens on the slopes, keep forest on the ridges above, and farm the foothills and river valleys below. The higher gardens have cooler nights, more fog and slower growth, and sellers connect that with a more concentrated, more fragrant leaf. The soil is not strongly mineral the way Wuyi rock is, so Anxi tea is usually described through its cultivar and its making more than through its ground.",
     "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "Anxi is warm, wet and misty, with mild winters and rain through most of the year. The mountains are weathered granite, which breaks down into acidic, free-draining red and yellow soil, the kind tea likes. Farmers build terraced gardens on the slopes, keep forest on the ridges above, and farm the foothills and river valleys below. The higher gardens have cooler nights, more fog and slower growth, and sellers connect that with a more concentrated, more fragrant leaf. The soil is not strongly mineral the way Wuyi rock is, so Anxi tea is usually described through its cultivar and its making more than through its ground.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Anxi County: climate, soil and gardens, as the trade describes them in general; not any one garden",
+        "text": "Anxi is warm, wet and misty, with mild winters and rain through most of the year. The mountains are weathered granite, which breaks down into acidic, free-draining red and yellow soil, the kind tea likes. Farmers build terraced gardens on the slopes, keep forest on the ridges above, and farm the foothills and river valleys below. The higher gardens have cooler nights, more fog and slower growth, and sellers connect that with a more concentrated, more fragrant leaf. The soil is not strongly mineral the way Wuyi rock is, so Anxi tea is usually described through its cultivar and its making more than through its ground.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
   },
   {
     "claimId": "banzhang:history",
@@ -462,14 +654,23 @@ export const PART: readonly DraftClaim[] = [
       ]
     },
     "terms": [],
-    "rev": null,
-    "scope": "",
+    "rev": 1,
+    "scope": "How Beipu relates to other Oriental Beauty areas and what a Beipu label does and does not say.",
     "text": "Beipu is one place among several that make Oriental Beauty. Emei and Zhudong in Hsinchu, the Toufen area in Miaoli and parts of Taoyuan and New Taipei all grow it. A label that says Beipu names a township. A label that says Oriental Beauty names a style, which is not limited to Beipu.",
     "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "Beipu is one place among several that make Oriental Beauty. Emei and Zhudong in Hsinchu, the Toufen area in Miaoli and parts of Taoyuan and New Taipei all grow it. A label that says Beipu names a township. A label that says Oriental Beauty names a style, which is not limited to Beipu.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "How Beipu relates to other Oriental Beauty areas and what a Beipu label does and does not say.",
+        "text": "Beipu is one place among several that make Oriental Beauty. Emei and Zhudong in Hsinchu, the Toufen area in Miaoli and parts of Taoyuan and New Taipei all grow it. A label that says Beipu names a township. A label that says Oriental Beauty names a style, which is not limited to Beipu.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
   },
   {
     "claimId": "beipu:known-for",
@@ -496,14 +697,23 @@ export const PART: readonly DraftClaim[] = [
         "gloss": "bragging tea, a local name for Oriental Beauty"
       }
     ],
-    "rev": null,
-    "scope": "",
+    "rev": 1,
+    "scope": "Oriental Beauty as the tea Beipu is known for, and what that style is. Does not cover other Beipu tea or all Oriental Beauty from elsewhere.",
     "text": "Beipu is best known for Oriental Beauty, called Dongfang Meiren in Mandarin. It is a heavily oxidised oolong, close to black tea in how it is made, with a sweet, honeyed and fruity cup and little bitterness. Beipu is counted among the core places where it is made, together with Emei and Zhudong in the same county. The tea is sold under other names too, including Pengfeng tea and white-tip oolong.",
     "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "Beipu is best known for Oriental Beauty, called Dongfang Meiren in Mandarin. It is a heavily oxidised oolong, close to black tea in how it is made, with a sweet, honeyed and fruity cup and little bitterness. Beipu is counted among the core places where it is made, together with Emei and Zhudong in the same county. The tea is sold under other names too, including Pengfeng tea and white-tip oolong.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Oriental Beauty as the tea Beipu is known for, and what that style is. Does not cover other Beipu tea or all Oriental Beauty from elsewhere.",
+        "text": "Beipu is best known for Oriental Beauty, called Dongfang Meiren in Mandarin. It is a heavily oxidised oolong, close to black tea in how it is made, with a sweet, honeyed and fruity cup and little bitterness. Beipu is counted among the core places where it is made, together with Emei and Zhudong in the same county. The tea is sold under other names too, including Pengfeng tea and white-tip oolong.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
   },
   {
     "claimId": "beipu:leafhopper",
@@ -530,14 +740,23 @@ export const PART: readonly DraftClaim[] = [
         "gloss": "Qingxin Dapang, a tea cultivar"
       }
     ],
-    "rev": null,
-    "scope": "",
+    "rev": 1,
+    "scope": "Why Oriental Beauty from Beipu and nearby areas depends on leafhopper-bitten shoots, early summer picking and low spraying. Style-wide, not specific to one farm.",
     "text": "Oriental Beauty is made from young shoots that a small green leafhopper has bitten. The plant answers the bite by producing aroma compounds, and the leaf curls and takes on white, green, red and brown tones as it is made. This is why Beipu growers keep sprays off the gardens, and why the tea is picked only in the heat of early summer, when the insects are active. Because the leaf cannot be made to order, the harvest is small and the tea costs more than most oolong. Qingxin Dapang is the cultivar most often named as the best suited, with other cultivars also used.",
     "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "Oriental Beauty is made from young shoots that a small green leafhopper has bitten. The plant answers the bite by producing aroma compounds, and the leaf curls and takes on white, green, red and brown tones as it is made. This is why Beipu growers keep sprays off the gardens, and why the tea is picked only in the heat of early summer, when the insects are active. Because the leaf cannot be made to order, the harvest is small and the tea costs more than most oolong. Qingxin Dapang is the cultivar most often named as the best suited, with other cultivars also used.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Why Oriental Beauty from Beipu and nearby areas depends on leafhopper-bitten shoots, early summer picking and low spraying. Style-wide, not specific to one farm.",
+        "text": "Oriental Beauty is made from young shoots that a small green leafhopper has bitten. The plant answers the bite by producing aroma compounds, and the leaf curls and takes on white, green, red and brown tones as it is made. This is why Beipu growers keep sprays off the gardens, and why the tea is picked only in the heat of early summer, when the insects are active. Because the leaf cannot be made to order, the harvest is small and the tea costs more than most oolong. Qingxin Dapang is the cultivar most often named as the best suited, with other cultivars also used.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
   },
   {
     "claimId": "beipu:where-it-is",
@@ -559,14 +778,23 @@ export const PART: readonly DraftClaim[] = [
         "gloss": "Beipu, a Hakka township in Hsinchu County"
       }
     ],
-    "rev": null,
-    "scope": "",
+    "rev": 1,
+    "scope": "Beipu township as a place: location in Hsinchu County, low hill setting, Hakka character. Not a statement about any one tea.",
     "text": "Beipu is a township in the south-west of Hsinchu County, in north-western Taiwan. It sits in low hill country between the central mountains and the coastal plain, well below the altitudes of the high-mountain oolong areas. It is one of the most Hakka townships on the island, and the tea grown here is Hakka farmers' tea.",
     "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "Beipu is a township in the south-west of Hsinchu County, in north-western Taiwan. It sits in low hill country between the central mountains and the coastal plain, well below the altitudes of the high-mountain oolong areas. It is one of the most Hakka townships on the island, and the tea grown here is Hakka farmers' tea.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Beipu township as a place: location in Hsinchu County, low hill setting, Hakka character. Not a statement about any one tea.",
+        "text": "Beipu is a township in the south-west of Hsinchu County, in north-western Taiwan. It sits in low hill country between the central mountains and the coastal plain, well below the altitudes of the high-mountain oolong areas. It is one of the most Hakka townships on the island, and the tea grown here is Hakka farmers' tea.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
   },
   {
     "claimId": "blue-seal-green-label:definition",
@@ -732,215 +960,5 @@ export const PART: readonly DraftClaim[] = [
       }
     ],
     "pageVisibility": "public"
-  },
-  {
-    "claimId": "bulang-mountain:on-a-label",
-    "pageId": "bulang-mountain",
-    "sectionKey": "on-a-label",
-    "label": "Bulang Mountain on a label",
-    "axis": "place",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "origin_includes": [
-        "bulang mountain"
-      ]
-    },
-    "terms": [
-      {
-        "original": "布朗山",
-        "pinyin": "Bùlǎngshān",
-        "gloss": "Bulang Mountain"
-      },
-      {
-        "original": "老曼峨",
-        "pinyin": "Lǎo Màn’é",
-        "gloss": "Lao Man’e village"
-      }
-    ],
-    "rev": 1,
-    "scope": "bulang-mountain",
-    "text": "Bulang Mountain on a label is a broad market name. Leaf from smaller or less famous villages is often sold in bulk, blended, and offered as Bulang tea. A cake called Bulang Mountain rarely names the village, and some makers do not state where the leaf came from. It points to a mountain style more than to one place.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "bulang-mountain",
-        "text": "Bulang Mountain on a label is a broad market name. Leaf from smaller or less famous villages is often sold in bulk, blended, and offered as Bulang tea. A cake called Bulang Mountain rarely names the village, and some makers do not state where the leaf came from. It points to a mountain style more than to one place.",
-        "approvedAt": "2026-11-26",
-        "reason": "Approved by Adrian on the Wisdom Base Places review page, 2026-11-27",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "bulang-mountain:people",
-    "pageId": "bulang-mountain",
-    "sectionKey": "people",
-    "label": "Who lives there",
-    "axis": "place",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "origin_includes": [
-        "bulang mountain"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "bulang-mountain",
-    "text": "The mountain takes its name from the Bulang people, who have grown and drunk tea here for a very long time. Lao Man’e is often described as one of their oldest villages, at about fourteen hundred years. Hani villages such as the Banzhang settlements sit in the same mountains.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "bulang-mountain",
-        "text": "The mountain takes its name from the Bulang people, who have grown and drunk tea here for a very long time. Lao Man’e is often described as one of their oldest villages, at about fourteen hundred years. Hani villages such as the Banzhang settlements sit in the same mountains.",
-        "approvedAt": "2026-11-26",
-        "reason": "Approved by Adrian on the Wisdom Base Places review page, 2026-11-27",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "bulang-mountain:where-it-is",
-    "pageId": "bulang-mountain",
-    "sectionKey": "where-it-is",
-    "label": "Where Bulang Mountain is",
-    "axis": "place",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "origin_includes": [
-        "bulang mountain"
-      ]
-    },
-    "terms": [
-      {
-        "original": "布朗山",
-        "pinyin": "Bùlǎngshān",
-        "gloss": "Bulang Mountain"
-      },
-      {
-        "original": "老曼峨",
-        "pinyin": "Lǎo Màn’é",
-        "gloss": "Lao Man’e village"
-      }
-    ],
-    "rev": 1,
-    "scope": "bulang-mountain",
-    "text": "Bulang Mountain lies in the south of Menghai County in Xishuangbanna, Yunnan, next to the border with Myanmar. It covers roughly one thousand square kilometres and is one of the larger tea areas in the county. It is a mountain area with many villages, not a single village. Banzhang, Lao Man’e and Manxinlong are among its named tea villages.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "bulang-mountain",
-        "text": "Bulang Mountain lies in the south of Menghai County in Xishuangbanna, Yunnan, next to the border with Myanmar. It covers roughly one thousand square kilometres and is one of the larger tea areas in the county. It is a mountain area with many villages, not a single village. Banzhang, Lao Man’e and Manxinlong are among its named tea villages.",
-        "approvedAt": "2026-11-26",
-        "reason": "Approved by Adrian on the Wisdom Base Places review page, 2026-11-27",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "cangwu:decline-and-return",
-    "pageId": "cangwu",
-    "sectionKey": "decline-and-return",
-    "label": "Decline and return",
-    "axis": "place",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "origin_includes": [
-        "cangwu"
-      ]
-    },
-    "terms": [
-      {
-        "original": "六堡茶",
-        "pinyin": "Liùbǎo chá",
-        "gloss": "Liu Bao tea"
-      }
-    ],
-    "rev": null,
-    "scope": "",
-    "text": "The river trade broke down in the war years, and demand from Southeast Asia fell again later. By the early 1990s very few tea gardens were still worked in the county, and some were cut down for other crops. Interest returned in the 2000s, helped by the wider rise of aged dark tea, and Liu Bao gained protected-origin status in 2011. Today Cangwu is one part of a larger industry centred on Wuzhou, not the whole of it.",
-    "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "The river trade broke down in the war years, and demand from Southeast Asia fell again later. By the early 1990s very few tea gardens were still worked in the county, and some were cut down for other crops. Interest returned in the 2000s, helped by the wider rise of aged dark tea, and Liu Bao gained protected-origin status in 2011. Today Cangwu is one part of a larger industry centred on Wuzhou, not the whole of it.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
-  },
-  {
-    "claimId": "cangwu:known-for",
-    "pageId": "cangwu",
-    "sectionKey": "known-for",
-    "label": "The home of Liu Bao",
-    "axis": "place",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "origin_includes": [
-        "cangwu"
-      ]
-    },
-    "terms": [
-      {
-        "original": "六堡茶",
-        "pinyin": "Liùbǎo chá",
-        "gloss": "Liu Bao tea"
-      },
-      {
-        "original": "黑石",
-        "pinyin": "Hēishí",
-        "gloss": "Heishi village"
-      }
-    ],
-    "rev": null,
-    "scope": "",
-    "text": "Cangwu is known for one tea, Liu Bao, and for being where it began. The town's own villages are the ones the trade names for the best leaf, and Heishi is the village most often mentioned beside Liubao itself. The county gazetteer of 1697 is the earliest record usually cited for the tea, and many accounts give the style a very long history, although that older date is not settled. What the style is, how it is made and how it ages are on the Liu Bao page, so this page does not repeat them.",
-    "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "Cangwu is known for one tea, Liu Bao, and for being where it began. The town's own villages are the ones the trade names for the best leaf, and Heishi is the village most often mentioned beside Liubao itself. The county gazetteer of 1697 is the earliest record usually cited for the tea, and many accounts give the style a very long history, although that older date is not settled. What the style is, how it is made and how it ages are on the Liu Bao page, so this page does not repeat them.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
-  },
-  {
-    "claimId": "cangwu:land-and-climate",
-    "pageId": "cangwu",
-    "sectionKey": "land-and-climate",
-    "label": "Why the mountains matter to the tea",
-    "axis": "place",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "origin_includes": [
-        "cangwu"
-      ]
-    },
-    "terms": [
-      {
-        "original": "六堡",
-        "pinyin": "Liùbǎo",
-        "gloss": "Liubao"
-      }
-    ],
-    "rev": null,
-    "scope": "",
-    "text": "Liubao town sits among forested mountains, north of the Tropic of Cancer, in a warm, wet, subtropical monsoon climate. Mist and cloud are frequent, so the tea bushes grow in a good deal of shade, and the soils are acidic red earth. People in the trade point to this soft, damp, shaded setting as the reason the local leaf suits Liu Bao. It is the reason buyers who care about origin look to Cangwu first and to the rest of Wuzhou second.",
-    "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "Liubao town sits among forested mountains, north of the Tropic of Cancer, in a warm, wet, subtropical monsoon climate. Mist and cloud are frequent, so the tea bushes grow in a good deal of shade, and the soils are acidic red earth. People in the trade point to this soft, damp, shaded setting as the reason the local leaf suits Liu Bao. It is the reason buyers who care about origin look to Cangwu first and to the rest of Wuzhou second.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
   }
 ];

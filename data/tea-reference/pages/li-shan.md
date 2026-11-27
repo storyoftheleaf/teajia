@@ -5,7 +5,7 @@ kind: tea_area
 label: Li Shan
 native_name: 梨山
 parent: taiwan
-visibility: draft
+visibility: public
 ---
 
 ## Where Li Shan is {#where-it-is}

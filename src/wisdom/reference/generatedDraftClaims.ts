@@ -19,12 +19,14 @@ import { PART as claims14 } from './generatedDraft/claims-14';
 import { PART as claims15 } from './generatedDraft/claims-15';
 import { PART as claims16 } from './generatedDraft/claims-16';
 import { PART as claims17 } from './generatedDraft/claims-17';
+import { PART as claims18 } from './generatedDraft/claims-18';
+import { PART as claims19 } from './generatedDraft/claims-19';
 import { PART as pages1 } from './generatedDraft/pages-1';
 import { PART as pages2 } from './generatedDraft/pages-2';
 import { PART as pages3 } from './generatedDraft/pages-3';
 import { PART as pages4 } from './generatedDraft/pages-4';
 import { PART as sources1 } from './generatedDraft/sources-1';
 
-export const GENERATED_DRAFT_CLAIMS: readonly DraftClaim[] = [...claims1, ...claims2, ...claims3, ...claims4, ...claims5, ...claims6, ...claims7, ...claims8, ...claims9, ...claims10, ...claims11, ...claims12, ...claims13, ...claims14, ...claims15, ...claims16, ...claims17];
+export const GENERATED_DRAFT_CLAIMS: readonly DraftClaim[] = [...claims1, ...claims2, ...claims3, ...claims4, ...claims5, ...claims6, ...claims7, ...claims8, ...claims9, ...claims10, ...claims11, ...claims12, ...claims13, ...claims14, ...claims15, ...claims16, ...claims17, ...claims18, ...claims19];
 export const GENERATED_DRAFT_PAGES: readonly DraftReferencePage[] = [...pages1, ...pages2, ...pages3, ...pages4];
 export const GENERATED_DRAFT_SOURCES: readonly PublicTeaReferenceSource[] = [...sources1];

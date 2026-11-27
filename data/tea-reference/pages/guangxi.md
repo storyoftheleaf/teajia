@@ -5,7 +5,7 @@ kind: major_region
 label: Guangxi
 native_name: 广西
 parent: none
-visibility: draft
+visibility: public
 ---
 
 ## Where Guangxi is {#where-it-is}

@@ -5,7 +5,7 @@ kind: tea_area
 label: Da Xue Shan
 native_name: 大雪山
 parent: yunnan
-visibility: draft
+visibility: public
 ---
 
 ## One name, several mountains {#where-it-is}
@@ -18,7 +18,7 @@ When pu'er writing says Da Xue Shan, it most often means the Mengku mountain: th
 
 ## Wild trees in the forest {#wild-trees}
 
-People value Da Xue Shan for its wild tea trees. On the Mengku mountain a wild ancient tree community grows on the mid slopes in dense forest, at roughly 2,200 to 2,750 metres, and is described as among the largest and best preserved anywhere. The tea there is left to grow without pruning, fertilizer or managed picking paths. The core of that forest is now closed and protected, so it is no longer picked. Tea sold from the mountain comes from lower and managed ground.
+People value Da Xue Shan for its wild tea trees. On the Mengku mountain a wild ancient tree community grows on the mid slopes in dense forest, at roughly 2,200 to 2,750 metres, and is described as large and well kept. The tea there is left to grow without pruning, fertilizer or managed picking paths. The core of that forest is now closed and protected, so it is no longer picked. Tea sold from the mountain comes from lower and managed ground.
 
 ## Wild tea is not the same as old garden tea {#wild-and-old}
 

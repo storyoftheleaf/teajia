@@ -5,7 +5,7 @@ kind: major_region
 label: Fujian
 native_name: 福建
 parent: none
-visibility: draft
+visibility: public
 ---
 
 ## Where Fujian is {#where-it-is}

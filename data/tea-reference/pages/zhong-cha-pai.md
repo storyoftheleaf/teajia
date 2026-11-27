@@ -5,7 +5,7 @@ kind: leaf_grade
 label: Zhong Cha Pai
 native_name: 中茶牌
 parent: shou
-visibility: draft
+visibility: public
 ---
 
 ## What Zhong Cha Pai means on a cake {#definition}

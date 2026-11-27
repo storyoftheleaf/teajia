@@ -5,7 +5,7 @@ kind: major_region
 label: Zhenghe
 native_name: 政和
 parent: fujian
-visibility: draft
+visibility: public
 ---
 
 ## Where Zhenghe is {#where-it-is}

@@ -5,7 +5,7 @@ kind: major_region
 label: Taiwan
 native_name: 台湾
 parent: none
-visibility: draft
+visibility: public
 ---
 
 ## Where Taiwan is {#where-it-is}

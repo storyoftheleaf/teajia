@@ -5,7 +5,7 @@ kind: tea_area
 label: Yuchi
 native_name: 魚池
 parent: nantou
-visibility: draft
+visibility: public
 ---
 
 ## Where Yuchi is {#where-it-is}

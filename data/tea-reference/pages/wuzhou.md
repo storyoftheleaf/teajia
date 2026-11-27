@@ -5,7 +5,7 @@ kind: major_region
 label: Wuzhou
 native_name: 梧州
 parent: guangxi
-visibility: draft
+visibility: public
 ---
 
 ## Where Wuzhou is {#where-it-is}

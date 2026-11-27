@@ -5,7 +5,7 @@ kind: major_region
 label: Dali
 native_name: 大理
 parent: yunnan
-visibility: draft
+visibility: public
 ---
 
 ## Where Dali is {#where-it-is}
@@ -22,4 +22,4 @@ Dali on a tuocha or cake says where the tea was pressed, not where the leaf grew
 
 ## Tea grown in Dali {#grown-in-dali}
 
-Dali makes only a small amount of tea itself. Gardens lie mainly on the Cang mountains and on the Wuliang range in Nanjian County, and what is sold locally is often green tea. Dali sits north of the zone where Yunnan’s large leaf tea trees are most concentrated, in a belt where large and smaller leaf plants grow side by side. The finest pu’er material is not usually said to come from here.
+Dali makes only a small amount of tea itself. Gardens lie mainly on the Cang mountains and on the Wuliang range in Nanjian County, and what is sold locally is often green tea. Dali sits north of the zone where Yunnan’s large leaf tea trees are most concentrated, in a belt where large and smaller leaf plants grow side by side. Dali is not usually named as a source of prized pu’er leaf.

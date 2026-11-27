@@ -5,7 +5,7 @@ kind: tea_area
 label: Wuliang Mountain
 native_name: 无量山
 parent: yunnan
-visibility: draft
+visibility: public
 ---
 
 ## Where Wuliang Mountain is {#where}

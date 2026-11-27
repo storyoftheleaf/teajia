@@ -5,7 +5,7 @@ kind: tea_area
 label: Beipu
 native_name: 北埔
 parent: hsinchu
-visibility: draft
+visibility: public
 ---
 
 ## Where Beipu is {#where-it-is}

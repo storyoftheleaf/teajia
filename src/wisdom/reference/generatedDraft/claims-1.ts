@@ -119,14 +119,23 @@ export const PART: readonly DraftClaim[] = [
         "gloss": "Jin Xuan, a cultivar"
       }
     ],
-    "rev": null,
-    "scope": "",
+    "rev": 1,
+    "scope": "The two cultivars most often grown in Alishan; says nothing about any single garden",
     "text": "Qingxin oolong is the main cultivar, and it is the one people most often mean by classic Alishan, with orchid-like or osmanthus-like fragrance and lasting sweetness. Jin Xuan, the milky cultivar also sold as TTES No. 12, is grown too, mostly on the lower and middle ground. Which cultivar a tea is, and how high it grew, changes the cup more than the name Alishan does.",
     "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "Qingxin oolong is the main cultivar, and it is the one people most often mean by classic Alishan, with orchid-like or osmanthus-like fragrance and lasting sweetness. Jin Xuan, the milky cultivar also sold as TTES No. 12, is grown too, mostly on the lower and middle ground. Which cultivar a tea is, and how high it grew, changes the cup more than the name Alishan does.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "The two cultivars most often grown in Alishan; says nothing about any single garden",
+        "text": "Qingxin oolong is the main cultivar, and it is the one people most often mean by classic Alishan, with orchid-like or osmanthus-like fragrance and lasting sweetness. Jin Xuan, the milky cultivar also sold as TTES No. 12, is grown too, mostly on the lower and middle ground. Which cultivar a tea is, and how high it grew, changes the cup more than the name Alishan does.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
   },
   {
     "claimId": "alishan:on-a-label",
@@ -148,14 +157,23 @@ export const PART: readonly DraftClaim[] = [
         "gloss": "Ali Mountain"
       }
     ],
-    "rev": null,
-    "scope": "",
+    "rev": 1,
+    "scope": "How the name Alishan is used on labels and what a fuller claim looks like",
     "text": "Alishan on a label is a market name that covers a lot of ground, and it does not say which township, garden or height the tea came from. Tea from outside Taiwan, including high-altitude oolong from other countries, is sometimes sold as Alishan, so a bare name with no garden, height or cultivar is the weaker claim. Fenqihu is a related case: it is a tourist town with only a few tea gardens, and much tea sold under its name comes from nearby areas such as Shizhuo. A named village, a stated height and a cultivar make the fuller claim.",
     "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "Alishan on a label is a market name that covers a lot of ground, and it does not say which township, garden or height the tea came from. Tea from outside Taiwan, including high-altitude oolong from other countries, is sometimes sold as Alishan, so a bare name with no garden, height or cultivar is the weaker claim. Fenqihu is a related case: it is a tourist town with only a few tea gardens, and much tea sold under its name comes from nearby areas such as Shizhuo. A named village, a stated height and a cultivar make the fuller claim.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "How the name Alishan is used on labels and what a fuller claim looks like",
+        "text": "Alishan on a label is a market name that covers a lot of ground, and it does not say which township, garden or height the tea came from. Tea from outside Taiwan, including high-altitude oolong from other countries, is sometimes sold as Alishan, so a bare name with no garden, height or cultivar is the weaker claim. Fenqihu is a related case: it is a tourist town with only a few tea gardens, and much tea sold under its name comes from nearby areas such as Shizhuo. A named village, a stated height and a cultivar make the fuller claim.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
   },
   {
     "claimId": "alishan:sub-areas",
@@ -192,14 +210,23 @@ export const PART: readonly DraftClaim[] = [
         "gloss": "Shizhuo, a sub-area"
       }
     ],
-    "rev": null,
-    "scope": "",
+    "rev": 1,
+    "scope": "The townships and sub-areas that make up the Alishan tea area; heights vary by garden",
     "text": "The tea area is wider than Alishan Township. Tea grows in three townships. Meishan, on the northern edge, has lower and middle gardens in villages such as Taiping, Ruili and Taixing. Zhuqi is the centre, with Shizhuo and Fenqihu. Alishan Township itself holds the higher gardens along the mountain road. Named sub-areas also carry weight with sellers: Shizhuo, Zhangshuhu and Ruifeng are among those most often named, and garden height varies a lot even within one village.",
     "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "The tea area is wider than Alishan Township. Tea grows in three townships. Meishan, on the northern edge, has lower and middle gardens in villages such as Taiping, Ruili and Taixing. Zhuqi is the centre, with Shizhuo and Fenqihu. Alishan Township itself holds the higher gardens along the mountain road. Named sub-areas also carry weight with sellers: Shizhuo, Zhangshuhu and Ruifeng are among those most often named, and garden height varies a lot even within one village.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "The townships and sub-areas that make up the Alishan tea area; heights vary by garden",
+        "text": "The tea area is wider than Alishan Township. Tea grows in three townships. Meishan, on the northern edge, has lower and middle gardens in villages such as Taiping, Ruili and Taixing. Zhuqi is the centre, with Shizhuo and Fenqihu. Alishan Township itself holds the higher gardens along the mountain road. Named sub-areas also carry weight with sellers: Shizhuo, Zhangshuhu and Ruifeng are among those most often named, and garden height varies a lot even within one village.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
   },
   {
     "claimId": "alishan:where-it-is",
@@ -221,14 +248,23 @@ export const PART: readonly DraftClaim[] = [
         "gloss": "Ali Mountain"
       }
     ],
-    "rev": null,
-    "scope": "",
+    "rev": 1,
+    "scope": "Where the Alishan tea area is and the range of heights quoted for its gardens; not a statement about any one garden",
     "text": "Alishan is a mountain range and tea area in Chiayi County, in the southwest of central Taiwan. It is one of the three best known high mountain tea areas on the island, with Lishan and Shanlinxi. Its gardens sit on the western and southern slopes, mostly at about 1,000 to 1,600 metres, though places quote the range differently, from about 700 up to 1,800 metres. On a tea record, Alishan names the mountain area. The county is Chiayi, and some records file Alishan under Nantou, which is not where it is.",
     "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "Alishan is a mountain range and tea area in Chiayi County, in the southwest of central Taiwan. It is one of the three best known high mountain tea areas on the island, with Lishan and Shanlinxi. Its gardens sit on the western and southern slopes, mostly at about 1,000 to 1,600 metres, though places quote the range differently, from about 700 up to 1,800 metres. On a tea record, Alishan names the mountain area. The county is Chiayi, and some records file Alishan under Nantou, which is not where it is.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Where the Alishan tea area is and the range of heights quoted for its gardens; not a statement about any one garden",
+        "text": "Alishan is a mountain range and tea area in Chiayi County, in the southwest of central Taiwan. It is one of the three best known high mountain tea areas on the island, with Lishan and Shanlinxi. Its gardens sit on the western and southern slopes, mostly at about 1,000 to 1,600 metres, though places quote the range differently, from about 700 up to 1,800 metres. On a tea record, Alishan names the mountain area. The county is Chiayi, and some records file Alishan under Nantou, which is not where it is.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
   },
   {
     "claimId": "alishan:why-people-value-it",
@@ -250,14 +286,23 @@ export const PART: readonly DraftClaim[] = [
         "gloss": "Ali Mountain"
       }
     ],
-    "rev": null,
-    "scope": "",
+    "rev": 1,
+    "scope": "What the trade says about Alishan high mountain oolong as a style of place: climate, slow growth, light oxidation; general, not any one lot",
     "text": "Alishan matters to a buyer for its air and its approachability. Cloud and fog cover the gardens for much of the day, the sun is filtered, and nights are cool, so the leaf grows slowly and comes out thick and soft with little bitterness. The trade explains the cup this way: sweet, smooth and light in astringency, with a floral aroma that lasts through many infusions. Most Alishan tea is lightly oxidised, ball-rolled oolong with little or no roast. It is often the first high mountain oolong people try, and the style most buyers picture when they say high mountain tea.",
     "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "Alishan matters to a buyer for its air and its approachability. Cloud and fog cover the gardens for much of the day, the sun is filtered, and nights are cool, so the leaf grows slowly and comes out thick and soft with little bitterness. The trade explains the cup this way: sweet, smooth and light in astringency, with a floral aroma that lasts through many infusions. Most Alishan tea is lightly oxidised, ball-rolled oolong with little or no roast. It is often the first high mountain oolong people try, and the style most buyers picture when they say high mountain tea.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "What the trade says about Alishan high mountain oolong as a style of place: climate, slow growth, light oxidation; general, not any one lot",
+        "text": "Alishan matters to a buyer for its air and its approachability. Cloud and fog cover the gardens for much of the day, the sun is filtered, and nights are cool, so the leaf grows slowly and comes out thick and soft with little bitterness. The trade explains the cup this way: sweet, smooth and light in astringency, with a floral aroma that lasts through many infusions. Most Alishan tea is lightly oxidised, ball-rolled oolong with little or no roast. It is often the first high mountain oolong people try, and the style most buyers picture when they say high mountain tea.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
   },
   {
     "claimId": "anhua-dark:ageing",
@@ -668,14 +713,23 @@ export const PART: readonly DraftClaim[] = [
         "gloss": "Tangjiaguan, old tea trading town"
       }
     ],
-    "rev": null,
-    "scope": "",
+    "rev": 1,
+    "scope": "How Anhua became a county and a tea county, in outline; the tea's own history is on the Anhua dark tea page",
     "text": "Anhua was set up as a county in the Northern Song, after the Meishan hill country was opened to the outside world, and tea has been recorded in the area since the Tang. The trade grew under the Ming and Qing, when Anhua tea went north and north-west by road and river to the north-west and on to Russia. Old stone paths and merchant towns such as Tangjiaguan, a stop on the long tea road, still show where that trade passed. For the tea itself, how it was made and what it became, see the Anhua dark tea page.",
     "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "Anhua was set up as a county in the Northern Song, after the Meishan hill country was opened to the outside world, and tea has been recorded in the area since the Tang. The trade grew under the Ming and Qing, when Anhua tea went north and north-west by road and river to the north-west and on to Russia. Old stone paths and merchant towns such as Tangjiaguan, a stop on the long tea road, still show where that trade passed. For the tea itself, how it was made and what it became, see the Anhua dark tea page.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "How Anhua became a county and a tea county, in outline; the tea's own history is on the Anhua dark tea page",
+        "text": "Anhua was set up as a county in the Northern Song, after the Meishan hill country was opened to the outside world, and tea has been recorded in the area since the Tang. The trade grew under the Ming and Qing, when Anhua tea went north and north-west by road and river to the north-west and on to Russia. Old stone paths and merchant towns such as Tangjiaguan, a stop on the long tea road, still show where that trade passed. For the tea itself, how it was made and what it became, see the Anhua dark tea page.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
   },
   {
     "claimId": "anhua:tea-today",
@@ -691,14 +745,23 @@ export const PART: readonly DraftClaim[] = [
       ]
     },
     "terms": [],
-    "rev": null,
-    "scope": "",
+    "rev": 1,
+    "scope": "Tea as the main industry of Anhua County today, in general terms",
     "text": "Tea is the main industry of Anhua. Tea gardens cover a large part of the hills, more than two hundred firms process the leaf, and hundreds of thousands of people in and around the county make a living from tea in some way. Visitors come to the tea museum, the old tea roads and the tea farms on Yuntai Mountain, so the place is also a destination in its own right.",
     "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "Tea is the main industry of Anhua. Tea gardens cover a large part of the hills, more than two hundred firms process the leaf, and hundreds of thousands of people in and around the county make a living from tea in some way. Visitors come to the tea museum, the old tea roads and the tea farms on Yuntai Mountain, so the place is also a destination in its own right.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Tea as the main industry of Anhua County today, in general terms",
+        "text": "Tea is the main industry of Anhua. Tea gardens cover a large part of the hills, more than two hundred firms process the leaf, and hundreds of thousands of people in and around the county make a living from tea in some way. Visitors come to the tea museum, the old tea roads and the tea farms on Yuntai Mountain, so the place is also a destination in its own right.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
   },
   {
     "claimId": "anhua:where-it-is",
@@ -735,14 +798,23 @@ export const PART: readonly DraftClaim[] = [
         "gloss": "Xuefeng mountains"
       }
     ],
-    "rev": null,
-    "scope": "",
+    "rev": 1,
+    "scope": "Anhua County as a place: province, city, river, mountains, terrain",
     "text": "Anhua is a mountain county in north-central Hunan, in the city of Yiyang. It lies on the middle stretch of the Zi river, at the northern foot of the Xuefeng mountains, and is the southernmost and westernmost county of Yiyang. Most of the land is hills and steep valleys, with streams running down to the river. It is a place where rice is hard to grow and tea does well.",
     "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "Anhua is a mountain county in north-central Hunan, in the city of Yiyang. It lies on the middle stretch of the Zi river, at the northern foot of the Xuefeng mountains, and is the southernmost and westernmost county of Yiyang. Most of the land is hills and steep valleys, with streams running down to the river. It is a place where rice is hard to grow and tea does well.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Anhua County as a place: province, city, river, mountains, terrain",
+        "text": "Anhua is a mountain county in north-central Hunan, in the city of Yiyang. It lies on the middle stretch of the Zi river, at the northern foot of the Xuefeng mountains, and is the southernmost and westernmost county of Yiyang. Most of the land is hills and steep valleys, with streams running down to the river. It is a place where rice is hard to grow and tea does well.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
   },
   {
     "claimId": "anhua:why-people-value-it",
@@ -764,14 +836,23 @@ export const PART: readonly DraftClaim[] = [
         "gloss": "Yuntai Mountain"
       }
     ],
-    "rev": null,
-    "scope": "",
+    "rev": 1,
+    "scope": "Anhua County's climate, soil, forest and local large-leaf tea, and why the trade ties dark tea character to the place",
     "text": "People value Anhua first as the home of Chinese dark tea, and then for the ground the tea grows in. The county is warm and very wet, with four clear seasons, a short cold spell, and cloud and mist on the high mountains such as Yuntai. The slopes on both sides of the river are deep, loose, slightly acidic soil weathered from shale, which drains well. A large share of the county is forest, and the tea sits among it, not on cleared plains. The local large-leaf tea, best known from Yuntai Mountain, has thick, soft leaf that suits dark tea making. In Anhua the same wet, warm air that helps the tea grow is also the air the tea is piled, pressed and aged in, which is why the trade ties the character of the finished tea to the place and not only to the method.",
     "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "People value Anhua first as the home of Chinese dark tea, and then for the ground the tea grows in. The county is warm and very wet, with four clear seasons, a short cold spell, and cloud and mist on the high mountains such as Yuntai. The slopes on both sides of the river are deep, loose, slightly acidic soil weathered from shale, which drains well. A large share of the county is forest, and the tea sits among it, not on cleared plains. The local large-leaf tea, best known from Yuntai Mountain, has thick, soft leaf that suits dark tea making. In Anhua the same wet, warm air that helps the tea grow is also the air the tea is piled, pressed and aged in, which is why the trade ties the character of the finished tea to the place and not only to the method.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Anhua County's climate, soil, forest and local large-leaf tea, and why the trade ties dark tea character to the place",
+        "text": "People value Anhua first as the home of Chinese dark tea, and then for the ground the tea grows in. The county is warm and very wet, with four clear seasons, a short cold spell, and cloud and mist on the high mountains such as Yuntai. The slopes on both sides of the river are deep, loose, slightly acidic soil weathered from shale, which drains well. A large share of the county is forest, and the tea sits among it, not on cleared plains. The local large-leaf tea, best known from Yuntai Mountain, has thick, soft leaf that suits dark tea making. In Anhua the same wet, warm air that helps the tea grow is also the air the tea is piled, pressed and aged in, which is why the trade ties the character of the finished tea to the place and not only to the method.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
   },
   {
     "claimId": "anhui:keemun",
@@ -793,14 +874,23 @@ export const PART: readonly DraftClaim[] = [
         "gloss": "Qimen red tea, Keemun"
       }
     ],
-    "rev": null,
-    "scope": "",
+    "rev": 1,
+    "scope": "Keemun as the tea of Qimen County; its origin in the late nineteenth century",
     "text": "Keemun began in Qimen County in the late nineteenth century, when red tea making was brought into Anhui, which until then was known for green tea. It was sold abroad early and became a base for English blends. The trade describes it as a light, smooth red tea with a floral scent and little bitterness. Keemun in this sense is the tea of Qimen County and the hills around it, and the name does not cover other teas that are called Keemun style.",
     "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "Keemun began in Qimen County in the late nineteenth century, when red tea making was brought into Anhui, which until then was known for green tea. It was sold abroad early and became a base for English blends. The trade describes it as a light, smooth red tea with a floral scent and little bitterness. Keemun in this sense is the tea of Qimen County and the hills around it, and the name does not cover other teas that are called Keemun style.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Keemun as the tea of Qimen County; its origin in the late nineteenth century",
+        "text": "Keemun began in Qimen County in the late nineteenth century, when red tea making was brought into Anhui, which until then was known for green tea. It was sold abroad early and became a base for English blends. The trade describes it as a light, smooth red tea with a floral scent and little bitterness. Keemun in this sense is the tea of Qimen County and the hills around it, and the name does not cover other teas that are called Keemun style.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
   },
   {
     "claimId": "anhui:known-for",
@@ -837,14 +927,23 @@ export const PART: readonly DraftClaim[] = [
         "gloss": "Keemun"
       }
     ],
-    "rev": null,
-    "scope": "",
-    "text": "Anhui is one of the great tea provinces of China, and it is best known for green tea. Three green teas carry most of its name: Huangshan Maofeng from the Huangshan area, Taiping Houkui from the Taiping area, and Lu'an Guapian from the Lu'an area in the west. Its one world-famous red tea is Keemun, from Qimen County. Several of these are on the lists of China's famous teas, and the trade often counts Anhui as the province with the most famous teas of any. Besides these, Anhui makes smaller teas such as Huoshan Huangya, a rare yellow tea, and Liu An basket tea, a dark tea.",
+    "rev": 1,
+    "scope": "Anhui's best-known teas by type; not a ranking",
+    "text": "Anhui is one of the great tea provinces of China, and it is best known for green tea. Three green teas carry most of its name: Huangshan Maofeng from the Huangshan area, Taiping Houkui from the Taiping area, and Lu'an Guapian from the Lu'an area in the west. Its one world-famous red tea is Keemun, from Qimen County. Several of these are on the lists of China's famous teas and the trade often names Anhui among the provinces with many famous teas. Besides these, Anhui makes smaller teas such as Huoshan Huangya, a rare yellow tea, and Liu An basket tea, a dark tea.",
     "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "Anhui is one of the great tea provinces of China, and it is best known for green tea. Three green teas carry most of its name: Huangshan Maofeng from the Huangshan area, Taiping Houkui from the Taiping area, and Lu'an Guapian from the Lu'an area in the west. Its one world-famous red tea is Keemun, from Qimen County. Several of these are on the lists of China's famous teas, and the trade often counts Anhui as the province with the most famous teas of any. Besides these, Anhui makes smaller teas such as Huoshan Huangya, a rare yellow tea, and Liu An basket tea, a dark tea.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Anhui's best-known teas by type; not a ranking",
+        "text": "Anhui is one of the great tea provinces of China, and it is best known for green tea. Three green teas carry most of its name: Huangshan Maofeng from the Huangshan area, Taiping Houkui from the Taiping area, and Lu'an Guapian from the Lu'an area in the west. Its one world-famous red tea is Keemun, from Qimen County. Several of these are on the lists of China's famous teas and the trade often names Anhui among the provinces with many famous teas. Besides these, Anhui makes smaller teas such as Huoshan Huangya, a rare yellow tea, and Liu An basket tea, a dark tea.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
   },
   {
     "claimId": "anhui:land-and-climate",
@@ -860,115 +959,22 @@ export const PART: readonly DraftClaim[] = [
       ]
     },
     "terms": [],
-    "rev": null,
-    "scope": "",
+    "rev": 1,
+    "scope": "Climate and land of Anhui's tea hills in general; differences between south and west",
     "text": "The tea hills have a humid, subtropical climate with four clear seasons, plenty of rain, and mist and cloud that lie on the mountains for much of the year. People in the trade link that cover, together with acidic, well-drained mountain soil, to slow-growing leaf with a clean fragrance and a sweet aftertaste. The cold winters let the bushes rest, so spring leaf comes on strong. The west is cooler and drier than the south, which is why its tea grows on hardier bushes.",
     "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "The tea hills have a humid, subtropical climate with four clear seasons, plenty of rain, and mist and cloud that lie on the mountains for much of the year. People in the trade link that cover, together with acidic, well-drained mountain soil, to slow-growing leaf with a clean fragrance and a sweet aftertaste. The cold winters let the bushes rest, so spring leaf comes on strong. The west is cooler and drier than the south, which is why its tea grows on hardier bushes.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
-  },
-  {
-    "claimId": "anhui:lu-an-names",
-    "pageId": "anhui",
-    "sectionKey": "lu-an-names",
-    "label": "Lu'an, Liu An and Lu'an Guapian",
-    "axis": "place",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "origin_includes": [
-        "anhui"
-      ]
-    },
-    "terms": [
+    "reviewState": "approved",
+    "previousRevisions": [
       {
-        "original": "六安",
-        "pinyin": "Lù'ān",
-        "gloss": "Lu'an, the city"
-      },
-      {
-        "original": "六安篮茶",
-        "pinyin": "Liù'ān lánchá",
-        "gloss": "Liu An basket tea"
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Climate and land of Anhui's tea hills in general; differences between south and west",
+        "text": "The tea hills have a humid, subtropical climate with four clear seasons, plenty of rain, and mist and cloud that lie on the mountains for much of the year. People in the trade link that cover, together with acidic, well-drained mountain soil, to slow-growing leaf with a clean fragrance and a sweet aftertaste. The cold winters let the bushes rest, so spring leaf comes on strong. The west is cooler and drier than the south, which is why its tea grows on hardier bushes.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
+        "evidenceIds": []
       }
     ],
-    "rev": null,
-    "scope": "",
-    "text": "The names Lu'an and Liu An look alike and are easy to mix up. Lu'an Guapian is a green tea from the city of Lu'an in western Anhui. Liu An basket tea is a dark tea made in Qimen County, in the south. It takes its name from the old Liu An way of making and trading, not from the city, and it is not green tea. A label that says Liu An or Lu'an needs the rest of the name to tell which tea is meant.",
-    "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "The names Lu'an and Liu An look alike and are easy to mix up. Lu'an Guapian is a green tea from the city of Lu'an in western Anhui. Liu An basket tea is a dark tea made in Qimen County, in the south. It takes its name from the old Liu An way of making and trading, not from the city, and it is not green tea. A label that says Liu An or Lu'an needs the rest of the name to tell which tea is meant.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
-  },
-  {
-    "claimId": "anhui:places-inside",
-    "pageId": "anhui",
-    "sectionKey": "places-inside",
-    "label": "The places inside Anhui",
-    "axis": "place",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "origin_includes": [
-        "anhui"
-      ]
-    },
-    "terms": [
-      {
-        "original": "黄山",
-        "pinyin": "Huángshān",
-        "gloss": "Yellow Mountain"
-      },
-      {
-        "original": "祁门",
-        "pinyin": "Qímén",
-        "gloss": "Qimen"
-      },
-      {
-        "original": "六安",
-        "pinyin": "Lù'ān",
-        "gloss": "Lu'an"
-      }
-    ],
-    "rev": null,
-    "scope": "",
-    "text": "Four areas hold most of the fame. Huangshan, in the south, gives Huangshan Maofeng, a green tea with fine down on slightly curled leaf. Taiping, now part of the Huangshan area, gives Taiping Houkui, a long, flat green tea. Qimen, in the south-west, gives Keemun. Lu'an, in the west, gives Lu'an Guapian, a green tea made from single leaves with no bud and no stem, which is why it looks like a melon seed. Each of these is a separate tea with its own method, and none is a grade of another.",
-    "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "Four areas hold most of the fame. Huangshan, in the south, gives Huangshan Maofeng, a green tea with fine down on slightly curled leaf. Taiping, now part of the Huangshan area, gives Taiping Houkui, a long, flat green tea. Qimen, in the south-west, gives Keemun. Lu'an, in the west, gives Lu'an Guapian, a green tea made from single leaves with no bud and no stem, which is why it looks like a melon seed. Each of these is a separate tea with its own method, and none is a grade of another.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
-  },
-  {
-    "claimId": "anhui:where-it-is",
-    "pageId": "anhui",
-    "sectionKey": "where-it-is",
-    "label": "Where Anhui is",
-    "axis": "place",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "origin_includes": [
-        "anhui"
-      ]
-    },
-    "terms": [
-      {
-        "original": "安徽",
-        "pinyin": "Ānhuī",
-        "gloss": "Anhui"
-      }
-    ],
-    "rev": null,
-    "scope": "",
-    "text": "Anhui is a province in eastern China, inland from the coast and crossed by the Yangtze. Tea is grown only in its south and west, in the hills and mountains: the Huangshan range and the country around it in the south, and the Dabie Mountains in the west. The flat north of the province grows none. Most Anhui tea sits in a few separate pockets, each with its own famous tea, so the name Anhui on a label says less than the name of the county or mountain does.",
-    "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "Anhui is a province in eastern China, inland from the coast and crossed by the Yangtze. Tea is grown only in its south and west, in the hills and mountains: the Huangshan range and the country around it in the south, and the Dabie Mountains in the west. The flat north of the province grows none. Most Anhui tea sits in a few separate pockets, each with its own famous tea, so the name Anhui on a label says less than the name of the county or mountain does.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
+    "pageVisibility": "public"
   }
 ];

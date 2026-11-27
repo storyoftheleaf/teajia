@@ -45,7 +45,7 @@ describe('wisdomNeeds', () => {
     expect(find(needs, 'process')).toMatchObject({ label: 'GABA', covered: true, pageId: 'gaba' });
     expect(find(needs, 'style')?.pageId).not.toBe('gaba');
     expect(find(needs, 'style')?.covered).toBe(true);
-    expect(find(needs, 'place')).toMatchObject({ label: 'Taiwan', covered: false });
+    expect(find(needs, 'place')).toMatchObject({ label: 'Taiwan', covered: true, pageId: 'taiwan' });
   });
 
   it('Bulang Mountain Small Tea Heads: the place and the tea heads process are covered', () => {

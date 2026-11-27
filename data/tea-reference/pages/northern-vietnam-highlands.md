@@ -5,7 +5,7 @@ kind: major_region
 label: Northern Vietnam highlands
 native_name:
 parent: none
-visibility: draft
+visibility: public
 ---
 
 ## Where the northern highlands are {#where-it-is}

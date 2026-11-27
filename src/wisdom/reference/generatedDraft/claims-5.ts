@@ -5,6 +5,448 @@ import type { DraftClaim } from '../claims';
 
 export const PART: readonly DraftClaim[] = [
   {
+    "claimId": "dian-hong:old-tree-and-sun-dried",
+    "pageId": "dian-hong",
+    "sectionKey": "old-tree-and-sun-dried",
+    "label": "Old-tree and sun-dried red",
+    "axis": "process",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Red",
+      "origin_includes": [
+        "yunnan"
+      ]
+    },
+    "terms": [
+      {
+        "original": "古树",
+        "pinyin": "gǔ shù",
+        "gloss": "old trees"
+      },
+      {
+        "original": "晒红",
+        "pinyin": "shài hóng",
+        "gloss": "sun-dried red"
+      }
+    ],
+    "rev": 1,
+    "scope": "All red tea; Dian Hong where the origin is Yunnan",
+    "text": "Two newer branches sell under the Yunnan red name. Old-tree red is made from old tea trees; it is priced higher, and there is no agreed definition or standard for it. Sun-dried red is red tea whose last drying is done in the strong spring sun of the mountains rather than over heat, a choice of process and not a separate kind of tea. The trade does not agree whether either should be called Dian Hong.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "All red tea; Dian Hong where the origin is Yunnan",
+        "text": "Two newer branches sell under the Yunnan red name. Old-tree red is made from old tea trees; it is priced higher, and there is no agreed definition or standard for it. Sun-dried red is red tea whose last drying is done in the strong spring sun of the mountains rather than over heat, a choice of process and not a separate kind of tea. The trade does not agree whether either should be called Dian Hong.",
+        "approvedAt": "2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 15)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "fuding:inside-fuding",
+    "pageId": "fuding",
+    "sectionKey": "inside-fuding",
+    "label": "Taimu, Bailin and the other districts",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "fuding"
+      ]
+    },
+    "terms": [
+      {
+        "original": "福鼎",
+        "pinyin": "fúdǐng",
+        "gloss": "Fuding, county-level city in north-east Fujian"
+      },
+      {
+        "original": "太姥山",
+        "pinyin": "tàimǔ shān",
+        "gloss": "Taimu Mountain"
+      },
+      {
+        "original": "白琳",
+        "pinyin": "báilín",
+        "gloss": "Bailin, a growing district in Fuding"
+      }
+    ],
+    "rev": 1,
+    "scope": "Named districts within Fuding; no agreed difference between them is claimed",
+    "text": "Taimu Mountain and Bailin are the two places inside Fuding that the trade names most. Taimu is tied to the first famous bud tea and to the mother tree of the Fuding bush. Bailin is tied to an early bud tea of its own, known as white down tea. Diantou, Panxi and Guanyang are also named as main growing districts. Sellers say tea from higher and cooler ground is lighter and cleaner, and that each district differs in scent, body and sweetness, but too few places agree on how to tell them apart to treat any of that as settled. The year and the maker change the cup as much as the district does.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Named districts within Fuding; no agreed difference between them is claimed",
+        "text": "Taimu Mountain and Bailin are the two places inside Fuding that the trade names most. Taimu is tied to the first famous bud tea and to the mother tree of the Fuding bush. Bailin is tied to an early bud tea of its own, known as white down tea. Diantou, Panxi and Guanyang are also named as main growing districts. Sellers say tea from higher and cooler ground is lighter and cleaner, and that each district differs in scent, body and sweetness, but too few places agree on how to tell them apart to treat any of that as settled. The year and the maker change the cup as much as the district does.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "fuding:known-for",
+    "pageId": "fuding",
+    "sectionKey": "known-for",
+    "label": "What Fuding is known for",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "fuding"
+      ]
+    },
+    "terms": [
+      {
+        "original": "福鼎",
+        "pinyin": "fúdǐng",
+        "gloss": "Fuding, county-level city in north-east Fujian"
+      }
+    ],
+    "rev": 1,
+    "scope": "Fuding's standing as the home of white tea and its main bushes; grades and styles are on the white tea pages",
+    "text": "Fuding is known as the home of white tea. Fuding, Zhenghe and Jianyang are the three places in Fujian that make it, and Fuding is the one most often named as its origin. Its way of making white tea, a long natural wither without any frying or rolling, is listed as national cultural heritage in China. The leaf comes mostly from two local bushes, Fuding Da Bai and Fuding Da Hao, which together make up nearly all the tea grown there. What the types and grades of white tea are, and how Fuding and Zhenghe compare, is covered on the white tea pages.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Fuding's standing as the home of white tea and its main bushes; grades and styles are on the white tea pages",
+        "text": "Fuding is known as the home of white tea. Fuding, Zhenghe and Jianyang are the three places in Fujian that make it, and Fuding is the one most often named as its origin. Its way of making white tea, a long natural wither without any frying or rolling, is listed as national cultural heritage in China. The leaf comes mostly from two local bushes, Fuding Da Bai and Fuding Da Hao, which together make up nearly all the tea grown there. What the types and grades of white tea are, and how Fuding and Zhenghe compare, is covered on the white tea pages.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "fuding:on-a-label",
+    "pageId": "fuding",
+    "sectionKey": "on-a-label",
+    "label": "Fuding on a label",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "fuding"
+      ]
+    },
+    "terms": [
+      {
+        "original": "福鼎",
+        "pinyin": "fúdǐng",
+        "gloss": "Fuding, county-level city in north-east Fujian"
+      }
+    ],
+    "rev": 1,
+    "scope": "What the protected name Fuding white tea says about place, and what it does not",
+    "text": "Fuding white tea is a protected origin name in China, recognised since 2009. On a label it means that the leaf grew and was made inside Fuding, which is a claim about place only. It does not say which grade the tea is, which year it was picked or how long it has aged. Taimu and Bailin are narrower names inside it, and a label rarely proves which of them is meant.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "What the protected name Fuding white tea says about place, and what it does not",
+        "text": "Fuding white tea is a protected origin name in China, recognised since 2009. On a label it means that the leaf grew and was made inside Fuding, which is a claim about place only. It does not say which grade the tea is, which year it was picked or how long it has aged. Taimu and Bailin are narrower names inside it, and a label rarely proves which of them is meant.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "fuding:where-it-is",
+    "pageId": "fuding",
+    "sectionKey": "where-it-is",
+    "label": "Where Fuding is",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "fuding"
+      ]
+    },
+    "terms": [
+      {
+        "original": "福鼎",
+        "pinyin": "fúdǐng",
+        "gloss": "Fuding, county-level city in north-east Fujian"
+      }
+    ],
+    "rev": 1,
+    "scope": "Where Fuding sits and its main landmark",
+    "text": "Fuding is a county-level city in the north-east corner of Fujian, on the coast and against the Zhejiang border. Mountains close it in on three sides and the East China Sea lies to the east. It is hilly almost everywhere, and Taimu Mountain, a scenic and geopark area, is its best known peak.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Where Fuding sits and its main landmark",
+        "text": "Fuding is a county-level city in the north-east corner of Fujian, on the coast and against the Zhejiang border. Mountains close it in on three sides and the East China Sea lies to the east. It is hilly almost everywhere, and Taimu Mountain, a scenic and geopark area, is its best known peak.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "fuding:why-it-matters",
+    "pageId": "fuding",
+    "sectionKey": "why-it-matters",
+    "label": "Why people value Fuding",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "fuding"
+      ]
+    },
+    "terms": [
+      {
+        "original": "福鼎",
+        "pinyin": "fúdǐng",
+        "gloss": "Fuding, county-level city in north-east Fujian"
+      }
+    ],
+    "rev": 1,
+    "scope": "The landscape and climate people cite as the reason for Fuding tea; general, not a rule for every tea",
+    "text": "Fuding is where mountain and sea meet, and that is the reason most often given for its tea. Hills and mountains cover most of the land and forest covers well over half of it, so the gardens sit on terraced mid-slopes with forest above them. The climate is mild, humid and often misty, with sea air moving up the valleys, and the soil is acidic red and yellow earth. The trade ties this to the plump, downy buds that white tea needs, and to a tea that is usually described as fresh, sweet and floral. Many gardens are also grown with other plants and animals around the bushes, which the region now presents as a farming heritage in its own right.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "The landscape and climate people cite as the reason for Fuding tea; general, not a rule for every tea",
+        "text": "Fuding is where mountain and sea meet, and that is the reason most often given for its tea. Hills and mountains cover most of the land and forest covers well over half of it, so the gardens sit on terraced mid-slopes with forest above them. The climate is mild, humid and often misty, with sea air moving up the valleys, and the soil is acidic red and yellow earth. The trade ties this to the plump, downy buds that white tea needs, and to a tea that is usually described as fresh, sweet and floral. Many gardens are also grown with other plants and animals around the bushes, which the region now presents as a farming heritage in its own right.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "fujian-white:ageing",
+    "pageId": "fujian-white",
+    "sectionKey": "ageing",
+    "label": "Keeping and ageing Fujian white",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "White",
+      "origin_includes": [
+        "fujian"
+      ]
+    },
+    "terms": [
+      {
+        "original": "一年茶，三年药，七年宝",
+        "pinyin": "yī nián chá, sān nián yào, qī nián bǎo",
+        "gloss": "one year tea, three years medicine, seven years treasure"
+      }
+    ],
+    "rev": 1,
+    "scope": "Fujian white style kit",
+    "text": "The trade says white tea is tea in its first year, medicine at three years and a treasure at seven; it is a saying, not a tested claim, and no agreed number of years makes a tea aged. With age it moves from fresh and sweet toward jujube, dried fruit, honey, wood and herbs, with a deeper, redder liquor and a rounder body. Keep it dry, clean and aired, away from strong smells and sunlight.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Fujian white style kit",
+        "text": "The trade says white tea is tea in its first year, medicine at three years and a treasure at seven; it is a saying, not a tested claim, and no agreed number of years makes a tea aged. With age it moves from fresh and sweet toward jujube, dried fruit, honey, wood and herbs, with a deeper, redder liquor and a rounder body. Keep it dry, clean and aired, away from strong smells and sunlight.",
+        "approvedAt": "2026-11-25",
+        "reason": "Adrian approved the Fujian white kit 2026-11-25",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "fujian-white:brewing",
+    "pageId": "fujian-white",
+    "sectionKey": "brewing",
+    "label": "Brewing Fujian white",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "White",
+      "origin_includes": [
+        "fujian"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Fujian white style kit",
+    "text": "Gongfu style, use about 1 gram of leaf to 15 to 25 ml of water, for example 5 grams in a 100 to 110 ml gaiwan; weigh it, since the leaf is light and bulky. Silver Needle and young, delicate tea take water below the boil, about 75 to 90°C; older, leafier or aged tea takes water at or near the boil. Start with a steep of 10 to 45 seconds and add a few seconds each round. An aged cake is often rinsed quickly first, and older pressed tea can be simmered on the stove, about 5 grams to 500 ml for 3 to 10 minutes; young, delicate tea is not.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Fujian white style kit",
+        "text": "Gongfu style, use about 1 gram of leaf to 15 to 25 ml of water, for example 5 grams in a 100 to 110 ml gaiwan; weigh it, since the leaf is light and bulky. Silver Needle and young, delicate tea take water below the boil, about 75 to 90°C; older, leafier or aged tea takes water at or near the boil. Start with a steep of 10 to 45 seconds and add a few seconds each round. An aged cake is often rinsed quickly first, and older pressed tea can be simmered on the stove, about 5 grams to 500 ml for 3 to 10 minutes; young, delicate tea is not.",
+        "approvedAt": "2026-11-25",
+        "reason": "Adrian approved the Fujian white kit 2026-11-25",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "fujian-white:cakes",
+    "pageId": "fujian-white",
+    "sectionKey": "cakes",
+    "label": "White tea cakes",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "White",
+      "origin_includes": [
+        "fujian"
+      ]
+    },
+    "terms": [
+      {
+        "original": "白茶饼",
+        "pinyin": "báichá bǐng",
+        "gloss": "white tea cake"
+      }
+    ],
+    "rev": 1,
+    "scope": "Fujian white style kit",
+    "text": "Pressed white tea is new. Cakes began in the 2000s and spread around 2010, because a cake is smaller and easier to keep and carry than loose leaf. A cake is made from one of several grades, White Peony, Gong Mei or Shou Mei, so its grade has to be read from its own description. Some cakes are pressed from leaf already aged loose for a few years, so the year on a cake can be the year it was pressed rather than picked.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Fujian white style kit",
+        "text": "Pressed white tea is new. Cakes began in the 2000s and spread around 2010, because a cake is smaller and easier to keep and carry than loose leaf. A cake is made from one of several grades, White Peony, Gong Mei or Shou Mei, so its grade has to be read from its own description. Some cakes are pressed from leaf already aged loose for a few years, so the year on a cake can be the year it was pressed rather than picked.",
+        "approvedAt": "2026-11-25",
+        "reason": "Adrian approved the Fujian white kit 2026-11-25",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "fujian-white:common-impressions",
+    "pageId": "fujian-white",
+    "sectionKey": "common-impressions",
+    "label": "What people often notice",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "White",
+      "origin_includes": [
+        "fujian"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Fujian white style kit",
+    "text": "In young Fuding tea: a sweet cup, floral, fresh and brisk, with the scent of the down. Zhenghe tea is most often called thick and full.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Fujian white style kit",
+        "text": "In young Fuding tea: a sweet cup, floral, fresh and brisk, with the scent of the down. Zhenghe tea is most often called thick and full.",
+        "approvedAt": "2026-11-25",
+        "reason": "Adrian approved the Fujian white kit 2026-11-25",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "fujian-white:cultivars",
+    "pageId": "fujian-white",
+    "sectionKey": "cultivars",
+    "label": "The bushes",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "White",
+      "origin_includes": [
+        "fujian"
+      ]
+    },
+    "terms": [
+      {
+        "original": "福鼎大白",
+        "pinyin": "fúdǐng dàbái",
+        "gloss": "Fuding Da Bai"
+      },
+      {
+        "original": "福鼎大毫",
+        "pinyin": "fúdǐng dàháo",
+        "gloss": "Fuding Da Hao"
+      },
+      {
+        "original": "政和大白",
+        "pinyin": "zhènghé dàbái",
+        "gloss": "Zhenghe Da Bai"
+      },
+      {
+        "original": "菜茶",
+        "pinyin": "càichá",
+        "gloss": "Cai Cha"
+      }
+    ],
+    "rev": 1,
+    "scope": "Fujian white style kit",
+    "text": "Fuding grows two named cultivars, Fuding Da Bai and Fuding Da Hao, and Fuding Silver Needle is made from their buds; Fuding Da Bai comes from Bailiu village in Diantou and has plump buds heavy with white down. Zhenghe has its own, Zhenghe Da Bai, used for its Silver Needle and White Peony. Both replaced, mostly from the late 1800s on, the older small-leaf local plants grown from seed, called Cai Cha.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Fujian white style kit",
+        "text": "Fuding grows two named cultivars, Fuding Da Bai and Fuding Da Hao, and Fuding Silver Needle is made from their buds; Fuding Da Bai comes from Bailiu village in Diantou and has plump buds heavy with white down. Zhenghe has its own, Zhenghe Da Bai, used for its Silver Needle and White Peony. Both replaced, mostly from the late 1800s on, the older small-leaf local plants grown from seed, called Cai Cha.",
+        "approvedAt": "2026-11-25",
+        "reason": "Adrian approved the Fujian white kit 2026-11-25",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
     "claimId": "fujian-white:definition",
     "pageId": "fujian-white",
     "sectionKey": "definition",
@@ -279,14 +721,23 @@ export const PART: readonly DraftClaim[] = [
         "gloss": "Zhenghe"
       }
     ],
-    "rev": null,
-    "scope": "",
+    "rev": 1,
+    "scope": "A one-line contrast of Wuyi, Anxi, Fuding and Zhenghe; detail is on each area's page",
     "text": "The Wuyi Mountains make heavily roasted rock oolong and the original smoked black tea. Anxi makes lighter, floral oolong, above all Tieguanyin. Fuding and Zhenghe make most of Fujian's white tea, Fuding on the cooler, damp coast and Zhenghe inland and colder in winter, and the two are usually described as having slightly different tastes. The trade treats these as separate worlds of tea that happen to share a province, with different cultivars, craft and cup.",
     "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "The Wuyi Mountains make heavily roasted rock oolong and the original smoked black tea. Anxi makes lighter, floral oolong, above all Tieguanyin. Fuding and Zhenghe make most of Fujian's white tea, Fuding on the cooler, damp coast and Zhenghe inland and colder in winter, and the two are usually described as having slightly different tastes. The trade treats these as separate worlds of tea that happen to share a province, with different cultivars, craft and cup.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "A one-line contrast of Wuyi, Anxi, Fuding and Zhenghe; detail is on each area's page",
+        "text": "The Wuyi Mountains make heavily roasted rock oolong and the original smoked black tea. Anxi makes lighter, floral oolong, above all Tieguanyin. Fuding and Zhenghe make most of Fujian's white tea, Fuding on the cooler, damp coast and Zhenghe inland and colder in winter, and the two are usually described as having slightly different tastes. The trade treats these as separate worlds of tea that happen to share a province, with different cultivars, craft and cup.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
   },
   {
     "claimId": "fujian:history",
@@ -313,14 +764,23 @@ export const PART: readonly DraftClaim[] = [
         "gloss": "Tongmu village"
       }
     ],
-    "rev": null,
-    "scope": "",
+    "rev": 1,
+    "scope": "Fujian and Wuyi as the place black tea and oolong are traced to; dates are not claimed",
     "text": "Fujian is widely named as the birthplace of black tea, and Lapsang Souchong, from Tongmu village in the Wuyi Mountains, is the tea usually given as the first. Oolong is also traced to the Wuyi area, and its making is said to have spread from there to Anxi in southern Fujian, to Guangdong and then to Taiwan. How early either began is not settled, and the dates given vary from one account to the next. What the sources agree on is the place, with Wuyi at the centre. Tea shipped from this area to Europe in the seventeenth and eighteenth centuries was sold as Bohea, a spelling of the local pronunciation of Wuyi.",
     "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "Fujian is widely named as the birthplace of black tea, and Lapsang Souchong, from Tongmu village in the Wuyi Mountains, is the tea usually given as the first. Oolong is also traced to the Wuyi area, and its making is said to have spread from there to Anxi in southern Fujian, to Guangdong and then to Taiwan. How early either began is not settled, and the dates given vary from one account to the next. What the sources agree on is the place, with Wuyi at the centre. Tea shipped from this area to Europe in the seventeenth and eighteenth centuries was sold as Bohea, a spelling of the local pronunciation of Wuyi.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Fujian and Wuyi as the place black tea and oolong are traced to; dates are not claimed",
+        "text": "Fujian is widely named as the birthplace of black tea, and Lapsang Souchong, from Tongmu village in the Wuyi Mountains, is the tea usually given as the first. Oolong is also traced to the Wuyi area, and its making is said to have spread from there to Anxi in southern Fujian, to Guangdong and then to Taiwan. How early either began is not settled, and the dates given vary from one account to the next. What the sources agree on is the place, with Wuyi at the centre. Tea shipped from this area to Europe in the seventeenth and eighteenth centuries was sold as Bohea, a spelling of the local pronunciation of Wuyi.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
   },
   {
     "claimId": "fujian:known-for",
@@ -352,14 +812,23 @@ export const PART: readonly DraftClaim[] = [
         "gloss": "red tea, the Chinese name for black tea"
       }
     ],
-    "rev": null,
-    "scope": "",
+    "rev": 1,
+    "scope": "The teas Fujian is best known for, as a list of separate teas and not a description of any one",
     "text": "Fujian is known for oolong, white tea and black tea, and it also makes green tea and scented tea. The best-known names are Wuyi rock oolong such as Da Hong Pao, Tieguanyin from Anxi, Fuding and Zhenghe white tea, Lapsang Souchong from Wuyi, and jasmine tea from Fuzhou. Smaller oolong traditions sit beside them, such as the pressed square cakes of Zhangping and Yongchun Fo Shou. These are different teas from different hands, so one of them is never a description of the whole province.",
     "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "Fujian is known for oolong, white tea and black tea, and it also makes green tea and scented tea. The best-known names are Wuyi rock oolong such as Da Hong Pao, Tieguanyin from Anxi, Fuding and Zhenghe white tea, Lapsang Souchong from Wuyi, and jasmine tea from Fuzhou. Smaller oolong traditions sit beside them, such as the pressed square cakes of Zhangping and Yongchun Fo Shou. These are different teas from different hands, so one of them is never a description of the whole province.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "The teas Fujian is best known for, as a list of separate teas and not a description of any one",
+        "text": "Fujian is known for oolong, white tea and black tea, and it also makes green tea and scented tea. The best-known names are Wuyi rock oolong such as Da Hong Pao, Tieguanyin from Anxi, Fuding and Zhenghe white tea, Lapsang Souchong from Wuyi, and jasmine tea from Fuzhou. Smaller oolong traditions sit beside them, such as the pressed square cakes of Zhangping and Yongchun Fo Shou. These are different teas from different hands, so one of them is never a description of the whole province.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
   },
   {
     "claimId": "fujian:on-a-label",
@@ -375,14 +844,23 @@ export const PART: readonly DraftClaim[] = [
       ]
     },
     "terms": [],
-    "rev": null,
-    "scope": "",
+    "rev": 1,
+    "scope": "Reading Fujian on a label as a province name, not a style or an area",
     "text": "Fujian on a label is a province, not a style. It can sit on oolong, white, black, green or scented tea, and the teas differ in leaf, roast, oxidation and price. It also does not say which of the main areas the tea came from. For that, look for Wuyi, Anxi, Fuding or Zhenghe, and for the tea's own name. A white tea that names Fujian only may come from either of the two white tea counties, or from another county that makes it.",
     "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "Fujian on a label is a province, not a style. It can sit on oolong, white, black, green or scented tea, and the teas differ in leaf, roast, oxidation and price. It also does not say which of the main areas the tea came from. For that, look for Wuyi, Anxi, Fuding or Zhenghe, and for the tea's own name. A white tea that names Fujian only may come from either of the two white tea counties, or from another county that makes it.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Reading Fujian on a label as a province name, not a style or an area",
+        "text": "Fujian on a label is a province, not a style. It can sit on oolong, white, black, green or scented tea, and the teas differ in leaf, roast, oxidation and price. It also does not say which of the main areas the tea came from. For that, look for Wuyi, Anxi, Fuding or Zhenghe, and for the tea's own name. A white tea that names Fujian only may come from either of the two white tea counties, or from another county that makes it.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
   },
   {
     "claimId": "fujian:where-it-is",
@@ -404,14 +882,23 @@ export const PART: readonly DraftClaim[] = [
         "gloss": "Fujian"
       }
     ],
-    "rev": null,
-    "scope": "",
+    "rev": 1,
+    "scope": "Fujian as a province, its capital and the four tea areas that have their own pages",
     "text": "Fujian is a coastal province in south-east China, facing Taiwan across the strait. Most of it is mountain and hill country, with short rivers running to the sea, and the provincial capital is Fuzhou. Tea grows in nearly every part of the province, and four areas stand out: the Wuyi Mountains in the north-west, Anxi in the south, Fuding on the north-east coast and Zhenghe in the north. Each has its own page.",
     "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "Fujian is a coastal province in south-east China, facing Taiwan across the strait. Most of it is mountain and hill country, with short rivers running to the sea, and the provincial capital is Fuzhou. Tea grows in nearly every part of the province, and four areas stand out: the Wuyi Mountains in the north-west, Anxi in the south, Fuding on the north-east coast and Zhenghe in the north. Each has its own page.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Fujian as a province, its capital and the four tea areas that have their own pages",
+        "text": "Fujian is a coastal province in south-east China, facing Taiwan across the strait. Most of it is mountain and hill country, with short rivers running to the sea, and the provincial capital is Fuzhou. Tea grows in nearly every part of the province, and four areas stand out: the Wuyi Mountains in the north-west, Anxi in the south, Fuding on the north-east coast and Zhenghe in the north. Each has its own page.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
   },
   {
     "claimId": "fujian:why-diverse",
@@ -427,14 +914,23 @@ export const PART: readonly DraftClaim[] = [
       ]
     },
     "terms": [],
-    "rev": null,
-    "scope": "",
+    "rev": 1,
+    "scope": "Why Fujian makes many distinct styles: climate and separated mountain pockets, as sellers explain it",
     "text": "Fujian is warm and wet, with a subtropical monsoon climate, mist on the hills and mild winters. Its mountains and valleys cut the province into pockets with their own weather, and before modern roads the makers in each pocket worked on their own. Over centuries each area settled on its own plant varieties and its own way of making tea. That is the reason sellers give for Fujian making more distinct styles than any other Chinese province, and it is why Fujian on its own says little about what a tea is.",
     "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "Fujian is warm and wet, with a subtropical monsoon climate, mist on the hills and mild winters. Its mountains and valleys cut the province into pockets with their own weather, and before modern roads the makers in each pocket worked on their own. Over centuries each area settled on its own plant varieties and its own way of making tea. That is the reason sellers give for Fujian making more distinct styles than any other Chinese province, and it is why Fujian on its own says little about what a tea is.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Why Fujian makes many distinct styles: climate and separated mountain pockets, as sellers explain it",
+        "text": "Fujian is warm and wet, with a subtropical monsoon climate, mist on the hills and mild winters. Its mountains and valleys cut the province into pockets with their own weather, and before modern roads the makers in each pocket worked on their own. Over centuries each area settled on its own plant varieties and its own way of making tea. That is the reason sellers give for Fujian making more distinct styles than any other Chinese province, and it is why Fujian on its own says little about what a tea is.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
   },
   {
     "claimId": "fujian:word-tea",
@@ -461,493 +957,22 @@ export const PART: readonly DraftClaim[] = [
         "gloss": "tea; the southern Fujian pronunciation"
       }
     ],
-    "rev": null,
-    "scope": "",
+    "rev": 1,
+    "scope": "The southern Fujian origin of the English word tea",
     "text": "The English word tea comes from the southern Fujian pronunciation of the Chinese word, close to te, which Dutch traders carried home from the coast around Xiamen. Languages that received tea by sea mostly say some form of tea, and those that received it overland say some form of cha. It is a small reason people link Fujian with the early overseas tea trade.",
     "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "The English word tea comes from the southern Fujian pronunciation of the Chinese word, close to te, which Dutch traders carried home from the coast around Xiamen. Languages that received tea by sea mostly say some form of tea, and those that received it overland say some form of cha. It is a small reason people link Fujian with the early overseas tea trade.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
-  },
-  {
-    "claimId": "gaba:brewing",
-    "pageId": "gaba",
-    "sectionKey": "brewing",
-    "label": "Brewing GABA oolong",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "process_in_name": [
-        "gaba"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "GABA oolong process kit",
-    "text": "In a cup or pot, steep it for about two to five minutes. It is forgiving of small changes in water temperature and steeping time. It can also be cold-brewed, steeped for some hours in the fridge.",
-    "sourceIds": [],
     "reviewState": "approved",
     "previousRevisions": [
       {
         "rev": 1,
         "origin": "approved",
-        "scope": "GABA oolong process kit",
-        "text": "In a cup or pot, steep it for about two to five minutes. It is forgiving of small changes in water temperature and steeping time. It can also be cold-brewed, steeped for some hours in the fridge.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the GABA oolong kit 2026-11-25",
+        "scope": "The southern Fujian origin of the English word tea",
+        "text": "The English word tea comes from the southern Fujian pronunciation of the Chinese word, close to te, which Dutch traders carried home from the coast around Xiamen. Languages that received tea by sea mostly say some form of tea, and those that received it overland say some form of cha. It is a small reason people link Fujian with the early overseas tea trade.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
         "evidenceIds": []
       }
     ],
     "pageVisibility": "public"
-  },
-  {
-    "claimId": "gaba:common-impressions",
-    "pageId": "gaba",
-    "sectionKey": "common-impressions",
-    "label": "What people often notice",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "process_in_name": [
-        "gaba"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "GABA oolong process kit",
-    "text": "Ripe, dried or stewed fruit such as apricot, honeyed sweetness, a smooth, round body, and little bitterness or astringency; often brown sugar or roasted grain, sometimes wood or spice, and a light fruity sourness.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "GABA oolong process kit",
-        "text": "Ripe, dried or stewed fruit such as apricot, honeyed sweetness, a smooth, round body, and little bitterness or astringency; often brown sugar or roasted grain, sometimes wood or spice, and a light fruity sourness.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the GABA oolong kit 2026-11-25",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "gaba:definition",
-    "pageId": "gaba",
-    "sectionKey": "definition",
-    "label": "What GABA oolong is",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "process_in_name": [
-        "gaba"
-      ]
-    },
-    "terms": [
-      {
-        "original": "佳葉龍茶",
-        "pinyin": "jiāyèlóng chá",
-        "gloss": "Jiayelong tea"
-      },
-      {
-        "original": "γ-氨基丁酸",
-        "pinyin": "γ ānjī dīngsuān",
-        "gloss": "gamma-aminobutyric acid"
-      }
-    ],
-    "rev": 1,
-    "scope": "GABA oolong process kit",
-    "text": "GABA tea names a way of making tea, not a plant or a place. GABA, gamma-aminobutyric acid, is an amino acid found in tea leaf, and the leaf is treated so that the finished tea holds much more of it than ordinary tea. It can be made as green, oolong or red tea; oolong is the form Taiwan is best known for, where the tea research station named its version GABA oolong. In Japan, where the method began, it was called Gabaron, and in Taiwan the trade name is Jiayelong.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "GABA oolong process kit",
-        "text": "GABA tea names a way of making tea, not a plant or a place. GABA, gamma-aminobutyric acid, is an amino acid found in tea leaf, and the leaf is treated so that the finished tea holds much more of it than ordinary tea. It can be made as green, oolong or red tea; oolong is the form Taiwan is best known for, where the tea research station named its version GABA oolong. In Japan, where the method began, it was called Gabaron, and in Taiwan the trade name is Jiayelong.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the GABA oolong kit 2026-11-25",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "gaba:history",
-    "pageId": "gaba",
-    "sectionKey": "history",
-    "label": "How GABA tea began",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "process_in_name": [
-        "gaba"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "GABA oolong process kit",
-    "text": "The method was found in Japan, by Dr Tsushida and colleagues at the government tea research institute, and the finding is dated to 1987. The first Japanese teas had a stuffy, sour smell and taste, and Taiwan's tea research station changed the method and adapted it to oolong. It spread among Taiwanese makers, and Taiwan is now a main source of GABA tea sold abroad. It needs no special leaf: ordinary oolong types serve.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "GABA oolong process kit",
-        "text": "The method was found in Japan, by Dr Tsushida and colleagues at the government tea research institute, and the finding is dated to 1987. The first Japanese teas had a stuffy, sour smell and taste, and Taiwan's tea research station changed the method and adapted it to oolong. It spread among Taiwanese makers, and Taiwan is now a main source of GABA tea sold abroad. It needs no special leaf: ordinary oolong types serve.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the GABA oolong kit 2026-11-25",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "gaba:making",
-    "pageId": "gaba",
-    "sectionKey": "making",
-    "label": "How GABA oolong is made",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "process_in_name": [
-        "gaba"
-      ]
-    },
-    "terms": [
-      {
-        "original": "厭氧",
-        "pinyin": "yànyǎng",
-        "gloss": "without oxygen"
-      }
-    ],
-    "rev": 2,
-    "scope": "GABA oolong process kit",
-    "text": "The fresh leaf is kept for some hours without oxygen, in a sealed chamber or drum filled with nitrogen or emptied to a vacuum. Without oxygen the leaf turns its glutamic acid into GABA and cannot break it down again, so it builds up. The leaf is then made in the usual way for its type; for oolong that means withering and tossing, fixing, rolling, drying and sometimes a roast. Taiwan's oolong method alternates rounds without oxygen and rounds in air, rather than one long spell.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "GABA oolong process kit",
-        "text": "The fresh leaf is held for some hours without oxygen, in a sealed chamber or drum filled with nitrogen or emptied to a vacuum. Without oxygen the leaf turns its glutamic acid into GABA and cannot break it down again, so it builds up. The leaf is then made in the usual way for its type; for oolong that means withering and tossing, fixing, rolling, drying and sometimes a roast. Taiwan's oolong method alternates rounds without oxygen and rounds in air, rather than one long hold.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the GABA oolong kit 2026-11-25",
-        "evidenceIds": []
-      },
-      {
-        "rev": 2,
-        "origin": "approved",
-        "scope": "GABA oolong process kit",
-        "text": "The fresh leaf is kept for some hours without oxygen, in a sealed chamber or drum filled with nitrogen or emptied to a vacuum. Without oxygen the leaf turns its glutamic acid into GABA and cannot break it down again, so it builds up. The leaf is then made in the usual way for its type; for oolong that means withering and tossing, fixing, rolling, drying and sometimes a roast. Taiwan's oolong method alternates rounds without oxygen and rounds in air, rather than one long spell.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the GABA oolong kit 2026-11-25; one word changed after approval (held to kept, hold to spell) because held is barred from public text",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "gaba:threshold",
-    "pageId": "gaba",
-    "sectionKey": "threshold",
-    "label": "The 150 milligram line",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "process_in_name": [
-        "gaba"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "GABA oolong process kit",
-    "text": "The figure most often given for calling a tea GABA tea is at least 150 mg of GABA in every 100 grams of dry tea. It is repeated widely for Japan and Taiwan, though no standard document behind it is quoted.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "GABA oolong process kit",
-        "text": "The figure most often given for calling a tea GABA tea is at least 150 mg of GABA in every 100 grams of dry tea. It is repeated widely for Japan and Taiwan, though no standard document behind it is quoted.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the GABA oolong kit 2026-11-25",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "golden-bull:maker",
-    "pageId": "golden-bull",
-    "sectionKey": "maker",
-    "label": "Who Hengfengyuan is",
-    "axis": "maker_history",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "grade": "golden-bull"
-    },
-    "terms": [
-      {
-        "original": "恒丰源",
-        "pinyin": "héng fēng yuán",
-        "gloss": "Hengfengyuan, Changtai's ripe tea brand"
-      }
-    ],
-    "rev": null,
-    "scope": "",
-    "text": "Hengfengyuan is the ripe tea brand of the Changtai group in Yunnan. It is sold mainly as ripe cakes, bricks and tuo, and many of its teas are named by recipe number or by a place or line name. Changtai also trades under other brands, so Hengfengyuan on a label tells you the maker, not the grade of the leaf.",
-    "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "Hengfengyuan is the ripe tea brand of the Changtai group in Yunnan. It is sold mainly as ripe cakes, bricks and tuo, and many of its teas are named by recipe number or by a place or line name. Changtai also trades under other brands, so Hengfengyuan on a label tells you the maker, not the grade of the leaf.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
-  },
-  {
-    "claimId": "golden-bull:what-it-is",
-    "pageId": "golden-bull",
-    "sectionKey": "what-it-is",
-    "label": "A product name, not a grade",
-    "axis": "terminology",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "grade": "golden-bull"
-    },
-    "terms": [
-      {
-        "original": "金牛",
-        "pinyin": "jīn niú",
-        "gloss": "golden ox or bull; used here as a product name"
-      }
-    ],
-    "rev": null,
-    "scope": "",
-    "text": "Golden Bull, Jin Niu in Chinese, is the name of a ripe pu’er from Hengfengyuan. No ripe pu’er grade scale includes it, and no maker or seller describes it as a leaf grade. Read it as a name the maker chose for a tea, like a brand line, and not as a statement about leaf size or quality. What the name stands for beyond that has not been established.",
-    "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "Golden Bull, Jin Niu in Chinese, is the name of a ripe pu’er from Hengfengyuan. No ripe pu’er grade scale includes it, and no maker or seller describes it as a leaf grade. Read it as a name the maker chose for a tea, like a brand line, and not as a statement about leaf size or quality. What the name stands for beyond that has not been established.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
-  },
-  {
-    "claimId": "gong-jin:definition",
-    "pageId": "gong-jin",
-    "sectionKey": "definition",
-    "label": "A selling name, not a grade",
-    "axis": "terminology",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "grade": "gong-jin"
-    },
-    "terms": [
-      {
-        "original": "贡金",
-        "pinyin": "gòngjīn",
-        "gloss": "tribute gold; a product name"
-      }
-    ],
-    "rev": null,
-    "scope": "",
-    "text": "Gong Jin is a name that appears on ripe pu’er bricks, not a leaf grade. The trade grades ripe tea by leaf size and bud content, with names such as Gong Ting and special grade, and Gong Jin is not one of those steps. The word reads as “tribute gold”, and its job is to make a brick sound fine, not to say what is in it.",
-    "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "Gong Jin is a name that appears on ripe pu’er bricks, not a leaf grade. The trade grades ripe tea by leaf size and bud content, with names such as Gong Ting and special grade, and Gong Jin is not one of those steps. The word reads as “tribute gold”, and its job is to make a brick sound fine, not to say what is in it.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
-  },
-  {
-    "claimId": "gong-jin:not-established",
-    "pageId": "gong-jin",
-    "sectionKey": "not-established",
-    "label": "What is not established",
-    "axis": "terminology",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "grade": "gong-jin"
-    },
-    "terms": [],
-    "rev": null,
-    "scope": "",
-    "text": "No agreed meaning, start date or maker for the name has been found. Whether any one maker uses it for a particular blend or leaf grade is not established, so a Gong Jin brick has to be judged on its recorded leaf, year and keeping, not on the name. The same characters are also used as a name on some unrelated dark teas, which are a different tea.",
-    "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "No agreed meaning, start date or maker for the name has been found. Whether any one maker uses it for a particular blend or leaf grade is not established, so a Gong Jin brick has to be judged on its recorded leaf, year and keeping, not on the name. The same characters are also used as a name on some unrelated dark teas, which are a different tea.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
-  },
-  {
-    "claimId": "gong-jin:not-gong-ting",
-    "pageId": "gong-jin",
-    "sectionKey": "not-gong-ting",
-    "label": "Do not read it as Gong Ting",
-    "axis": "terminology",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "grade": "gong-jin"
-    },
-    "terms": [],
-    "rev": null,
-    "scope": "",
-    "text": "Gong Jin and Gong Ting look alike but are different words. Gong Ting is the real grade name for fine, bud-rich ripe leaf. Gong Jin carries no promise about the leaf. The word “gong” (tribute) is borrowed for its old imperial ring, and the tea has no known link to any court.",
-    "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "Gong Jin and Gong Ting look alike but are different words. Gong Ting is the real grade name for fine, bud-rich ripe leaf. Gong Jin carries no promise about the leaf. The word “gong” (tribute) is borrowed for its old imperial ring, and the tea has no known link to any court.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
-  },
-  {
-    "claimId": "gong-jin:where-seen",
-    "pageId": "gong-jin",
-    "sectionKey": "where-seen",
-    "label": "Where the word turns up",
-    "axis": "terminology",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "grade": "gong-jin"
-    },
-    "terms": [
-      {
-        "original": "贡金",
-        "pinyin": "gòngjīn",
-        "gloss": "tribute gold; a product name"
-      }
-    ],
-    "rev": null,
-    "scope": "",
-    "text": "It is found in product names on pressed ripe tea from Menghai makers, written Gong Jin, Ruigong or, on some packs, as part of a longer name such as “gold brick”. The Nanqiao Ruigong Brick is one example. Each time it sits in the title beside the maker or the year, and nothing on the listing explains it as a grade or sets out what leaf it stands for.",
-    "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "It is found in product names on pressed ripe tea from Menghai makers, written Gong Jin, Ruigong or, on some packs, as part of a longer name such as “gold brick”. The Nanqiao Ruigong Brick is one example. Each time it sits in the title beside the maker or the year, and nothing on the listing explains it as a grade or sets out what leaf it stands for.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
-  },
-  {
-    "claimId": "gong-ting:appearance",
-    "pageId": "gong-ting",
-    "sectionKey": "appearance",
-    "label": "Reading the leaf",
-    "axis": "grade",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "grade": "gong-ting"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "gong-ting",
-    "text": "Dry Gong Ting is tight, straight and fine, thick with golden down on the buds, and carries no stray stems. Because so little of a batch qualifies, it is the scarcest and usually the dearest ripe grade.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "gong-ting",
-        "text": "Dry Gong Ting is tight, straight and fine, thick with golden down on the buds, and carries no stray stems. Because so little of a batch qualifies, it is the scarcest and usually the dearest ripe grade.",
-        "approvedAt": "2026-11-26",
-        "reason": "Approved by Adrian on the Wisdom Base Places review page, 2026-11-27",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "draft"
-  },
-  {
-    "claimId": "gong-ting:common-impressions",
-    "pageId": "gong-ting",
-    "sectionKey": "common-impressions",
-    "label": "What people often notice",
-    "axis": "sensory_observation",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "grade": "gong-ting"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "gong-ting",
-    "text": "People often notice a smooth, soft and sweet cup with a deep red liquor. Next to coarser grades it is lighter in body and gives fewer good steeps, and a very fine young Gong Ting can show a green or bitter edge. Its small leaf gives up flavour quickly, so short pours suit it.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "gong-ting",
-        "text": "People often notice a smooth, soft and sweet cup with a deep red liquor. Next to coarser grades it is lighter in body and gives fewer good steeps, and a very fine young Gong Ting can show a green or bitter edge. Its small leaf gives up flavour quickly, so short pours suit it.",
-        "approvedAt": "2026-11-26",
-        "reason": "Approved by Adrian on the Wisdom Base Places review page, 2026-11-27",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "draft"
-  },
-  {
-    "claimId": "gong-ting:definition",
-    "pageId": "gong-ting",
-    "sectionKey": "definition",
-    "label": "What Gong Ting means",
-    "axis": "grade",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "grade": "gong-ting"
-    },
-    "terms": [
-      {
-        "original": "宫廷",
-        "pinyin": "gōngtíng",
-        "gloss": "palace; used as a grade name"
-      }
-    ],
-    "rev": 2,
-    "scope": "Loose ripe pu’er grading",
-    "text": "Gong Ting is the finest grade of loose ripe pu’er, sorted out for its small leaf and high share of buds. In the market it sits one step above special grade.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "legacy_import",
-        "legacyRef": "marks:gong-ting",
-        "scope": "General grade designation, used on shou pu’er and aged Taiwanese oolong",
-        "text": "A 'palace' or 'imperial court' designation for the highest grade classification within a tea's production, indicating the finest bud or tip material. Seen on shou pu-erh (finest bud material) and on aged Taiwanese oolong (finest buds and leaves).",
-        "approvedAt": "2026-11-23",
-        "reason": "Imported from the legacy marks corpus",
-        "evidenceIds": []
-      },
-      {
-        "rev": 2,
-        "origin": "approved",
-        "scope": "Loose ripe pu’er grading",
-        "text": "Gong Ting is the finest grade of loose ripe pu’er, sorted out for its small leaf and high share of buds. In the market it sits one step above special grade.",
-        "approvedAt": "2026-11-23",
-        "reason": "Narrowed to loose ripe pu’er grading (pilot correction demo; awaiting Adrian’s review)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "draft"
   }
 ];

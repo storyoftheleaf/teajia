@@ -5,7 +5,7 @@ kind: tea_area
 label: Lugu
 native_name: 鹿谷
 parent: nantou
-visibility: draft
+visibility: public
 ---
 
 ## Where Lugu is {#where-it-is}

@@ -5,7 +5,7 @@ kind: major_region
 label: Hsinchu
 native_name: 新竹
 parent: taiwan
-visibility: draft
+visibility: public
 ---
 
 ## Where Hsinchu is {#where-it-is}

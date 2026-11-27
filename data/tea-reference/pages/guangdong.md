@@ -5,7 +5,7 @@ kind: major_region
 label: Guangdong
 native_name: 广东
 parent: none
-visibility: draft
+visibility: public
 ---
 
 ## Where Guangdong is {#where-it-is}

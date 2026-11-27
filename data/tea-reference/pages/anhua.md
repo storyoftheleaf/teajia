@@ -5,7 +5,7 @@ kind: major_region
 label: Anhua
 native_name: 安化
 parent: none
-visibility: draft
+visibility: public
 source_ids:
 ---
 

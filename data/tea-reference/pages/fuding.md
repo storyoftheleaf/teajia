@@ -5,7 +5,7 @@ kind: major_region
 label: Fuding
 native_name: 福鼎
 parent: fujian
-visibility: draft
+visibility: public
 ---
 
 ## Where Fuding is {#where-it-is}

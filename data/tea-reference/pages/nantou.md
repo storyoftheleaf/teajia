@@ -5,7 +5,7 @@ kind: major_region
 label: Nantou
 native_name: 南投
 parent: taiwan
-visibility: draft
+visibility: public
 ---
 
 ## Where Nantou is {#where-it-is}

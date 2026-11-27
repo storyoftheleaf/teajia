@@ -5,7 +5,7 @@ kind: major_region
 label: Anxi
 native_name: 安溪
 parent: none
-visibility: draft
+visibility: public
 ---
 
 ## Where Anxi is {#where-it-is}

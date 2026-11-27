@@ -5,7 +5,7 @@ kind: major_region
 label: Phoenix Mountain
 native_name: 凤凰山
 parent: none
-visibility: draft
+visibility: public
 ---
 
 ## Where Phoenix Mountain is {#where-it-is}
@@ -14,7 +14,7 @@ Phoenix Mountain, Fenghuang Shan, is a mountain range in Fenghuang town, in Chao
 
 ## Mist, cool air and slow leaf {#mist-and-climate}
 
-People value the mountain for the weather the tea grows in. Cloud and mist sit on the upper slopes for much of the year, the light is soft, and the nights are cool. The bushes grow slowly in these conditions, and the trade links that slow growth to the thick leaf and the lasting scent of the best tea. The higher the garden, the cooler it is, and the more a tea is expected to show what the trade calls mountain rhyme.
+People value the mountain for the weather the tea grows in. Cloud and mist sit on the upper slopes for much of the year, the light is soft, and the nights are cool. The bushes grow slowly in these conditions, and the trade links that slow growth to the thick leaf and the lasting scent prized in this tea. The higher the garden, the cooler it is, and the more a tea is expected to show what the trade calls mountain rhyme.
 
 ## Wudong and the other gardens {#wudong-and-villages}
 

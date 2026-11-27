@@ -5,7 +5,7 @@ kind: major_region
 label: Qimen
 native_name: 祁门
 parent: anhui
-visibility: draft
+visibility: public
 ---
 
 ## Where Qimen is {#where-it-is}

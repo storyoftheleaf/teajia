@@ -5,7 +5,7 @@ kind: major_region
 label: Wuyi Mountains
 native_name: 武夷山
 parent: none
-visibility: draft
+visibility: public
 ---
 
 ## Where the Wuyi Mountains are {#where-it-is}

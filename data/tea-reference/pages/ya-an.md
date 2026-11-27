@@ -5,7 +5,7 @@ kind: major_region
 label: Ya'an
 native_name: 雅安
 parent: none
-visibility: draft
+visibility: public
 ---
 
 ## Where Ya'an is {#where-it-is}
