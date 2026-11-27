@@ -52,14 +52,13 @@ export const PART: readonly DraftClaim[] = [
     "listingEligible": false,
     "appliesWhen": {},
     "terms": [],
-    "rev": 1,
+    "rev": 2,
     "scope": "Menghai County",
-    "text": "The establishment of Menghai Tea Factory and the post-1950 shift toward large-scale production made the county central to twentieth-century Pu’er. Regional leaf increasingly entered factory blends, connecting Menghai with many benchmark raw and ripe productions.",
+    "text": "Menghai’s fame also comes from its factory. Menghai Tea Factory was founded in the 1940s, and as pu’er grew into a large state industry the county’s leaf went into factory blends, so many benchmark raw and ripe cakes trace back to Menghai.",
     "sourceIds": [
       "teadb-menghai-county"
     ],
-    "reviewState": "pending",
-    "pendingText": "Menghai’s fame also comes from its factory. Menghai Tea Factory was founded in the 1940s, and as pu’er grew into a large state industry the county’s leaf went into factory blends, so many benchmark raw and ripe cakes trace back to Menghai.",
+    "reviewState": "approved",
     "previousRevisions": [
       {
         "rev": 1,
@@ -68,6 +67,17 @@ export const PART: readonly DraftClaim[] = [
         "text": "The establishment of Menghai Tea Factory and the post-1950 shift toward large-scale production made the county central to twentieth-century Pu’er. Regional leaf increasingly entered factory blends, connecting Menghai with many benchmark raw and ripe productions.",
         "approvedAt": "2026-11-23",
         "reason": "Backfilled from pages",
+        "evidenceIds": [
+          "EVIDENCE-FEBD2174326734F21F2CFF3B"
+        ]
+      },
+      {
+        "rev": 2,
+        "origin": "approved",
+        "scope": "Menghai County",
+        "text": "Menghai’s fame also comes from its factory. Menghai Tea Factory was founded in the 1940s, and as pu’er grew into a large state industry the county’s leaf went into factory blends, so many benchmark raw and ripe cakes trace back to Menghai.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by the Opus judge under Adrian's written rules, 2026-11-27: Every claim is backed by the research note (the factory began in the 1940s, and the county's leaf went into factory blends as large-scale pu'er making grew there), the benchmark raw and ripe cakes are common trade knowledge, the section answers why the name matters (rule 1), it drops the bare date list without thinning the substance (rules 2 and 3), and it reads more clearly than the live text while staying as true.",
         "evidenceIds": [
           "EVIDENCE-FEBD2174326734F21F2CFF3B"
         ]

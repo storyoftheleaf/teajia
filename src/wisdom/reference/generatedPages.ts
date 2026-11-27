@@ -1008,7 +1008,7 @@ export const GENERATED_TEA_REFERENCE_REGISTRY = {
         {
           "key": "history",
           "label": "Why the name is so well known",
-          "text": "The establishment of Menghai Tea Factory and the post-1950 shift toward large-scale production made the county central to twentieth-century Pu’er. Regional leaf increasingly entered factory blends, connecting Menghai with many benchmark raw and ripe productions.",
+          "text": "Menghai’s fame also comes from its factory. Menghai Tea Factory was founded in the 1940s, and as pu’er grew into a large state industry the county’s leaf went into factory blends, so many benchmark raw and ripe cakes trace back to Menghai.",
           "sourceIds": [
             "teadb-menghai-county"
           ]

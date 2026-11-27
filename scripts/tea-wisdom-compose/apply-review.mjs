@@ -52,7 +52,7 @@ const run = (script, list) => {
 
 let refused = 0;
 for (const claim of claims) {
-  const ok = run('scripts/tea-reference-markdown/claims-cli.mjs', ['approve', claim.item, '--reason', `Approved by Adrian on the Wisdom review page, ${date}`, '--scope', claim.scope || claim.item.split(':')[0]]);
+  const ok = run('scripts/tea-reference-markdown/claims-cli.mjs', ['approve', claim.item, '--reason', claim.by === 'judge' ? `Approved by the Opus judge under Adrian's written rules, ${date}: ${claim.reason ?? ''}`.trim() : `Approved by Adrian on the Wisdom review page, ${date}`, '--scope', claim.scope || claim.item.split(':')[0]]);
   if (!ok) refused += 1;
 }
 

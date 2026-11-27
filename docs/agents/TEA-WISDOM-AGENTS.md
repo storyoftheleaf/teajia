@@ -4,7 +4,7 @@
 
 How a tea that has just gone public gets its Tea Wisdom entry, and every Wisdom page it needs, without any agent deciding where anything goes. Approved by Adrian on 2026-11-27 ([process page](https://claude.ai/artifact/8N9HcPPeDqHmfUbZbLdT21)). The rule this serves is in [CLAUDE.md](../../CLAUDE.md#the-wisdom-base-is-one-place-adrian-2026-11-27): one Wisdom Base, records plus pages, joined by id. The storage is described in [TEA_WISDOM_BASE.md](../TEA_WISDOM_BASE.md#one-wisdom-base-two-layers-read-this-before-adding-anything).
 
-The chain is run by the `/tea-wisdom` command (`.claude/commands/tea-wisdom.md`), only when Adrian asks. It stops at three points, and each one is Adrian's: the pages, the entries, and "push".
+The chain is run by the `/tea-wisdom` command (`.claude/commands/tea-wisdom.md`), only when Adrian asks. An Opus judge approves pages and entries in Adrian's place, against his written rules, and holds back only what it is not sure of (Adrian, 2026-11-27: approving everything himself is not the right workflow). Adrian's part is the few held items, a "what went up" page he reads when he likes, and "push". His corrections become rules, so the judge and every writer improve together.
 
 ## The rules every step keeps
 
@@ -13,7 +13,7 @@ The chain is run by the `/tea-wisdom` command (`.claude/commands/tea-wisdom.md`)
 3. **Nothing goes to the live shop.** No step writes to the shop's database or calls a Teajia write tool. Everything is files in this repo, plus the review page.
 4. **Nothing is pushed without Adrian's "push".** Commits are fine; `git push` waits for his word in chat.
 5. **One Wisdom Base.** Pages go in `data/tea-reference/pages/`, claims in `data/tea-reference/claims.json`, records in `data/tea-wisdom-source/`, entries in `data/tea-reference/entries/`. No other store, list or library, and the vault holds only research notes.
-6. **Adrian sees rendered pages, never diffs.** Every review goes through the review page (step 3).
+6. **Adrian sees rendered pages, never diffs.** What the judge holds and what it approved both reach him as rendered pages (step 3).
 7. **A missing connection is built, not worked around.** If a step needs to read or write something through the shop connection and no tool does it, build the tool in `worker/src/mcpTools/` (Adrian's standing permission, 2026-11-27). Its preview and confirm rules still apply.
 
 ## Models
@@ -22,7 +22,8 @@ The chain is run by the `/tea-wisdom` command (`.claude/commands/tea-wisdom.md`)
 |---|---|---|
 | 1 Check | none | Code: `wisdomNeeds()` |
 | 2 Research and draft | Sonnet | Reading and writing up many sources is synthesis |
-| 3, 6 Review page | none | A script builds it |
+| 3, 6 Judge | Opus | Approving in Adrian's place against his rules, and knowing when to hold, is the judgment that decides what customers read |
+| 3, 6 Review pages | none | A script builds them |
 | 4 Write the entry | Opus | Adrian's choice, 2026-11-27: it wrote all 210 entries so far, and he keeps that voice |
 | 5 Check the entry | Opus | Spotting a sentence the claims don't quite support is the judgment that keeps an invented fact off the shop |
 | 5 Fix a flag | Sonnet | Cutting or rewording one sentence |
@@ -103,14 +104,16 @@ Part of: <parent id>     Related: <id>, <id>
 
 **Never:** publish a page, approve a claim, set `visibility: public`, or invent a fact to fill a section.
 
-## Step 3. Adrian approves the pages
+## Step 3. The judge approves; Adrian sees what it held and what went up
 
-1. `node scripts/tea-wisdom-compose/review-page.mjs --scopes .tea-wisdom-review/scopes.json` writes `.tea-wisdom-review/review.html` and prints the run id.
-2. Publish it with the Artifact tool, `capabilities: {db: {}, user: {}}`, to the one Wisdom Review artifact, [claude.ai/artifact/2MZWE6AFWwCmih1PonbesE](https://claude.ai/artifact/2MZWE6AFWwCmih1PonbesE): pass that URL so the link Adrian keeps stays the same (read it first if this conversation has not). Give Adrian the link.
-3. Wait for him to say he has reviewed it. Do not poll.
-4. Save his choices: ArtifactData `list` on collection `runs/<run>/decisions` with `out_dir: .tea-wisdom-review/decisions`.
-5. `node scripts/tea-wisdom-compose/apply-review.mjs --decisions .tea-wisdom-review/decisions` approves each section through the claim ledger, makes a draft page public once all its sections are approved (never one whose current text is a legacy import), and rebuilds the pages.
-6. Send-backs are in `.tea-wisdom-review/sent-back.json`. A note marked `rule: true` (Adrian ticked "Make this a rule for every page") is written into [WISDOM_PAGE_STYLE.md](../WISDOM_PAGE_STYLE.md) first, as a dated rule in his words with one before/after from the section he sent back; then every waiting page is checked against it. Sort the other notes (Haiku): **wording** goes back to its step 2 agent with the note; **fact** goes back to research for that statement; **wrong page** means the record or the table above is wrong, so tell Adrian in one line.
+Run this once the drafted pages and composed entries are all in (steps 2, 4 and 5), so one pass covers both.
+
+1. **Judge:** `node scripts/tea-wisdom-compose/judge.mjs`. For every waiting section and entry, Opus reads the item, Adrian's page rules ([WISDOM_PAGE_STYLE.md](../WISDOM_PAGE_STYLE.md)), the house voice and, for a section, the page's research note in the vault. It approves only what invents nothing, follows every rule and keeps type, grade, place and maker apart; anything else it sends one of two ways, with a one-line reason. **Rework** is anything an agent can fix (a fact needs research, the research note is missing, a rule is broken, a sentence must be cut): it goes straight back to step 2 (a section) or step 5 (an entry) with the judge's fix, and Adrian never sees it. **Ask** is only what Adrian can settle: taste or direction his rules do not answer, or whether a page should exist. A flagged entry is rework. An unreadable answer is an ask, never an approval. It writes `.tea-wisdom-review/judge-<run>/` (`decisions/`, `approved.json`, `rework.json`, `held.json`, `notes.json`). After rework, run the judge again on what changed.
+2. **Apply:** `node scripts/tea-wisdom-compose/apply-review.mjs --decisions .tea-wisdom-review/judge-<run>/decisions` approves each section through the claim ledger (the reason names the judge), makes a draft page public once all its sections are approved (never one with a legacy-import revision), rebuilds the pages, then approves the entries. `entries-cli.mjs` refuses an entry whose claims are not approved, so an entry is never ahead of its page.
+3. **Held for you:** `node scripts/tea-wisdom-compose/review-page.mjs --items .tea-wisdom-review/judge-<run>/held.json --notes .tea-wisdom-review/judge-<run>/notes.json`, published to the one Wisdom Review artifact, [claude.ai/artifact/2MZWE6AFWwCmih1PonbesE](https://claude.ai/artifact/2MZWE6AFWwCmih1PonbesE) (pass that URL; read it first if this conversation has not). Each held item shows the judge's reason, with Approve and Send back. Skip this page when nothing is held.
+4. **What went up:** the same command with `--items …/approved.json --notes …/notes.json --mode went-up --out .tea-wisdom-review/went-up.html`, published to its own artifact, [claude.ai/artifact/R51yXwmTqTwFtZwi1w2p6Q](https://claude.ai/artifact/R51yXwmTqTwFtZwi1w2p6Q) (pass that URL). Send back only, plus the rule tick. Nothing on it needs Adrian; it is there to read.
+5. When Adrian says he has been through a page, save his choices: ArtifactData `list` on collection `runs/<run>/decisions` with `out_dir: .tea-wisdom-review/decisions`, then run the apply step on that folder.
+6. Send-backs are in `.tea-wisdom-review/sent-back.json`. A note marked `rule: true` (Adrian ticked "Make this a rule for every page") is written into [WISDOM_PAGE_STYLE.md](../WISDOM_PAGE_STYLE.md) first, as a dated rule in his words with one before/after from the section he sent back; then the judge is run again over every page the rule touches. A send-back on something that went up returns it to step 2 or 5; the approved text stays live until the reworked text passes the judge. Sort the other notes (Haiku): **wording** goes back to its step 2 agent with the note; **fact** goes back to research for that statement; **wrong page** means the record or the table above is wrong, so tell Adrian in one line.
 
 ## Step 4. Write the entry (Opus)
 
@@ -124,9 +127,9 @@ Part of: <parent id>     Related: <id>, <id>
 - **Fix agent (Sonnet)** for each flag: re-run the composer for that tea first. If the same flag comes back, cut or reword the flagged words in the entry file so they say only what the claims say. If the entry truly needs the missing fact, stop and send it to step 2 as a section on the right page.
 - **Never:** add a fact, a number or a link the inputs don't carry.
 
-## Step 6. Adrian approves the entries
+## Step 6. Entries go through the same judge
 
-The same review page and the same apply step as step 3. Entries appear under the pages. When more than one entry has no flags, an "Approve all clean entries" button approves them together (Adrian's default, 2026-11-27). `entries-cli.mjs approve` refuses any entry whose claims are not approved or have changed since, so an entry approved before its page is caught.
+Entries are judged in the same pass as step 3. A clean entry (no checker flags) that the judge approves goes up; a flagged or doubtful one is held for Adrian with its reason.
 
 ## Step 7. Push
 
