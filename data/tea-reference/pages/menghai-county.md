@@ -12,19 +12,19 @@ source_ids:
 
 ## Why people value Menghai {#why-people-value-it}
 
-Mostly for its trees and the forest around them. Many of the old tea gardens here sit inside or beside real forest, in a warm, wet climate, and some of the trees are hundreds of years old. That is what people mean when they talk about the mountain character of the tea: strong, with a bitterness that turns sweet and stays in the mouth, especially on the Bulang side. Nannuo is softer and more floral. History adds to the name, because the county became the home of big factory pu’er, but it is the old trees in the forest that tea people come for.
+For its trees, above all. Menghai’s old gardens grow in and beside living forest, in warm, wet hills, and many of the trees are centuries old. That old-tree leaf is what tea people mean by Menghai’s mountain character: a strong cup whose bitterness turns quickly into a sweet, lasting finish, the quality the trade calls huigan, most of all on Bulang, while Nannuo gives a softer, more floral tea. The factory history made the name famous, but the trees are why buyers seek out its mountains.
 
 ## Western Xishuangbanna {#scope}
 
-Menghai County is the heart of pu’er country in western Xishuangbanna. Nannuo, Bulang, Mengsong, Hekai, Pasha and Bada are separate mountain areas inside it, each with its own tea. They are not other names for Menghai. [cite:teadb-menghai-county]
+Menghai County is the core of pu’er country in western Xishuangbanna. Nannuo, Bulang, Mengsong, Hekai, Pasha and Bada are distinct mountain areas within it, each with its own tea, not interchangeable names for Menghai. [cite:teadb-menghai-county]
 
 ## A forceful reputation {#common-character}
 
-Menghai raw tea is known for being strong and bitter, compared with the gentler tea of eastern Xishuangbanna. Take that as a broad habit, not a rule. The trees, the maker, the blend, the age and the storage all change what is in the cup. [cite:teadb-menghai-county]
+Menghai raw pu’er has a reputation for strength and bitterness, set against the gentler teas of eastern Xishuangbanna. Treat that as a regional convention rather than a rule: tree age, craft, blend, age and storage all make large differences within the county. [cite:teadb-menghai-county]
 
 ## Why the name is so well known {#history}
 
-Menghai is known partly because of its tea factory. Menghai Tea Factory was set up in the 1940s, and large-scale pu’er making later moved west to the county. Local leaf went into factory blends, so many well known raw and ripe cakes trace back to Menghai. [cite:teadb-menghai-county]
+Menghai’s fame also comes from its factory. Menghai Tea Factory was founded in the 1940s, and as pu’er grew into a large state industry the county’s leaf went into factory blends, so many benchmark raw and ripe cakes trace back to Menghai. [cite:teadb-menghai-county]
 
 ## Mengsong and Naka {#mengsong-naka}
 
@@ -32,4 +32,4 @@ Naka is a village in Mengsong, one of Menghai County’s tea-growing areas. [cit
 
 ## Where ripe pu’er began {#ripe-origins}
 
-Ripe pu’er was first made at scale in the early 1970s, and the Menghai Tea Factory was one of the first two factories to make it. It used a method called wet piling, where damp leaf is heaped and left to ferment. One of its early ripe cakes is still the recipe other ripe teas are measured against, which is a large part of why Menghai’s name carries weight in ripe tea today.
+Ripe pu’er was born in the early 1970s, when Yunnan’s state factories learned to speed up ageing by wet piling the leaf, and Menghai Tea Factory was one of the first to master it. Its 7572 cake became the benchmark ripe recipe, the cup other ripe teas are still judged against, and much of Menghai’s standing in ripe tea comes from it.
