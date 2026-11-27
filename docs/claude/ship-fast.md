@@ -60,7 +60,9 @@ What a PR runs, all side by side (2026-11-27):
 | `e2e-changed-shard` ×6 | browser specs the PR changed; lists first and skips the browser install and build when it has none | 0.5 min |
 
 `checks`, `mobile` and `e2e-changed` join their lanes into the three stable
-check names. When a lane nears the long pole, split it rather than raise its
+check names. A prose-only PR (`*.md`, `docs/`, `todo/`) still starts the
+workflow, and the gate skips every lane in seconds, so the required checks
+report instead of hanging. When a lane nears the long pole, split it rather than raise its
 timeout. A flaky test is fixed or deleted the day it is seen, never retried
 by hand and never skipped: a rerun costs the same five minutes as a fix.
 

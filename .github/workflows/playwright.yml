@@ -32,11 +32,12 @@ on:
     # Nightly slot for the advisory recovery lane.
     - cron: '30 2 * * *'
   workflow_dispatch:
+  # Pull requests always start this workflow, prose-only ones too: `checks`,
+  # `mobile` and `e2e-changed` are required on main, and a required check
+  # that never starts holds the PR forever. The gate below skips every lane
+  # of a prose-only PR in seconds instead, and a skipped required check
+  # counts as passed.
   pull_request:
-    paths-ignore:
-      - '*.md'
-      - 'docs/**'
-      - 'todo/**'
   push:
     branches: [main]
     # Prose never changes what the suite proves; every skipped run is minutes
@@ -78,7 +79,7 @@ jobs:
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
-          fetch-depth: 2
+          fetch-depth: ${{ github.event_name == 'pull_request' && 0 || 2 }}
       - id: decide
         env:
           GH_TOKEN: ${{ github.token }}
@@ -90,6 +91,13 @@ jobs:
           # a merge runs everything unless the merged head already has a green
           # run that was not a pull_request run (a push or a manual dispatch,
           # both of which run the full e2e job).
+          if [ "${{ github.event_name }}" = pull_request ]; then
+            why="pull request"
+            files="$(git diff --name-only "origin/${{ github.base_ref }}...HEAD")"
+            if [ -n "$files" ] && ! printf '%s\n' "$files" | grep -qvE '^([^/]*\.md|docs/.*|todo/.*)$'; then
+              run=false; why="pull request changes only prose (*.md, docs/, todo/)"
+            fi
+          fi
           if [ "${{ github.event_name }}" = push ]; then
             why="direct push"
             if [ "$(git rev-list --parents -n1 HEAD | wc -w)" -ge 3 ]; then
