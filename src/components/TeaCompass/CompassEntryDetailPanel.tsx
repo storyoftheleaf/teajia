@@ -18,7 +18,8 @@ import { TeaRecordFields, RecordVoice } from './TeaRecordFields';
 import { TeaRecordAssistant } from './TeaRecordAssistant';
 import { PhotoCapture } from './PhotoCapture';
 import { TYPOGRAPHY_CLASSES as T } from '../../designTokens';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { CollectionPill } from '../../admin/components/collections/CollectionPill';
 import { Pencil, Share2, Star, Trash2, X } from 'lucide-react';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { selectHasBundle, selectIsOwnerTier, useAppStore } from '../../lib/store';
@@ -60,6 +61,8 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
   const accountScopeRevision = useTeaCompassStore(s => s.accountScopeRevision);
   const userId = useAppStore(s => s.activeUserId);
   const canTrackOrder = useAppStore(s => selectIsOwnerTier(s) || selectHasBundle(s, 'stock'));
+  // Collections sit behind Publish, like their own room (/admin/collections).
+  const canCollect = useAppStore(s => selectIsOwnerTier(s) || selectHasBundle(s, 'publish'));
   const updateEntry = (id: string, patch: Parameters<ReturnType<typeof useTeaCompassStore.getState>['updateEntry']>[1]) => {
     const store = useTeaCompassStore.getState();
     if (store.accountScopeId !== accountScopeId || store.accountScopeRevision !== accountScopeRevision) return;
@@ -297,8 +300,16 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
         <CurateRecordTools flat entityType="tea" entityId={entry.id} onChanged={() => { const account = useTeaCompassStore.getState().accountScopeId; if (account) void hydrateCompassEntries(account); }} />
       </RecordGroup>
       </div>
+      {stockProductId && !previewEntry && <section aria-label="Write up and share" data-testid="library-stock-next" className="border-t border-tea-border py-2 flex flex-wrap items-center gap-2">
+        {/* Once a tea is in Stock its write-up and its collections are one tap
+            from here, so sending a priced link never means a trip round through
+            Stock (Adrian, 2026-11-27: "a lot of parts but they're not fluidly
+            all connected"). Each is a link or the shared pill, so back works. */}
+        <Link to={`/admin/products/${encodeURIComponent(stockProductId)}/story`} className="tap-target min-h-tap inline-flex items-center rounded-md px-3 text-ui-12 text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text">Write it up</Link>
+        {canCollect && <CollectionPill productId={stockProductId} />}
+      </section>}
       {nextAction?.run !== openStock && <section aria-label="Inventory handoff" className="border-t border-tea-border py-2 flex flex-wrap items-center justify-between gap-2">
-        <span className="text-ui-12 text-tea-text-sec">{entry.draftProductId ? 'Stock & listing' : 'Create a private inventory listing'}</span>
+        <span className="text-ui-12 text-tea-text-sec">{entry.draftProductId ? 'Stock & listing' : 'Add it to Stock, private until you list it'}</span>
         <>{stockProductId ? <button type="button" className="tap-target min-h-tap text-ui-12 text-tea-text" onClick={openStock}>View in Stock</button> : <CreateInventoryRecordAction entryId={entry.id} compact productId={entry.draftProductId} onOpenInventory={onOpenInventory ?? (productId => navigate(sharedStockRecordHref(productId)))} />}</>
       </section>}
     </div>

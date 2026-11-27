@@ -27,7 +27,9 @@ import type { CurateJourney, CurateVisit } from './types';
 import { useAppStore } from '../../lib/store';
 import { buildEntryPossessionMap } from './libraryPossession';
 import { hydrateCompassEntries } from '../../lib/teaCompassSync';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { VendorFace } from '../vendors/VendorFace';
+import { vendorFacePhoto } from '../vendors/vendorFaces';
 import { useSampleStore } from '../../samples/sampleStore';
 
 const SORT_LABELS: Record<BrowseSort, string> = {
@@ -199,6 +201,10 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
     [entries, inventoryProducts],
   );
 
+  // The face Adrian knows each supplier by, beside their name (Adrian,
+  // 2026-11-27: "I'm here in the library and I don't see the thumbnail of
+  // the person"). Face, else storefront, else business card, else initials.
+  const supplierPhotos = useMemo(() => new Map(suppliers.map(supplier => [supplier.id, vendorFacePhoto(supplier)])), [suppliers]);
   const resolvedEntries = useMemo(() => {
     const names = new Map(suppliers.map(supplier => [supplier.id, supplier.name]));
     return entries.map(entry => {
@@ -359,6 +365,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
       return <p className="py-8 text-center text-ui-12 text-tea-text-sec">{message}</p>;
     }
     const groups = librarySupplierGroups(sortEntries(result));
+    const supplierId = (group: (typeof groups)[number]) => group.entries[0].linkedCustomerId || group.entries[0].vendorId || null;
     return (
       <div className="library-supplier-groups">
         {groups.map((group, index) => {
@@ -367,6 +374,12 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
           return (
             <section key={group.key} aria-label={group.label} className="library-supplier-group" data-tone={index % 2}>
               <div className="library-supplier-header">
+              {supplierId(group) ? (
+                <Link to={`/admin/vendors/${encodeURIComponent(supplierId(group)!)}`} className="tap-target library-supplier-face shrink-0 rounded-full"
+                  aria-label={`Open ${group.label}'s page`} title={`Open ${group.label}'s page`} data-testid="library-supplier-face">
+                  <VendorFace name={group.label} photo={supplierPhotos.get(supplierId(group)!)} size={36} />
+                </Link>
+              ) : null}
               <button type="button" className="library-supplier-heading" aria-expanded={!collapsed} aria-controls={contentId}
                 onClick={() => setCollapsedSuppliers(current => {
                   const next = new Set(current);
@@ -376,7 +389,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
                 <span className="library-supplier-name">{group.label}</span>
                 <span className="library-supplier-count">{group.entries.length} {group.entries.length === 1 ? 'tea' : 'teas'}</span>
               </button>
-              {group.key && <LibrarySupplierActions supplierId={group.entries[0].linkedCustomerId || group.entries[0].vendorId} supplierName={group.label} />}
+              {group.key && <LibrarySupplierActions supplierId={supplierId(group)} supplierName={group.label} />}
               </div>
               <div id={contentId} className="library-supplier-content" hidden={collapsed}>
                 {renderEntries(group.entries, { tasteQueueActive: !showRejected && browseFilter === 'to_taste' })}

@@ -5,6 +5,7 @@ import { AlertCircle, Check, MessageCircle, Minus, Plus, Loader2, ArrowRight, Be
 import { api } from '../lib/api';
 import { buildWhatsAppUrl, buildCollectionBasketMessage } from '../lib/whatsapp';
 import type { PublicCollectionResponse, PublicCollectionItem } from '../types';
+import { authPagePath } from '../lib/authNavigation';
 
 const ROMAN = [
   '', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X',
@@ -223,6 +224,7 @@ const CollectionCatalog: React.FC<{ data: PublicCollectionResponse }> = ({ data 
   const { collection, items, account } = data;
   const storeName = account?.name ?? 'Teajia';
   const curatorName = collection.curator_display_name;
+  const signedIn = (() => { try { return !!(localStorage.getItem('teajia_token') || sessionStorage.getItem('teajia_token')); } catch { return false; } })();
   // First name (or store) for the inline "X suggests…" recommendation lines.
   const curatorFirstName = (curatorName?.trim().split(/\s+/)[0]) || storeName;
 
@@ -460,6 +462,18 @@ const CollectionCatalog: React.FC<{ data: PublicCollectionResponse }> = ({ data 
               ? `Curated by ${account.name}`
               : 'A curator’s picks. The same list for everyone who opens it.'}
         </p>
+        {/* An account is offered, never asked for: the whole page reads and
+            orders without one (Adrian, 2026-11-27: "offering them to make an
+            account as well, but the reading of the link is not required as an
+            account"). Joining brings them back here, and a signed-in visit
+            keeps the collection on their shelf (markReceived above). */}
+        {!signedIn && slug && (
+          <p className="mt-4 text-ui-13 text-tea-text-sec" data-testid="collection-account-offer">
+            Want to keep this?{' '}
+            <Link to={authPagePath('signup', `/c/${slug}`)} className="tap-target text-tea-text underline decoration-tea-border underline-offset-2 hover:text-tea-gold">Make a free account</Link>
+            {' '}and it stays with you. You don’t need one to read or order.
+          </p>
+        )}
       </footer>
 
       {/* Sticky basket footer, only visible when ≥1 item selected. This page is a
