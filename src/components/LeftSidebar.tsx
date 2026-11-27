@@ -15,7 +15,6 @@ import { useSampleCartStore } from '../samples/sampleCartStore';
 import { useManageNav, isManagePathActive, type ManageItem } from './manageNav';
 import { barSections, barSectionActive } from './navSections';
 import { homeBarOpen } from '../lib/homeBar';
-import { manageLook, MANAGE_LOOK_WIDTH_REM } from './manageLook';
 
 // One rail for everyone, a drawer for the people who run the shop
 // (Adrian, 2026-11-25, "Narrow B as a pair, one wide").
@@ -36,8 +35,10 @@ import { manageLook, MANAGE_LOOK_WIDTH_REM } from './manageLook';
 
 // 60px rail: "manage", the widest one-line word, sits inside it with room;
 // "tea table" and "tea spaces" go on two close lines (Adrian, 2026-11-27).
-// The drawer's width depends on its look (manageLook.ts).
+// 56px drawer: a small glyph over each room's word, "sessions" and
+// "settings" the widest (Adrian, 2026-11-27, flush, slim).
 const RAIL_WIDTH_REM = 3.75;
+const DRAWER_WIDTH_REM = 3.5;
 
 // ── LeftSidebar ────────────────────────────────────────────────────────────
 
@@ -123,12 +124,10 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   const showPanel = hasManageRoom && room === 'manage';
 
   // The aside is the rail alone (3.75rem) or the rail plus the open drawer
-  // plus the look's width (manageLook.ts). Full-screen panels read this to clear it
+  // (3.75 + 3.5 = 7.25rem). Full-screen panels read this to clear it
   // (`.sidebar-inset`), and App.tsx reads it for the main column's margin.
   const drawerOpen = showPanel && !sidebarCollapsed;
-  const look = manageLook(location.search);
-  const drawerRem = MANAGE_LOOK_WIDTH_REM[look];
-  const asideWidth = drawerOpen ? `${RAIL_WIDTH_REM + drawerRem}rem` : `${RAIL_WIDTH_REM}rem`;
+  const asideWidth = drawerOpen ? `${RAIL_WIDTH_REM + DRAWER_WIDTH_REM}rem` : `${RAIL_WIDTH_REM}rem`;
   useEffect(() => {
     document.documentElement.style.setProperty('--teajia-sidebar-w', asideWidth);
   }, [asideWidth]);
@@ -171,7 +170,6 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
     <aside
       data-testid="left-sidebar"
       aria-label="Main navigation"
-      data-look={look}
       style={{ width: asideWidth }}
       className="hidden lg:flex flex-row fixed left-0 top-0 h-screen z-sticky select-none transition-[width] duration-300"
     >
@@ -325,7 +323,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.18, ease: 'easeOut' }}
-            style={{ width: `${drawerRem}rem` }}
+            style={{ width: `${DRAWER_WIDTH_REM}rem` }}
             className="nav-drawer shrink-0 h-full flex flex-col overflow-y-auto hide-scrollbar"
           >
             <div className="nav-drawer-list">

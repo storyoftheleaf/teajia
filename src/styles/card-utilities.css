@@ -3468,25 +3468,43 @@ input[type="number"]::-webkit-outer-spin-button {
   border-right: 1px solid var(--tea-keyline);
 }
 
-/* The staff drawer beside the rail (LeftSidebar), in one of three narrow
-   flush looks for Adrian to choose from (manageLook.ts: slim, glyph, word;
-   2026-11-27). The word manage no longer folds into the drawer as a tab:
-   each look marks it open in its own small way. */
-.nav-drawer { background: var(--tea-surface); }
+/* The staff drawer beside the rail (LeftSidebar): a full-height porcelain
+   leaf joined to the rail, brightening toward the foot, a gold hairline down
+   its outer edge. The rooms stack up from the word manage, a small glyph
+   over each word in the rail's lowercase serif, hairlines between them; the
+   room you are in is lit gold on a soft gold wash. The word manage, open, is
+   gold with a gold hairline under it, and no longer folds into the drawer as
+   a tab (Adrian, 2026-11-27: flush, slim, chosen over eight other looks). */
+.nav-drawer {
+  justify-content: flex-end;
+  padding: 0 0 var(--space-3);
+  background: linear-gradient(180deg, var(--tea-surface), var(--tea-elevated));
+  border-right: 1px solid rgb(var(--tea-gold-rgb) / 0.22);
+}
 .nav-drawer-list { display: flex; flex-direction: column; }
-.nav-drawer-label { display: block; color: var(--tea-text-sec); }
+.nav-drawer-label, .nav-drawer-rule { display: none; }
 .nav-room {
   position: relative;
   display: flex;
+  flex-direction: column;
   align-items: center;
+  justify-content: center;
+  gap: 4px;
   min-height: var(--tap-min);
+  padding: var(--space-2) 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-ui-11);
+  letter-spacing: 0.02em;
+  text-transform: lowercase;
   color: var(--tea-text-sec);
   white-space: nowrap;
   transition: color 150ms ease, background-color 150ms ease;
 }
+.nav-room ~ .nav-room { border-top: 1px solid var(--tea-border); margin: 0 var(--space-1); }
 .nav-room:hover { color: var(--tea-text); }
 .nav-room:focus-visible { outline: 2px solid rgb(var(--tea-gold-rgb) / 0.5); outline-offset: 1px; }
-.nav-room[aria-current="page"] { color: var(--tea-gold); }
+.nav-room[aria-current="page"] { margin: 0; color: var(--tea-gold); background: rgb(var(--tea-gold-rgb) / 0.08); }
+.nav-room[aria-current="page"] + .nav-room { border-top-color: transparent; }
 .nav-room-glyph { flex-shrink: 0; }
 .nav-manage-word { position: relative; flex-shrink: 0; }
 .nav-manage-word::after {
@@ -3494,36 +3512,7 @@ input[type="number"]::-webkit-outer-spin-button {
   position: absolute;
   inset: calc(-1 * var(--space-3)) calc(-1 * var(--space-2));
 }
-
-/* Flush, narrower, three ways (Adrian, 2026-11-27: "Let's go with flush...
-   when I was saying sleek, I mean more narrow"). All three: a full-height
-   porcelain leaf joined to the rail, brightening toward the foot, a gold
-   hairline down its outer edge, rooms stacked up from the word manage with
-   hairlines between them, the room you are in lit gold on a soft gold wash.
-   Open, manage is gold with a gold hairline under it. */
-:is([data-look="slim"], [data-look="glyph"], [data-look="word"]) .nav-drawer {
-  justify-content: flex-end;
-  padding: 0 0 var(--space-3);
-  background: linear-gradient(180deg, var(--tea-surface), var(--tea-elevated));
-  border-right: 1px solid rgb(var(--tea-gold-rgb) / 0.22);
-}
-:is([data-look="slim"], [data-look="glyph"], [data-look="word"]) .nav-drawer-label { display: none; }
-:is([data-look="slim"], [data-look="glyph"], [data-look="word"]) .nav-drawer-rule { display: none; }
-:is([data-look="slim"], [data-look="glyph"], [data-look="word"]) .nav-room {
-  flex-direction: column;
-  justify-content: center;
-  gap: 4px;
-  padding: var(--space-2) 0;
-  font-family: var(--font-display);
-  font-size: var(--fs-ui-12);
-  letter-spacing: 0.02em;
-  text-transform: lowercase;
-}
-:is([data-look="slim"], [data-look="glyph"], [data-look="word"]) .nav-room ~ .nav-room { border-top: 1px solid var(--tea-border); margin: 0 var(--space-1); }
-:is([data-look="slim"], [data-look="glyph"], [data-look="word"]) .nav-room:hover { color: var(--tea-text); }
-:is([data-look="slim"], [data-look="glyph"], [data-look="word"]) .nav-room[aria-current="page"] { margin: 0; background: rgb(var(--tea-gold-rgb) / 0.08); }
-:is([data-look="slim"], [data-look="glyph"], [data-look="word"]) .nav-room[aria-current="page"] + .nav-room { border-top-color: transparent; }
-:is([data-look="slim"], [data-look="glyph"], [data-look="word"]) .nav-manage-word[data-open="true"]::before {
+.nav-manage-word[data-open="true"]::before {
   content: '';
   position: absolute;
   left: 50%;
@@ -3532,37 +3521,6 @@ input[type="number"]::-webkit-outer-spin-button {
   margin-left: -10px;
   border-top: 1px solid var(--tea-gold);
 }
-
-/* Slim, 56px: the glyph over its word, both drawn smaller. */
-[data-look="slim"] .nav-room { font-size: var(--fs-ui-11); }
-
-/* Glyph, 44px: the glyphs alone, the narrowest; a room's word shows beside
-   it on a small porcelain label while the pointer or focus is on it. */
-[data-look="glyph"] .nav-drawer { overflow: visible; }
-[data-look="glyph"] .nav-room { min-height: var(--tap-min); padding: 0; }
-[data-look="glyph"] .nav-room-word {
-  position: absolute;
-  left: calc(100% + var(--space-2));
-  top: 50%;
-  transform: translate(-4px, -50%);
-  padding: var(--space-1) var(--space-2);
-  border: 1px solid rgb(var(--tea-gold-rgb) / 0.22);
-  border-radius: var(--radius-control);
-  background: var(--tea-elevated);
-  box-shadow: var(--shadow-md);
-  font-size: var(--fs-ui-13);
-  color: var(--tea-text);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 120ms ease, transform 120ms ease;
-}
-[data-look="glyph"] .nav-room:hover .nav-room-word,
-[data-look="glyph"] .nav-room:focus-visible .nav-room-word { opacity: 1; transform: translate(0, -50%); }
-
-/* Word, 52px: the words alone, in the rail's lowercase serif, so the column
-   reads as a second, quieter rail. */
-[data-look="word"] .nav-room-mark { display: none; }
-[data-look="word"] .nav-room { min-height: var(--tap-min); padding: 0; font-size: var(--fs-ui-13); }
 
 /* The rail's words sit close, 14px type on a 20px gap, which is the design
    Adrian picked off the canvas. `.tap-target` would make each word a 44px box
