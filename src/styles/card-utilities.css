@@ -3479,6 +3479,7 @@ input[type="number"]::-webkit-outer-spin-button {
   position: relative;
   display: flex;
   align-items: center;
+  min-height: var(--tap-min);
   color: var(--tea-text-sec);
   white-space: nowrap;
   transition: color 150ms ease, background-color 150ms ease;
@@ -3586,7 +3587,9 @@ input[type="number"]::-webkit-outer-spin-button {
 [data-look="spines"] .nav-room {
   writing-mode: vertical-rl;
   transform: rotate(180deg);
-  padding: 0 var(--space-2);
+  justify-content: center;
+  min-width: var(--tap-min);
+  padding: 0;
   font-family: var(--font-sans);
   font-size: var(--fs-ui-11);
   letter-spacing: 0.14em;
@@ -4336,7 +4339,7 @@ body:has([data-tasting-session-overlay]) [data-testid="bottom-tab-bar"] {
 .curate-field-flag::before {
   content: "";
   width: 4px;
-  aspect-ratio: 1;
+  height: 4px;
   flex: none;
   border-radius: 9999px;
   background: currentColor;

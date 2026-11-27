@@ -16,7 +16,7 @@ const KEY = 'teajia_manage_look';
 const LOOKS: readonly ManageLook[] = ['ledger', 'tiles', 'spines'];
 
 /** How wide each look's column is, in rem. */
-export const MANAGE_LOOK_WIDTH_REM: Record<ManageLook, number> = { ledger: 6.25, tiles: 4.75, spines: 2.5 };
+export const MANAGE_LOOK_WIDTH_REM: Record<ManageLook, number> = { ledger: 6.25, tiles: 4.75, spines: 2.75 };
 
 function isLook(value: string | null | undefined): value is ManageLook {
   return !!value && (LOOKS as readonly string[]).includes(value);
