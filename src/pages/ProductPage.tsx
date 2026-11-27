@@ -26,6 +26,8 @@ import { useProducts } from '../admin/hooks/useAdminData';
 import { api } from '../lib/api';
 import { TYPOGRAPHY_CLASSES } from '../designTokens';
 import { ProductDetailPageContext } from '../components/shop/ProductDetailLayout';
+import { LinkTeaTop } from '../components/shop/LinkTeaTop';
+import { boughtTeaItem, boughtTopLine, useMyBoughtTeas } from '../lib/myBoughtTeas';
 
 
 interface ProductPageProps {
@@ -102,9 +104,14 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
   // A seller link must confirm the exact listing with that seller's product reader.
   // In particular an older list snapshot cannot reopen a withdrawn offer.
   const checkingSeller = scopedListing && !linkedProduct.isFetchedAfterMount && !linkedProduct.isError;
+  // A tea the person bought says so on top of its page, and a private one the
+  // shop does not list still opens from what their order carries.
+  const { byId: boughtById } = useMyBoughtTeas();
+  const boughtFallback = !link && routeKey ? boughtById.get(routeKey) : undefined;
   const item = link
     ? (browseItem ?? (isLoading ? null : link.fallbackItem))
-    : browseItem ?? (checkingSeller || linkedProduct.isError ? null : linkedProduct.data);
+    : browseItem ?? (checkingSeller ? null : linkedProduct.isError ? (boughtFallback ? boughtTeaItem(boughtFallback) : null) : linkedProduct.data);
+  const bought = item ? boughtById.get(item.id) : undefined;
   const productStore = useQuery({
     queryKey: ['storefront', 'store', activeStore],
     queryFn: () => fetchStore(activeStore),
@@ -465,7 +472,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
   // crossfade, so the page itself simply exists.
   return (
     <div className="paper-ground w-full">
-      {link?.top}
+      {link ? link.top : bought && <LinkTeaTop line={boughtTopLine(bought)} />}
       {!link && <Helmet>
         <title>{`${item.name} · Teajia`}</title>
         <meta name="description" content={metaDescription} />

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { ArrowRight, Bookmark, Check, Copy } from 'lucide-react';
 import { useAppStore } from '../../lib/store';
 import { authPagePath } from '../../lib/authNavigation';
@@ -60,6 +61,7 @@ function KeepOffer({ slug, token, productIds, signedIn, kept: keptAtLoad }: {
   const [search, setSearch] = useSearchParams();
   const favoriteTeas = useAppStore(s => s.favoriteTeas);
   const toggleFavoriteTea = useAppStore(s => s.toggleFavoriteTea);
+  const queryClient = useQueryClient();
   const [state, setState] = useState<'idle' | 'saving' | 'kept' | 'error'>(keptAtLoad ? 'kept' : 'idle');
   const [error, setError] = useState<string | null>(null);
 
@@ -69,6 +71,7 @@ function KeepOffer({ slug, token, productIds, signedIn, kept: keptAtLoad }: {
     setError(null);
     try {
       await keepPayInvoice(slug, token);
+      void queryClient.invalidateQueries({ queryKey: ['me', 'bought-teas'] });
       productIds.filter(id => !useAppStore.getState().favoriteTeas.includes(id)).forEach(id => toggleFavoriteTea(id));
       setState('kept');
     } catch (err) {
@@ -101,9 +104,14 @@ function KeepOffer({ slug, token, productIds, signedIn, kept: keptAtLoad }: {
           <span className="inline-flex items-center gap-1.5 font-body text-ui-14 text-tea-text">
             <Check size={14} className="text-tea-gold" /> Saved to your account{allSaved ? ', with its teas' : ''}.
           </span>
-          <Link to="/account/orders" className="tap-target inline-flex items-center gap-1 font-sans text-ui-12 text-tea-text-sec hover:text-tea-text">
-            Your orders <ArrowRight size={12} />
-          </Link>
+          <span className="flex flex-wrap items-center gap-4">
+            <Link to="/shop?bought=1" className="tap-target inline-flex items-center gap-1 font-sans text-ui-12 text-tea-text-sec hover:text-tea-text" data-testid="pay-your-teas">
+              Your teas in the shop <ArrowRight size={12} />
+            </Link>
+            <Link to="/account/orders" className="tap-target inline-flex items-center gap-1 font-sans text-ui-12 text-tea-text-sec hover:text-tea-text">
+              Your orders <ArrowRight size={12} />
+            </Link>
+          </span>
         </div>
       ) : (
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
