@@ -45,17 +45,23 @@ export function homeDoorsLaunchFour() {
   ];
 }
 
-/** The four doors under the opener, in place of today's four lines, with the new bar on. Each door is two lines tall, so the 44px floor adds no gap. */
+/**
+ * The four doors under the opener, in place of today's four lines, with the
+ * new bar on. On a phone they sit two by two, the few words in the small
+ * size, so the photograph of the table shows on the first screen (Adrian,
+ * 2026-11-27). From lg they stack as one list beside the photograph. Each
+ * door is at least two lines tall, so the 44px floor adds no gap.
+ */
 export const HomeFourDoors: React.FC = () => (
-  <nav aria-label="Homepage destinations" data-testid="home-four-doors" className="mt-8 flex flex-col items-start gap-[var(--space-1)]">
+  <nav aria-label="Homepage destinations" data-testid="home-four-doors" className="mt-6 grid grid-cols-2 gap-x-5 gap-y-3 lg:mt-8 lg:flex lg:flex-col lg:items-start lg:gap-[var(--space-1)]">
     {homeDoorsLaunchFour().map(door => (
       <Link
         key={door.accent}
         to={door.to}
-        className="group tap-target !items-start !justify-start flex-col max-w-full rounded-md py-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/40 focus-visible:ring-offset-2 focus-visible:ring-offset-tea-bg"
+        className="group tap-target !items-start !justify-start flex-col min-w-0 max-w-full rounded-md py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/40 focus-visible:ring-offset-2 focus-visible:ring-offset-tea-bg"
       >
         <span className={`${TYPOGRAPHY_CLASSES.body} font-medium tracking-[0.015em] text-tea-gold`}>{door.accent}</span>{' '}
-        <span className={`${TYPOGRAPHY_CLASSES.body} break-words tracking-[0.015em] text-tea-text-sec underline decoration-tea-gold/0 underline-offset-[4px] transition-all duration-300 group-hover:text-tea-text group-hover:decoration-tea-gold/30`}>{door.words}</span>
+        <span className={`${TYPOGRAPHY_CLASSES.bodyLight} leading-snug lg:[font-size:var(--fs-body)] lg:[line-height:var(--lh-body)] mt-0.5 lg:mt-0 break-words tracking-[0.015em] text-tea-text-sec underline decoration-tea-gold/0 underline-offset-[4px] transition-all duration-300 group-hover:text-tea-text group-hover:decoration-tea-gold/30`}>{door.words}</span>
       </Link>
     ))}
   </nav>
