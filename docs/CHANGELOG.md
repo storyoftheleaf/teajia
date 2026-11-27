@@ -1,3 +1,7 @@
+## 2026-11-27: The agent asks "Sample, or bought?" too
+
+Intake plan step 5. `curate_add_tea`'s read-back now says what the tea comes in as ("as a sample that is here", "bought, on the way"). When the call has not said, the preview carries `ask_first` with the same question the Library's Bring in sheet asks, and the tool description tells the agent to ask it once (`bringInKind` in `worker/src/mcpTools/curateIntake.ts`).
+
 ## 2026-11-27: Add to Stock brings the quote's amount and cost; a tasting takes its leaf off Stock
 
 Intake plan step 4. A new Stock tea still starts empty, because a quote is not a count or a paid cost. Now the Library card offers the supplier quote's grams and cost, with its currency, filled in for Adrian to change or confirm. Save writes the grams as a recount and the cost with its currency (`src/components/curate/StockFromQuote.tsx`). When a tasting of a tea in working Stock is saved, the card asks afterwards, never during the session, how much leaf was used. That amount comes off Stock as a tasting use, and leaving it empty takes nothing (`src/components/curate/LeafUsedAfterTasting.tsx`). Samples are never asked to be weighed.
