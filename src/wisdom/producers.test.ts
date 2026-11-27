@@ -3,8 +3,13 @@ import { MARKS, PRODUCERS, findProducerById, marksOf, matchMark, matchProducer, 
 
 describe('matchProducer', () => {
   it('finds the factory named inside a tea name', () => {
-    expect(matchProducer('7572 Menghai')).toMatchObject({ name: 'Menghai Tea Factory' });
+    expect(matchProducer('Menghai Tea Factory 7572')).toMatchObject({ name: 'Menghai Tea Factory' });
+    expect(matchProducer('Dayi 7572')).toMatchObject({ name: 'Menghai Tea Factory' });
     expect(matchProducer('Xiaguan Wild 2005')).toMatchObject({ name: 'Xiaguan Tea Factory' });
+  });
+
+  it('does not take the county name Menghai for the Menghai Tea Factory', () => {
+    expect(matchProducer('Menghai Raw Loose')).toBeNull();
   });
 
   it('finds a producer written only in Chinese', () => {

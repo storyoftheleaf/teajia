@@ -694,7 +694,7 @@ describe('wayfinding', () => {
       ['/wisdom/type/sheng', 'What sheng means', 'Sheng is the undarkened branch of Pu’er'],
       ['/wisdom/region/yunnan', 'The geographic frame', 'Pu’er is unusually place-bound for a broad tea family.'],
       ['/wisdom/region/greater-yiwu', 'A name at several scales', 'Yiwu can mean a township, a market center'],
-      ['/wisdom/region/menghai-county', 'Western Xishuangbanna', 'Menghai County anchors much of western Xishuangbanna'],
+      ['/wisdom/region/menghai-county', 'Western Xishuangbanna', 'Menghai County is the core of pu’er country in western Xishuangbanna'],
       ['/wisdom/region/lincang', 'Northern Pu’er country', 'Lincang lies north of Pu’er Prefecture'],
     ] as const;
 

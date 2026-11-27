@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git fetch *)",
+      "Bash(git worktree add *)",
+      "Bash(git worktree remove *)",
+      "Bash(git worktree list*)",
+      "Bash(git status*)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git merge --no-edit origin/build/review)",
+      "Bash(git push -u origin review/*)",
+      "Bash(git push origin review/*)",
+      "Bash(npm install)",
+      "Bash(npm run lint*)",
+      "Bash(npm run test:src*)",
+      "Bash(npm run test:worker*)",
+      "Bash(npx playwright test *)",
+      "Bash(node --experimental-sqlite --experimental-strip-types scripts/review-rig.mjs *)",
+      "Bash(/Applications/ChatGPT.app/Contents/Resources/codex-cli/bin/codex exec *)"
+    ]
+  }
+}

@@ -1,4 +1,5 @@
 import { casualSitPublicationRoutes } from './casualSitPublications';
+import { freightRateWriteRefusal } from './freightRateDoor';
 import { publicSitRoutes, publishedSitRecap } from './publicSitConnections';
 import { formalSessionCardsFor, publicSessionRoutes } from './publicSessions';
 import type { PublicProductReader } from './sessionTeas';
@@ -3103,6 +3104,8 @@ const handleCreateProduct: Handler = async (request, env) => {
   }
   const capabilityError = validateProductCreateCapabilities(ctx, body);
   if (capabilityError) return capabilityError;
+  const freightRefusal = freightRateWriteRefusal(body, 'create');
+  if (freightRefusal) return restError(400, freightRefusal, 'freight_rate_in_logistics');
   /* After the unknown-field check, so `cost_currency_source` is not a field a
      caller may send: it records that this process saw a currency arrive. */
   stampCostCurrencySource(body);
@@ -3248,6 +3251,8 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
     }
     const capabilityError = validateProductCreateCapabilities(ctx, raw, { costRefusedPerRow: true });
     if (capabilityError) return capabilityError;
+    const freightRefusal = freightRateWriteRefusal(raw, 'create');
+    if (freightRefusal) return restError(400, freightRefusal, 'freight_rate_in_logistics');
     const ownerError = await validateProductOwnerAssignment(env, ctx, raw);
     if (ownerError) return ownerError;
   }
@@ -3657,6 +3662,14 @@ async function applyProductUpdate(
       .bind(params.id, accountId).first() as { cost_currency?: string | null } | null;
     const costRefusal = costMissingItsCurrency(body, existingCost?.cost_currency);
     if (costRefusal) return costRefusal;
+  }
+  // Freight rates are typed in Logistics, not here (worker/src/freightRateDoor.ts).
+  if ('shipping_rate_per_kg' in body) {
+    const existingFreight = await env.DB.prepare('SELECT shipping_rate_per_kg, cost_currency FROM products WHERE id = ? AND account_id = ?')
+      .bind(params.id, accountId).first() as { shipping_rate_per_kg?: number | null; cost_currency?: string | null } | null;
+    const freightRefusal = freightRateWriteRefusal(body, existingFreight);
+    if (freightRefusal) return restError(400, freightRefusal, 'freight_rate_in_logistics');
+    if (body.shipping_rate_per_kg === '') body.shipping_rate_per_kg = null;
   }
   // How the tea travels home: one of this shop's active logistics services, or
   // nothing said (src/lib/freightSource.ts). The rate stays on the service.
@@ -34266,6 +34279,25 @@ const requestHandler = {
           orders: (userId, accountId) => listMyOrders(env, userId, accountId),
           teaChest: (userId) => listMyTeaChest(env, userId),
           journal: (userId, email, accountId) => listMyJournal(env, email, userId, accountId),
+        },
+        // draft_invoice's pay link: the same one the admin's Share pay link gives.
+        invoicePayLinks: {
+          payUrl: async (accountId, invoiceId) => {
+            const row = await env.DB.prepare(
+              `SELECT id, account_id, invoice_number, status, payment_status, display_currency,
+                      payment_recipient_user_id, sold_by_user_id, shipping_cost_usd
+                 FROM invoices WHERE id = ? AND account_id = ? AND deleted_at IS NULL`
+            ).bind(invoiceId, accountId).first<Record<string, any>>();
+            if (!row) return null;
+            const payment = await resolveInvoicePayment(env, {
+              id: String(row.id), account_id: String(row.account_id),
+              invoice_number: row.invoice_number ?? null, status: row.status ?? null,
+              payment_status: row.payment_status ?? null, display_currency: row.display_currency ?? null,
+              payment_recipient_user_id: row.payment_recipient_user_id ?? null, sold_by_user_id: row.sold_by_user_id ?? null,
+              shipping_cost_usd: Number(row.shipping_cost_usd || 0),
+            });
+            return payment.pay_url ?? null;
+          },
         },
         // A host's yes over MCP takes the admin approval's own reservation (Launch 2, H12).
         hostSeats: { reservationFor: (attendee, guests) => buildApprovalReservation(env, attendee as unknown as ApprovalAttendeeRow, guests) },

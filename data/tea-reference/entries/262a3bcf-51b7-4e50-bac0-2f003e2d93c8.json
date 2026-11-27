@@ -1,0 +1,75 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-27T04:07:35.214Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "262a3bcf-51b7-4e50-bac0-2f003e2d93c8",
+    "name": "1990s Pu'er Tea Brick",
+    "chineseName": "九十年代普洱茶砖",
+    "type": "Shou Puer",
+    "form": "Brick",
+    "year": null,
+    "origin": null,
+    "stockGrams": 600,
+    "pricePerGramUsd": 0.39,
+    "tags": []
+  },
+  "entry": {
+    "productId": "262a3bcf-51b7-4e50-bac0-2f003e2d93c8",
+    "paragraphs": [
+      {
+        "layer": "type",
+        "text": "A brick of [ripe pu’er](shou:definition): leaf fermented in a warm, damp pile before pressing, so that it was ready to drink soon after it was made rather than set aside for years as raw pu’er is."
+      },
+      {
+        "layer": "type",
+        "text": "The pile grew out of the old trade. Pu’er once reached Hong Kong and Guangzhou after a caravan journey of up to a year and further years in merchants’ keeping, and when faster transport in the 1950s brought fresher tea, the trade set out to [hurry that change](shou:piling-history). In [wet piling](shou:wet-piling), leaf dried in the sun is wetted and heaped, covered to hold in the heat its microbes make, and turned about once a week to spread that heat and let air in. After one to two months the leaf is dried."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "From a cake, brick or tuo, ease a piece off along the edge with a pick rather than snapping it. Whole leaves give up their flavour steadily; broken ones release it all at once and cloud the cup. Ripe pu’er takes boiling water: fermented, tightly packed leaf needs full heat to open, and it does not scald the way green tea can. A common start is about 7 grams to 100 ml and one quick rinse, which wakes the leaf and carries off dust and any pile smell. Then short steeps that lengthen as the leaf opens, so the cup stays clear rather than heavy; it gives eight or more good cups."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "ripe pu’er",
+      "text": "A smooth, sweet cup with earthy or woody notes. A young ripe tea can carry a faint smell of the pile, which fades with airing or in the first steeps."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "The year it was made: unlocks the age paragraph",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "shou:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:piling-history",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:wet-piling",
+      "rev": 2
+    },
+    {
+      "claimId": "shou:brewing-pressed",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:common-impressions",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-27T04:17:17.286Z"
+}

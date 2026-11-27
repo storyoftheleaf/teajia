@@ -1,6 +1,6 @@
 {
   "status": "approved",
-  "composedAt": "2026-11-26T04:43:45.391Z",
+  "composedAt": "2026-11-27T03:56:24.629Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -11,25 +11,20 @@
     "form": "Rolled",
     "year": 1980,
     "origin": "Taiwan",
-    "stockGrams": 0,
-    "pricePerGramUsd": 1.25,
-    "tags": [
-      "dark roast",
-      "aged sweetness",
-      "dried longan",
-      "caramel warmth"
-    ]
+    "stockGrams": null,
+    "pricePerGramUsd": null,
+    "tags": []
   },
   "entry": {
     "productId": "861e232b-a63d-43aa-95a9-a98ef6621eb0",
     "paragraphs": [
       {
-        "layer": "lot",
-        "text": "An [oolong](oolong:definition) from Taiwan, made in 1980 and labeled simply as old. It comes from a personal collection. No standard fixes when an oolong becomes old; those who name a figure put it between ten and thirty years, and this one has kept for forty-six."
+        "layer": "place",
+        "text": "A rolled [Taiwan oolong](taiwan-oolong:definition) from 1980, grown on the island whose tea plants and craft first came over from Fujian. Its label gives only [Taiwan](taiwan:on-a-label). That places the leaf on the island and says nothing of the mountain, township or cultivar it came from."
       },
       {
         "layer": "age",
-        "text": "Taiwan has its own custom of keeping oolong, called [lao cha](taiwan-oolong:ageing), old tea. Leaf chosen for keeping starts well roasted and dry, and the keeper roasts it again at low heat from time to time to drive out the moisture it gathers, at the keeper’s own judgement. Keepers store it cool, dry, dark and sealed. Like most [Taiwan oolong](taiwan-oolong:definition), whose plants and craft came over from Fujian, the leaf is rolled."
+        "text": "At forty-six years it belongs to the island's tradition of [lao cha](taiwan-oolong:ageing), old tea. An oolong chosen for keeping starts well roasted and dry. It is roasted again at low heat from time to time to drive out the moisture it takes in, and it is kept cool, dark and sealed in between, while the liquor deepens over the years from amber towards red-brown. No standard says how many years make an oolong old. Those who give a figure put it somewhere between ten and thirty, and this tea is past both."
       }
     ],
     "brewing": {
@@ -42,22 +37,21 @@
       "text": "A smooth, mellow, thick cup with little astringency, often plum or prune, sometimes something like medicinal herbs or ginseng, and an amber to red-brown liquor."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "A voice note from you on this lot",
       "Photos"
     ]
   },
   "claimUses": [
     {
-      "claimId": "oolong:definition",
+      "claimId": "taiwan-oolong:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "taiwan:on-a-label",
       "rev": 1
     },
     {
       "claimId": "taiwan-oolong:ageing",
-      "rev": 1
-    },
-    {
-      "claimId": "taiwan-oolong:definition",
       "rev": 1
     },
     {
@@ -71,5 +65,5 @@
   ],
   "problems": [],
   "unsupported": [],
-  "approvedAt": "2026-11-26T04:48:23.257Z"
+  "approvedAt": "2026-11-27T04:17:02.883Z"
 }

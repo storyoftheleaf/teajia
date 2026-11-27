@@ -1,6 +1,6 @@
 {
   "status": "approved",
-  "composedAt": "2026-11-24T07:01:56.717Z",
+  "composedAt": "2026-11-27T03:50:07.876Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -20,15 +20,15 @@
     "paragraphs": [
       {
         "layer": "named",
-        "text": "San He means [Three Cranes](san-he-liu-bao:three-cranes), the mark of Wuzhou Tea Factory, whose birds come from Hegang Tower beside the works. The factory opened for the export trade in 1953 and registered the mark in October 1991, early in the decade this [Liu Bao](liu-bao:definition) was made."
+        "text": "San He means Three Cranes, the [trademark](three-cranes:definition) of Wuzhou Tea Factory. The birds on it come from Hegang Tower, which stands beside the works. The factory opened for the export trade in 1953 and registered the [Three Cranes mark](san-he-liu-bao:three-cranes) in October 1991. This [Liu Bao](liu-bao:definition) comes from that same decade."
       },
       {
         "layer": "named",
-        "text": "The factory dates its [cold-water piling](san-he-liu-bao:cold-water-piling) to 1958: workers wet the leaf and heap it so it darkens, a steadier route than the [farmhouse steaming](liu-bao:making-factory). The tea then rests in [handwoven bamboo baskets](san-he-liu-bao:basket-weavers), whose weave holds its shape and lets air through, inside a [brick and timber aging warehouse](san-he-liu-bao:aging-warehouse) begun the year the factory opened, its wooden boards there to moderate moisture and temperature."
+        "text": "The factory has its own way of working the leaf. Since 1958 it has used [cold-water piling](san-he-liu-bao:cold-water-piling): workers moisten the leaves and heap them to ferment, and the method has been taught from one technician to the next on shift. After fermentation the tea rests in a [brick-and-timber warehouse](san-he-liu-bao:aging-warehouse), begun the year the factory opened, where porous wooden boards help keep moisture and temperature steady."
       },
       {
         "layer": "age",
-        "text": "The shop records Guangzhou as a storage stop for this tea. At thirty-one years it is three times past the decade after which the trade counts a Liu Bao as [aged](liu-bao:age-aged), and where it was kept has shaped it as much as how long."
+        "text": "The shop records Guangzhou as one of the places this tea was stored. At thirty-one years it is well past the ten after which the trade counts a Liu Bao as [aged](liu-bao:age-aged), and how it was kept matters as much as how long."
       }
     ],
     "brewing": {
@@ -41,12 +41,15 @@
       "text": "A deep red, thick cup with woody, herbal and betel nut notes; tea several decades old is often described with ginseng and camphor."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "A voice note from you on this lot",
       "Photos"
     ]
   },
   "claimUses": [
+    {
+      "claimId": "three-cranes:definition",
+      "rev": 1
+    },
     {
       "claimId": "san-he-liu-bao:three-cranes",
       "rev": 1
@@ -57,14 +60,6 @@
     },
     {
       "claimId": "san-he-liu-bao:cold-water-piling",
-      "rev": 1
-    },
-    {
-      "claimId": "liu-bao:making-factory",
-      "rev": 1
-    },
-    {
-      "claimId": "san-he-liu-bao:basket-weavers",
       "rev": 1
     },
     {
@@ -86,5 +81,5 @@
   ],
   "problems": [],
   "unsupported": [],
-  "approvedAt": "2026-11-24T07:03:36.020Z"
+  "approvedAt": "2026-11-27T04:17:02.565Z"
 }

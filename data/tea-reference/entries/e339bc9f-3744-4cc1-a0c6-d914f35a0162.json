@@ -1,6 +1,6 @@
 {
   "status": "approved",
-  "composedAt": "2026-11-25T15:42:29.615Z",
+  "composedAt": "2026-11-27T03:53:44.196Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -11,25 +11,20 @@
     "form": "Rolled",
     "year": 1995,
     "origin": "Anxi, Fujian, China",
-    "stockGrams": 250,
-    "pricePerGramUsd": 1.77,
-    "tags": [
-      "roasted chestnut",
-      "dried apricot",
-      "aged honey",
-      "mineral warmth"
-    ]
+    "stockGrams": null,
+    "pricePerGramUsd": null,
+    "tags": []
   },
   "entry": {
     "productId": "e339bc9f-3744-4cc1-a0c6-d914f35a0162",
     "paragraphs": [
       {
-        "layer": "lot",
-        "text": "A [Tieguanyin](tieguanyin:definition) from Anxi County in southern Fujian, made in 1995 the older way: oxidised further than most tea made there today, rolled into tight balls and roasted over charcoal. It was made just as the light green style was taking over in Anxi, and it holds to the [roasted style](tieguanyin:styles) that came before it."
+        "layer": "age",
+        "text": "A rolled [Tieguanyin](tieguanyin:definition) from Anxi, made in 1995 and kept for thirty-one years since. It was made in the decade when the newer light, green style began to take over in Anxi. Tieguanyin held this long counts as a style of its own, which the trade calls chenxiang, or [old Tie](tieguanyin:styles). The light style goes stale fast, so the tea set aside for years is usually the heavier [charcoal roasted](tieguanyin:ageing) kind, kept sealed, dry, dark and cool, away from strong smells."
       },
       {
-        "layer": "age",
-        "text": "The roast is what lets it keep. Light Tieguanyin goes stale fast, while the charcoal-roasted kind stays steady and is the one put away for years. At thirty-one years this tea has become what the trade calls [old Tie](tieguanyin:ageing), lǎo tiě: a Tieguanyin kept long after it was made."
+        "layer": "place",
+        "text": "[Anxi](anxi:where-it-is) is a county of Quanzhou in southern Fujian, on the southern side of the Daiyun mountains, and the trade names Xiping township there as the place this tea began. The county was still one of the poorer in the province until the 1990s, when the [Tieguanyin boom](anxi:history) changed that. The tea was rolled into its tight balls by [wrapping it in cloth](tieguanyin:making), pressing it and drying it a little, then wrapping it again, several times over, each round tightening the leaf."
       }
     ],
     "brewing": {
@@ -42,7 +37,6 @@
       "text": "A smoother, rounder, softer cup with the fire gone, a liquor turned orange-red or reddish-brown, and often a soft fruity sourness."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "A voice note from you on this lot",
       "Photos"
     ]
@@ -61,6 +55,18 @@
       "rev": 1
     },
     {
+      "claimId": "anxi:where-it-is",
+      "rev": 1
+    },
+    {
+      "claimId": "anxi:history",
+      "rev": 1
+    },
+    {
+      "claimId": "tieguanyin:making",
+      "rev": 1
+    },
+    {
       "claimId": "tieguanyin:brewing",
       "rev": 1
     },
@@ -71,5 +77,5 @@
   ],
   "problems": [],
   "unsupported": [],
-  "approvedAt": "2026-11-25T23:18:44.818Z"
+  "approvedAt": "2026-11-27T04:16:53.167Z"
 }

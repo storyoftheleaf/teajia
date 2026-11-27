@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { api } from '../../lib/api';
 import { Check, Copy, ExternalLink, Plus, X } from 'lucide-react';
 import { Button } from '../shared/Button';
 import { InlineField } from './InlineField';
@@ -35,7 +37,13 @@ const channelLabel = (channel: string) => CONTACT_CHANNELS.find(c => c.channel =
 
 /** The vendor's contacts, with the old flat columns folded in when the list has none of that kind. */
 export function vendorContacts(vendor: Pick<Customer, 'contacts' | 'email' | 'phone' | 'whatsapp'>): ContactEntry[] {
-  const list = Array.isArray(vendor.contacts) ? vendor.contacts.filter(c => c && c.handle) : [];
+  // Older rows were written as {type, value}; read them as {channel, handle} so they show.
+  const list: ContactEntry[] = Array.isArray(vendor.contacts)
+    ? (vendor.contacts as Array<ContactEntry & { type?: string; value?: string }>)
+      .filter(c => c && typeof c === 'object')
+      .map(c => ({ ...c, channel: (c.channel ?? c.type ?? 'other') as ContactChannel, handle: c.handle ?? c.value ?? '' }))
+      .filter(c => c.handle)
+    : [];
   const legacy: ContactEntry[] = [];
   const has = (channel: ContactChannel) => list.some(c => c.channel === channel);
   if (vendor.whatsapp && !has('whatsapp')) legacy.push({ channel: 'whatsapp', handle: vendor.whatsapp });
@@ -60,6 +68,13 @@ export function vendorSubtitle(vendor: Pick<Customer, 'name' | 'company' | 'city
 export const VendorDetailsCard: React.FC<{ vendor: VendorRecord; vendorId: string }> = ({ vendor, vendorId }) => {
   const save = useVendorSave(vendorId);
   const contacts = vendorContacts(vendor);
+  const queryClient = useQueryClient();
+  const profile = useQuery({ queryKey: ['curate-vendor-profile', vendorId], queryFn: () => api.curateWorkspace.vendor(vendorId) });
+  const vendorCode: string | null = profile.data?.vendor_code || null;
+  const saveCode = async (value: string) => {
+    await api.curateWorkspace.saveVendor(vendorId, { vendor_code: value.trim() || null });
+    await queryClient.invalidateQueries({ queryKey: ['curate-vendor-profile', vendorId] });
+  };
   const [adding, setAdding] = useState(false);
   const [newChannel, setNewChannel] = useState<ContactChannel>('wechat');
   const [newHandle, setNewHandle] = useState('');
@@ -101,6 +116,7 @@ export const VendorDetailsCard: React.FC<{ vendor: VendorRecord; vendorId: strin
         </div>
         <div className="flex-1 min-w-0 space-y-2">
           <h2 className="h3 break-words">{vendor.name}</h2>
+          {vendorCode && <p className="text-ui-11 uppercase tracking-[0.08em] text-tea-text-sec" data-testid="vendor-code">Code {vendorCode}</p>}
           {vendorSubtitle(vendor) && (
             <p className="text-ui-13 text-tea-text-sec break-words">{vendorSubtitle(vendor)}</p>
           )}
@@ -118,6 +134,7 @@ export const VendorDetailsCard: React.FC<{ vendor: VendorRecord; vendorId: strin
             onSave={name => save({ name, expected_old_name: vendor.name })} />
           <InlineField label="Chinese name" value={vendor.chinese_name} onSave={v => save({ chinese_name: v || null })} />
           <InlineField label="Shop" value={vendor.company} onSave={v => save({ company: v || null })} />
+          {profile.isSuccess && <InlineField label="Vendor code" value={vendorCode} onSave={saveCode} />}
           <InlineField label="Address" value={vendor.address} onSave={v => save({ address: v || null })} />
           <InlineField label="City" value={vendor.city} onSave={v => save({ city: v || null })} />
           <InlineField label="Country" value={vendor.country} onSave={v => save({ country: v || null })} />

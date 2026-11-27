@@ -99,7 +99,7 @@ export const SHOP_TOOL_GROUPS: readonly ToolGroup[] = [
     copy: 'Gather teas into a collection to send, answer what people ask for, and turn a request into an order.',
     tools: [
       'list_collections', 'create_collection', 'add_tea_to_collection', 'remove_tea_from_collection',
-      'publish_collection', 'unpublish_collection', 'list_order_requests', 'set_order_request_status', 'convert_order_request',
+      'publish_collection', 'unpublish_collection', 'share_collection_link', 'list_order_requests', 'set_order_request_status', 'convert_order_request',
     ],
   },
   {
@@ -107,7 +107,7 @@ export const SHOP_TOOL_GROUPS: readonly ToolGroup[] = [
     title: 'Paid and sent',
     copy: 'Write the invoice, take the payment, send the parcel and say where it is.',
     tools: [
-      'record_sale', 'list_invoices', 'get_invoice', 'update_invoice', 'void_invoice', 'fulfill_invoice',
+      'record_sale', 'draft_invoice', 'list_invoices', 'get_invoice', 'update_invoice', 'void_invoice', 'fulfill_invoice',
       'mark_invoice_paid', 'record_payment', 'confirm_payment', 'list_payment_claims',
       'list_orders_in_process', 'set_order_tracking', 'sales_summary',
     ],

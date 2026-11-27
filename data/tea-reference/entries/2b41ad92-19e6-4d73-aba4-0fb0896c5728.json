@@ -1,6 +1,6 @@
 {
   "status": "approved",
-  "composedAt": "2026-11-25T15:41:56.644Z",
+  "composedAt": "2026-11-27T03:59:48.583Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -11,25 +11,24 @@
     "form": "Loose",
     "year": 1990,
     "origin": "Cangwu, Guangxi, China",
-    "stockGrams": 2100,
-    "pricePerGramUsd": 0.42,
-    "tags": [
-      "earthy sweetness",
-      "dried plum",
-      "betel nut",
-      "light camphor"
-    ]
+    "stockGrams": null,
+    "pricePerGramUsd": null,
+    "tags": []
   },
   "entry": {
     "productId": "2b41ad92-19e6-4d73-aba4-0fb0896c5728",
     "paragraphs": [
       {
-        "layer": "lot",
-        "text": "A loose [Liu Bao](liu-bao:definition) from Cangwu County in Guangxi, made in 1990 and given a long rest in [baskets](liu-bao:making-traditional). Like every [dark tea](dark:definition), its leaf was heaped after it was made, so that warmth, moisture and microbes could darken and soften it. Then it was packed tight and left to age."
+        "layer": "place",
+        "text": "This is loose [Liu Bao](liu-bao:definition) from Cangwu, the county of Wuzhou in eastern Guangxi where the style began. The tea takes its name from [Liubao town](cangwu:where-it-is), in the county's northern hills. Like every [dark tea](dark:definition), its leaf was piled after it was made, so that warmth, moisture and microbes would darken and soften it before it was packed away to age."
+      },
+      {
+        "layer": "place",
+        "text": "It was made in 1990, a lean time for the county. Boats had once carried the tea down the Xijiang through Wuzhou to Guangzhou and on to Southeast Asia, along what the trade calls the [tea boat road](cangwu:tea-boat-road). That river trade had broken down in the war years, and by the early 1990s [very few gardens](cangwu:decline-and-return) in the county were still worked. Interest came back only in the 2000s, and Liu Bao became a protected origin in 2011."
       },
       {
         "layer": "age",
-        "text": "Thirty-six years puts it far past the ten after which the trade counts a Liu Bao as [aged](liu-bao:age-aged). Liu Bao this old is often [old stock](liu-bao:old-stock) from the years after the mining trade ended, and because its age is hard to prove, the trade reads it from the basket, the labels and the papers packed with it."
+        "text": "At thirty-six years it is far past the ten after which the trade counts a Liu Bao as [aged](liu-bao:age-aged). How it was stored matters as much as how long it has waited, and the trade does not agree whether a tea like this keeps improving for decades or peaks sooner."
       }
     ],
     "brewing": {
@@ -42,7 +41,6 @@
       "text": "A deep red, thick cup with woody, herbal and betel nut notes; tea several decades old is often described with ginseng and camphor."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "A voice note from you on this lot",
       "Photos"
     ]
@@ -53,7 +51,7 @@
       "rev": 1
     },
     {
-      "claimId": "liu-bao:making-traditional",
+      "claimId": "cangwu:where-it-is",
       "rev": 1
     },
     {
@@ -61,11 +59,15 @@
       "rev": 1
     },
     {
-      "claimId": "liu-bao:age-aged",
+      "claimId": "cangwu:tea-boat-road",
       "rev": 1
     },
     {
-      "claimId": "liu-bao:old-stock",
+      "claimId": "cangwu:decline-and-return",
+      "rev": 2
+    },
+    {
+      "claimId": "liu-bao:age-aged",
       "rev": 1
     },
     {
@@ -79,5 +81,5 @@
   ],
   "problems": [],
   "unsupported": [],
-  "approvedAt": "2026-11-25T23:18:46.239Z"
+  "approvedAt": "2026-11-27T04:17:19.287Z"
 }

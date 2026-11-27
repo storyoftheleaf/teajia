@@ -362,7 +362,7 @@ function InventoryRowBase(props: InventoryRowProps) {
                   ? `Pinned to this tea in ${product.costCurrency}, and the shop has no rate for that, so it cannot be shown in dollars.`
                   : 'Following the shop rate; its exchange rate is unavailable, so it cannot be shown in dollars.'
                 : pinned
-                  ? 'Pinned to this tea. Clear it in the edit panel to follow the shop rate.'
+                  ? 'Pinned to this tea. Clear it on the tea page to follow its service or the shop default.'
                   : 'Following the shop rate'}
             className={`px-3 py-1 text-ui-13 ${numCellAlign} num align-middle overflow-hidden ${fr} ${numTone}`}
           >

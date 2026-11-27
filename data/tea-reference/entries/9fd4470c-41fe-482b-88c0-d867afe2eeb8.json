@@ -1,6 +1,6 @@
 {
   "status": "approved",
-  "composedAt": "2026-11-25T15:43:52.144Z",
+  "composedAt": "2026-11-27T03:55:27.466Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -11,25 +11,24 @@
     "form": "Rolled",
     "year": 2019,
     "origin": "Li Shan, Taiwan",
-    "stockGrams": 150,
-    "pricePerGramUsd": 0.65,
-    "tags": [
-      "crisp floral",
-      "alpine mineral",
-      "sweet pear",
-      "lingering butter"
-    ]
+    "stockGrams": null,
+    "pricePerGramUsd": null,
+    "tags": []
   },
   "entry": {
     "productId": "9fd4470c-41fe-482b-88c0-d867afe2eeb8",
     "paragraphs": [
       {
-        "layer": "age",
-        "text": "A rolled oolong from Li Shan, Taiwan, made in 2019. At seven years it sits short of [lao cha](taiwan-oolong:ageing), the old tea that Taiwan has a tradition of keeping. No standard fixes the line, but those who name a figure put it between ten and thirty years."
+        "layer": "place",
+        "text": "This [oolong](oolong:definition) comes from [Li Shan](li-shan:where-it-is), Pear Mountain, a high area in the middle of Taiwan whose tea gardens are the highest on the island, at roughly 1,800 to 2,500 metres. Most places put it in [Heping District, Taichung](li-shan:taichung-or-nantou). Tea came to these slopes late, in the last decades of the twentieth century, and by the 1990s Li Shan counted as one of the island's main [high mountain tea](li-shan:history) names."
       },
       {
-        "layer": "type",
-        "text": "[Taiwan oolong](taiwan-oolong:definition) grew from tea plants and craft brought over from Fujian. Most of it is a lightly to moderately oxidised [oolong](oolong:definition), rolled into balls. Settlers from Fujian were growing it for sale in the nineteenth century, and in the 1860s the merchants John Dodd and Li Chunsheng sold it abroad as [Formosa Oolong](taiwan-oolong:history)."
+        "layer": "place",
+        "text": "Cold shapes the leaf at this height. Nights are cool and [mist and cloud](li-shan:why-people-value-it) sit on the slopes, so the leaves grow slowly, and the cold allows fewer harvests in a year. The usual tea of the area is lightly oxidised and rolled into balls, the way most [Taiwan oolong](taiwan-oolong:definition) is made."
+      },
+      {
+        "layer": "age",
+        "text": "This lot is from 2019, which makes it seven years old. That is still young by the measure of [lao cha](taiwan-oolong:ageing), Taiwan's tradition of keeping oolong for years, where those who give a figure put old tea at somewhere between ten and thirty years."
       }
     ],
     "brewing": {
@@ -42,14 +41,29 @@
       "text": "In light high mountain tea: a sweet, floral cup, often creamy or buttery, with little bitterness and a long sweet aftertaste. In roasted Dong Ding: caramel, ripe fruit, nuts and a toasted aroma. In Baozhong: floral notes and a clear, bright liquor. In Oriental Beauty: ripe fruit and honey, with little bitterness."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "A voice note from you on this lot",
       "Photos"
     ]
   },
   "claimUses": [
     {
-      "claimId": "taiwan-oolong:ageing",
+      "claimId": "oolong:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "li-shan:where-it-is",
+      "rev": 1
+    },
+    {
+      "claimId": "li-shan:taichung-or-nantou",
+      "rev": 1
+    },
+    {
+      "claimId": "li-shan:history",
+      "rev": 1
+    },
+    {
+      "claimId": "li-shan:why-people-value-it",
       "rev": 1
     },
     {
@@ -57,11 +71,7 @@
       "rev": 1
     },
     {
-      "claimId": "oolong:definition",
-      "rev": 1
-    },
-    {
-      "claimId": "taiwan-oolong:history",
+      "claimId": "taiwan-oolong:ageing",
       "rev": 1
     },
     {
@@ -75,5 +85,5 @@
   ],
   "problems": [],
   "unsupported": [],
-  "approvedAt": "2026-11-25T23:18:44.372Z"
+  "approvedAt": "2026-11-27T04:17:00.055Z"
 }

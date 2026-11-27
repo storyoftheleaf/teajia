@@ -1,6 +1,6 @@
 {
   "status": "approved",
-  "composedAt": "2026-11-26T04:44:18.859Z",
+  "composedAt": "2026-11-27T04:15:43.159Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -11,26 +11,20 @@
     "form": "Other",
     "year": 1983,
     "origin": "Taiwan",
-    "stockGrams": 54,
-    "pricePerGramUsd": 1.56,
-    "tags": [
-      "aged citrus peel",
-      "dark sweetness",
-      "herbal bitterness",
-      "dried tangerine",
-      "warm medicinal"
-    ]
+    "stockGrams": null,
+    "pricePerGramUsd": null,
+    "tags": []
   },
   "entry": {
     "productId": "b0edf4a1-b7c1-48be-aced-3911a8f0a35d",
     "paragraphs": [
       {
-        "layer": "lot",
-        "text": "A sour citrus tea, suan gan zi cha, made in Taiwan in 1983 as a traditional Hakka preparation. Tea leaves were packed into a hollowed sour citrus, then steamed and dried in the sun, cycle after cycle, until the whole piece was rock hard and stable enough to keep. The Hakka made it at home and kept it as a household remedy."
+        "layer": "place",
+        "text": "A [dark tea](dark:definition) made in 1983 from leaf grown in [Taiwan](taiwan:on-a-label). The label names only the island, not a mountain or a township, so where on it the leaf grew is not recorded. The island's tea first came across the strait from Fujian, and its trade is built on [oolong](taiwan:known-for)."
       },
       {
         "layer": "age",
-        "text": "Forty-three years have passed since it was made. Like other [dark tea](dark:ageing), it was made to be kept, and the trade values it more with age. How far it changes over that time depends on how it is stored, as much as on the years."
+        "text": "Dark tea is leaf that, once heated and rolled, is left to change in warmth and moisture, and it is [made to be kept](dark:ageing). The trade values it more as the years pass, and storage sets the pace: kept cool and dry, the change is slow; kept warmer and more humid, it is faster. At forty-three years, this tea has had more than four decades of that change."
       }
     ],
     "brewing": {
@@ -43,12 +37,23 @@
       "text": "A smooth, mellow cup with low bitterness and a deep red colour, often sweet and woody or earthy, sometimes with herbal or medicinal notes. A young dark tea can still smell of the pile or of storage; an aged one is usually redder, sweeter and thicker."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "A voice note from you on this lot",
       "Photos"
     ]
   },
   "claimUses": [
+    {
+      "claimId": "dark:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "taiwan:on-a-label",
+      "rev": 1
+    },
+    {
+      "claimId": "taiwan:known-for",
+      "rev": 1
+    },
     {
       "claimId": "dark:ageing",
       "rev": 1
@@ -64,5 +69,5 @@
   ],
   "problems": [],
   "unsupported": [],
-  "approvedAt": "2026-11-26T04:48:22.349Z"
+  "approvedAt": "2026-11-27T04:17:11.898Z"
 }

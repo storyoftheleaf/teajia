@@ -4,7 +4,6 @@ import { CurateVendorFields } from '../../components/curate/CurateVendorFields';
 import { VendorDetailsCard, vendorContacts, type VendorRecord } from '../../components/vendors/VendorDetailsCard';
 import { vendorLinks, wisdomPlaceLink, wisdomTypeLink } from '../../components/vendors/vendorLinks';
 import { VendorCurateTeasCard } from '../../components/vendors/VendorCurateTeasCard';
-import { VendorNotesCard } from '../../components/vendors/VendorNotesCard';
 import { VendorSalesCard, type VendorOwnOrder } from '../../components/vendors/VendorSalesCard';
 /**
  * VendorProfileView, /admin/vendors/:vendorId
@@ -205,7 +204,6 @@ export const VendorProfileView: React.FC = () => {
         <VendorDetailsCard vendor={vendor} vendorId={vendorId!} />
 
         {/* An old note sits right under the card, so each part can move into it. */}
-        <VendorNotesCard vendorId={vendorId!} notes={vendor.notes} contacts={vendorContacts(vendor)} />
 
         {/* Stats row */}
         <section className="bg-tea-surface border border-tea-border rounded-xl p-5">
