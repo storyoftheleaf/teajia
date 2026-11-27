@@ -93,6 +93,25 @@ export async function readLogistics(env:Env,accountId:string):Promise<LogisticsT
 function serviceView(row:Row):LogisticsService {return {id:row.id,logistics_company_id:row.logistics_company_id,logistics_company_name:row.logistics_company_name,name:row.name,mode:row.mode,basis:row.basis,rate:Number(row.rate),currency:row.currency,active:!!row.active};}
 
 /** Rechecked when a durable MCP preview is confirmed. REST uses the same path. */
+/**
+ * A tea follows the shipment it came by (Adrian, 2026-11-27: everything is
+ * connected). Once a shipment's bill is confirmed, every tea on it that has
+ * no service yet travels by the shipment's service, so its freight comes from
+ * that bill (src/lib/freightSource.ts). A service picked by hand is kept.
+ * Nothing moves before the bill is confirmed, so no price moves on a guess.
+ */
+export async function adoptShipmentService(env:Env,accountId:string,shipmentId:string):Promise<string[]>{
+ const shipment=await env.DB.prepare('SELECT service_id,freight_json FROM logistics_shipments WHERE id=? AND account_id=?').bind(shipmentId,accountId).first<Row>();
+ const bill=parse(shipment?.freight_json,null) as Row|null;
+ if(!shipment?.service_id||!bill?.confirmed)return [];
+ const {results}=await env.DB.prepare(`SELECT DISTINCT r.product_id FROM logistics_shipment_lines l JOIN inventory_receipt_lines r ON r.id=l.receipt_line_id
+   JOIN products p ON p.id=r.product_id AND p.account_id=l.account_id
+   WHERE l.shipment_id=? AND l.account_id=? AND p.freight_service_id IS NULL`).bind(shipmentId,accountId).all<{product_id:string}>();
+ const ids=(results??[]).map(r=>r.product_id).filter(Boolean);
+ if(ids.length)await env.DB.batch(ids.map(pid=>env.DB.prepare("UPDATE products SET freight_service_id=?,updated_at=datetime('now') WHERE id=? AND account_id=? AND freight_service_id IS NULL").bind(shipment.service_id,pid,accountId)));
+ return ids;
+}
+
 export async function mutateLogistics(env:Env,scope:Scope,action:LogisticsAction,id:string,body:Row,preview=false):Promise<Row> {
  const account=scope.accountId;
  if(action.startsWith('address_')){
@@ -198,6 +217,7 @@ export async function mutateLogistics(env:Env,scope:Scope,action:LogisticsAction
    if(raced?.request_fingerprint===fingerprint)return {shipment:(await readLogistics(env,account)).shipments.find(s=>s.id===raced.id),already_created:true};
    fail('Goods changed while creating shipment; read logistics again',409);
   }
+  await adoptShipmentService(env,account,shipmentId);
   return {shipment:(await readLogistics(env,account)).shipments.find(s=>s.id===shipmentId)};
  }
  const shipment=await shipmentRow(env,account,id);if(!shipment)fail('Shipment not found',404);
@@ -227,6 +247,7 @@ export async function mutateLogistics(env:Env,scope:Scope,action:LogisticsAction
   }
   if(preview)return {action,shipment_id:id,changes:body,...('delivery_address_id' in body?{delivery_address:selectedAddress}:{})};
   if(statements.length)await env.DB.batch(statements);
+  if('freight'in body)await adoptShipmentService(env,account,id);
  }
  if(action==='dispatch'){
   if(shipment.state!=='draft'&&shipment.state!=='in_transit')fail('Shipment has already reached the studio',409);
