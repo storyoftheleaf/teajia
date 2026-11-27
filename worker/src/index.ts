@@ -16,6 +16,7 @@ import { firstTableOpen } from '../../src/lib/firstTable';
 import { createHostArticleHandlers, isHostArticleId } from './hostArticleOffers';
 import { favouritesRoutes } from './favourites';
 import { practiceColumnsRemoved, practiceLinesRoutes } from './practiceLines';
+import { servesAtRoutes } from './servesAt';
 import { favouritesOpen } from '../../src/lib/favouritesOpen';
 import { teaTableRoutes } from './teaTable';
 import { knowThisTeaRoutes } from './knowThisTea';
@@ -33762,6 +33763,7 @@ const routes: [string, string, Handler][] = [
   ['PUT', '/api/me/private-sits/:id/photos/:photoId/share', handleMemberPrivateSitPhotos],
   ...favouritesRoutes<Env>({ requireUser: requireAuthenticatedUser }),
   ...practiceLinesRoutes<Env>({ optionalUser: optionalAuthenticatedUser, requireUser: requireAuthenticatedUser }),
+  ...servesAtRoutes<Env>(),
   ...teaTableRoutes<Env>({ requireAuthenticatedUser, requireBundle }),
   ...knowThisTeaRoutes<Env>({ requireAuthenticatedUser }),
   ...teaHousesRoutes<Env>({ requireAuthenticatedUser }),

@@ -1,3 +1,7 @@
+## 2026-11-27: Tea spaces, step 4: "Serves at tables" opens where they serve
+
+Adrian: "Served at tables yes", and the line may be tapped. On the people list, a tap on "Serves at tables" opens that person's page at a short list (`?serves=open`, so back closes it): their own tea spaces first, then other spaces they have served in. Names only, no count and no dates. A private space shows by its area alone, never its name, address, map link or way in; a tea house shown on `/tea-houses/work` is named and linked. The list is `GET /api/public/people/:slug/spaces` (`worker/src/servesAt.ts`) and opens with the line itself (the Tea Table switch). Plan: `todo/plans/tea-spaces.md`, step 4.
+
 ## 2026-11-27: Tea spaces, step 2: several spaces per host
 
 Adrian's house has two spaces, in different rooms. A host may now name several of their places as tea spaces, and add a new one by its name and the area people see (`POST /api/me/your-table`; the way in is added from a table's page as before). Choosing a place no longer clears the others, and each space has its own Undo (`DELETE /api/me/your-table?place_id=`). Migration 0156 is schema only: it drops the one-table-per-account index. A host's page no longer breaks when the tables answer is missing its list. Plan: `todo/plans/tea-spaces.md`, step 2.

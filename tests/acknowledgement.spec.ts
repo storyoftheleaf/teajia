@@ -166,3 +166,33 @@ test('the word Adrian granted shows once beneath the name, and only where one ex
   await expect(page.getByTestId('profile-granted-word')).toHaveCount(0);
   expect(await page.getByTestId('profile-cover').innerText()).not.toMatch(/\d/);
 });
+
+// Tea spaces, step 4: the line is a tap that opens where they serve, names only.
+test('"Serves at tables" opens their page at where they serve, with no number', async ({ page }) => {
+  await api(page, {
+    '/api/people': { contributors: [{
+      id: 'mei', display_name: 'Mei Lin', role: null, card_image_url: 'https://media.teajia.co/mei.jpg', avatar_url: null,
+      own_line: 'Mei drinks oolong.', is_host: true, article_count: 0, page_tier: null, list_group: 'season', pours: true,
+    }] },
+    '/api/people/mei': profile({ id: 'mei', display_name: 'Mei Lin' }),
+    '/api/public/people/mei/spaces': {
+      own: [{ label: 'Ubud, near the market' }],
+      served: [{ label: 'The Leaf House', house_slug: 'the-leaf-house' }, { label: 'Canggu, by the rice fields' }],
+    },
+  });
+  await page.goto('/people');
+  await page.getByTestId('people-card').getByTestId('person-pours').click();
+  await expect(page).toHaveURL(/\/people\/mei\?serves=open$/);
+  const list = page.getByTestId('serves-at-list');
+  await expect(list.getByTestId('serves-at-own')).toContainText('Ubud, near the market');
+  await expect(list.getByTestId('serves-at-served').getByRole('link', { name: 'The Leaf House' }))
+    .toHaveAttribute('href', '/tea-houses/work/the-leaf-house');
+  await expect(list.getByTestId('serves-at-served')).toContainText('Canggu, by the rice fields');
+  expect(await list.innerText()).not.toMatch(/\d/);
+  // Back closes the list, as a step in the address.
+  await page.getByRole('button', { name: 'Serves at tables' }).click();
+  await expect(list).toHaveCount(0);
+  await page.goBack();
+  await expect(page.getByTestId('serves-at-list')).toBeVisible();
+  await noHorizontalOverflow(page);
+});

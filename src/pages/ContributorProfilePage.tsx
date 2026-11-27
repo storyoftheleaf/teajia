@@ -3,6 +3,7 @@ import { SaleTeaRow } from '../components/sessions/SessionTeaRow';
 import { ProfileSitRecaps } from '../components/people/ProfileSitRecaps';
 import { TopTeasSection } from '../components/people/TopTeasSection';
 import { PracticeLines } from '../components/people/PracticeLines';
+import { ServesAt } from '../components/people/ServesAt';
 import { topTeasOpen } from '../lib/topTeas';
 import { teaTableOpen } from '../lib/teaTable';
 import { useEffect, useState } from 'react';
@@ -427,6 +428,8 @@ export default function ContributorProfilePage() {
               stays: someone who came to pay should not have to scroll. */}
           {/* With tea since, what draws me, what I do: the practice, never a title. */}
           <PracticeLines slug={data.id} />
+          {/* "Serves at tables", a tap that opens where they serve (tea spaces, step 4). */}
+          <ServesAt slug={data.id} className={`${SIDE} mt-3`} />
           <HubCells cells={cells} testId="profile-hub" />
           <ProfileSitRecaps slug={data.id} />
         </header>
