@@ -7,6 +7,7 @@ Every freight rate is typed in Logistics services on the Purchases page and nowh
 - **No per-tea typing**: the Add tea form, the phone Freight sheet and `create_tea` / `update_tea_pricing` set no rate. A tea that kept its own shows it read-only with Clear and the price it would move to.
 - **Shipping routes** keep addresses, packing and rounding; their rate is no longer read or written. The buying basket prices from the dearest active service of each mode, else the shop default for air.
 - **Imports** stamp no rate on a batch.
+- **Product REST doors** refuse a typed rate (clearing allowed; an edit may only carry an existing rate across a cost-currency change).
 
 ## 2026-11-26: Launch 5 ready to ship (behind its flags)
 

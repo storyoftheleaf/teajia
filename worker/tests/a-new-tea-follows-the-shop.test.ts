@@ -224,22 +224,16 @@ describe('the doors, driven against the shape the shop actually has', () => {
     followsTheShop(row(db, 'product_listings', 'Form Tea'), 'single create, listing mirror', 120);
   });
 
-  it('a rate the operator DID enter still lands, so the fix does not flatten a decision', async () => {
+  it('a rate typed at the door is refused, zero included: freight rates are set in Logistics', async () => {
+    // Adrian, 2026-11-27. Teaware still prices freight at zero by its type, not by a stored rate.
     const db = liveShapedDatabase();
-    await post(db, '/api/products', {
-      type: 'Sheng', product_name: 'Pinned Tea', given_name: 'Pinned Tea',
-      cost_amount: 120, cost_currency: 'Yuan', stock_grams: 500, shipping_rate_per_kg: 85,
-    });
-    expect(row(db, 'products', 'Pinned Tea').shipping_rate_per_kg).toBe(85);
-  });
-
-  it('a deliberate zero still lands, because that is Adrian saying this one ships free', async () => {
-    const db = liveShapedDatabase();
-    await post(db, '/api/products', {
-      type: 'Teaware', product_name: 'Free Freight Pot', given_name: 'Free Freight Pot',
-      cost_amount: 40, cost_currency: 'Yuan', quantity_units: 1, shipping_rate_per_kg: 0,
-    });
-    expect(row(db, 'products', 'Free Freight Pot').shipping_rate_per_kg).toBe(0);
+    for (const [name, type, rate] of [['Pinned Tea', 'Sheng', 85], ['Free Freight Pot', 'Teaware', 0]] as const) {
+      const response = await post(db, '/api/products', {
+        type, product_name: name, given_name: name, cost_amount: 120, cost_currency: 'Yuan', stock_grams: 500, shipping_rate_per_kg: rate,
+      });
+      expect(response.status, name).toBe(400);
+      expect(row(db, 'products', name), name).toBeUndefined();
+    }
   });
 
   it('the bulk import lands teas that follow the shop, even though it strips empty cells', async () => {
