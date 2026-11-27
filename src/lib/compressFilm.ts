@@ -85,7 +85,9 @@ export async function compressFilm(file: File, onProgress?: (done: number) => vo
     });
     // A film that stalls (a tab put away, a file the player gives up on) is sent as it was.
     const limit = (Number.isFinite(video.duration) ? video.duration : FILM_MAX_SECONDS) * 3000 + 15_000;
-    const stalled = new Promise<never>((_, reject) => { setTimeout(() => reject(new Error('stalled')), limit); });
+    let stallTimer: ReturnType<typeof setTimeout> | undefined;
+    const stalled = new Promise<never>((_, reject) => { stallTimer = setTimeout(() => reject(new Error('stalled')), limit); });
+    stalled.catch(() => undefined);
 
     recorder.start(1000);
     await video.play();
@@ -93,6 +95,7 @@ export async function compressFilm(file: File, onProgress?: (done: number) => vo
     try {
       await Promise.race([played, stalled]);
     } finally {
+      clearTimeout(stallTimer);
       drawing = false;
       if (recorder.state !== 'inactive') recorder.stop();
       stream.getTracks().forEach(track => track.stop());
