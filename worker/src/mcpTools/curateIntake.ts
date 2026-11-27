@@ -1,3 +1,4 @@
+import { parseShortCode, teaShortCode } from '../../../src/lib/shortCodes';
 import { ROUTE_QUOTES_SCHEMA, CONTACT_PEOPLE_SCHEMA, ADDRESSES_SCHEMA, CONTACTS_SCHEMA } from './curateSchemas';
 import { prepareCurateRecordedWrite, requireCurateManager, previewCurateMutation, confirmCurateMutation, readCurateHistory } from '../curateMutations';
 import { COMPASS_STRUCTURED_COLUMNS, readCompassStructuredPatch, readVendorStructuredPatch, mergeVendorContacts, type VendorStructuredFields, type VendorContactEndpoint } from '../../../src/lib/curateStructuredFields';
@@ -456,6 +457,7 @@ function teaSummary(e: Record<string, any>) {
   const missing = teaMissing(e);
   return {
     id: e.id,
+    code: teaShortCode(e.vendor_code, e.vendor_tea_number),
     name: e.name,
     vendor: e.vendor_name ?? null,
     vendor_id: e.vendor_id ?? null,
@@ -737,22 +739,40 @@ async function commitTeaWrite(env: ToolEnv, auth: ToolAuth, entryId: string, w: 
 
 // ── Tool: curate_find ─────────────────────────────────────────────────────────
 
+// A vendor's codes: the one typed on the vendor page, else its V code
+// (migration 0149). Either one finds the vendor.
+const typedCode = (vendor: string, account: string) => `(SELECT NULLIF(TRIM(vp.vendor_code), '') FROM curate_vendor_profiles vp WHERE vp.vendor_id = ${vendor} AND vp.account_id = ${account})`;
+const shortCode = (vendor: string, account: string) => `(SELECT sc.code FROM curate_vendor_short_codes sc WHERE sc.vendor_id = ${vendor} AND sc.account_id = ${account})`;
+const TEA_VENDOR = `COALESCE(NULLIF(tea_compass_entries.linked_customer_id, ''), NULLIF(tea_compass_entries.vendor_id, ''))`;
+const TEA_VENDOR_CODE = `COALESCE(${typedCode(TEA_VENDOR, 'tea_compass_entries.account_id')}, ${shortCode(TEA_VENDOR, 'tea_compass_entries.account_id')})`;
+const TEA_VENDOR_CODES_MATCH = `? IN (UPPER(${typedCode(TEA_VENDOR, 'tea_compass_entries.account_id')}), UPPER(${shortCode(TEA_VENDOR, 'tea_compass_entries.account_id')}))`;
+const VENDOR_CODE = `COALESCE(${typedCode('customers.id', 'customers.account_id')}, ${shortCode('customers.id', 'customers.account_id')})`;
+const VENDOR_CODES_MATCH = `? IN (UPPER(${typedCode('customers.id', 'customers.account_id')}), UPPER(${shortCode('customers.id', 'customers.account_id')}))`;
+
 const toolFind: ToolHandler = async (env, auth, args) => {
   const manager = await curateManagerAccess(env, auth);
   const q = str(args?.query, 120);
   const limit = Math.min(Math.max(Number(args?.limit) || 20, 1), 50);
-  const like = q ? `%${q.toLowerCase()}%` : null;
+  // "V1T12" is vendor V1's twelfth tea, "V1" the vendor (Adrian, 2026-11-27).
+  const code = q ? parseShortCode(q) : null;
+  const like = q && !code ? `%${q.toLowerCase()}%` : null;
+  const teaFilter = code
+    ? `AND ${TEA_VENDOR_CODES_MATCH}${code.tea != null ? ' AND vendor_tea_number = ?' : ''}`
+    : like ? 'AND (LOWER(COALESCE(name, \'\')) LIKE ? OR LOWER(COALESCE(chinese_name, \'\')) LIKE ? OR LOWER(COALESCE(vendor_name, \'\')) LIKE ?)' : '';
+  const teaBinds = code ? [code.vendor, ...(code.tea != null ? [code.tea] : [])] : like ? [like, like, like] : [];
   const teas = await env.DB.prepare(
-    `SELECT * FROM tea_compass_entries WHERE account_id = ? AND ${ACTIVE_TEAS} ${manager ? '' : 'AND user_id = ?'}
-       ${like ? 'AND (LOWER(COALESCE(name, \'\')) LIKE ? OR LOWER(COALESCE(chinese_name, \'\')) LIKE ? OR LOWER(COALESCE(vendor_name, \'\')) LIKE ?)' : ''}
+    `SELECT *, ${TEA_VENDOR_CODE} AS vendor_code FROM tea_compass_entries WHERE account_id = ? AND ${ACTIVE_TEAS} ${manager ? '' : 'AND user_id = ?'}
+       ${teaFilter}
      ORDER BY updated_at DESC LIMIT ?`
-  ).bind(auth.accountId, ...(manager ? [] : [auth.userId]), ...(like ? [like, like, like] : []), limit).all<EntryRow>();
+  ).bind(auth.accountId, ...(manager ? [] : [auth.userId]), ...teaBinds, limit).all<EntryRow>();
+  const vendorFilter = code ? `AND ${VENDOR_CODES_MATCH}`
+    : like ? 'AND (LOWER(name) LIKE ? OR LOWER(COALESCE(company, \'\')) LIKE ?)' : '';
   const vendors = await env.DB.prepare(
-    `SELECT ${VENDOR_COLUMNS} FROM customers WHERE account_id = ? AND deleted_at IS NULL AND archived_at IS NULL AND merged_into_id IS NULL
+    `SELECT ${VENDOR_COLUMNS}, ${VENDOR_CODE} AS vendor_code FROM customers WHERE account_id = ? AND deleted_at IS NULL AND archived_at IS NULL AND merged_into_id IS NULL
        AND (tags LIKE '%vendor%' OR type IN ('vendor', 'supplier'))
-       ${like ? 'AND (LOWER(name) LIKE ? OR LOWER(COALESCE(company, \'\')) LIKE ?)' : ''}
+       ${vendorFilter}
      ORDER BY updated_at DESC LIMIT ?`
-  ).bind(auth.accountId, ...(like ? [like, like] : []), limit).all<VendorRow>();
+  ).bind(auth.accountId, ...(code ? [code.vendor] : like ? [like, like] : []), limit).all<VendorRow>();
   return {
     teas: (teas.results ?? []).map(teaSummary),
     vendors: (vendors.results ?? []).map(vendorSummary),
@@ -767,6 +787,7 @@ export function vendorSummary(v: VendorRow) {
   if (!v.city && !v.country && !v.address) missing.push('where they are');
   return {
     id: v.id,
+    code: (v as Record<string, any>).vendor_code ?? null,
     name: v.name,
     chinese_name: v.chinese_name ?? null,
     company: v.company,
@@ -1519,11 +1540,11 @@ const defs: ToolDefinition[] = [
   {
     name: 'curate_find',
     scope: 'inventory:read',
-    description: 'Use this to look up teas Adrian is sourcing in Curate (not the shop shelf) and vendors, by name, Chinese name or vendor. Returns ids you need for the other curate_ tools, plus what each is missing. No query lists the most recent.',
+    description: 'Use this to look up teas Adrian is sourcing in Curate (not the shop shelf) and vendors, by name, Chinese name or vendor, or by short code: "V1T12" is vendor V1\'s tea 12, "V1" the vendor. Each row carries its code. Returns ids you need for the other curate_ tools, plus what each is missing. No query lists the most recent.',
     inputSchema: {
       type: 'object',
       properties: {
-        query: { type: 'string', description: 'Part of a tea or vendor name, e.g. "yiwu" or "Wang".' },
+        query: { type: 'string', description: 'Part of a tea or vendor name, e.g. "yiwu" or "Wang", or a short code such as "V1T12" or "V1".' },
         limit: { type: 'number', description: 'Max rows of each kind (default 20, max 50).' },
       },
       additionalProperties: false,

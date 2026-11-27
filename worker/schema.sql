@@ -4258,6 +4258,106 @@ CREATE TABLE IF NOT EXISTS tea_table_question_notes (
   UNIQUE (question_id, writer_user_id)
 );
 
+-- Short codes (migration 0155): tea numbers within a vendor, V codes.
+ALTER TABLE tea_compass_entries ADD COLUMN vendor_tea_number INTEGER;
+
+CREATE TABLE IF NOT EXISTS curate_code_counters (
+  account_id TEXT NOT NULL,
+  scope TEXT NOT NULL,          -- 'vendor', or 'tea:<vendor id>'
+  last_number INTEGER NOT NULL CHECK (last_number >= 0),
+  PRIMARY KEY (account_id, scope)
+);
+
+CREATE TABLE IF NOT EXISTS curate_vendor_short_codes (
+  vendor_id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL,
+  code TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE (account_id, code)
+);
+
+CREATE INDEX IF NOT EXISTS idx_compass_vendor_tea_number
+  ON tea_compass_entries(account_id, vendor_tea_number);
+
+-- From now on: a new tea with a vendor takes the next number for that
+-- vendor, and its vendor gets a V code if it has none.
+CREATE TRIGGER short_code_tea_insert AFTER INSERT ON tea_compass_entries
+WHEN NEW.vendor_tea_number IS NULL AND NEW.account_id IS NOT NULL
+ AND COALESCE(NULLIF(NEW.linked_customer_id, ''), NULLIF(NEW.vendor_id, '')) IS NOT NULL
+BEGIN
+  INSERT INTO curate_code_counters (account_id, scope, last_number)
+  VALUES (NEW.account_id, 'tea:' || COALESCE(NULLIF(NEW.linked_customer_id, ''), NULLIF(NEW.vendor_id, '')), 1)
+  ON CONFLICT(account_id, scope) DO UPDATE SET last_number = last_number + 1;
+  UPDATE tea_compass_entries SET vendor_tea_number = (
+    SELECT last_number FROM curate_code_counters
+     WHERE account_id = NEW.account_id
+       AND scope = 'tea:' || COALESCE(NULLIF(NEW.linked_customer_id, ''), NULLIF(NEW.vendor_id, '')))
+   WHERE id = NEW.id;
+  INSERT INTO curate_code_counters (account_id, scope, last_number)
+  SELECT NEW.account_id, 'vendor', 1
+   WHERE NOT EXISTS (SELECT 1 FROM curate_vendor_short_codes c
+                      WHERE c.vendor_id = COALESCE(NULLIF(NEW.linked_customer_id, ''), NULLIF(NEW.vendor_id, '')))
+  ON CONFLICT(account_id, scope) DO UPDATE SET last_number = last_number + 1;
+  INSERT OR IGNORE INTO curate_vendor_short_codes (vendor_id, account_id, code)
+  SELECT COALESCE(NULLIF(NEW.linked_customer_id, ''), NULLIF(NEW.vendor_id, '')), NEW.account_id,
+         'V' || (SELECT last_number FROM curate_code_counters WHERE account_id = NEW.account_id AND scope = 'vendor')
+   WHERE NOT EXISTS (SELECT 1 FROM curate_vendor_short_codes c
+                      WHERE c.vendor_id = COALESCE(NULLIF(NEW.linked_customer_id, ''), NULLIF(NEW.vendor_id, '')));
+END;
+
+-- A tea moved to another vendor (or given its first vendor) takes that
+-- vendor's next number, unless the same write set the number itself (an undo).
+CREATE TRIGGER short_code_tea_vendor_change AFTER UPDATE OF vendor_id, linked_customer_id ON tea_compass_entries
+WHEN NEW.account_id IS NOT NULL
+ AND COALESCE(NULLIF(NEW.linked_customer_id, ''), NULLIF(NEW.vendor_id, '')) IS NOT NULL
+ AND COALESCE(NULLIF(NEW.linked_customer_id, ''), NULLIF(NEW.vendor_id, ''))
+     IS NOT COALESCE(NULLIF(OLD.linked_customer_id, ''), NULLIF(OLD.vendor_id, ''))
+ AND NEW.vendor_tea_number IS OLD.vendor_tea_number
+BEGIN
+  INSERT INTO curate_code_counters (account_id, scope, last_number)
+  VALUES (NEW.account_id, 'tea:' || COALESCE(NULLIF(NEW.linked_customer_id, ''), NULLIF(NEW.vendor_id, '')), 1)
+  ON CONFLICT(account_id, scope) DO UPDATE SET last_number = last_number + 1;
+  UPDATE tea_compass_entries SET vendor_tea_number = (
+    SELECT last_number FROM curate_code_counters
+     WHERE account_id = NEW.account_id
+       AND scope = 'tea:' || COALESCE(NULLIF(NEW.linked_customer_id, ''), NULLIF(NEW.vendor_id, '')))
+   WHERE id = NEW.id;
+  INSERT INTO curate_code_counters (account_id, scope, last_number)
+  SELECT NEW.account_id, 'vendor', 1
+   WHERE NOT EXISTS (SELECT 1 FROM curate_vendor_short_codes c
+                      WHERE c.vendor_id = COALESCE(NULLIF(NEW.linked_customer_id, ''), NULLIF(NEW.vendor_id, '')))
+  ON CONFLICT(account_id, scope) DO UPDATE SET last_number = last_number + 1;
+  INSERT OR IGNORE INTO curate_vendor_short_codes (vendor_id, account_id, code)
+  SELECT COALESCE(NULLIF(NEW.linked_customer_id, ''), NULLIF(NEW.vendor_id, '')), NEW.account_id,
+         'V' || (SELECT last_number FROM curate_code_counters WHERE account_id = NEW.account_id AND scope = 'vendor')
+   WHERE NOT EXISTS (SELECT 1 FROM curate_vendor_short_codes c
+                      WHERE c.vendor_id = COALESCE(NULLIF(NEW.linked_customer_id, ''), NULLIF(NEW.vendor_id, '')));
+END;
+
+-- A new vendor contact, or a contact newly tagged vendor, gets its V code.
+CREATE TRIGGER short_code_vendor_insert AFTER INSERT ON customers
+WHEN NEW.account_id IS NOT NULL AND (NEW.type = 'supplier'
+  OR EXISTS (SELECT 1 FROM json_each(CASE WHEN json_valid(NEW.tags) THEN NEW.tags ELSE '[]' END) WHERE value = 'vendor'))
+ AND NOT EXISTS (SELECT 1 FROM curate_vendor_short_codes c WHERE c.vendor_id = NEW.id)
+BEGIN
+  INSERT INTO curate_code_counters (account_id, scope, last_number) VALUES (NEW.account_id, 'vendor', 1)
+  ON CONFLICT(account_id, scope) DO UPDATE SET last_number = last_number + 1;
+  INSERT OR IGNORE INTO curate_vendor_short_codes (vendor_id, account_id, code)
+  VALUES (NEW.id, NEW.account_id,
+          'V' || (SELECT last_number FROM curate_code_counters WHERE account_id = NEW.account_id AND scope = 'vendor'));
+END;
+
+CREATE TRIGGER short_code_vendor_tagged AFTER UPDATE OF tags, type ON customers
+WHEN NEW.account_id IS NOT NULL AND (NEW.type = 'supplier'
+  OR EXISTS (SELECT 1 FROM json_each(CASE WHEN json_valid(NEW.tags) THEN NEW.tags ELSE '[]' END) WHERE value = 'vendor'))
+ AND NOT EXISTS (SELECT 1 FROM curate_vendor_short_codes c WHERE c.vendor_id = NEW.id)
+BEGIN
+  INSERT INTO curate_code_counters (account_id, scope, last_number) VALUES (NEW.account_id, 'vendor', 1)
+  ON CONFLICT(account_id, scope) DO UPDATE SET last_number = last_number + 1;
+  INSERT OR IGNORE INTO curate_vendor_short_codes (vendor_id, account_id, code)
+  VALUES (NEW.id, NEW.account_id,
+          'V' || (SELECT last_number FROM curate_code_counters WHERE account_id = NEW.account_id AND scope = 'vendor'));
+END;
 -- 0149_host_credit_fills_and_request_keys.sql
 CREATE TABLE IF NOT EXISTS host_credit_fills (
   invoice_id  TEXT PRIMARY KEY,

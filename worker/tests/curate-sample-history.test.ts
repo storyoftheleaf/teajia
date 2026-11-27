@@ -1,3 +1,4 @@
+import { SERVER_STAMPED_COLUMNS } from '../src/curateMutations';
 import {describe,it,expect} from 'vitest';
 import {SqliteD1,seedIdentity} from './helpers/sqliteD1';
 import {prepareCompassSampleWrite} from '../src/curateSampleBridge';
@@ -25,7 +26,7 @@ describe('one recorded change contains the complete Curate sample bridge',()=>{
   for(const c of bridge.changes) {
    const table=c.entityType==='tea'?'tea_compass_entries':c.entityType==='sample'?'tea_samples':'tea_sample_sets';
    const actual=get(db,table,c.entityId);
-   for(const [key,value] of Object.entries(c.after!)) expect(actual[key],`${c.entityType}.${key}`).toEqual(value);
+   for(const [key,value] of Object.entries(c.after!)) if(!SERVER_STAMPED_COLUMNS.has(key)) expect(actual[key],`${c.entityType}.${key}`).toEqual(value);
   }
  });
  it('undo archives a pristine new portion and set, reverses exact said and todo, and retains all historical rows',async()=>{
