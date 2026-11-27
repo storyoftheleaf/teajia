@@ -106,7 +106,7 @@ import { COMPASS_COLUMNS, decodeCompassWrite as decodeCompassWriteCodec, type Co
 import { compassFieldPatch, readCompassFieldHints } from './compassFieldPatch';
 import { receiptHoldingTeaId } from './curateMergeLink';
 import { resolveShopFreightDefault } from './shippingRate';
-import { addPricingFields, lookupRateToUsd, accountFreightDefaults, freightDefaultsByAccount } from './productPricing';
+import { addPricingFields, lookupRateToUsd, accountFreightDefaults, freightDefaultsByAccount, shelfPricesFor } from './productPricing';
 import { INWARD_BALI_LOT, INWARD_ORDERS_PAUSED_SQL, inwardOrdersPaused } from '../../shared/catalog/inwardOrders';
 import { checkNewProductPublication, checkProductPublication, openingStockKnownAt, publicationPatchFromColumns, writeProductPublication } from './productPublication';
 import { deductStockForPaidInvoice } from './orderLifecycle';
@@ -28767,11 +28767,14 @@ const handleGetCollection: Handler = async (request, env, params) => {
   // The old notes' ratings are the shop owner's: the curator, staff and a
   // platform administrator read the words; the owner reads their own tea whole.
   const readsOwnShopScores = await shopScoreGiver(env, ctx);
-  const collectionItems = ((items.results ?? []) as Record<string, any>[]).map(({ product_account_id, ...item }) => (
-    readsOwnShopScores && product_account_id === ctx.accountId
+  // The shelf price a blank quote follows, read live (productPricing.ts, shelfPricesFor).
+  const adminShelf = await shelfPricesFor(env, ctx.accountId, ((items.results ?? []) as any[]).map(i => i.product_id));
+  const collectionItems = ((items.results ?? []) as Record<string, any>[]).map(({ product_account_id, ...raw }) => {
+    const item = { ...raw, catalog_price_usd: adminShelf.get(raw.product_id) ?? null };
+    return readsOwnShopScores && product_account_id === ctx.accountId
       ? item
-      : { ...item, tasting_notes: item.tasting_notes ? tastingJsonWithoutScores(item.tasting_notes) ?? '[]' : item.tasting_notes }
-  ));
+      : { ...item, tasting_notes: item.tasting_notes ? tastingJsonWithoutScores(item.tasting_notes) ?? '[]' : item.tasting_notes };
+  });
 
   const pubs = await env.DB.prepare(
     `SELECT id, collection_id, target_type, target_id, slug, recipients_json,
@@ -29870,9 +29873,17 @@ const handleGetPublicCollection: Handler = async (_request, env, params) => {
       ORDER BY ci.position ASC`
   ).bind(pub.collection_id, pub.target_type === 'shop' ? 1 : 0).all();
 
+  // A blank quote is the shelf price for the recommended amount, read live, so
+  // a tea priced from its cost shows a price instead of none.
+  const publicShelf = account ? await shelfPricesFor(env, String(account.id), ((items.results ?? []) as any[]).map(i => i.product_id)) : new Map<string, number | null>();
   const visibleItems = ((items.results ?? []) as any[])
     .filter(i => i.product_status === 'Active')
     .map(i => {
+      if (i.recommended_price_usd == null) {
+        const perUnit = publicShelf.get(i.product_id) ?? null;
+        const qty = Number(i.recommended_quantity);
+        if (perUnit != null && Number.isFinite(qty) && qty > 0) i.recommended_price_usd = Math.round(perUnit * qty * 100) / 100;
+      }
       if (typeof i.tasting_notes === 'string') {
         try { i.tasting_notes = JSON.parse(i.tasting_notes); } catch { i.tasting_notes = []; }
       }
@@ -30129,6 +30140,8 @@ const handleConfirmCollectionPicks: Handler = async (request, env, params) => {
   ).bind(pub.collection_id).all();
   const byItemId = new Map<string, any>();
   for (const r of (itemRows.results ?? []) as any[]) byItemId.set(r.id, r);
+  // A tea with no quote and no typed price sells at its shelf price, read live.
+  const pickShelf = await shelfPricesFor(env, accountId, ((itemRows.results ?? []) as any[]).map(r => r.product_id));
 
   const lineItems: Array<{ product_id: string | null; custom_name: string | null; quantity: number; price_at_sale: number; label: string;quantity_unit:'g'|'unit' }> = [];
   for (const pick of picks) {
@@ -30144,7 +30157,7 @@ const handleConfirmCollectionPicks: Handler = async (request, env, params) => {
       quantity,
       recommendedQuantity: row.recommended_quantity == null ? null : Number(row.recommended_quantity),
       recommendedPriceUsd: row.recommended_price_usd == null ? null : Number(row.recommended_price_usd),
-      catalogUnitPriceUsd: row.fixed_retail_price_usd == null ? null : Number(row.fixed_retail_price_usd),
+      catalogUnitPriceUsd: pickShelf.get(row.product_id) ?? (row.fixed_retail_price_usd == null ? null : Number(row.fixed_retail_price_usd)),
     });
 
     const mayRemainLinked = isStoredTeaType(String(row.product_type || ''))||row.product_type==='Teaware';
