@@ -46,8 +46,7 @@ export default function TeaHousesOverviewPage() {
       <section aria-label="Tea houses and their spaces" className="border-t border-tea-border" data-testid="tea-spaces-houses">
         {houses.length === 0 && spaces.isSuccess && (
           <article className="border-b border-tea-border py-5" data-testid="tea-spaces-placeholder">
-            <h2 className={`${T.h3} text-tea-text`}>{PLACEHOLDER_HOUSE.name}</h2>
-            <p className="mt-1 text-ui-12 text-tea-text-sec">Placeholder: Adrian will name this house and its spaces.</p>
+            <h2 className={`${T.h3} text-tea-text`}>{PLACEHOLDER_HOUSE.name} <span className="text-tea-text-dim">(placeholder)</span></h2>
             <ul className="mt-3 flex flex-wrap gap-x-6 gap-y-2">
               {PLACEHOLDER_HOUSE.spaces.map(name => (
                 <li key={name} className="text-ui-14 text-tea-text-sec">{name} <span className="text-tea-text-dim">(placeholder)</span></li>

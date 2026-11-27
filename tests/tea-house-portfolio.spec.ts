@@ -145,7 +145,7 @@ test.describe('the tea spaces page', () => {
     await page.goto('/tea-houses');
     await expect(page.getByRole('heading', { level: 1, name: 'Tea spaces' })).toBeVisible();
     const placeholder = page.getByTestId('tea-spaces-placeholder');
-    await expect(placeholder).toContainText('Placeholder');
+    await expect(placeholder.getByRole('heading')).toContainText('(placeholder)');
     await expect(placeholder.getByRole('listitem')).toHaveCount(2);
     await expect(page.getByTestId('tea-spaces-own')).toHaveCount(0);
     await expect(page.getByRole('link', { name: 'Find a tea house to visit' })).toHaveAttribute('href', '/tea-houses/visit');
