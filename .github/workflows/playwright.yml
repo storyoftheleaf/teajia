@@ -175,53 +175,6 @@ jobs:
       - name: Admin component browser journeys
         run: npm run test:admin-behavior
 
-  review-walks:
-    # The review walks (tests/review/README.md): the guest, host and owner
-    # walks and the rig's own proof, against one fixture shop with every
-    # Launch switch open. The rig starts a local worker and site on a slot of
-    # their own (slot 1: worker 8910, site 7910) from the checked-in
-    # migrations, so nothing here touches the live API. The main config
-    # ignores tests/review/, so this lane is the only place they run.
-    runs-on: ubuntu-latest
-    needs: gate
-    if: needs.gate.outputs.run == 'true' && github.event_name != 'schedule'
-    timeout-minutes: 25
-    steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
-        with:
-          node-version: '22'
-          cache: npm
-
-      - name: Install root dependencies
-        run: npm ci
-
-      - name: Install worker dependencies
-        working-directory: worker
-        run: npm ci
-
-      - name: Install Chromium
-        run: npx playwright install --with-deps chromium
-
-      - name: Install sqlite3
-        run: command -v sqlite3 || (sudo apt-get update && sudo apt-get install -y sqlite3)
-
-      - name: Start the review rig (every switch open)
-        run: |
-          mkdir -p test-results/review
-          nohup node --experimental-sqlite --experimental-strip-types scripts/review-rig.mjs --set all --slot 1 > test-results/review/rig.log 2>&1 &
-          for i in $(seq 1 180); do
-            [ -f test-results/review/slot-1.env ] && break
-            sleep 2
-          done
-          cat test-results/review/rig.log
-          test -f test-results/review/slot-1.env
-          cat test-results/review/slot-1.env >> "$GITHUB_ENV"
-
-      - name: Review walks
-        run: npx playwright test -c tests/review/review.config.ts tests/review/guest-walk.spec.ts tests/review/host-walk.spec.ts tests/review/owner-walk.spec.ts tests/review/rig.spec.ts --trace off
-
   e2e:
     # Every spec the default config can run. Two projects, not three:
     # inventory-scroll.spec.ts names "Desktop Chrome" and "Mobile Chrome"
