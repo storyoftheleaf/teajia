@@ -7,6 +7,10 @@ Adrian: every vendor and every tea or sample has a short code, so he can say "V1
 - Codes show on each Library tea card, under each vendor's name in the Library, and on the vendor page. Library search and the agent's `curate_find` both read "V1T12", "v1 t12", "V1-T12" and "V1" (`src/lib/shortCodes.ts`).
 - Undo ignores the number the database stamps after a recorded write (`SERVER_STAMPED_COLUMNS` in `worker/src/curateMutations.ts`).
 
+## 2026-11-27: Craft leaves the bar; Read gets Stories, Lessons and Wisdom
+
+Adrian removed Craft as a section and kept everything in it, choosing "Read: Stories, Lessons, Wisdom". The bar and the rail lose the word Craft (today: read, advise, shop; the new bar's four words are unchanged). Read's row of three shelves now shows with the bar on or off. Lessons (`/read/lessons`, `src/pages/lessons/`) is the old Craft index with only its lessons: Discover Your Tea, Six Foundations, Brewing by Tea Type, Three Journeys, Reading and Listening, each in the state it had. Craft's essays were always Read articles and stay on Stories. The glossary is a tab of the Wisdom Base at `/wisdom/glossary`. Tea Spaces, Shared Wisdom and Playlists wait for Tea house and Tea table; the two built ones stay reachable by address on Lessons. Old `/craft` and `/learn` addresses forward to each piece's new place. The Craft page's photo slots (slug `craft`) are kept, so no placed photograph is lost.
+
 ## 2026-11-27: Payment details for agents
 
 `set_my_payment_details` (`worker/src/mcpTools/paymentDetails.ts`, `sales:write`) saves pasted bank or Wise details on the caller's OWN profile, the same row the profile's paste box writes, so their invoices get a pay link. The preview hides all but the last four digits of each number, the ticket keeps only a hash of the paste (the confirm sends it again), and the audit row records fields, never values. Pasting again under the same label replaces that row. Guard: `worker/tests/payment-details-tool.test.ts`.
