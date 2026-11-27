@@ -258,7 +258,7 @@ export default function ProfilePaymentPage({ onAddToCart }: {
           teaser={{ from: access.contributor.display_name, teas: keepTeaserTeas(invoiceLines) }}
           signedIn={access.viewer.signed_in}
           kept={access.invoice?.kept === true}
-          paid={(access.invoice?.outstanding_usd ?? 1) <= 0}
+          paid={access.invoice?.settled === true}
           yoursToSend={access.invoice?.yours_to_send === true}
           againPath={access.invoice?.collection?.path ?? '/shop'}
           onPay={() => paySection.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
