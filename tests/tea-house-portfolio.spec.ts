@@ -11,7 +11,7 @@ import { openTeaHouses } from './helpers/launch4Switches';
 // VITE_TEA_HOUSES_OPEN=true, in which case the closed test is skipped.
 test.use({ viewport: { width: 390, height: 844 } });
 
-const open = process.env.VITE_TEA_HOUSES_OPEN === 'true';
+const open = process.env.VITE_TEA_HOUSES_OPEN !== 'false';
 
 const UBUD = { slug: 'ubud-house', name: 'Ubud House', place: 'Ubud, Indonesia' };
 const CANGGU = { slug: 'canggu-house', name: 'Canggu House', place: 'Canggu, Indonesia' };

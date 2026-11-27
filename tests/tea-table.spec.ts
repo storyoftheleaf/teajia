@@ -10,7 +10,7 @@ import { openTeaTable } from './helpers/launch4Switches';
 // unless the site was started with VITE_TEA_TABLE_OPEN=true, in which case the
 // closed test is skipped.
 
-const open = process.env.VITE_TEA_TABLE_OPEN === 'true';
+const open = process.env.VITE_TEA_TABLE_OPEN !== 'false';
 
 function fakeJWT(payload: object): string {
   const encode = (value: object) => Buffer.from(JSON.stringify(value)).toString('base64url');

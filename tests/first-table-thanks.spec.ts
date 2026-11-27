@@ -3,7 +3,7 @@ import { expect, test } from './fixtures';
 
 const credential = '7'.repeat(64);
 const thanksRef = 'a1b2c3d4e5f6071829';
-const firstTableOpen = process.env.VITE_FIRST_TABLE_OPEN === 'true';
+const firstTableOpen = process.env.VITE_FIRST_TABLE_OPEN !== 'false';
 
 type Recap = {
   event: { id: string; title: string; event_date: string };

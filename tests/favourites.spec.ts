@@ -6,7 +6,7 @@ import { expect, test } from './fixtures';
 // Launch 4; with VITE_FAVOURITES_OPEN=true on the site these walk the open
 // page, and without it they prove nothing of it appears.
 
-const favouritesOpen = process.env.VITE_FAVOURITES_OPEN === 'true';
+const favouritesOpen = process.env.VITE_FAVOURITES_OPEN !== 'false';
 
 function fakeJWT(payload: object): string {
   const encode = (value: object) => Buffer.from(JSON.stringify(value)).toString('base64url');

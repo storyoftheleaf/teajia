@@ -8,7 +8,7 @@ import { primaryNav } from './helpers/navigation';
 // VITE_YOUR_TABLE_PAGE_OPEN=true on the site these walk the page and each of
 // its views once; without it they prove /account is the overlay it was.
 
-const pageOpen = process.env.VITE_YOUR_TABLE_PAGE_OPEN === 'true';
+const pageOpen = process.env.VITE_YOUR_TABLE_PAGE_OPEN !== 'false';
 
 const SIZES = [
   { name: 'phone', width: 390, height: 844 },

@@ -132,7 +132,7 @@ test('the people list shows no "Pours at tables" line while it would be automati
 });
 
 // The granted word in place of the role opens with the Tea Table.
-const teaTableOpen = process.env.VITE_TEA_TABLE_OPEN === 'true';
+const teaTableOpen = process.env.VITE_TEA_TABLE_OPEN !== 'false';
 
 test('while the Tea Table is closed the cover keeps the role, with no granted word or master line', async ({ page }) => {
   test.skip(teaTableOpen, 'Runs with the Tea Table closed, as the live site is');
