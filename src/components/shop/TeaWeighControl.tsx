@@ -8,6 +8,8 @@ import { formatPersonalTeaMoney } from '../../lib/personalTeaMoney';
 export interface WeighOption {
   grams: number;
   totalUsd: number;
+  /** What the amount reads as when it is not grams (an invoice's "2 pieces"). */
+  label?: string;
 }
 
 /**
@@ -99,15 +101,15 @@ export function TeaWeighControl({ item, preferredGrams, formatPrice, onAddToCart
     <div className="flex w-[92px] flex-col items-stretch gap-0.5 sm:w-[116px] sm:gap-1.5">
       {href ? (
         <Link to={href} onClick={event => event.stopPropagation()} onKeyDown={stopKeys}
-          aria-label={`${item.name}, ${current.grams}g for ${priceText}`} className={`${priceBox} hover:border-tea-gold hover:bg-tea-accent-sub`}>
-          <span className="num text-ui-12 tabular-nums text-tea-text-dim">{current.grams}g</span>
+          aria-label={`${item.name}, ${current.label ?? `${current.grams}g`} for ${priceText}`} className={`${priceBox} hover:border-tea-gold hover:bg-tea-accent-sub`}>
+          <span className="num text-ui-12 tabular-nums text-tea-text-dim">{current.label ?? `${current.grams}g`}</span>
           <span className="num text-ui-12 font-medium tabular-nums text-tea-text">{priceText}</span>
         </Link>
       ) : <button
         type="button"
         disabled={!onAddToCart}
-        aria-label={`Add ${current.grams}g of ${item.name} to cart`}
-        title="Add to cart"
+        aria-label={onAddToCart ? `Add ${current.grams}g of ${item.name} to cart` : `${item.name}, ${current.label ?? `${current.grams}g`} for ${priceText}`}
+        title={onAddToCart ? 'Add to cart' : undefined}
         onClick={event => {
           event.stopPropagation();
           if (!onAddToCart) return;
@@ -126,7 +128,7 @@ export function TeaWeighControl({ item, preferredGrams, formatPrice, onAddToCart
             {/* Weight first, then what it costs: minus and plus change the
                 grams and the price answers, so the line reads in that order.
                 Contrast separates them, the weight dim and the price bright. */}
-            <span className="num text-ui-12 tabular-nums text-tea-text-dim">{current.grams}g</span>
+            <span className="num text-ui-12 tabular-nums text-tea-text-dim">{current.label ?? `${current.grams}g`}</span>
             <span data-testid="grid-price" className="num text-ui-12 font-medium tabular-nums text-tea-text">
               {priceText}
             </span>
