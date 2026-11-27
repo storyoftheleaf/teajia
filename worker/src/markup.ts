@@ -1,7 +1,8 @@
 /**
  * What the shop multiplies a cost by, and the one place it is written.
  *
- * Adrian's rule is cost plus freight, times three. That number had four homes
+ * Adrian's rule is the leaf's cost times three, plus freight at cost (it was
+ * cost plus freight, times three, until 2026-11-27). That number had four homes
  * before this file existed: `costPerUnitUSD * 3.0` in the worker's pricing,
  * `trueCostUSD * 3` in the admin's preview of the same price, a
  * `markup_multiplier` column on products defaulting to 2.5, and a `?? 2.5`
@@ -20,7 +21,7 @@
  * place.
  */
 
-/** Cost plus freight, times this. Adrian's number. */
+/** The leaf's cost times this, then freight added at cost (Adrian, 2026-11-27). */
 export const SHOP_MARKUP_MULTIPLIER = 3;
 
 /**
