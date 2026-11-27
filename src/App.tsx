@@ -905,9 +905,12 @@ const AppContent = () => {
 
   const isAdminRoute = location.pathname.startsWith('/admin');
   // Focused, standalone pages with no app chrome (nav, footer, bottom bar), link
-  // recipients who aren't logged in. Public collection links (/c/:slug) belong here
-  // too: a sent link should be a clean single-purpose page, not the full app shell.
-  const isFocusedShareRoute = location.pathname.startsWith('/share/') || location.pathname.startsWith('/c/');
+  // recipients who aren't logged in. A collection link (/c/:slug) is not one of
+  // them: it is part of the shop and carries the shop's rail and bottom bar
+  // (Adrian, 2026-11-27: "It's not a separate thing. It's integrated into
+  // everything."). It owns its gutter, as the creator pages do.
+  const isFocusedShareRoute = location.pathname.startsWith('/share/');
+  const isCollectionLink = location.pathname.startsWith('/c/');
   // The hand-built Read long-reads (/read and /read/*) and the Advise landing
   // (/advise), built in the same frame,
   // are full-bleed editorial experiences with their own sticky nav and
@@ -995,7 +998,7 @@ const AppContent = () => {
         </Suspense>
       ) : (
       <>
-      <main id="main-content" className={`${isFocusedShareRoute || isImmersiveRead ? 'px-0 pb-0' : `${isProductPage || isPeopleRoute ? 'px-0 lg:px-10' : 'px-4 md:px-6 lg:px-10'} pb-nav-gap-lg lg:pb-8`} pt-0 lg:pt-0 min-h-screen w-full flex-1 transition-opacity duration-300`}>
+      <main id="main-content" className={`${isFocusedShareRoute || isImmersiveRead ? 'px-0 pb-0' : `${isCollectionLink ? 'px-0' : isProductPage || isPeopleRoute ? 'px-0 lg:px-10' : 'px-4 md:px-6 lg:px-10'} pb-nav-gap-lg lg:pb-8`} pt-0 lg:pt-0 min-h-screen w-full flex-1 transition-opacity duration-300`}>
           <AnimatePresence mode="wait">
           {viewState === 'BROWSE' && (
             <AnimatedRoutes location={displayLocation}>

@@ -16,6 +16,8 @@ export const PATH_TO_SECTION: Record<string, Section> = Object.fromEntries(
 ) as Record<string, Section>;
 
 export function pathToSection(pathname: string): Section {
+  // A collection link is a page of the shop.
+  if (pathname.startsWith('/c/')) return 'SHOP';
   // Exact match first
   if (PATH_TO_SECTION[pathname]) return PATH_TO_SECTION[pathname];
   // Nested route match (e.g. /shop/product/xxx -> SHOP)

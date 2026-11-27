@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { AlertCircle, Check, MessageCircle, Minus, Plus, Loader2, ArrowRight, Bell, X, ChevronLeft, ChevronRight, Share2, Link2 } from 'lucide-react';
+import { AlertCircle, Check, MessageCircle, Minus, Plus, Loader2, ArrowRight, Bell, X, ChevronLeft, ChevronRight, Share2, Link2, Bookmark } from 'lucide-react';
 import { api } from '../lib/api';
 import { buildWhatsAppUrl, buildCollectionBasketMessage } from '../lib/whatsapp';
 import type { PublicCollectionResponse, PublicCollectionItem } from '../types';
@@ -12,6 +12,7 @@ import {
 } from '../components/shop/linkTea';
 import { AlcoveModal } from '../components/shop/AlcoveModal';
 import type { InventoryItem } from '../types';
+import { TeaLedgerRow } from '../components/shop/TeaLedger';
 
 // ── Picker mode ──────────────────────────────────────────────────────────────
 
@@ -143,15 +144,15 @@ const PublicCollectionPage: React.FC = () => {
 
   if (status === 'loading') {
     return (
-      <main className="min-h-screen bg-tea-bg flex items-center justify-center px-6">
+      <div className="min-h-[60vh] flex items-center justify-center px-6">
         <p className="text-sm text-tea-text-dim">Loading…</p>
-      </main>
+      </div>
     );
   }
 
   if (status === 'notfound' || status === 'gone') {
     return (
-      <main className="min-h-screen bg-tea-bg flex items-center justify-center px-6 text-center">
+      <div className="min-h-[60vh] flex items-center justify-center px-6 text-center">
         <div className="max-w-sm">
           <p className="h2 text-tea-text mb-3">
             {status === 'gone' ? 'This collection has been put away.' : 'Not found.'}
@@ -162,15 +163,15 @@ const PublicCollectionPage: React.FC = () => {
               : "The link you followed doesn’t lead anywhere. Check it with whoever shared it."}
           </p>
         </div>
-      </main>
+      </div>
     );
   }
 
   if (status === 'error' || !data) {
     return (
-      <main className="min-h-screen bg-tea-bg flex items-center justify-center px-6">
+      <div className="min-h-[60vh] flex items-center justify-center px-6">
         <p className="text-sm text-tea-error">Something went wrong loading this page.</p>
-      </main>
+      </div>
     );
   }
 
@@ -191,6 +192,20 @@ export default PublicCollectionPage;
 
 // ── Catalog body ────────────────────────────────────────────────────────────
 
+/**
+ * Three looks for Adrian to choose between (2026-11-27). The one he picks
+ * stays and the switch goes.
+ *  shelf:  the shop's own tea rows, one under the other.
+ *  cards:  even cards, words first, a small photo where there is one.
+ *  letter: the curator's letter beside a reading list of the teas.
+ */
+type CollectionLook = 'shelf' | 'cards' | 'letter';
+function useCollectionLook(): CollectionLook {
+  const [params] = useSearchParams();
+  const look = params.get('look');
+  return look === 'cards' || look === 'letter' ? look : 'shelf';
+}
+
 const CollectionCatalog: React.FC<{ data: PublicCollectionResponse }> = ({ data }) => {
   const { collection, items, account } = data;
   const storeName = account?.name ?? 'Teajia';
@@ -203,6 +218,7 @@ const CollectionCatalog: React.FC<{ data: PublicCollectionResponse }> = ({ data 
     () => items.filter(i => i.product_status === 'Active'),
     [items]
   );
+  const look = useCollectionLook();
 
   const slug = data.publication.slug;
   const [basket, setBasket] = useState<BasketState>({});
@@ -309,117 +325,74 @@ const CollectionCatalog: React.FC<{ data: PublicCollectionResponse }> = ({ data 
     }
   }
 
+  const empty = (
+    <p className="font-body text-ui-15 leading-[1.65] text-tea-text-sec italic py-10 text-center">
+      The teas in this collection are currently unavailable.
+    </p>
+  );
+  const bottomRoom = selectedCount > 0 ? 'pb-40' : 'pb-10';
+
   return (
-    <main className="min-h-screen bg-tea-bg text-tea-text pb-nav-gap-lg">
-      {/* Masthead, editorial cover. Big title over a faint count watermark so an
-          image-less collection still has presence. Contents index doubles as nav. */}
-      {/* Masthead in the shop's own register: who it is from, the title, the
-          curator's note. A private link, so it says so once, quietly. */}
-      <header className="border-b border-tea-border">
-        <div className="max-w-6xl mx-auto px-4 md:px-6 lg:px-10 pt-8 pb-8 md:pt-14 md:pb-10">
-          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 mb-6">
-            <Link to="/shop" className="tap-target label-caps text-tea-text-sec hover:text-tea-text transition-colors">
-              {account?.name || 'Teajia'}
-            </Link>
-            <button
-              onClick={handleShare}
-              className="tap-target inline-flex items-center gap-1.5 font-sans text-ui-12 text-tea-text-sec hover:text-tea-text transition-colors"
-              aria-label="Share this collection"
-            >
-              {shareState === 'copied'
-                ? (<><Link2 size={13} className="text-tea-gold" /> Link copied</>)
-                : (<><Share2 size={13} /> Share</>)}
-            </button>
+    <div className="text-tea-text" data-collection-look={look}>
+      {look === 'letter' ? (
+        <div className={`max-w-6xl mx-auto px-4 md:px-6 lg:px-10 pt-6 md:pt-10 ${bottomRoom} lg:grid lg:grid-cols-[minmax(0,4fr)_minmax(0,7fr)] lg:gap-14`}>
+          <div className="lg:sticky lg:top-10 lg:self-start">
+            <CollectionHead storeName={storeName} title={collection.title} note={collection.note} curatorName={curatorName}
+          count={visible.length} slug={slug} signedIn={signedIn} shareState={shareState} onShare={handleShare} heroUrl={collection.hero_image_url} letter />
           </div>
-          <h1 className="h1 text-tea-text mb-4 max-w-[22ch]">
-            {collection.title}
-          </h1>
-          {collection.note && (
-            <p className="body-prose text-tea-text-sec italic max-w-[56ch]">
-              {collection.note}
-            </p>
-          )}
-          <p className="mt-4 font-sans text-ui-12 text-tea-text-sec">
-            {[
-              curatorName ? `Chosen by ${curatorName}` : null,
-              `${visible.length} ${visible.length === 1 ? 'tea' : 'teas'}`,
-              'A private link, not listed in the shop',
-            ].filter(Boolean).join(' · ')}
-          </p>
-
-          {collection.hero_image_url && (
-            <figure className="mt-8 -mx-4 md:-mx-6 lg:mx-0">
-              <img
-                src={collection.hero_image_url}
-                alt=""
-                className="w-full max-h-[46vh] object-cover lg:rounded-md"
-                loading="eager"
-              />
-            </figure>
-          )}
-        </div>
-      </header>
-
-      {/* Catalog body */}
-      <section className={`max-w-6xl mx-auto px-4 md:px-6 lg:px-10 py-8 md:py-10 ${selectedCount > 0 ? 'pb-40' : 'pb-16'}`}>
-        {visible.length === 0 ? (
-          <p className="font-body text-ui-15 leading-[1.65] text-tea-text-sec italic py-10 text-center">
-            The teas in this collection are currently unavailable.
-          </p>
-        ) : (
-          <ul className="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
-            {visible.map(item => (
-              <CatalogEntry
-                key={item.id}
-                item={item}
+          <section aria-label="The teas" className="mt-8 lg:mt-0">
+            {visible.length === 0 ? empty : (
+              <ul className="flex flex-col divide-y divide-tea-border border-t border-tea-border lg:border-t-0">
+                {visible.map(item => (
+                  <LetterEntry key={item.id} item={item}
                 basket={basket}
                 setBasket={setBasket}
                 curatorFirstName={curatorFirstName}
-                onOpenDetail={() => setDetailId(item.id)}
-              />
-            ))}
-          </ul>
-        )}
-      </section>
+                onOpenDetail={() => setDetailId(item.id)} />
+                ))}
+              </ul>
+            )}
+          </section>
+        </div>
+      ) : (
+        <>
+          <div className="max-w-6xl mx-auto px-4 md:px-6 lg:px-10 pt-6 md:pt-10">
+            <CollectionHead storeName={storeName} title={collection.title} note={collection.note} curatorName={curatorName}
+          count={visible.length} slug={slug} signedIn={signedIn} shareState={shareState} onShare={handleShare} heroUrl={collection.hero_image_url} />
+          </div>
+          <section aria-label="The teas" className={`max-w-6xl mx-auto px-4 md:px-6 lg:px-10 pt-6 md:pt-8 ${bottomRoom}`}>
+            {visible.length === 0 ? empty : look === 'shelf' ? (
+              <ul className="flex flex-col">
+                {visible.map(item => (
+                  <ShelfEntry key={item.id} item={item}
+                basket={basket}
+                setBasket={setBasket}
+                curatorFirstName={curatorFirstName}
+                onOpenDetail={() => setDetailId(item.id)} />
+                ))}
+              </ul>
+            ) : (
+              <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {visible.map(item => (
+                  <CardEntry key={item.id} item={item}
+                basket={basket}
+                setBasket={setBasket}
+                curatorFirstName={curatorFirstName}
+                onOpenDetail={() => setDetailId(item.id)} />
+                ))}
+              </ul>
+            )}
+          </section>
+        </>
+      )}
 
-      {/* "Curated for you" was the fallback here, and it was a claim the page
-          cannot make. Nothing on this route is personalised: the list is a fixed
-          set of picks a curator chose and sent, identical for every person who
-          opens the link, and the app does not rank, score or recommend anything.
-          The shop's equivalent section says so plainly ("The same shelf for
-          everyone who walks in"); this says the same thing in a footer's worth
-          of words. Where a human curator is named, name them, and where only the
-          store is known, name the store. Only the last branch is generic. */}
-      <footer className="border-t border-tea-border px-4 py-10 text-center">
-        <p className="label-caps text-tea-text-dim">
-          {curatorName
-            ? `Curated by ${curatorName}`
-            : account?.name
-              ? `Curated by ${account.name}`
-              : 'A curator’s picks. The same list for everyone who opens it.'}
-        </p>
-        {/* An account is offered, never asked for: the whole page reads and
-            orders without one (Adrian, 2026-11-27: "offering them to make an
-            account as well, but the reading of the link is not required as an
-            account"). Joining brings them back here, and a signed-in visit
-            keeps the collection on their shelf (markReceived above). */}
-        {!signedIn && slug && (
-          <p className="mt-4 text-ui-13 text-tea-text-sec" data-testid="collection-account-offer">
-            Want to keep this?{' '}
-            <Link to={authPagePath('signup', `/c/${slug}`)} className="tap-target text-tea-text underline decoration-tea-border underline-offset-2 hover:text-tea-gold">Make a free account</Link>
-            {' '}and it stays with you. You don’t need one to read or order.
-          </p>
-        )}
-      </footer>
-
-      {/* Sticky basket footer, only visible when ≥1 item selected. This page is a
-          focused standalone route (no app bottom nav), so it sits flush at the
-          bottom with safe-area padding. */}
+      {/* The picks bar, only once something is chosen. It floats above the
+          shop's bottom bar on a phone and beside the rail on the desk. */}
       {selectedCount > 0 && confirmState !== 'sent' && (
-        <div className="fixed left-0 right-0 bottom-0 bg-tea-surface border-t border-tea-border z-40 px-4 md:px-6 lg:px-10 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+        <div className="fixed left-3 right-3 bottom-nav-gap lg:bottom-6 lg:left-[calc(var(--teajia-sidebar-w)+2.5rem)] lg:right-10 rounded-md bg-tea-surface border border-tea-border shadow-lg z-40 px-4 py-3">
           {/* Contact step: revealed after first "Confirm" click */}
           {confirmState === 'contact' || confirmState === 'sending' ? (
-            <div className="max-w-3xl mx-auto flex flex-col gap-2.5">
+            <div className="w-full flex flex-col gap-2.5">
               <div className="flex flex-wrap items-center gap-2">
                 <div className="flex flex-col gap-1 min-w-0 flex-1 basis-[140px]">
                   <input
@@ -461,7 +434,7 @@ const CollectionCatalog: React.FC<{ data: PublicCollectionResponse }> = ({ data 
             </div>
           ) : (
             /* Default step: item count + action buttons */
-            <div className="max-w-3xl mx-auto flex items-center justify-between gap-3">
+            <div className="w-full flex items-center justify-between gap-3">
               <p className="font-sans text-ui-12 text-tea-text-sec min-w-0">
                 <span className="text-tea-gold font-medium">{selectedCount}</span>{' '}
                 {selectedCount === 1 ? 'item' : 'items'}
@@ -493,7 +466,7 @@ const CollectionCatalog: React.FC<{ data: PublicCollectionResponse }> = ({ data 
 
       {/* Sent confirmation, replaces the action bar once the picks are in. */}
       {confirmState === 'sent' && (
-        <div className="fixed left-0 right-0 bottom-0 bg-tea-surface border-t border-tea-border z-40 px-4 md:px-6 lg:px-10 py-3.5 pb-[max(0.875rem,env(safe-area-inset-bottom))] flex items-center justify-center gap-2.5 text-center">
+        <div className="fixed left-3 right-3 bottom-nav-gap lg:bottom-6 lg:left-[calc(var(--teajia-sidebar-w)+2.5rem)] lg:right-10 rounded-md bg-tea-surface border border-tea-border shadow-lg z-40 px-4 py-3.5 flex items-center justify-center gap-2.5 text-center">
           <Check size={15} className="text-tea-gold shrink-0" />
           <p className="font-body text-ui-13 leading-[1.5] text-tea-text">
             Your picks are in. {curatorName || account?.name || 'The curator'} will be in touch to finish your order.
@@ -549,7 +522,7 @@ const CollectionCatalog: React.FC<{ data: PublicCollectionResponse }> = ({ data 
           onConfirm={() => { setReviewOpen(false); setConfirmState('contact'); }}
         />
       )}
-    </main>
+    </div>
   );
 };
 
@@ -814,108 +787,213 @@ const ItemControls: React.FC<{
   );
 };
 
-const CatalogEntry: React.FC<{
+// ── The head: where you are in the shop, the title, the curator's note ───────
+
+const CollectionHead: React.FC<{
+  storeName: string;
+  title: string;
+  note?: string | null;
+  curatorName?: string | null;
+  count: number;
+  slug: string;
+  signedIn: boolean;
+  shareState: 'idle' | 'copied';
+  onShare: () => void;
+  heroUrl?: string | null;
+  /** The letter look: the head is a column of its own beside the teas. */
+  letter?: boolean;
+}> = ({ storeName, title, note, curatorName, count, slug, signedIn, shareState, onShare, heroUrl, letter }) => (
+  <header className={letter ? 'border-b border-tea-border pb-8 lg:border-0 lg:pb-0' : 'border-b border-tea-border pb-8'}>
+    <nav aria-label="Where you are" className="flex flex-wrap items-center gap-x-2 gap-y-1 label-caps text-tea-text-sec mb-5">
+      <Link to="/shop" className="tap-target hover:text-tea-text transition-colors">{storeName} shop</Link>
+      <span aria-hidden="true" className="text-tea-text-dim">/</span>
+      <span>A collection</span>
+    </nav>
+    <h1 className={`${letter ? 'h1' : 'h1 max-w-[22ch]'} text-tea-text mb-4`}>{title}</h1>
+    {note && <p className="body-prose text-tea-text-sec italic max-w-[56ch]">{note}</p>}
+    <p className="mt-4 font-sans text-ui-12 text-tea-text-sec">
+      {[curatorName ? `Chosen by ${curatorName}` : null, `${count} ${count === 1 ? 'tea' : 'teas'}`].filter(Boolean).join(' · ')}
+    </p>
+    <div className={`mt-5 flex flex-wrap items-center gap-x-4 gap-y-3 ${letter ? 'lg:flex-col lg:items-start' : ''}`}>
+      {signedIn ? (
+        <span className="inline-flex items-center gap-1.5 font-sans text-ui-12 text-tea-text-sec" data-testid="collection-kept">
+          <Check size={13} className="text-tea-gold" /> Kept in your account
+        </span>
+      ) : slug ? (
+        <Link to={authPagePath('signup', `/c/${slug}`)} className="btn-secondary btn-sm" data-testid="collection-account-offer">
+          <Bookmark size={13} /> Keep it in a free account
+        </Link>
+      ) : null}
+      <button
+        type="button"
+        onClick={onShare}
+        className="tap-target inline-flex items-center gap-1.5 font-sans text-ui-12 text-tea-text-sec hover:text-tea-text transition-colors"
+        aria-label="Share this collection"
+      >
+        {shareState === 'copied'
+          ? (<><Link2 size={13} className="text-tea-gold" /> Link copied</>)
+          : (<><Share2 size={13} /> Share</>)}
+      </button>
+      <Link to="/shop" className="tap-target inline-flex items-center gap-1 font-sans text-ui-12 text-tea-text-sec hover:text-tea-text transition-colors">
+        See the whole shop <ArrowRight size={12} />
+      </Link>
+    </div>
+    {heroUrl && (
+      <figure className="mt-8 -mx-4 md:-mx-6 lg:mx-0">
+        <img src={heroUrl} alt="" className="w-full max-h-[46vh] object-cover lg:rounded-md" loading="eager" />
+      </figure>
+    )}
+  </header>
+);
+
+// ── One tea's price and its one action ───────────────────────────────────────
+
+const EntryAction: React.FC<{
+  ctl: ReturnType<typeof useItemControls>;
+  name: string;
+  /** The shelf row: price over the button, both to the right. */
+  stacked?: boolean;
+}> = ({ ctl, name, stacked }) => {
+  const { oos, isSelected, toggle } = ctl;
+  const button = isSelected ? (
+    <button type="button" onClick={toggle} className="tap-target inline-flex items-center gap-1.5 text-ui-12 font-medium text-tea-gold" aria-label={`Remove ${name} from your picks`}>
+      <Check size={13} /> {oos ? 'On the waitlist' : 'Added'}
+    </button>
+  ) : oos ? (
+    <button type="button" onClick={toggle} className="tap-target inline-flex items-center gap-1.5 text-ui-12 text-tea-text-sec hover:text-tea-text">
+      <Bell size={12} /> Tell me when it’s back
+    </button>
+  ) : (
+    <button type="button" onClick={toggle} className={`btn-primary tap-target${stacked ? ' btn-sm' : ''}`} aria-label={`Add ${name}`}>
+      <Plus size={13} /> Add
+    </button>
+  );
+  const price = oos
+    ? <span className="font-body text-ui-14 text-tea-text-sec">Not available now</span>
+    : <AmountCost ctl={ctl} compact className={stacked ? 'justify-end' : ''} />;
+  return stacked ? (
+    <div className="flex flex-col items-end gap-1.5 text-right">{price}{button}</div>
+  ) : (
+    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">{price}{button}</div>
+  );
+};
+
+interface EntryProps {
   item: PublicCollectionItem;
   basket: BasketState;
   setBasket: React.Dispatch<React.SetStateAction<BasketState>>;
   curatorFirstName: string;
   onOpenDetail: () => void;
-}> = ({ item, basket, setBasket, curatorFirstName, onOpenDetail }) => {
-  const ctl = useItemControls(item, basket, setBasket);
-  const { oos, isSelected, toggle } = ctl;
-  const writing = useLinkTeaWriting(teaSourceOf(item));
-  const { ref, shown } = useScrollReveal<HTMLLIElement>();
-  const meta = linkTeaMetaLine({ ...teaSourceOf(item), year: item.year });
-  const name = item.product_name || 'Untitled tea';
-  const photo = item.images?.[0] ?? item.image_url ?? null;
-  // The card's own words: the curator's note leads where there is one, then
-  // the tea's Wisdom writing, then the shop's description.
-  const lead = writing.lead || ctl.description || null;
+}
 
+/** What every look reads from one tea. */
+function useEntry({ item, basket, setBasket }: EntryProps) {
+  const ctl = useItemControls(item, basket, setBasket);
+  const writing = useLinkTeaWriting(teaSourceOf(item));
+  return {
+    ctl,
+    name: item.product_name || 'Untitled tea',
+    photo: item.images?.[0] ?? item.image_url ?? null,
+    meta: linkTeaMetaLine({ ...teaSourceOf(item), year: item.year }),
+    note: item.item_note?.trim() || null,
+    lead: writing.lead || ctl.description || null,
+  };
+}
+
+const CuratorNote: React.FC<{ note: string; who: string; className?: string }> = ({ note, who, className = '' }) => (
+  <span className={`block font-body text-ui-14 leading-[1.6] italic text-tea-text ${className}`}>
+    “{note}”<span className="not-italic text-tea-text-dim text-ui-12">, {who}</span>
+  </span>
+);
+
+// ── Look one, shelf: the shop's own tea row ──────────────────────────────────
+
+const ShelfEntry: React.FC<EntryProps> = props => {
+  const { item, onOpenDetail } = props;
+  const { ctl, name, note, lead } = useEntry(props);
   return (
-    <li
-      ref={ref}
-      id={`entry-${item.id}`}
-      data-testid="collection-tea-card"
-      className={`scroll-mt-6 min-w-0 transition-[opacity,transform] duration-700 ease-out ${
-        shown ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
-      }`}
-    >
-      <article className="flex h-full flex-col">
-        {/* A tea with no photo shows no picture: the words take the width. */}
+    <li id={`entry-${item.id}`} data-testid="collection-tea-card" className="min-w-0">
+      <TeaLedgerRow
+        item={{
+          name,
+          year: item.year != null ? String(item.year) : '',
+          type: item.product_type ?? '',
+          origin: [item.origin_region, item.origin_country].filter(Boolean).join(', '),
+          description: note ?? lead ?? '',
+        }}
+        showType
+        saved={false}
+        onOpen={onOpenDetail}
+        openLabel={`Open ${name}`}
+        trailing={
+          // The row opens the tea; choosing here must not open it too.
+          <div onClick={e => e.stopPropagation()} onKeyDown={e => e.stopPropagation()}>
+            <EntryAction ctl={ctl} name={name} stacked />
+          </div>
+        }
+      />
+    </li>
+  );
+};
+
+// ── Look two, cards: even cards, words first ─────────────────────────────────
+
+const CardEntry: React.FC<EntryProps> = props => {
+  const { item, curatorFirstName, onOpenDetail } = props;
+  const { ctl, name, photo, meta, note, lead } = useEntry(props);
+  return (
+    <li id={`entry-${item.id}`} data-testid="collection-tea-card" className="min-w-0">
+      <article className="flex h-full flex-col rounded-md border border-tea-border bg-tea-surface p-4 transition-colors hover:border-tea-gold">
+        <button type="button" onClick={onOpenDetail} aria-haspopup="dialog" className="group flex flex-1 flex-col text-left">
+          <span className="flex items-start gap-3">
+            <span className="min-w-0 flex-1">
+              <span className="block font-display text-ui-20 font-medium leading-tight text-tea-text group-hover:text-tea-gold transition-colors">{name}</span>
+              {item.chinese_name && <span lang="zh" className="mt-0.5 block font-body text-ui-13 italic text-tea-text-sec">{item.chinese_name}</span>}
+              {meta && <span className="mt-1.5 block font-sans text-ui-12 uppercase tracking-[0.04em] text-tea-text-sec">{meta}</span>}
+            </span>
+            {photo && <LinkTeaPhoto src={photo} dim={ctl.oos} className="h-16 w-16 shrink-0 rounded-md" />}
+          </span>
+          {note && <CuratorNote note={note} who={curatorFirstName} className="mt-3" />}
+          {lead && <span className="mt-3 block font-body text-ui-14 leading-[1.65] text-tea-text-sec line-clamp-3">{lead}</span>}
+          <span className="mt-auto pt-3 inline-flex items-center gap-1 font-sans text-ui-12 text-tea-text-sec">
+            Open the tea <ArrowRight size={11} />
+          </span>
+        </button>
+        <div className="mt-4 border-t border-tea-border pt-3">
+          <EntryAction ctl={ctl} name={name} />
+        </div>
+      </article>
+    </li>
+  );
+};
+
+// ── Look three, letter: a reading list beside the curator's letter ───────────
+
+const LetterEntry: React.FC<EntryProps> = props => {
+  const { item, curatorFirstName, onOpenDetail } = props;
+  const { ctl, name, photo, meta, note, lead } = useEntry(props);
+  return (
+    <li id={`entry-${item.id}`} data-testid="collection-tea-card" className="min-w-0 py-6 lg:first:pt-0">
+      <article className="flex gap-4 sm:gap-5">
         {photo && (
-          <button
-            type="button"
-            onClick={onOpenDetail}
-            aria-haspopup="dialog"
-            aria-label={`Open ${name}`}
-            className="group mb-3 block w-full overflow-hidden rounded-md"
-          >
-            <LinkTeaPhoto
-              src={photo}
-              dim={oos}
-              className="aspect-square w-full rounded-md transition-transform duration-500 group-hover:scale-[1.02]"
-            />
+          <button type="button" onClick={onOpenDetail} aria-haspopup="dialog" aria-label={`Open ${name}`} className="shrink-0 self-start overflow-hidden rounded-md">
+            <LinkTeaPhoto src={photo} dim={ctl.oos} className="h-24 w-24 sm:h-28 sm:w-28 rounded-md" />
           </button>
         )}
-
-        <div className="flex min-w-0 flex-1 flex-col">
-          <h2 className="font-display text-ui-20 font-medium leading-tight text-tea-text">
-            <button type="button" onClick={onOpenDetail} aria-haspopup="dialog" className="text-left transition-colors hover:text-tea-gold">
-              {name}
-            </button>
+        <div className="min-w-0 flex-1">
+          <h2 className="font-display text-ui-22 font-medium leading-tight text-tea-text">
+            <button type="button" onClick={onOpenDetail} aria-haspopup="dialog" className="text-left transition-colors hover:text-tea-gold">{name}</button>
           </h2>
-          {item.chinese_name && (
-            <p className="mt-0.5 font-body text-ui-13 italic text-tea-text-sec" lang="zh">{item.chinese_name}</p>
-          )}
-          {meta && (
-            <p className="mt-1.5 font-sans text-ui-12 uppercase tracking-[0.04em] text-tea-text-sec">{meta}</p>
-          )}
-          {oos && (
-            <p className="label-caps text-tea-text-sec mt-2 inline-flex items-center gap-1.5">
-              <AlertCircle size={10} /> currently unavailable
-            </p>
-          )}
-
-          {item.item_note?.trim() && (
-            <p className="mt-3 font-body text-ui-14 leading-[1.6] italic text-tea-text">
-              “{item.item_note.trim()}”
-              <span className="not-italic text-tea-text-dim text-ui-12">, {curatorFirstName}</span>
-            </p>
-          )}
-
-          {lead && (
-            <p className="mt-3 font-body text-ui-14 leading-[1.65] text-tea-text-sec line-clamp-3">{lead}</p>
-          )}
-
-          <button
-            type="button"
-            onClick={onOpenDetail}
-            aria-haspopup="dialog"
-            className="tap-target mt-2 inline-flex items-center gap-1 self-start font-sans text-ui-12 text-tea-text-sec transition-colors hover:text-tea-gold"
-          >
+          {item.chinese_name && <p lang="zh" className="mt-0.5 font-body text-ui-13 italic text-tea-text-sec">{item.chinese_name}</p>}
+          {meta && <p className="mt-1.5 font-sans text-ui-12 uppercase tracking-[0.04em] text-tea-text-sec">{meta}</p>}
+          {note && <CuratorNote note={note} who={curatorFirstName} className="mt-3" />}
+          {lead && <p className="mt-3 font-body text-ui-15 leading-[1.7] text-tea-text-sec line-clamp-4">{lead}</p>}
+          <button type="button" onClick={onOpenDetail} aria-haspopup="dialog" className="tap-target mt-2 inline-flex items-center gap-1 font-sans text-ui-12 text-tea-text-sec transition-colors hover:text-tea-gold">
             Open the tea <ArrowRight size={11} />
           </button>
-        </div>
-
-        {/* The price and the one action, on the card the way the shop's row
-            carries its price beside its name. Changing the amount happens in
-            the tea's own card. */}
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-t border-tea-border pt-3">
-          {oos ? <span className="font-body text-ui-14 text-tea-text-sec">Not available now</span> : <AmountCost ctl={ctl} compact />}
-          {isSelected ? (
-            <button type="button" onClick={toggle} className="tap-target inline-flex items-center gap-1.5 text-ui-12 font-medium text-tea-gold" aria-label={`Remove ${name} from your picks`}>
-              <Check size={13} /> {oos ? 'On the waitlist' : 'Added'}
-            </button>
-          ) : oos ? (
-            <button type="button" onClick={toggle} className="tap-target inline-flex items-center gap-1.5 text-ui-12 text-tea-text-sec hover:text-tea-text">
-              <Bell size={12} /> Tell me when it’s back
-            </button>
-          ) : (
-            <button type="button" onClick={toggle} className="btn-primary tap-target" aria-label={`Add ${name}`}>
-              <Plus size={13} /> Add
-            </button>
-          )}
+          <div className="mt-3">
+            <EntryAction ctl={ctl} name={name} />
+          </div>
         </div>
       </article>
     </li>
