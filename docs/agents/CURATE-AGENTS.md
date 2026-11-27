@@ -3,6 +3,8 @@
 How Claude, ChatGPT, Hermes and GrokBot help Adrian source tea through Curate,
 and land everything in the same place the app does.
 
+> Where Curate sits in the whole tea flow (Library to shop to invoice to after the cup), with each step's owner and the gaps: [TEA-SYSTEM-MAP.md](TEA-SYSTEM-MAP.md).
+
 Updated 2026-10-28. The tools are in `worker/src/mcpTools/curateIntake.ts`; the
 tests that prove where each one writes are in
 `worker/tests/mcp-curate-intake.test.ts`.

@@ -30,6 +30,10 @@ vi.mock('@tanstack/react-query', () => ({
           quantity: 50, quantity_unit: 'g', price_at_sale: 0.5,
         }]
       : queryKey[0] === 'vendor-own-orders' ? [{ id: 'own-1', invoice_number: 'OWN-3', status: 'Paid', created_at: '2026-10-05', computed_total: 40, shipping_cost_usd: 0 }]
+      : queryKey[0] === 'vendor-curate-teas' ? { entries: [
+          { id: 'entry-1', name: '2019 Mahei', type: 'Sheng', year: 2019, status: 'want' },
+          { id: 'entry-2', name: 'Stocked twin', draft_product_id: 'tea-1', status: 'in_stock' },
+        ] }
       : queryKey[0] === 'inventory-receipts-all' ? [{ id: 'receipt-1', vendor_name: 'Target Vendor', source_kind: 'purchase', state: 'ordered', lines: [] }]
       : [{ id: 'sale-1', customer_name: 'Target Vendor', invoice_number: 'SALE-1' }],
     isLoading: false,
@@ -65,6 +69,31 @@ describe('vendor profile route', () => {
     expect(html).toContain('Bought from you');
     expect(html).toContain('#OWN-3');
     expect(html).toContain('$40.00');
+  });
+
+  it('opens every row: teas in Stock, receipts and orders on their own screens, invoices in Activity', () => {
+    const html = renderToString(<VendorProfileView />);
+    expect(html).toContain('href="/admin/stock?panel=tea-1"');
+    expect(html).toContain('href="/admin/purchase-orders?purchaseId=po-1"');
+    expect(html).toContain('href="/admin/stock?receipt=receipt-1"');
+    expect(html).toContain('href="/admin/activity?tab=orders&amp;search=INV-9"');
+    expect(html).toContain('href="/admin/activity?tab=orders&amp;search=OWN-3"');
+    expect(html).toContain('href="/admin/compass?entry=entry-1"');
+    expect(html).not.toContain('Stocked twin');
+    expect(html).toContain('href="/wisdom/region/yunnan"');
+  });
+
+  it('reads in order: numbers, teas, Curate, bought from them, sold', () => {
+    const html = renderToString(<VendorProfileView />);
+    const at = (text: string) => html.indexOf(text);
+    expect(at('At a glance')).toBeLessThan(at('Products supplied'));
+    expect(at('Products supplied')).toBeLessThan(at('In Curate'));
+    expect(at('In Curate')).toBeLessThan(at('Bought from them'));
+    expect(at('Bought from them')).toBeLessThan(at('Their teas, sold'));
+  });
+
+  it('has no notes section when nothing is written', () => {
+    expect(renderToString(<VendorProfileView />)).not.toContain('data-testid="vendor-notes"');
   });
 
   it('makes the details editable where they sit', () => {

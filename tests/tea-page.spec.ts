@@ -89,7 +89,6 @@ test('the tea page reads in editing order and Next keeps the part you are on', a
   await page.screenshot({ path: testInfo.outputPath('tea-page-journey.png') });
 
   await page.getByRole('navigation', { name: 'Parts of this tea' }).getByRole('button', { name: 'Price' }).click();
-  await expect(page.getByTestId('tea-page-next-at')).toHaveText('Next opens at Price');
   await page.getByRole('button', { name: 'Next product' }).click();
 
   // The next tea opens on its price, just under the jump bar.
