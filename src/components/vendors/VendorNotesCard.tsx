@@ -1,18 +1,35 @@
 import React, { useState } from 'react';
-import { Pencil } from 'lucide-react';
+import { Pencil, Plus } from 'lucide-react';
 import { Button } from '../shared/Button';
 import { InlineField } from './InlineField';
-import { structureVendorNotes } from './vendorNotes';
+import { contactsInNotes, structureVendorNotes, type NoteContact } from './vendorNotes';
 import { useVendorSave } from './useVendorSave';
+import { contactsPatch } from './VendorDetailsCard';
+import type { ContactEntry } from '../../admin/types';
 
 /**
  * Notes on a vendor, one thought per line with any label set apart, and
  * editable as plain text. The text is stored exactly as typed.
+ *
+ * A note often holds a handle that belongs in contacts (Huang Wei's
+ * "WeChat Weeee36" was written into his note when he was added, and his
+ * contacts stayed empty). Each such handle gets one tap to add it to
+ * contacts; the note itself is left as it is.
  */
-export const VendorNotesCard: React.FC<{ vendorId: string; notes?: string | null }> = ({ vendorId, notes }) => {
+export const VendorNotesCard: React.FC<{ vendorId: string; notes?: string | null; contacts?: ContactEntry[] }> = ({ vendorId, notes, contacts = [] }) => {
   const save = useVendorSave(vendorId);
   const [editing, setEditing] = useState(false);
+  const [adding, setAdding] = useState<string | null>(null);
+  const [addError, setAddError] = useState('');
   const lines = structureVendorNotes(notes);
+  const offers = contactsInNotes(notes, contacts);
+  const addContact = async (offer: NoteContact) => {
+    setAdding(offer.channel);
+    setAddError('');
+    try { await save(contactsPatch([...contacts, { channel: offer.channel, handle: offer.handle }])); }
+    catch { setAddError("That didn't save. Try again."); }
+    finally { setAdding(null); }
+  };
 
   return (
     <section className="bg-tea-surface border border-tea-border rounded-xl p-4 sm:p-5" data-testid="vendor-notes">
@@ -48,6 +65,18 @@ export const VendorNotesCard: React.FC<{ vendorId: string; notes?: string | null
           ))}
         </ul>
       )}
+      {!editing && offers.length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-2" data-testid="vendor-note-contacts">
+          {offers.map(offer => (
+            <Button key={offer.channel} type="button" variant="secondary" size="sm" loading={adding === offer.channel}
+              onClick={() => void addContact(offer)}
+              icon={<Plus size={14} strokeWidth={1.5} aria-hidden="true" />}>
+              Add {offer.label} {offer.handle} to contacts
+            </Button>
+          ))}
+        </div>
+      )}
+      {addError && <p role="alert" className="mt-1 text-ui-12 text-tea-error">{addError}</p>}
     </section>
   );
 };

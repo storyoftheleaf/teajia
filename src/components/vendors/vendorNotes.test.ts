@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { structureVendorNotes } from './vendorNotes';
-import { contactsPatch, vendorContacts } from './VendorDetailsCard';
+import { contactsInNotes, structureVendorNotes } from './vendorNotes';
+import { contactHref, wisdomPlaceLink, wisdomTypeLink } from './vendorLinks';
+import { contactsPatch, vendorContacts, vendorSubtitle } from './VendorDetailsCard';
 import { summariseVendorSales } from './VendorSalesCard';
 
 describe('vendor notes', () => {
@@ -43,5 +44,40 @@ describe('vendor sales summary', () => {
       { ...base, line_id: '2', invoice_id: 'b', customer_id: 'mei', customer_name: 'Mei', product_id: 't2', quantity: 1, price_at_sale: 10 },
       { ...base, line_id: '3', invoice_id: 'c', customer_id: null, customer_name: 'Walk-in', product_id: 't1', quantity: 2, price_at_sale: 5 },
     ])).toEqual({ total: 45, buyers: 2, teas: 2 });
+  });
+});
+
+describe('contacts written into a note', () => {
+  const note = 'Tea merchant, Guangzhou. WeChat Weeee36. Vendor for Liu Bao + aged ripe + N Vietnam ripe intake (Bali).';
+  it('offers the WeChat handle a note names when contacts lack it', () => {
+    expect(contactsInNotes(note, [])).toEqual([{ channel: 'wechat', label: 'WeChat', handle: 'Weeee36' }]);
+  });
+  it('offers nothing once contacts hold it', () => {
+    expect(contactsInNotes(note, [{ channel: 'wechat', handle: 'weeee36' }])).toEqual([]);
+  });
+  it('does not read an ordinary word as a Line handle', () => {
+    expect(contactsInNotes('Prices on one line, sends samples', [])).toEqual([]);
+  });
+});
+
+describe('the line under a vendor name', () => {
+  it('does not repeat a shop recorded under their own name', () => {
+    expect(vendorSubtitle({ name: 'Huang Wei', company: 'Huang Wei', city: 'Guangzhou', country: 'China' })).toBe('Guangzhou, China');
+    expect(vendorSubtitle({ name: 'Huang Wei', company: 'Fangcun Tea', city: 'Guangzhou' })).toBe('Fangcun Tea · Guangzhou');
+  });
+});
+
+describe('where a vendor page links', () => {
+  it('reaches a contact in one tap where the channel has a link', () => {
+    expect(contactHref('whatsapp', '+62 812-3456-789')).toBe('https://wa.me/628123456789');
+    expect(contactHref('email', 'a@b.co')).toBe('mailto:a@b.co');
+    expect(contactHref('website', 'teajia.com')).toBe('https://teajia.com');
+    expect(contactHref('wechat', 'Weeee36')).toBeNull();
+  });
+  it('links a type or place only to a Wisdom page that exists', () => {
+    expect(wisdomTypeLink('Shou Puer')?.href).toBe('/wisdom/type/shou');
+    expect(wisdomTypeLink('Something else')).toBeNull();
+    expect(wisdomPlaceLink('Guangxi, Southern China', 'China')?.href).toBe('/wisdom/region/guangxi');
+    expect(wisdomPlaceLink(null, null)).toBeNull();
   });
 });
