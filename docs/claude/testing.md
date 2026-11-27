@@ -44,7 +44,9 @@ and neither mobile spec opens the admin route that does. Fixed in `2f1b7ea3`.
 request to main. Its `checks` job runs `npm run lint` (tsc), `npm run
 lint:worker-types`, `npm run test:src`, `npm run
 lint:colors`, `npm run build` and `npm run test:worker`, which is the class of
-check that would have caught the outage: none of them depend on a route being
+check that would have caught the outage (since 2026-11-27 the worker suite runs
+as four `worker-tests` shards beside `checks-static`, and `checks` passes only
+when all of them did): none of them depend on a route being
 visited. `npm run lint` covers `src` only, not `worker/tsconfig.json`, and
 `wrangler deploy --dry-run` in the deploy workflow builds with esbuild, which
 strips types rather than checking them; worker type errors are ratcheted by
