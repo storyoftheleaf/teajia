@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
-import { LinkTeaPage, LinkTeaTop } from '../shop/LinkTeaPage';
+import { ChooseTeaLine } from '../shop/GuideStep';
+import { LinkTeaPage } from '../shop/LinkTeaPage';
 import { useOpenLinkTea } from '../shop/useOpenLinkTea';
 import { linkTeaInventoryItem, type LinkTeaSource } from '../shop/linkTea';
 import { TeaLedger, type TeaLedgerGroup } from '../shop/TeaLedger';
@@ -18,11 +19,14 @@ import type { PayLinkTeaLine } from './types';
  * sell carries none. Shown only to a
  * holder of the invoice's own link; the worker decides that before it sends a line.
  */
-export function PayInvoiceTeas({ lines, invoiceNumber = null, onAddToCart, discount = null }: {
+export function PayInvoiceTeas({ lines, invoiceNumber = null, onAddToCart, discount = null, choosing = false, onChosen }: {
   lines: readonly PayLinkTeaLine[];
   /** A percent off the shop offered, shown as its own line above the total. */
   discount?: { percent: number; amount_usd: number } | null;
   invoiceNumber?: string | null;
+  /** The guide's Taste was tapped: the next tea opened goes straight to its tasting. */
+  choosing?: boolean;
+  onChosen?: () => void;
   onAddToCart?: (item: InventoryItem, grams: number, totalUsd: number) => void;
 }) {
   const { openId, open: setOpenId, close: closeTea } = useOpenLinkTea();
@@ -67,6 +71,7 @@ export function PayInvoiceTeas({ lines, invoiceNumber = null, onAddToCart, disco
   if (lines.length === 0) return null;
   return (
     <section aria-label="What this pays for" data-testid="pay-invoice-teas">
+      {choosing && <ChooseTeaLine onCancel={onChosen} />}
       <TeaLedger
         groups={groups}
         activeType="All"
@@ -76,7 +81,11 @@ export function PayInvoiceTeas({ lines, invoiceNumber = null, onAddToCart, disco
         formatPrice={formatPrice}
         favoriteIds={favoriteIds}
         onToggleFavorite={(id, event) => { event.stopPropagation(); const row = byId.get(id); if (row?.line.product_id) toggleFavoriteTea(row.line.product_id); }}
-        onOpenProduct={card => { if (byId.get(card.id)?.line.product_id) setOpenId(card.id); }}
+        onOpenProduct={card => {
+          if (!byId.get(card.id)?.line.product_id) return;
+          setOpenId(card.id, choosing ? { taste: '1' } : undefined);
+          onChosen?.();
+        }}
         weighOptionsFor={card => { const row = byId.get(card.id); return row ? [row.amount] : undefined; }}
       />
       {discount && discount.amount_usd > 0 && (
@@ -99,7 +108,8 @@ export function PayInvoiceTeas({ lines, invoiceNumber = null, onAddToCart, disco
           item={openRow.product}
           onClose={closeTea}
           onAddToCart={onAddToCart}
-          top={<LinkTeaTop line={[invoiceNumber ? `On your invoice ${invoiceNumber}` : 'On your invoice', openRow.amount.label ?? `${openRow.amount.grams}g`].join(' · ')} />}
+          yoursLine={['Yours', openRow.amount.label ?? `${openRow.amount.grams}g`, invoiceNumber ? `Invoice ${invoiceNumber}` : null].filter(Boolean).join(' · ')}
+          joinMarker="keep"
         />
       )}
     </section>

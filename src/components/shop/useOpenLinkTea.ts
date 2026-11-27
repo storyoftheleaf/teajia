@@ -12,9 +12,10 @@ export function useOpenLinkTea() {
   const navigate = useNavigate();
   const openedHere = useRef(false);
   const openId = params.get('tea');
-  const open = (teaId: string) => {
+  const open = (teaId: string, also?: Record<string, string>) => {
     const next = new URLSearchParams(params);
     next.set('tea', teaId);
+    for (const [key, value] of Object.entries(also ?? {})) next.set(key, value);
     openedHere.current = true;
     setParams(next);
   };
