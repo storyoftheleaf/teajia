@@ -295,6 +295,7 @@ test('validates every canonical Markdown file but generates only the approved, r
     'dian-hong',
     'fujian-white',
     'gaba',
+    'gong-ting',
     'greater-yiwu',
     'green',
     'jingmai',
@@ -324,7 +325,7 @@ test('validates every canonical Markdown file but generates only the approved, r
     'yunnan',
     'yunnan-white',
   ]);
-  assert.ok(registry.pages.every(page => ['tea_family', 'tea_type', 'major_region', 'tea_area', 'named_tea'].includes(page.kind)));
+  assert.ok(registry.pages.every(page => ['tea_family', 'tea_type', 'major_region', 'tea_area', 'named_tea', 'leaf_grade'].includes(page.kind)));
   assert.doesNotMatch(JSON.stringify(registry), /reference_topic|mountain-circuit|mountain-names|xishuangbanna-tea-mountains/i);
   assert.deepEqual(registry.pages.find(page => page.id === 'shou').sections.map(section => section.key), ['definition', 'wet-piling', 'piling-history', 'piling-1973', 'piling-today', 'age-young', 'age-settling', 'age-aged', 'brewing', 'brewing-pressed', 'common-impressions', 'notice-aged']);
   const y562 = registry.pages.find(page => page.id === 'y562');

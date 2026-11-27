@@ -3,7 +3,7 @@
 > Moved verbatim from CLAUDE.md on 2026-11-03 so it loads only when needed. The short rules stay in [CLAUDE.md](../../CLAUDE.md).
 
 ## Freight is charged on every tea, at one rate, and the rate is a setting
-**85 Yuan/kg, converted to USD live, and it is inside the ×3.** Freight is money out, so it belongs in the cost basis the markup multiplies; recovering it at 1× while the rest of the shelf runs at 3× is selling your own postage at cost. The rate is `accounts.default_shipping_rate_per_kg`, quoted in `default_shipping_rate_currency`, edited in Store Settings or through `update_account_settings`. `shippingPerGramUsd()` and `resolveShopFreightDefault()` in [worker/src/shippingRate.ts](../../worker/src/shippingRate.ts) are the only places the arithmetic lives.
+**85 Yuan/kg, converted to USD live, and passed on at cost, outside the ×3.** Freight is money out, so it is in the cost basis, but the shelf price is the leaf times three plus the freight once (Adrian, 2026-11-27: "I don't need to triple shipping costs"; it used to sit inside the ×3). `addPricingFields` in `worker/src/productPricing.ts` and `calculatePricing` in `src/admin/utils.ts` both price this way. The rate is `accounts.default_shipping_rate_per_kg`, quoted in `default_shipping_rate_currency`, edited in Store Settings or through `update_account_settings`. `shippingPerGramUsd()` and `resolveShopFreightDefault()` in [worker/src/shippingRate.ts](../../worker/src/shippingRate.ts) are the only places the arithmetic lives.
 
 - **It is quoted in the currency it is paid in.** Adrian pays his forwarder in yuan, so the shop rate is a yuan figure and the dollar value is derived from it on every request. A rate held in USD is a translation frozen at the day someone typed it, and it silently stops matching the invoice the moment the yuan moves.
 - **It is a setting, not a constant, because it is negotiated.** A better freight deal should be a field, not a deploy. `FALLBACK_SHIPPING_RATE_PER_KG` in the same file is only the floor under a shop that has never set one, so that a new shop still charges for freight instead of shipping at a loss in silence.
@@ -54,7 +54,7 @@ Two of those were in the same 70-line file, in opposite directions, and `fixed_r
 - Enforced by [worker/tests/entered-number.test.ts](../../worker/tests/entered-number.test.ts): a bare `Number(value)` in a case, a truthiness-gated conversion, or two cases writing one column by different rules all fail the suite.
 
 ## A default is READ at use time, never COPIED into rows
-**The markup is `SHOP_MARKUP_MULTIPLIER` in [worker/src/markup.ts](../../worker/src/markup.ts), and it is three.** Cost plus freight, times three. Adrian's number.
+**The markup is `SHOP_MARKUP_MULTIPLIER` in [worker/src/markup.ts](../../worker/src/markup.ts), and it is three.** The leaf's cost times three, plus freight at cost. Adrian's number.
 
 It had four homes before that file existed: `costPerUnitUSD * 3.0` in the worker's pricing, `trueCostUSD * 3` in the admin's preview of that same price, a `markup_multiplier` column defaulting to **2.5** on every product, and a `?? 2.5` in the create path. The shelf ran at three while a column on each of those rows said two and a half. This is the freight bug exactly, on a different number, and it was still live while freight was being fixed.
 

@@ -122,15 +122,14 @@ export function addPricingFields(product: any, rates: Map<string, number>, freig
   let retailPricePerUnitUSD = 0;
 
   if (qty > 0) {
-    const costPerUnit = product.cost_amount / qty;
-    /* Freight belongs in the basis the markup multiplies, and the rate itself
-       is decided in one place. See worker/src/shippingRate.ts for both, and
-       for why a NULL rate is not the same as a rate of zero. */
-    costPerUnitUSD = costPerUnit / rate + freight;
-  }
-
-  if (qty > 0) {
-    retailPricePerUnitUSD = costPerUnitUSD * SHOP_MARKUP_MULTIPLIER;
+    const goodsPerUnitUSD = (product.cost_amount / qty) / rate;
+    /* What a gram cost us is the leaf plus its freight. What it sells for is
+       the leaf times the markup, plus the freight at cost: freight is passed
+       on, not marked up (Adrian, 2026-11-27). The rate itself is decided in
+       one place, worker/src/shippingRate.ts, which also says why a NULL rate
+       is not the same as a rate of zero. */
+    costPerUnitUSD = goodsPerUnitUSD + freight;
+    retailPricePerUnitUSD = goodsPerUnitUSD * SHOP_MARKUP_MULTIPLIER + freight;
   }
 
   return {
@@ -141,4 +140,32 @@ export function addPricingFields(product: any, rates: Map<string, number>, freig
     cost_per_gram_usd: Math.round(costPerUnitUSD * 100) / 100,
     retail_price_per_gram_usd: product.fixed_retail_price_usd ?? Math.round(retailPricePerUnitUSD * 100) / 100,
   };
+}
+
+/**
+ * What each tea sells for on the shelf right now, per gram (per piece for
+ * teaware), keyed by product id: a typed fixed price if there is one, else the
+ * shop's price from cost and freight. Null where the shelf prints a dash.
+ *
+ * Collections used to read only `fixed_retail_price_usd`, so every tea priced
+ * from its cost showed no price on a shared collection and went onto the
+ * invoice at nothing. A price that is not typed is read here at use time, never
+ * copied into the collection row, so a cost, freight or rate change moves it.
+ */
+export async function shelfPricesFor(env: { DB: D1Database }, accountId: string, productIds: readonly string[]): Promise<Map<string, number | null>> {
+  const ids = [...new Set(productIds.filter(Boolean))];
+  const out = new Map<string, number | null>();
+  if (!ids.length) return out;
+  const [productRows, rateRows] = await Promise.all([
+    env.DB.prepare(`SELECT * FROM products WHERE account_id = ? AND id IN (${ids.map(() => '?').join(',')})`).bind(accountId, ...ids).all(),
+    env.DB.prepare('SELECT currency, rate_to_usd FROM exchange_rates').all(),
+  ]);
+  const rates = new Map<string, number>(((rateRows.results ?? []) as any[]).map(row => [row.currency, row.rate_to_usd]));
+  const freightDefaults = await accountFreightDefaults(env, accountId, rates);
+  for (const row of (productRows.results ?? []) as any[]) {
+    const priced = addPricingFields(row, rates, freightDefaults);
+    const value = priced.retail_price_per_gram_usd;
+    out.set(row.id, typeof value === 'number' && Number.isFinite(value) ? value : null);
+  }
+  return out;
 }
