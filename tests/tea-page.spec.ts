@@ -123,8 +123,8 @@ test('a tea that kept its own older freight rate shows it read-only, with Clear 
   await expect(tea.getByTestId('tea-shipping')).toHaveText('Arrives 4 Dec · $0.006/g shipping · its own rate');
   await expect(tea.getByRole('spinbutton', { name: /freight/i })).toHaveCount(0);
   const sheet = tea;
-  // 0.50 a gram of tea: (0.50 + 0.006) × 3 now, and (0.50 + 0.01) × 3 once it follows 70 yuan.
-  await expect(sheet.getByTestId('tea-freight-clear-preview')).toHaveText('Clear → $1.53/g');
+  // 0.50 a gram of tea: 0.50 × 3 + 0.006 now, and 0.50 × 3 + 0.01 once it follows 70 yuan (freight at cost).
+  await expect(sheet.getByTestId('tea-freight-clear-preview')).toHaveText('Clear → $1.51/g');
   await tea.getByTestId('tea-shipping').scrollIntoViewIfNeeded();
   await page.waitForTimeout(300);
   await page.screenshot({ path: testInfo.outputPath('tea-page-freight-clear.png') });

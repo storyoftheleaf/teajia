@@ -9,9 +9,9 @@ describe('clearing a tea’s own freight rate', () => {
     // Own rate 84 yuan = $12/kg; cleared, it follows $10/kg.
     const preview = freightClearPreview({ ...tea, shippingRatePerKg: 84 }, rates, 10);
     expect(preview.ownPerKgUsd).toBeCloseTo(12, 6);
-    expect(preview.before).toBeCloseTo((0.1 + 0.012) * 3, 6);
-    expect(preview.after).toBeCloseTo((0.1 + 0.01) * 3, 6);
-    expect(clearPriceLine(preview)).toBe('$0.34 → $0.33 a gram');
+    expect(preview.before).toBeCloseTo(0.1 * 3 + 0.012, 6);
+    expect(preview.after).toBeCloseTo(0.1 * 3 + 0.01, 6);
+    expect(clearPriceLine(preview)).toBe('$0.31 → $0.31 a gram');
   });
   it('keeps a typed zero as free freight, not as nothing said', () => {
     const preview = freightClearPreview({ ...tea, shippingRatePerKg: 0 }, rates, 10);

@@ -50,7 +50,7 @@ export function FreightSheet({ product, onSave, onClose }: FreightSheetProps) {
         </div>
         {ownRate && <div aria-live="polite" className="rounded-xl border border-tea-border bg-tea-accent-sub p-3 space-y-2">
           <div className="flex flex-wrap items-baseline justify-between gap-2"><span className={`${T.label} text-tea-text-dim`}>Calculated retail if cleared</span><span data-testid="freight-clear-preview" className={`${T.h3} text-tea-text tabular-nums`}>{clearPriceLine(preview)}</span></div>
-          <p className={`${T.link} text-tea-text-sec`}>Clearing hands it to {follows}, {usd(fallbackUsd)}/kg. (Tea cost + freight) × {SHOP_MARKUP_MULTIPLIER}.{product.fixedRetailPriceUSD != null ? ` Your fixed retail of ${usd(product.fixedRetailPriceUSD)}/g stays unchanged.` : ''}</p>
+          <p className={`${T.link} text-tea-text-sec`}>Clearing hands it to {follows}, {usd(fallbackUsd)}/kg. Tea cost × {SHOP_MARKUP_MULTIPLIER}, plus freight at cost.{product.fixedRetailPriceUSD != null ? ` Your fixed retail of ${usd(product.fixedRetailPriceUSD)}/g stays unchanged.` : ''}</p>
         </div>}
         {saveError && <p role="alert" className={`${T.link} text-tea-text-sec`}>{saveError}</p>}
         {ownRate && <button type="button" onClick={clear} disabled={saving} className={`${T.nav} min-h-tap w-full rounded-md cta-solid px-4 py-3 disabled:opacity-50`}>{saving ? 'Clearing…' : 'Clear this tea’s rate'}</button>}
