@@ -6,6 +6,8 @@ import type { LogisticsService, LogisticsServiceInput } from '../../../lib/logis
 import type { LogisticsMutation } from './LogisticsControls';
 import { useLogisticsAction, LogisticsActionError } from './useLogisticsAction';
 import { logisticsNumber } from './LogisticsControls';
+import { ShopFreightDefault, shopFreightCurrency, useShopDefaultAccount } from './ShopFreightDefault';
+import { addMySuitcase, hasSuitcase } from './mySuitcase';
 export function serviceRateLabel(service: Pick<LogisticsService, 'rate' | 'currency' | 'basis'>): string {
   return `${logisticsNumber(service.rate)} ${service.currency}${service.basis === 'fixed' ? ' fixed' : service.basis === 'm3' ? '/m³' : '/kg'}`;
 }
@@ -23,13 +25,25 @@ export function LogisticsServices({ services, accountId, busy, mutate: save }: {
     return rows.filter((row: CompanyContact) => row.id && row.name).map((row: CompanyContact) => ({ id: row.id, name: row.name }));
   }, enabled: open, staleTime: 60_000 });
   const contacts = [...new Map([...(contactsQuery.data || []), ...services.map(service => ({ id: service.logistics_company_id, name: service.logistics_company_name })), ...(createdCompany ? [createdCompany] : [])].map(contact => [contact.id, contact])).values()].sort((a, b) => a.name.localeCompare(b.name));
+  const shopDefault = useShopDefaultAccount(accountId, open);
   const active = services.filter(service => service.active);
+  const addSuitcase = () => void mutate(async () => {
+    try {
+      await addMySuitcase({
+        listContacts: async () => { const data = await api.customers.list(); return Array.isArray(data) ? data : Array.isArray(data?.customers) ? data.customers : []; },
+        createContact: input => api.customers.create(input),
+        saveService: input => api.logistics.saveService(null, input),
+      }, shopFreightCurrency(shopDefault.data));
+    } catch (cause) { if (cause instanceof ApiError && cause.status === 403) throw new Error('Adding My suitcase needs contact access. Ask the owner to add it.'); throw cause; }
+    void contactsQuery.refetch();
+  });
   const edit = services.find(service => service.id === editing);
   const chooseEditor = (service?: LogisticsService) => { setEditing(service?.id || 'new'); setCompanyId(service?.logistics_company_id || ''); setNewCompany(''); };
   return <><button type="button" className="tap-target purchase-tracking-button" aria-label="Logistics services" onClick={() => setOpen(true)}>Services <span className="text-tea-text-dim">{active.length}</span></button><TrackingTask open={open} onClose={() => setOpen(false)} title="Logistics services"><div className="logistics-form">
+    <ShopFreightDefault accountId={accountId} account={shopDefault.data} busy={busy} run={action => mutate(action)}/>
     {active.map(service => <div className="logistics-service-row" key={service.id}><span>{service.logistics_company_name}<small className="text-tea-text-sec">{service.name} · {service.mode === 'sea' ? 'Boat' : 'Air'}</small></span><span>{serviceRateLabel(service)}</span><button type="button" className="tap-target purchase-tracking-button" disabled={busy} onClick={() => chooseEditor(service)}>Edit</button></div>)}
     {!active.length && <p className="text-tea-text-sec">Save a company's services and quoted rates here, then choose one when preparing a shipment.</p>}
-    {!editing && <button type="button" className="tap-target purchase-tracking-button logistics-add-service" onClick={() => chooseEditor()}>Add service</button>}
+    {!editing && <div className="logistics-actions"><button type="button" className="tap-target purchase-tracking-button logistics-add-service" onClick={() => chooseEditor()}>Add service</button>{!hasSuitcase(services) && <button type="button" className="tap-target purchase-tracking-button" disabled={busy || shopDefault.isLoading} onClick={addSuitcase}>+ My suitcase</button>}</div>}
     {editing && <form key={editing} className="logistics-service-editor" onSubmit={event => {
       event.preventDefault(); const form = new FormData(event.currentTarget); const contact = contacts.find(item => item.id === companyId); if (!contact) return;
       const input: LogisticsServiceInput = { logistics_company_id: contact.id, logistics_company_name: contact.name, name: String(form.get('serviceName') || '').trim(), mode: form.get('mode') as 'air' | 'sea', basis: form.get('basis') as 'kg' | 'm3' | 'fixed', rate: Number(form.get('rate')), currency: String(form.get('currency') || '').trim() };

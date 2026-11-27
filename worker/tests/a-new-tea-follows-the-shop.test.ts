@@ -281,7 +281,7 @@ describe('the doors, driven against the shape the shop actually has', () => {
     followsTheShop(row(db, 'product_listings', 'Agent Tea'), 'create_tea, listing mirror', 120);
   });
 
-  it('and the agent door carries a rate it was given onto the listing as well as the product', async () => {
+  it('and the agent door refuses a rate of the tea\'s own: freight rates are set in Logistics', async () => {
     const db = liveShapedDatabase();
     db.sqlite.prepare(`INSERT OR REPLACE INTO mcp_tokens
       (id,account_id,user_id,user_email,label,token_hash,token_prefix,scopes,creator_tier)
@@ -293,11 +293,12 @@ describe('the doors, driven against the shape the shop actually has', () => {
       product_name: 'Pinned Agent Tea', type: 'Sheng', cost_amount: 120, cost_currency: 'Yuan',
       stock_grams: 500, shipping_rate_per_kg: 60,
     };
-    const preview = await callTool(db, 'create_tea', args);
-    const token = JSON.parse(preview.result.content[0].text).confirmation_token;
-    await callTool(db, 'create_tea', { ...args, confirm: token });
-    expect(row(db, 'products', 'Pinned Agent Tea').shipping_rate_per_kg).toBe(60);
-    expect(row(db, 'product_listings', 'Pinned Agent Tea').shipping_rate_per_kg).toBe(60);
+    for (const rate of [60, 0]) {
+      const refused = await callTool(db, 'create_tea', { ...args, shipping_rate_per_kg: rate });
+      expect(JSON.stringify(refused)).toMatch(/Logistics/);
+      expect(refused.result?.content?.[0]?.text ?? '').not.toMatch(/confirmation_token/);
+    }
+    expect(row(db, 'products', 'Pinned Agent Tea')).toBeUndefined();
   });
 });
 

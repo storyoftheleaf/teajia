@@ -1,21 +1,26 @@
 import { describe, expect, it } from 'vitest';
-import { freightSelection } from './freightModel';
-const rates = [{ currency: 'Yuan', rateToUSD: 7 }];
-describe('freight selection boundary', () => {
-  it('follows the shop by saving null even when the cost currency is unknown', () => {
-    expect(freightSelection('shop', '', 'UNKNOWN', rates)).toEqual({ storedRate: null, error: null });
+import { clearPriceLine, freightClearPreview } from './freightModel';
+const rates = [{ currency: 'Yuan', rateToUSD: 7 }] as never;
+// 700 yuan for a kilo is $100, ten cents a gram before freight.
+const tea = { type: 'Dark', costAmount: 700, costCurrency: 'Yuan', quantityPurchased: 1000 } as const;
+
+describe('clearing a tea’s own freight rate', () => {
+  it('prices the tea at its own rate now and at what it would follow once cleared', () => {
+    // Own rate 84 yuan = $12/kg; cleared, it follows $10/kg.
+    const preview = freightClearPreview({ ...tea, shippingRatePerKg: 84 }, rates, 10);
+    expect(preview.ownPerKgUsd).toBeCloseTo(12, 6);
+    expect(preview.before).toBeCloseTo((0.1 + 0.012) * 3, 6);
+    expect(preview.after).toBeCloseTo((0.1 + 0.01) * 3, 6);
+    expect(clearPriceLine(preview)).toBe('$0.34 → $0.33 a gram');
   });
-  it('converts USD per kg back into the tea currency through its alias', () => {
-    expect(freightSelection('custom', '12', 'CNY', rates)).toEqual({ storedRate: 84, error: null });
+  it('keeps a typed zero as free freight, not as nothing said', () => {
+    const preview = freightClearPreview({ ...tea, shippingRatePerKg: 0 }, rates, 10);
+    expect(preview.ownPerKgUsd).toBe(0);
+    expect(preview.before).toBeCloseTo(0.3, 6);
   });
-  it('preserves an explicit zero', () => {
-    expect(freightSelection('custom', '0', 'Yuan', rates)).toEqual({ storedRate: 0, error: null });
-  });
-  it('refuses empty, negative, nonfinite and missing currency rates', () => {
-    for (const value of ['', ' ', '-1', 'Infinity', 'bad']) expect(freightSelection('custom', value, 'Yuan', rates).error).toBeTruthy();
-    expect(freightSelection('custom', '10', 'UNKNOWN', rates).error).toContain('UNKNOWN');
-  });
-  it('uses the established unrecorded currency convention', () => {
-    expect(freightSelection('custom', '12', 'UNK', rates)).toEqual({ storedRate: 12, error: null });
+  it('declines to price without an exchange rate instead of reading yuan as dollars', () => {
+    const preview = freightClearPreview({ ...tea, costCurrency: 'HKD', shippingRatePerKg: 84 }, rates, 10);
+    expect(preview).toMatchObject({ before: null, after: null });
+    expect(clearPriceLine(preview)).toBe('Retail cannot be calculated yet.');
   });
 });

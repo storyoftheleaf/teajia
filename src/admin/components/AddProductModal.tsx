@@ -9,8 +9,8 @@ import { INVENTORY_TEA_TYPES, NON_TEA_TYPES } from '../../wisdom';
 import type { TastingData } from '../../types';
 import { calculatePricing } from '../utils';
 import { shippingRateUsdFor } from '../../lib/shippingRate';
-import { canonicalCurrency, rateToUsd } from '../../lib/currency';
-import { useProducts, useShopFreightDefault } from '../hooks/useAdminData';
+import { canonicalCurrency, isUnrecordedCurrency, rateToUsd, sameCurrency } from '../../lib/currency';
+import { useProducts, useShopFreightDefault, teaFallbackFreightUsd } from '../hooks/useAdminData';
 import { TeaIllustration } from './TeaIllustration';
 import { TastingSession } from '../../components/tasting/TastingSession';
 import { resolveTermLabel, resolveTermIcon, flattenTastingNotes } from '../../data/tastingTaxonomy';
@@ -357,10 +357,6 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
     stockGrams: '',
     quantityPurchased: '', 
     costAmount: '', // BASE Cost (Source Currency)
-    // Always entered in USD, from the shop's own rate rather than a literal
-    // typed here, which is how this form came to say 13 while the intake path
-    // said 10.
-    shippingRateUSD: '',
     costCurrency: 'USD' as Currency,
     vendor: '',
     description: '',
@@ -441,16 +437,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
   useEffect(() => {
     if (isOpen) setTastingExplicitlyEdited(false);
     if (isOpen && initialData) {
-      // Calculate USD shipping from stored Source Currency value
-      const rate = rateToUsd(rates, initialData.costCurrency);
-      /* Only a rate the SOURCE tea owned is carried onto the copy.
-         `shippingRateUsdFor` resolves to the shop rate when a tea has none, so
-         pre-filling its answer pinned the duplicate to today's shop rate even
-         though the original was following it. */
-      const shipUSD = initialData.shippingRatePerKg == null
-        ? null
-        : shippingRateUsdFor(initialData.shippingRatePerKg, rate, shopFreight.perKgUsd);
-
+      setOwnRateCleared(false);
       setFormData({
         type: initialData.type,
         form: initialData.form || '',
@@ -463,7 +450,6 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
         stockGrams: (initialData.type === 'Teaware' ? initialData.quantityUnits : initialData.stockGrams)?.toString() ?? '',
         quantityPurchased: initialData.quantityPurchased.toString(),
         costAmount: initialData.costAmount?.toString() ?? '',
-        shippingRateUSD: shipUSD == null ? '' : shipUSD.toFixed(2),
         /* Canonicalised, or duplicating one of the teas recorded as 'CNY'
            matched no option in the select and the copy silently came back as
            whatever the browser picked first. */
@@ -515,7 +501,6 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
         stockGrams: '',
         quantityPurchased: '',
         costAmount: '',
-        shippingRateUSD: '',
         costCurrency: 'USD',
         vendor: '',
         description: '',
@@ -560,14 +545,22 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, initialData]);
 
+  /* A tea that already carries its own freight rate keeps it, read-only, until
+     Clear hands it back to its logistics service or the shop default. */
+  const [ownRateCleared, setOwnRateCleared] = useState(false);
+  const heldOwnRate = isEditMode && !ownRateCleared && initialData?.shippingRatePerKg != null ? initialData.shippingRatePerKg : null;
+  const heldOwnRateUsd = heldOwnRate === null ? null
+    : shippingRateUsdFor(heldOwnRate, isUnrecordedCurrency(initialData?.costCurrency) ? 1 : rateToUsd(rates, initialData!.costCurrency), shopFreight.perKgUsd);
+  const fallbackFreightUsd = isEditMode && initialData ? teaFallbackFreightUsd(initialData, shopFreight.perKgUsd) : shopFreight.perKgUsd;
+  const fallbackFreightText = fallbackFreightUsd === null ? '—' : `${fallbackFreightUsd.toFixed(2)}`;
+
   // LIVE CALCULATOR LOGIC
   const calc = useMemo(() => {
-    // Convert USD shipping rate to source currency for calculatePricing
-    /* A blank field is not free freight, it is the shop rate, so the live
-       preview shows the price the tea will actually carry rather than one
-       missing its postage. */
-    const shippingEntered = enteredNumber(formData.shippingRateUSD);
-    const shippingUsd = shippingEntered == null ? shopFreight.perKgUsd : shippingEntered;
+    /* Freight is not typed here (Adrian, 2026-11-27: rates live in Logistics).
+       A new tea follows the shop default until it is given a service on its
+       page; an edited tea keeps whatever it follows now, its own older rate
+       included unless Clear was pressed. */
+    const shippingUsd = heldOwnRateUsd ?? fallbackFreightUsd;
     const shippingSourcePerKg = shippingUsd === null ? null : shippingUsd * (currentRate ?? 0);
     const missingFreight = formData.type !== 'Teaware' && shippingSourcePerKg === null;
 
@@ -579,7 +572,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
         rates,
         formData.type === 'Teaware'
     );
-  }, [formData.costAmount, formData.shippingRateUSD, formData.quantityPurchased, formData.costCurrency, formData.type, rates, currentRate, shopFreight.perKgUsd]);
+  }, [formData.costAmount, formData.quantityPurchased, formData.costCurrency, formData.type, rates, currentRate, heldOwnRateUsd, fallbackFreightUsd]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const value = e.target.type === 'checkbox' ? (e.target as HTMLInputElement).checked : e.target.value;
@@ -688,25 +681,23 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
       document.getElementById('product-cost-input')?.focus();
       return;
     }
-    const shippingUsdEntered = enteredNumber(formData.shippingRateUSD);
-    if (shippingUsdEntered !== null && shippingUsdEntered !== 0 && currentRate === null) {
+    /* A held own rate is stored in the tea's cost currency, so a changed
+       currency carries the same dollars across; it needs that conversion. */
+    const currencyChanged = heldOwnRate !== null && !sameCurrency(initialData?.costCurrency, formData.costCurrency);
+    if (currencyChanged && heldOwnRate !== 0 && (heldOwnRateUsd === null || currentRate === null)) {
       setShippingError(true);
-      document.getElementById('product-shipping-input')?.focus();
       return;
     }
     setLoading(true);
 
     try {
-        /* Blank means NULL, which is "follow the shop rate", not 0, which is
-           "this tea ships free". `parseFloat('') || 0` collapsed the two, so
-           every tea added here shipped at whatever was typed or free, and there
-           was no way to say "just use the shop's". Same rule the edit panel was
-           given on 2026-09-06; this form was missed. */
-        /* A nonzero entered rate needs a conversion and was refused above
-           if it is missing. Never silently turn that intent into inheritance. */
-        const shippingSourceToSave = shippingUsdEntered === 0 ? 0
-          : shippingUsdEntered == null || currentRate === null ? null
-          : shippingUsdEntered * currentRate;
+        /* New teas carry no rate of their own (NULL: follow the service or the
+           shop default). An edit leaves the stored rate alone, sends NULL only
+           for Clear, and converts it only when the cost currency changed. */
+        const freightField = ownRateCleared ? { shipping_rate_per_kg: null }
+          : currencyChanged ? { shipping_rate_per_kg: heldOwnRate === 0 ? 0 : heldOwnRateUsd! * currentRate! }
+          : isEditMode ? {}
+          : { shipping_rate_per_kg: null };
 
         const payload = {
             type: formData.type,
@@ -723,7 +714,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                blank into a free tea. The field is required above, so this only
                ever carries what was actually typed, 0 included. */
             cost_amount: enteredNumber(formData.costAmount),
-            shipping_rate_per_kg: shippingSourceToSave,
+            ...freightField,
             cost_currency: formData.costCurrency,
             vendor: formData.vendor,
             description: formData.description,
@@ -1071,24 +1062,25 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                   />
                 </div>
                 <div>
-                  <label className={labelStyle}>Shipping (USD per kg)</label>
-                  <input
-                    id="product-shipping-input" name="shippingRateUSD" type="number" step="0.01" value={formData.shippingRateUSD}
-                    onChange={event => { handleChange(event); setShippingError(false); }}
-                    aria-invalid={shippingError || undefined}
-                    aria-describedby={shippingError ? 'product-shipping-error' : undefined}
-                    className={`${inputStyle} tabular-nums text-right`}
-                    // The shop's live rate, as a PLACEHOLDER rather than a
-                    // value: leaving it alone follows the shop, so a
-                    // renegotiated rate moves this tea with it. It used to
-                    // read 13.00, one of the four different freight rates this
-                    // shop was charging at once, and a number it never
-                    // charged.
-                    placeholder={shopFreightUsdText}
-                    inputMode="decimal"
-                    onFocus={(e) => { setTimeout(() => { e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 300); }}
-                  />
-                  {shippingError && <p id="product-shipping-error" role="alert" className="mt-1 text-ui-12 text-tea-text-sec">An exchange rate for {formData.costCurrency} is needed to save this shipping rate.</p>}
+                  {/* Freight is read here, never typed (Adrian, 2026-11-27): rates
+                      live in Logistics on the Purchases page, and a tea picks the
+                      service it travels by on its own page. */}
+                  <span className={labelStyle}>Freight (USD per kg)</span>
+                  <div data-testid="product-freight-readout" className={`${inputStyle} tabular-nums text-right text-tea-text-sec`}>
+                    {heldOwnRate !== null
+                      ? (heldOwnRateUsd === null ? '—' : `$${heldOwnRateUsd.toFixed(2)}`)
+                      : fallbackFreightText}
+                  </div>
+                  <p className="mt-1 text-ui-12 text-tea-text-sec">
+                    {heldOwnRate !== null ? <>This tea's own rate.{' '}
+                      <button type="button" className="tap-target text-tea-gold" onClick={() => { setOwnRateCleared(true); setShippingError(false); }}>
+                        Clear, use {initialData?.freightSource && initialData.freightSource !== 'shop' ? 'its service' : 'the shop default'} at {fallbackFreightText}
+                      </button></>
+                      : ownRateCleared ? 'Cleared. It follows its service or the shop default once saved.'
+                      : initialData?.freightSource && initialData.freightSource !== 'shop' ? 'Follows its logistics service. Rates are set in Logistics.'
+                      : 'Follows the shop default until it travels by a service. Rates are set in Logistics.'}
+                  </p>
+                  {shippingError && <p id="product-shipping-error" role="alert" className="mt-1 text-ui-12 text-tea-text-sec">An exchange rate for {formData.costCurrency} is needed to carry this tea's own freight rate across. Clear it, or keep the old currency.</p>}
                 </div>
               </div>
 

@@ -18,6 +18,15 @@ describe('saved logistics services', () => {
     expect(html).not.toContain('Old service');
     expect(html).not.toContain('Service rate currency');
     expect(html).not.toContain('open=""');
+    // Freight rates are edited here and nowhere else: the shop default sits with the services.
+    expect(html).toContain('Shop default');
+    expect(html).toContain('+ My suitcase');
+  });
+  it('offers My suitcase only until an active one exists', () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const html = renderToStaticMarkup(<QueryClientProvider client={client}><LogisticsServices services={[{ ...service, id: 'bag', name: 'My suitcase', rate: 0 }]} accountId="shop" busy={false} mutate={async action => { await action(); }}/></QueryClientProvider>);
+    expect(html).not.toContain('+ My suitcase');
+    expect(html).toContain('0 CNY/kg');
   });
   it('distinguishes volume and fixed rates while preserving explicit zero', () => {
     expect(serviceRateLabel({ ...service, basis: 'm3', rate: 450 })).toBe('450 CNY/m³');

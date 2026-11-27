@@ -108,3 +108,26 @@ test('the tea page reads in editing order and Next keeps the part you are on', a
   await page.waitForTimeout(400);
   await page.screenshot({ path: testInfo.outputPath('tea-page-phone.png') });
 });
+
+test('a tea that kept its own older freight rate shows it read-only, with Clear and the new price first', async ({ page }, testInfo) => {
+  await install(page);
+  // Liu Bao still carries 6 dollars a kilo from before rates moved to Logistics; the shop default is 70 yuan.
+  await page.route('**/api/products', r => r.fulfill({ json: [{ ...products[0], shipping_rate_per_kg: 6 }, products[1]] }));
+  await page.route('**/api/rates', r => r.fulfill({ json: [{ currency: 'USD', rate_to_usd: 1 }, { currency: 'Yuan', rate_to_usd: 7 }] }));
+  await page.route('**/api/accounts/acct', r => r.fulfill({ json: { id: 'acct', name: 'Test', slug: 'test', default_shipping_rate_per_kg: 70, default_shipping_rate_currency: 'Yuan' } }));
+  await page.goto('/admin/stock');
+  await page.locator('tr[data-product-id="liu-bao"]').dispatchEvent('click', { metaKey: true });
+  await page.getByRole('toolbar', { name: 'Selection actions' }).getByRole('button', { name: 'Edit', exact: true }).click();
+  const tea = page.getByTestId('tea-page');
+  await expect(tea.getByTestId('tea-freight-rate')).toHaveText('$6.00 / kg');
+  await expect(tea.getByRole('spinbutton', { name: /freight/i })).toHaveCount(0);
+  // 0.50 a gram of tea: (0.50 + 0.006) × 3 now, and (0.50 + 0.01) × 3 once it follows 70 yuan.
+  await expect(tea.getByTestId('tea-freight-clear-preview')).toHaveText('Clear, $1.52 → $1.53 a gram');
+  await tea.getByTestId('tea-freight-clear-preview').scrollIntoViewIfNeeded();
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: testInfo.outputPath('tea-page-freight-clear.png') });
+  const saved = page.waitForRequest(r => r.url().includes('/api/products/liu-bao/commercial') && r.method() === 'PUT');
+  await page.route('**/api/products/liu-bao/commercial', r => r.fulfill({ json: { success: true } }));
+  await tea.getByRole('button', { name: /^Clear this tea's rate/ }).click();
+  expect((await saved).postDataJSON()).toEqual({ shipping_rate_per_kg: null });
+});

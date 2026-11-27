@@ -1,3 +1,13 @@
+## 2026-11-27: Freight rates live in Logistics
+
+Every freight rate is typed in Logistics services on the Purchases page and nowhere else. No tea's price moves.
+
+- **Shop default** moved there from Store Settings (same account columns; `update_account_settings` still writes it).
+- **+ My suitcase** makes a free-by-the-kilo air service under a "My luggage" contact, picked on the tea page like any service.
+- **No per-tea typing**: the Add tea form, the phone Freight sheet and `create_tea` / `update_tea_pricing` set no rate. A tea that kept its own shows it read-only with Clear and the price it would move to.
+- **Shipping routes** keep addresses, packing and rounding; their rate is no longer read or written. The buying basket prices from the dearest active service of each mode, else the shop default for air.
+- **Imports** stamp no rate on a batch.
+
 ## 2026-11-26: Launch 5 ready to ship (behind its flags)
 
 Finished on `build/l5-finish`, every part off until Adrian says "ship".

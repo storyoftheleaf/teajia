@@ -8,6 +8,7 @@ import { shippingRateUsdFor, shopRateInCurrency } from '../../../../lib/shipping
 import { serviceQuotePerKgUsd, serviceRatesFromRows } from '../../../../lib/freightSource';
 import { serviceRateLabel } from '../LogisticsServices';
 import { TeaLine } from './TeaPage';
+import { clearPriceLine, freightClearPreview } from './freightModel';
 
 // How the tea travels home, on the open tea's Price part (Adrian, 2026-11-27).
 // The tea only names the logistics service it ships by. The rates belong to the
@@ -16,13 +17,15 @@ import { TeaLine } from './TeaPage';
 
 const usd = (value: number | null | undefined) => value == null ? null : `$${value.toFixed(2)}`;
 
-export function TeaFreight({ product, shopPerKgUsd, rates, costRateToUsd, onChoose, onOpenLogistics }: {
+export function TeaFreight({ product, shopPerKgUsd, rates, costRateToUsd, onChoose, onClearOwnRate, onOpenLogistics }: {
   product: Product;
   shopPerKgUsd: number | null;
   rates: ExchangeRate[];
   /** Units of the tea's cost currency per USD, or null when there is no rate. */
   costRateToUsd: number | null;
   onChoose: (serviceId: string | null) => Promise<unknown> | unknown;
+  /** Hands a tea that carries its own rate back to its service or the shop default. */
+  onClearOwnRate?: () => Promise<unknown> | unknown;
   onOpenLogistics: () => void;
 }) {
   const { data } = useQuery({ queryKey: ['logistics-tracking'], queryFn: () => api.logistics.tracking(), staleTime: 60_000 });
@@ -47,7 +50,8 @@ export function TeaFreight({ product, shopPerKgUsd, rates, costRateToUsd, onChoo
   const fallback = product.freightFallbackPerKgUsd !== undefined ? product.freightFallbackPerKgUsd : shopPerKgUsd;
   const shown = ownRate ? shippingRateUsdFor(product.shippingRatePerKg, costRateToUsd, fallback) : fallback;
   const name = chosen ? `${chosen.logistics_company_name} ${chosen.name}` : 'the service';
-  const note = ownRate ? 'This tea has its own freight rate, set in Stock, and it wins over any service.'
+  const clearPreview = ownRate ? freightClearPreview(product, rates, fallback) : null;
+  const note = ownRate ? 'This tea has its own freight rate, set before rates moved to Logistics, and it wins over any service.'
     : product.freightSource === 'shipment' ? `From its last ${name} shipment${product.freightDated ? `, ${product.freightDated.slice(0, 10)}` : ''}.`
     : product.freightSource === 'service' && chosen ? `From the ${name} quote, ${serviceRateLabel(chosen)}${chosen.basis === 'm3' ? ', through the packing estimate' : ''}.`
     : product.freightFellBack === 'fixed' ? `${name} is a fixed price a shipment, so the shop rate is used until a shipment's bill is confirmed.`
@@ -75,6 +79,9 @@ export function TeaFreight({ product, shopPerKgUsd, rates, costRateToUsd, onChoo
     </TeaLine>
     <div className="tea-page-note">
       {note}{' '}
+      {ownRate && onClearOwnRate && clearPreview && <Button variant="plain" type="button" className="tap-target text-tea-gold" aria-label={`Clear this tea's rate: ${clearPriceLine(clearPreview)}`} onClick={() => void onClearOwnRate()}>
+        <span data-testid="tea-freight-clear-preview" className="tabular-nums">{`Clear, ${clearPriceLine(clearPreview)}`}</span>
+      </Button>}{' '}
       <Button variant="plain" type="button" className="tap-target text-tea-gold" onClick={onOpenLogistics}>Rates are set in Logistics</Button>
     </div>
   </>;
