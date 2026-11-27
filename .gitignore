@@ -33,3 +33,4 @@ worker/sandbox/table-list.txt
 # Build-only private Read modules embedded in Pages, never static assets.
 functions/readAssets.generated.json
 worker/wrangler.practice.toml
+.tea-wisdom-review/

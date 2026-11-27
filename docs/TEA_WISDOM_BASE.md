@@ -35,16 +35,16 @@ There is one Wisdom Base, at teajia.com/wisdom. It is built from two layers that
 
 ### When a new tea is posted: what the Wisdom Base needs
 
-Check each of these against the tea's record before composing its entry. Anything missing is written as a page (draft), shown to Adrian, approved, and only then used.
+Check each of these against the tea's record before composing its entry. Anything missing is written as a page (draft), shown to Adrian, approved, and only then used. The check is `wisdomNeeds()`, run on the Mac as `node scripts/tea-wisdom-compose/needs.mjs`, and the whole chain, from this check to the entry on the shop, with each agent's model, rules and where each page goes, is [docs/agents/TEA-WISDOM-AGENTS.md](agents/TEA-WISDOM-AGENTS.md), run by `/tea-wisdom`.
 
-| From the tea record | Needs | Lives in |
-|---|---|---|
-| Type (Sheng Puer, Oolong, Red...) | a style kit with making, ageing, brewing, notice | `tea_type` / `tea_family` page |
-| Origin, each comma part (Banzhang, Yunnan) | a place page for the most specific part | region row + `tea_area` / `major_region` page |
-| Grade or mark words in the name (Gong Ting / Palace Grade, Golden Bull, Jia Ji) | a grade or mark page | mark row + `leaf_grade` page |
-| Process words in the name or notes (GABA, tea heads, wet piling, bamboo tube) | a process section in the style kit, or its own page | `tea_type` page or `reference_topic` |
-| Factory or brand (Xinghai, Hengfengyuan, Menghai) | a producer write-up | producer row + page |
-| A known named tea (Y562, San He) | its history | named-tea row + `named_tea` page |
+| From the tea record | Needs | Lives in | Checked as |
+|---|---|---|---|
+| Type (Sheng Puer, Oolong, Red...) | a style kit with making, ageing, brewing, notice | `tea_type` / `tea_family` page | `style` |
+| Origin, each comma part (Banzhang, Yunnan) | a place page for the most specific part | region row + `tea_area` / `major_region` page | `place` |
+| Grade or mark words in the name (Gong Ting / Palace Grade, Golden Bull, Jia Ji) | a grade or mark page | mark row + `leaf_grade` page | `grade` |
+| Process words in the name or notes (GABA, tea heads, wet piling, bamboo tube) | a process section in the style kit, or its own page | `tea_type` page or `reference_topic` | `process` |
+| Factory or brand (Xinghai, Hengfengyuan, Menghai) | a producer write-up | producer row + page | `producer` |
+| A known named tea (Y562, San He) | its history | named-tea row + `named_tea` page | `named` |
 
 A tea with an empty record can still get an entry once its type, place and grade pages exist: the entry then says only what those pages and the record's name, year and place support.
 
