@@ -79,13 +79,13 @@ test('a deploy skips the worker suite only for a tree Playwright proved', () => 
   // The name Playwright records and the name the deploy looks up must agree.
   assert.match(playwright, /name: worker-tests-passed-\$\{\{ needs\.checks-static\.outputs\.tree \}\}/);
   assert.match(deploy, /actions\/artifacts\?name=worker-tests-passed-\$tree/);
-  // The proof is recorded only after the static lane and every shard passed.
-  assert.match(playwright, /test "\$STATIC_RESULT" = success && test "\$WORKER_RESULT" = success/);
+  // The proof is recorded only after the static lane, the build and every shard passed.
+  assert.match(playwright, /test "\$STATIC_RESULT" = success && test "\$BUILD_RESULT" = success && test "\$WORKER_RESULT" = success/);
   // Only a Playwright run in this repository counts as proof.
   assert.match(deploy, /"\.github\/workflows\/playwright\.yml \$GITHUB_REPOSITORY"/);
   // Unproven trees run the whole suite, sharded, before the deploy job.
-  assert.match(deploy, /npm run test:worker -- --shard=\$\{\{ matrix\.shard \}\}\/4/);
-  assert.match(playwright, /npm run test:worker -- --shard=\$\{\{ matrix\.shard \}\}\/4/);
+  assert.match(deploy, /npm run test:worker -- --shard=\$\{\{ matrix\.shard \}\}\/6/);
+  assert.match(playwright, /npm run test:worker -- --shard=\$\{\{ matrix\.shard \}\}\/6/);
   // The dry-run build still sits above the migration step.
   assert.ok(deploy.indexOf('wrangler deploy --dry-run') < deploy.indexOf('d1 migrations apply'));
 });

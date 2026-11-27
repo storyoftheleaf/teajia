@@ -32,8 +32,13 @@ Anywhere a person adds a photo, it opens in the shared editor first (`usePhotoEd
 
 **Never give Adrian a zip file for a handoff.** A handoff is plain files saved on GitHub, given to him as links he can open. No archive as the handoff, and none as a "second copy" either. (Adrian, 2026-11-16.)
 
-## Before every pull request — run the `review-pr` skill
-Implement first, then review. Before `gh pr create`, run `.claude/skills/review-pr/SKILL.md`: a fresh reviewer checks the change against [CODING_STANDARDS.md](CODING_STANDARDS.md), commits its own fixes, and writes the PR's **Merge danger** section (CI's `merge-danger` check refuses a PR without one). A one-way door (row-rewriting migration, customer messages, money or payments, deleted files) waits for Adrian's `owner-approved` label: never add it yourself, never merge it.
+## Ship fast: preflight, draft, review while CI runs, auto-merge (Adrian, 2026-11-27)
+"My goal is to be able to ship way faster." Detail: [docs/claude/ship-fast.md](docs/claude/ship-fast.md).
+1. `npm run preflight` before every push (about a minute: type check, colors, the repo-wide ceilings and ledgers, tests for what changed). A red CI run costs 5 minutes; preflight costs one.
+2. Open the PR as a draft and run `.claude/skills/review-pr/SKILL.md` while CI runs: a fresh reviewer checks the change against [CODING_STANDARDS.md](CODING_STANDARDS.md), commits its own fixes, and the body carries the **Merge danger** section (CI's `merge-danger` check refuses a PR without one).
+3. Mark it ready, turn on auto-merge, subscribe to the PR, and start the next piece of work. Never sit waiting on checks.
+4. A flaky or slow check is fixed the day it is seen (split a lane, fix or delete the test), never rerun by hand or skipped.
+A one-way door (row-rewriting migration, customer messages, money or payments, deleted files) waits for Adrian's `owner-approved` label: never add it yourself, never merge it.
 
 ## What this is
 Professional tea infrastructure — sourcing, inventory, education, events, and multi-store management. This is NOT a wellness app, a traditional social network, or a franchise. Adrian's curation is the engine, and the point is bringing people together over tea, not keeping them active on a screen. WhatsApp checkout is intentional — every order is a personal conversation. The app never asks during a tea session: it sends nothing, prompts nothing and shows nothing to scroll while people are sitting. A photo is one tap. A tasting is the one kind of session where writing is the point, and the host chooses it. (Adrian, 2026-11-26; this replaces "never during".)
@@ -112,6 +117,7 @@ npm run build
 npm run lint         # tsc, src only
 npm run lint:worker-types  # worker type errors, ratcheted in CI
 npm run lint:colors  # before every commit
+npm run preflight    # before every push: what CI fails on, about a minute
 # deploy: Cloudflare Pages CI on push to main
 ```
 - `npm run dev` silently does nothing if port 7777 is already taken (the script exits when `lsof` finds a listener), and `npm run sandbox` also uses 7777, so check what holds the port first.
