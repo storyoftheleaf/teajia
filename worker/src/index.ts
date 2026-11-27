@@ -28716,8 +28716,8 @@ const handleGetPayAccess: Handler = async (request, env, params) => {
         ).bind(ledgerInvoice.id, link.account_id).first<{ title: string; slug: string }>();
         invoice = {
           invoice_number: ledgerInvoice.invoice_number,
-          // Who it is to and the day it was written; only this invoice's own link reaches here.
-          customer_name: ledgerInvoice.customer_name, date: written?.created_at ?? null,
+          // Who it is to (first name only) and the day it was written; only this invoice's own link reaches here.
+          customer_name: (ledgerInvoice.customer_name ?? '').trim().split(/\s+/)[0] || null, date: written?.created_at ?? null,
           outstanding_usd: money.outstanding_usd, lines, kept, yours_to_send: yoursToSend,
           collection: collection ? { title: collection.title, path: `/c/${collection.slug}` } : null,
           // A discount the shop offered, and for the shop itself whether it can still change it.
