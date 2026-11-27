@@ -12,6 +12,7 @@ import type { YoursStripNav } from './YoursStrip';
  * Back closes it. A collection brings its own order footer at its own price;
  * an invoice's tea keeps the shop's own, to get more of it. A private tea the
  * shop does not list opens from what the link carries, with no footer.
+ * On a desktop it opens beside the left sidebar, which stays (Adrian, 2026-11-27).
  */
 export function LinkTeaPage({ item, onClose, footer, top, yoursLine, yoursNote, yoursNav, onAddToCart, onOpenCart, cartItemCount }: {
   item: InventoryItem;
@@ -44,7 +45,7 @@ export function LinkTeaPage({ item, onClose, footer, top, yoursLine, yoursNote, 
       role="dialog"
       aria-modal="true"
       aria-label={item.name}
-      className="fixed inset-0 z-modal overflow-y-auto bg-tea-bg pb-nav-gap"
+      className="link-tea-page fixed inset-0 z-modal overflow-y-auto bg-tea-bg pb-nav-gap"
       data-testid="link-tea-page"
     >
       <ProductPage onAddToCart={onAddToCart} onCartClick={onOpenCart} cartItemCount={cartItemCount} link={{ productKey: item.id, fallbackItem: item, top, yoursLine, yoursNote, yoursNav, footer, onBack: onClose }} />

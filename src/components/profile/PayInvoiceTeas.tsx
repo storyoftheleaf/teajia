@@ -1,7 +1,9 @@
-import { useMemo } from 'react';
+import { useMemo, useRef, type ReactNode } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTastingCounts } from '../../hooks/useTastingCount';
 import { useInventory } from '../../context/InventoryContext';
 import { LinkTeaPage } from '../shop/LinkTeaPage';
+import { ListTasting } from '../shop/ListTasting';
 import { useOpenLinkTea } from '../shop/useOpenLinkTea';
 import { linkTeaInventoryItem, type LinkTeaSource } from '../shop/linkTea';
 import { TeaLedger, type TeaLedgerGroup } from '../shop/TeaLedger';
@@ -20,7 +22,7 @@ import type { PayLinkTeaLine } from './types';
  * sell carries none. Shown only to a
  * holder of the invoice's own link; the worker decides that before it sends a line.
  */
-export function PayInvoiceTeas({ lines, invoiceNumber = null, onAddToCart, discount = null, onSave }: {
+export function PayInvoiceTeas({ lines, invoiceNumber = null, onAddToCart, discount = null, onSave, discountEditor, signedIn = false, onJoin }: {
   lines: readonly PayLinkTeaLine[];
   /** A percent off the shop offered, shown as its own line above the total. */
   discount?: { percent: number; amount_usd: number } | null;
@@ -28,8 +30,31 @@ export function PayInvoiceTeas({ lines, invoiceNumber = null, onAddToCart, disco
   /** A tea was saved: the invoice goes into their account, through joining when they are signed out. Left out for the shop that sent it. */
   onSave?: () => void;
   onAddToCart?: (item: InventoryItem, grams: number, totalUsd: number) => void;
+  /** The sending shop's percent box, drawn in the discount's own line. */
+  discountEditor?: ReactNode;
+  signedIn?: boolean;
+  /** Tasting while signed out: go and join, and come back to the same address. Left out, rows carry no teacup. */
+  onJoin?: (mode: 'signup' | 'signin', teas: { name: string; amount?: string }[]) => void;
 }) {
   const { openId, open: setOpenId, move: moveTea, close: closeTea } = useOpenLinkTea();
+  // The tasting open over the list is a step in the address, so Back closes
+  // it and joining returns to it.
+  const [search, setSearch] = useSearchParams();
+  const navigate = useNavigate();
+  const tastingOpenedHere = useRef(false);
+  const tastingId = search.get(TASTING_PARAM);
+  const openTasting = (id: string) => {
+    const next = new URLSearchParams(search);
+    next.set(TASTING_PARAM, id);
+    tastingOpenedHere.current = true;
+    setSearch(next);
+  };
+  const closeTasting = () => {
+    if (tastingOpenedHere.current) { tastingOpenedHere.current = false; navigate(-1); return; }
+    const next = new URLSearchParams(search);
+    next.delete(TASTING_PARAM);
+    setSearch(next, { replace: true });
+  };
   const favoriteTeas = useAppStore(s => s.favoriteTeas);
   const toggleFavoriteTea = useAppStore(s => s.toggleFavoriteTea);
   // One row per invoice line, as the invoice was written: two 100g packs of
@@ -81,6 +106,8 @@ export function PayInvoiceTeas({ lines, invoiceNumber = null, onAddToCart, disco
   const at = openRow ? order.findIndex(card => card.id === openRow.id) : -1;
   const before = at > 0 ? order[at - 1] : undefined;
   const after = at >= 0 ? order[at + 1] : undefined;
+  const tastingRow = tastingId ? byId.get(tastingId) : undefined;
+  const joinTeas = useMemo(() => rows.map(row => ({ name: row.card.name, amount: row.amount.label ?? `${row.amount.grams}g` })), [rows]);
   if (lines.length === 0) return null;
   return (
     <section aria-label="What this pays for" data-testid="pay-invoice-teas">
@@ -106,11 +133,12 @@ export function PayInvoiceTeas({ lines, invoiceNumber = null, onAddToCart, disco
           setOpenId(card.id);
         }}
         weighOptionsFor={card => { const row = byId.get(card.id); return row ? [row.amount] : undefined; }}
+        onTaste={onJoin ? card => { if (byId.get(card.id)?.line.product_id) openTasting(card.id); } : undefined}
       />
-      {discount && discount.amount_usd > 0 && (
-        <div className="flex items-baseline justify-between gap-4 border-b border-tea-border px-4 py-3 md:px-6" data-testid="pay-invoice-discount">
-          <span className="label-caps text-tea-gold">{discount.percent}% off</span>
-          <span className="font-display text-ui-18 tabular-nums text-tea-gold">−{exact(discount.amount_usd)}</span>
+      {(discountEditor || (discount && discount.amount_usd > 0)) && (
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-tea-border px-4 py-3 md:px-6" data-testid="pay-invoice-discount">
+          {discountEditor ?? <span className="label-caps text-tea-gold">{discount?.percent}% off</span>}
+          {discount && discount.amount_usd > 0 && <span className="font-display text-ui-18 tabular-nums text-tea-gold">−{exact(discount.amount_usd)}</span>}
         </div>
       )}
       <div className="flex items-baseline justify-between gap-4 border-b border-tea-border px-4 py-4 md:px-6" data-testid="pay-invoice-total">
@@ -122,6 +150,10 @@ export function PayInvoiceTeas({ lines, invoiceNumber = null, onAddToCart, disco
           <span className="font-display text-ui-22 tabular-nums text-tea-text">{exact(totalUsd)}</span>
         </span>
       </div>
+      {tastingRow?.line.product_id && onJoin && (
+        <ListTasting item={{ ...tastingRow.product, id: tastingRow.line.product_id }} signedIn={signedIn} teas={joinTeas}
+          onClose={closeTasting} onJoin={mode => onJoin(mode, joinTeas)} />
+      )}
       {openRow && (
         <LinkTeaPage
           item={openRow.product}
@@ -139,6 +171,8 @@ export function PayInvoiceTeas({ lines, invoiceNumber = null, onAddToCart, disco
     </section>
   );
 }
+
+const TASTING_PARAM = 'tasting';
 
 function sourceOf(line: PayLinkTeaLine): LinkTeaSource {
   return {
