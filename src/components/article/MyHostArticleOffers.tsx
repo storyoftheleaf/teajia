@@ -56,7 +56,7 @@ export function MyHostArticleOffers({ writing, onStep }: { writing: boolean; onS
       </div>
     ) : null;
   }
-  const { can_offer: canOffer, offers } = query.data;
+  const { can_offer: canOffer, offers = [] } = query.data;
   if (!canOffer && offers.length === 0) return null;
 
   return (
