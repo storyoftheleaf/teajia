@@ -1,0 +1,89 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-27T00:15:34.526Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "4d01f123-ef1a-4607-a270-551b8e5b8d1c",
+    "name": "Lao Banzhang Best Under Heaven Cake Shou Cha",
+    "chineseName": "老班章天下第一饼熟茶",
+    "type": "Shou Puer",
+    "form": "Cake",
+    "year": 2012,
+    "origin": "Banzhang, Yunnan, China",
+    "stockGrams": null,
+    "pricePerGramUsd": null,
+    "tags": []
+  },
+  "entry": {
+    "productId": "4d01f123-ef1a-4607-a270-551b8e5b8d1c",
+    "paragraphs": [
+      {
+        "layer": "place",
+        "text": "The leaf for this cake comes from [Banzhang](banzhang:where-it-is), a group of tea villages on Bulang Mountain in the south of Menghai County, Xishuangbanna. Lao Banzhang is the old village. [Xin Banzhang](banzhang:old-and-new) grew out of it when people moved away, and the two sell at very different prices. On a label, Banzhang is a [market name](banzhang:on-a-label), and it rarely says which village, or the wider area, is meant."
+      },
+      {
+        "layer": "type",
+        "text": "It was made into [ripe pu’er](shou:definition) in 2012. The leaf was wetted and heaped in a [damp pile](shou:wet-piling), covered to hold in the heat its own microbes make, and turned about once a week to spread that heat and let air in. Then it was dried and pressed, so it was ready to drink soon after it was made instead of after years of waiting."
+      },
+      {
+        "layer": "age",
+        "text": "At fourteen years it is past the ten years the trade counts as [aged ripe pu’er](shou:age-aged). The leaf is still changing slowly with the air and moisture around it, which is why storage matters as much as the years."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "From a cake, brick or tuo, ease a piece off along the edge with a pick rather than snapping it. Whole leaves give up their flavour steadily; broken ones release it all at once and cloud the cup. Ripe pu’er takes boiling water: fermented, tightly packed leaf needs full heat to open, and it does not scald the way green tea can. A common start is about 7 grams to 100 ml and one quick rinse, which wakes the leaf and carries off dust and any pile smell. Then short steeps that lengthen as the leaf opens, so the cup stays clear rather than heavy; it gives eight or more good cups."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "aged ripe pu’er",
+      "text": "A smooth, deep cup with woody, date-like or medicinal notes, which the trade calls aged aroma."
+    },
+    "missing": [
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "banzhang:where-it-is",
+      "rev": 1
+    },
+    {
+      "claimId": "banzhang:old-and-new",
+      "rev": 1
+    },
+    {
+      "claimId": "banzhang:on-a-label",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:wet-piling",
+      "rev": 2
+    },
+    {
+      "claimId": "shou:age-aged",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:brewing-pressed",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:notice-aged",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-27T00:36:10.835Z"
+}

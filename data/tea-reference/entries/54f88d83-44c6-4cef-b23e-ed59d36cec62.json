@@ -1,0 +1,70 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-27T00:16:27.717Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "54f88d83-44c6-4cef-b23e-ed59d36cec62",
+    "name": "Camphor Fragrance Shou Cha",
+    "chineseName": "樟香熟茶",
+    "type": "Shou Puer",
+    "form": "Loose",
+    "year": 2012,
+    "origin": "Yunnan, China",
+    "stockGrams": null,
+    "pricePerGramUsd": null,
+    "tags": []
+  },
+  "entry": {
+    "productId": "54f88d83-44c6-4cef-b23e-ed59d36cec62",
+    "paragraphs": [
+      {
+        "layer": "type",
+        "text": "Loose [ripe pu’er](shou:definition) from Yunnan, made in 2012. The style is made by [wet piling](shou:wet-piling): the leaf is heaped damp and covered to hold the heat its microbes give off, then turned about once a week to spread it and let air in, and finally dried. This leaf was left loose rather than pressed. It was made thirty-nine years after Yunnan’s state factories brought the pile into production in 1973."
+      },
+      {
+        "layer": "age",
+        "text": "At fourteen years it is past the ten that put a ripe pu’er among the [aged](shou:age-aged) teas. The leaf keeps changing slowly with the air and moisture around it, so how it has been kept matters as much as the years."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Ripe pu’er takes boiling water: fermented, tightly packed leaf needs full heat to open, and it does not scald the way green tea can. A common start is about 7 grams to 100 ml and one quick rinse, which wakes the leaf and carries off dust and any pile smell. Then short steeps that lengthen as the leaf opens, so the cup stays clear rather than heavy; it gives eight or more good cups."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "aged ripe pu’er",
+      "text": "A smooth, deep cup with woody, date-like or medicinal notes, which the trade calls aged aroma."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "shou:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:wet-piling",
+      "rev": 2
+    },
+    {
+      "claimId": "shou:age-aged",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:notice-aged",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-27T00:36:11.736Z"
+}

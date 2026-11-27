@@ -102,3 +102,6 @@ export function shippingPerGramUsd(opts: {
   }
   return opts.shopDefaultPerKgUsd === null ? null : opts.shopDefaultPerKgUsd / 1000;
 }
+
+// Where a tea's freight comes from, by its logistics service: one home for the site and the worker.
+export * from '../../src/lib/freightSource';

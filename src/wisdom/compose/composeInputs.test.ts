@@ -234,6 +234,22 @@ describe('composeInputs for any kit', () => {
   });
 });
 
+describe('composeInputs for a grade the name carries', () => {
+  const palace = { id: 'palace', product_name: 'Banzhang Palace Grade Shou Cha', type: 'Shou Puer', form: 'Loose', year: null, origin_region: 'Banzhang, Yunnan', origin_country: 'China' };
+
+  it('fills the grade layer from Palace Grade in the name, so the Gong Ting page reaches the entry', () => {
+    const inputs = composeInputs(palace, claims, { thisYear: 2026, pages });
+    expect(ids(inputs.layers.grade)).toEqual(expect.arrayContaining(['gong-ting:definition', 'gong-ting:appearance']));
+    expect(ids(inputs.layers.grade).every(id => id.startsWith('gong-ting:'))).toBe(true);
+  });
+
+  it('leaves the grade layer out when the name carries no grade with a page', () => {
+    expect(composeInputs(brick, claims, { thisYear: 2026, pages }).layers.grade).toBeUndefined();
+    const bull = { ...palace, product_name: 'Golden Bull Hengfengyuan Shou Cha' };
+    expect(composeInputs(bull, claims, { thisYear: 2026, pages }).layers.grade).toBeUndefined();
+  });
+});
+
 describe('composeInputs for a named tea', () => {
   const superseded = "San He, meaning Three Cranes, is the house brand of the Wuzhou Tea Factory, founded in 1953. Wuzhou is where modern liu bao production was concentrated, and the factory became the best-known name in the category, its mark widely respected across southern China and Southeast Asia.";
   const sanHe = { id: 'b11a8bad-89d9-4518-9406-25145d4c6e2c', product_name: 'San He Liu Bao', type: 'Dark', form: 'Loose Leaf', year: '1990s', origin_region: 'Wuzhou, Guangxi', origin_country: 'China', lore: superseded, processing_notes: 'anything' };

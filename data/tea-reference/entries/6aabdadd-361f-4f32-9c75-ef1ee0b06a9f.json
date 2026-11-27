@@ -1,0 +1,85 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-27T00:15:14.046Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "6aabdadd-361f-4f32-9c75-ef1ee0b06a9f",
+    "name": "Bulang Mountain Banpen Small Tea Heads",
+    "chineseName": "布朗山班盆小颗茶头",
+    "type": "Shou Puer",
+    "form": "Loose",
+    "year": 2018,
+    "origin": "Bulang Mountain, Yunnan, China",
+    "stockGrams": null,
+    "pricePerGramUsd": null,
+    "tags": []
+  },
+  "entry": {
+    "productId": "6aabdadd-361f-4f32-9c75-ef1ee0b06a9f",
+    "paragraphs": [
+      {
+        "layer": "place",
+        "text": "This leaf comes from [Bulang Mountain](bulang-mountain:where-it-is), the wide tea area in the south of Menghai County that runs along Yunnan’s border with Myanmar. On a label the mountain is [a broad market name](bulang-mountain:on-a-label): it points to a mountain style rather than to one of its many villages."
+      },
+      {
+        "layer": "type",
+        "text": "These are [tea heads](tea-heads:definition), the dense clumps that knot together while [ripe pu’er](shou:definition) ferments, sorted out after piling and sold apart from the numbered grades of loose leaf. They form in the [wet pile](shou:wet-piling), where dampened leaf is heaped so that microbes warm it from within, turned about once a week to let air in, and held below about 65°C so the leaf does not char. This lot is kept loose."
+      },
+      {
+        "layer": "age",
+        "text": "Made in 2018, the tea is now eight years old. That puts it in the stretch of about five to ten years in which [the smell of the pile](shou:age-settling) usually airs away."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Ripe pu’er takes boiling water: fermented, tightly packed leaf needs full heat to open, and it does not scald the way green tea can. A common start is about 7 grams to 100 ml and one quick rinse, which wakes the leaf and carries off dust and any pile smell. Then short steeps that lengthen as the leaf opens, so the cup stays clear rather than heavy; it gives eight or more good cups."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "ripe pu’er",
+      "text": "A smooth, sweet cup with earthy or woody notes. A young ripe tea can carry a faint smell of the pile, which fades with airing or in the first steeps."
+    },
+    "missing": [
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "bulang-mountain:where-it-is",
+      "rev": 1
+    },
+    {
+      "claimId": "bulang-mountain:on-a-label",
+      "rev": 1
+    },
+    {
+      "claimId": "tea-heads:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:wet-piling",
+      "rev": 2
+    },
+    {
+      "claimId": "shou:age-settling",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:common-impressions",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-27T00:36:09.880Z"
+}

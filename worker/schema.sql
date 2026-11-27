@@ -123,6 +123,7 @@ CREATE TABLE IF NOT EXISTS products (
     cost_currency TEXT DEFAULT 'USD',
     cost_currency_source TEXT, -- migration 0014: NULL = nobody ever stated the currency, so the DEFAULT above may be a guess
     shipping_rate_per_kg REAL, -- migration 0018: no default. NULL = unentered, takes the shop rate; 0 = Adrian said free
+    freight_service_id TEXT REFERENCES logistics_services(id), -- migration 0148: NULL = shop rate; a service prices freight from its shipments or quote
     quantity_purchased INTEGER,
     session_reserve_grams INTEGER,
     low_stock_threshold INTEGER DEFAULT 100,

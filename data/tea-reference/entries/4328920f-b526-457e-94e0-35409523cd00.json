@@ -1,0 +1,81 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-27T00:17:08.157Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "4328920f-b526-457e-94e0-35409523cd00",
+    "name": "Jingmai Old Tree Shou Cha",
+    "chineseName": "景迈古树熟茶",
+    "type": "Shou Puer",
+    "form": "Loose",
+    "year": 2009,
+    "origin": "Jingmai, Yunnan, China",
+    "stockGrams": null,
+    "pricePerGramUsd": null,
+    "tags": []
+  },
+  "entry": {
+    "productId": "4328920f-b526-457e-94e0-35409523cd00",
+    "paragraphs": [
+      {
+        "layer": "place",
+        "text": "[Jingmai](jingmai:where) is a tea mountain in Huimin Town, in Lancang Lahu Autonomous County of Pu’er City. In 2023 its old tea forests and villages were listed together as a UNESCO World Heritage cultural landscape. The tea there grows as [forest tea](jingmai:forest-tea): tall trees with little pruning, shaded by the woods around them. The mountain’s name is carried by both its raw and its ripe pu’er."
+      },
+      {
+        "layer": "type",
+        "text": "This leaf from 2009 was made into [ripe pu’er](shou:definition) and kept loose rather than pressed. In the [wet pile](shou:wet-piling) the warmth comes from the microbes themselves. So the heap is covered to hold that warmth in and turned about once a week to spread it and let air in. It is kept below about 65°C, because any hotter and the leaf begins to char."
+      },
+      {
+        "layer": "age",
+        "text": "At seventeen years it now sits among what the trade counts as [aged ripe pu’er](shou:age-aged). The leaf goes on changing slowly with the air and moisture around it, which is why storage shapes it as much as the years do."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Ripe pu’er takes boiling water: fermented, tightly packed leaf needs full heat to open, and it does not scald the way green tea can. A common start is about 7 grams to 100 ml and one quick rinse, which wakes the leaf and carries off dust and any pile smell. Then short steeps that lengthen as the leaf opens, so the cup stays clear rather than heavy; it gives eight or more good cups."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "aged ripe pu’er",
+      "text": "A smooth, deep cup with woody, date-like or medicinal notes, which the trade calls aged aroma."
+    },
+    "missing": [
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "jingmai:where",
+      "rev": 1
+    },
+    {
+      "claimId": "jingmai:forest-tea",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:wet-piling",
+      "rev": 2
+    },
+    {
+      "claimId": "shou:age-aged",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:notice-aged",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-27T00:36:10.361Z"
+}

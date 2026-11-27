@@ -295,28 +295,36 @@ describe('J2, stopping one host', () => {
 });
 
 describe('J2, a host’s first session is never listed', () => {
-  function event(id: string, hostUserId: string | null, createdAt: string) {
+  function event(id: string, hostUserId: string | null, createdAt: string, accountId = 'shop') {
     db.sqlite.prepare(`INSERT INTO events (id, account_id, slug, title, event_date, total_capacity, timezone,
         public_visibility, network_discovery, host_user_id, status, lifecycle_status, created_at)
-      VALUES (?, 'shop', ?, ?, ?, 6, 'UTC', 'public', 1, ?, 'active', 'published', ?)`)
-      .run(id, id, `Session ${id}`, new Date(Date.now() + 10 * 86400000).toISOString(), hostUserId, createdAt);
+      VALUES (?, ?, ?, ?, ?, 6, 'UTC', 'public', 1, ?, 'active', 'published', ?)`)
+      .run(id, accountId, id, `Session ${id}`, new Date(Date.now() + 10 * 86400000).toISOString(), hostUserId, createdAt);
   }
+  // Ana's own account is her personal one: her tables live there.
+  const personal = (userId: string, accountId: string) =>
+    db.sqlite.prepare('UPDATE accounts SET personal_inventory_user_id = ?, owner_user_id = ? WHERE id = ?').run(userId, userId, accountId);
 
-  it('lists a hosted session only after the host’s first, and leaves sessions without a host alone', async () => {
+  it('lists a person’s table only after their first, and leaves the shop’s sessions alone, host named or not', async () => {
+    personal('ana', 'ana-home');
+    personal('bo', 'bo-home');
     event('shop-own', null, '2026-11-01 10:00:00');
-    event('ana-first', 'ana', '2026-11-02 10:00:00');
-    event('ana-second', 'ana', '2026-11-03 10:00:00');
-    event('bo-first', 'bo', '2026-11-03 10:00:00');
+    event('shop-poured-by-ana', 'ana', '2026-11-01 09:00:00');
+    event('ana-first', 'ana', '2026-11-02 10:00:00', 'ana-home');
+    event('ana-second', 'ana', '2026-11-03 10:00:00', 'ana-home');
+    event('bo-first', 'bo', '2026-11-03 10:00:00', 'bo-home');
     const listable = (db.sqlite.prepare(`SELECT e.id FROM events e WHERE ${listableHostedSessionSql('e')} ORDER BY e.id`).all() as { id: string }[])
       .map(row => row.id);
-    expect(listable).toEqual(['ana-second', 'shop-own']);
+    expect(listable).toEqual(['ana-second', 'shop-own', 'shop-poured-by-ana']);
+    // The shop's sessions are on the public list exactly as before, the one naming Ana as host included.
     const listed = (await body(await call('/api/events')) as unknown as { id: string }[]).map(row => row.id).sort();
-    expect(listed).toEqual(['ana-second', 'shop-own']);
+    expect(listed).toEqual(['shop-own', 'shop-poured-by-ana']);
   });
 
   it('treats two sessions made in the same second by their order, so exactly one is first', () => {
-    event('b', 'ana', '2026-11-02 10:00:00');
-    event('a', 'ana', '2026-11-02 10:00:00');
+    personal('ana', 'ana-home');
+    event('b', 'ana', '2026-11-02 10:00:00', 'ana-home');
+    event('a', 'ana', '2026-11-02 10:00:00', 'ana-home');
     const listable = (db.sqlite.prepare(`SELECT e.id FROM events e WHERE ${listableHostedSessionSql('e')}`).all() as { id: string }[]).map(r => r.id);
     expect(listable).toEqual(['b']);
   });

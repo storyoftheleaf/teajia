@@ -55,6 +55,13 @@ export function mapAdminProduct(p: any): Product {
            column, the Add Product modal, the edit panel) were already written
            to read a null here and had never once been handed one. */
         shippingRatePerKg: storedRatePerKg(p.shipping_rate_per_kg),
+        freightServiceId: p.freight_service_id ?? null,
+        ...(p.freight_source ? {
+          freightFallbackPerKgUsd: p.freight_fallback_per_kg_usd == null ? null : Number(p.freight_fallback_per_kg_usd),
+          freightSource: p.freight_source,
+          freightFellBack: p.freight_fell_back ?? null,
+          freightDated: p.freight_dated ?? null,
+        } : {}),
         fixedRetailPriceUSD: p.fixed_retail_price_usd == null ? null : Number(p.fixed_retail_price_usd),
         isPersonal: !!p.is_personal,
         canReorder: !!p.can_reorder,

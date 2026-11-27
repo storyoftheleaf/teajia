@@ -192,7 +192,7 @@ describe('nothing else in the shop decides the rate', () => {
     expect(found.some(m => m[1]), 'addPricingFields moved or was renamed').toBe(true);
     expect(calls.length, 'nothing calls addPricingFields any more').toBeGreaterThan(0);
     for (const call of calls) {
-      expect(call, `a pricing call site takes no shop rate: ${call}`).toMatch(/rates,\s*(shopDefaultPerKgUsd|resolveShopFreightDefault)/);
+      expect(call, `a pricing call site takes no shop rate: ${call}`).toMatch(/rates,\s*(freightDefaults|freightByAccount\.get)/);
     }
   });
 
