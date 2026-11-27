@@ -11,7 +11,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Delete, Share2 } from 'lucide-react';
 import { API_URL, authedFetch } from '../../lib/api';
 import { mediaUrl } from '../../lib/mediaUrl';
-import { TYPOGRAPHY_CLASSES } from '../../designTokens';
+import { TYPOGRAPHY_CLASSES, getTeaLedgerTones } from '../../designTokens';
+import { useTheme } from '../../context/ThemeContext';
 import { useStepParam } from '../../hooks/useStepParam';
 import { useAdminBack } from '../hooks/useAdminBack';
 import { BottomSheet } from '../../components/shared/BottomSheet';
@@ -31,6 +32,7 @@ export default function PourView() {
   const [day, setDay] = useStepParam('day', today);
   const [kind, setKind] = useStepParam('kind');
   const [query, setQuery] = useStepParam('q');
+  const { theme } = useTheme();
   const [order, setOrder] = useStepParam('order', 'price');
   const [teaId, setTeaId] = useStepParam('tea');
   const [sheet, setSheet] = useStepParam('sit');
@@ -177,9 +179,10 @@ export default function PourView() {
             {kinds.map(one => (
               <li key={one.kind} className="min-w-0 bg-tea-bg">
                 <Button type="button" variant="plain" onClick={() => setKind(one.kind)}
-                  className="flex h-24 w-full flex-col justify-between p-3 text-left transition-colors active:bg-tea-elevated">
-                  <span className={`${TYPOGRAPHY_CLASSES.h2} break-words`}>{one.kind}</span>
-                  <span className="text-ui-12 text-tea-text-sec">{one.count} {one.count === 1 ? 'tea' : 'teas'}</span>
+                  style={{ backgroundImage: `linear-gradient(to bottom right, ${getTeaLedgerTones(one.kind, theme).wash}, transparent 70%)` }}
+                  className="flex h-28 w-full flex-col justify-between p-3 text-left transition-colors active:bg-tea-elevated">
+                  <span className="break-words font-display text-ui-24 leading-tight text-tea-text">{one.kind}</span>
+                  <span className="text-ui-11 uppercase tracking-widest text-tea-text-sec">{one.count} {one.count === 1 ? 'tea' : 'teas'}</span>
                 </Button>
               </li>
             ))}
@@ -202,12 +205,13 @@ export default function PourView() {
               {shown.map(one => (
                 <li key={one.id}>
                   <Button type="button" variant="plain" onClick={() => setTeaId(one.id)}
+                    style={{ backgroundImage: `linear-gradient(to right, ${getTeaLedgerTones(one.type || kind, theme).wash}, transparent 38%)` }}
                     className="flex min-h-16 w-full items-center gap-3 px-3 py-2 text-left transition-colors active:bg-tea-elevated">
                     {one.image_url && (
                       <img src={mediaUrl(one.image_url)} alt="" loading="lazy" className="h-12 w-12 shrink-0 rounded-md object-cover" />
                     )}
                     <span className="flex min-w-0 flex-1 flex-col">
-                      <span className={`${TYPOGRAPHY_CLASSES.h3} line-clamp-2 break-words`}>{one.name}</span>
+                      <span className="line-clamp-2 break-words font-display text-ui-20 leading-tight text-tea-text">{one.name}</span>
                       <span className="text-ui-11 text-tea-text-sec">
                         {[one.year, one.sample ? 'sample' : null, `${one.stock_grams ?? 0} g`].filter(Boolean).join(' · ')}
                       </span>
