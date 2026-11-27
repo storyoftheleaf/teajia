@@ -1,0 +1,989 @@
+
+1990s Pu'er Tea Brick
+  covered  style     Shou (ripe pu’er)          Style kit: Shou (ripe pu’er)
+  missing  place     Origin                     No origin recorded: add where it is from
+
+Menghai Pre-Qingming Tender-Bud Palace Tea  (Menghai)
+  covered  style     Shou (ripe pu’er)          Style kit: Shou (ripe pu’er)
+  covered  place     Menghai                    Written up
+  drafted  grade     Gong Ting                  Page drafted, waiting for approval
+  record   producer  Menghai Tea Factory        Record only, no write-up
+
+1980s Guogai Bing
+  covered  style     Shou (ripe pu’er)          Style kit: Shou (ripe pu’er)
+  missing  place     Origin                     No origin recorded: add where it is from
+
+Aged Liu Bao Tea  (Guangxi, southern China, China)
+  covered  style     Liu Bao                    Style kit: Liu Bao, Dark tea (hei cha)
+  record   place     Guangxi                    Record only, no write-up
+
+Aged Ripe Pu-erh Tea  (Yunnan, China)
+  covered  style     Shou (ripe pu’er)          Style kit: Shou (ripe pu’er)
+  covered  place     Yunnan                     Written up
+
+Aged Northern Vietnam Ripe Pu-erh Tea  (Northern Vietnam highlands, on the Yunnan border, Vietnam)
+  covered  style     Shou (ripe pu’er)          Style kit: Shou (ripe pu’er)
+  missing  place     Northern Vietnam highlands Nothing in the Wisdom Base yet
+
+Bamboo Leaf Old Tea  (Guangxi, Cangwu (liubao), China)
+  covered  style     Liu Bao                    Style kit: Liu Bao, Dark tea (hei cha)
+  record   place     Guangxi                    Record only, no write-up
+
+Yiwu Raw Puerh  (Yiwu, Yunnan, China)
+  covered  style     Sheng Pu’er                Style kit: Sheng Pu’er
+  covered  place     Yiwu                       Written up
+
+Ripe Puerh Brick  (Yunnan, China)
+  covered  style     Shou (ripe pu’er)          Style kit: Shou (ripe pu’er)
+  covered  place     Yunnan                     Written up
+
+Ginseng Puer  (Yunnan, China)
+  covered  style     Shou (ripe pu’er)          Style kit: Shou (ripe pu’er)
+  covered  place     Yunnan                     Written up
+
+Small Tuo  (Yunnan, China)
+  covered  style     Shou (ripe pu’er)          Style kit: Shou (ripe pu’er)
+  covered  place     Yunnan                     Written up
+
+Y562 (Jixing) Black Box  (Yunnan, China)
+  covered  style     Shou (ripe pu’er)          Style kit: Shou (ripe pu’er)
+  covered  place     Yunnan                     Written up
+  record   producer  China National Tea Corporation Record only, no write-up
+  covered  named     Y562                       Written up
+
+Large Basket Liu Bao  (Guangxi, China)
+  covered  style     Liu Bao                    Style kit: Liu Bao, Dark tea (hei cha)
+  record   place     Guangxi                    Record only, no write-up
+
+Ripe Puerh Loose  (Yunnan, China)
+  covered  style     Shou (ripe pu’er)          Style kit: Shou (ripe pu’er)
+  covered  place     Yunnan                     Written up
+
+San He Liu Bao  (Wuzhou, Guangxi, China)
+  covered  style     Liu Bao                    Style kit: Liu Bao, Dark tea (hei cha)
+  record   place     Wuzhou                     Record only, no write-up
+  record   grade     Three Cranes               Record only, no write-up
+  record   producer  Wuzhou Tea Factory         Record only, no write-up
+  covered  named     San He Liu Bao             Written up
+
+Malaysian Returned Liu Bao  (Guangxi, China)
+  covered  style     Liu Bao                    Style kit: Liu Bao, Dark tea (hei cha)
+  record   place     Guangxi                    Record only, no write-up
+  covered  named     Malaysian Returned Liu Bao Written up
+
+Wuliangshan Gushu Shou  (Wuliang Mountain, Jingdong County, Pu'er City, Yunnan, China)
+  covered  style     Shou (ripe pu’er)          Style kit: Shou (ripe pu’er)
+  record   place     Wuliang Mountain           Record only, no write-up; Yunnan is written up
+
+Mahei Gushu Red  (Mahei, Yiwu, Xishuangbanna, Yunnan, China)
+  covered  style     Dian Hong (Yunnan red)     Style kit: Dian Hong (Yunnan red), Red tea (hong cha)
+  covered  place     Mahei                      Written up
+  covered  named     Mahei Gushu Red            Written up
+
+Nanqiao Ruigong Brick  (Menghai, Yunnan, China)
+  covered  style     Shou (ripe pu’er)          Style kit: Shou (ripe pu’er)
+  covered  place     Menghai                    Written up
+  record   grade     Gong Jin                   Record only, no write-up
+  record   producer  Qiaorui                    Record only, no write-up
+  covered  named     Nanqiao Ruigong Brick      Written up
+
+Pasha Village  (Menghai, Yunnan, China)
+  covered  style     Shou (ripe pu’er)          Style kit: Shou (ripe pu’er)
+  covered  place     Menghai                    Written up
+
+Naka Gushu  (Mengsong, Menghai, Yunnan, China)
+  covered  style     Shou (ripe pu’er)          Style kit: Shou (ripe pu’er)
+  covered  place     Mengsong                   Written up
+
+Xiniu Tang Gushu  (Yiwu, Yunnan, China)
+  covered  style     Shou (ripe pu’er)          Style kit: Shou (ripe pu’er)
+  covered  place     Yiwu                       Written up
+
+Yiwu Gushu  (Yiwu, Yunnan, China)
+  covered  style     Shou (ripe pu’er)          Style kit: Shou (ripe pu’er)
+  covered  place     Yiwu                       Written up
+
+Rougui  (Wuyi Mountains, Fujian, China)
+  covered  style     Wuyi rock tea (yancha)     Style kit: Wuyi rock tea (yancha), Oolong (wulong)
+  record   place     Wuyi Mountains             Record only, no write-up
+
+Meizhan Yancha  (Wuyi Mountains, Fujian, China)
+  covered  style     Wuyi rock tea (yancha)     Style kit: Wuyi rock tea (yancha), Oolong (wulong)
+  record   place     Wuyi Mountains             Record only, no write-up
+
+Muyun Da Hong Pao  (Wuyi Mountains, Fujian, China)
+  covered  style     Wuyi rock tea (yancha)     Style kit: Wuyi rock tea (yancha), Oolong (wulong)
+  record   place     Wuyi Mountains             Record only, no write-up
+
+Lotus Rougui  (Wuyi Mountains, Fujian, China)
+  covered  style     Wuyi rock tea (yancha)     Style kit: Wuyi rock tea (yancha), Oolong (wulong)
+  record   place     Wuyi Mountains             Record only, no write-up
+
+Amitabha Rougui  (Wuyi Mountains, Fujian, China)
+  covered  style     Wuyi rock tea (yancha)     Style kit: Wuyi rock tea (yancha), Oolong (wulong)
+  record   place     Wuyi Mountains             Record only, no write-up
+
+Liu Bao  (Cangwu, Guangxi, China)
+  covered  style     Liu Bao                    Style kit: Liu Bao, Dark tea (hei cha)
+  record   place     Cangwu                     Record only, no write-up
+
+Lapsang Souchong  (Wuyi Mountains, Fujian, China)
+  covered  style     Lapsang Souchong (Zhengshan Xiaozhong) Style kit: Lapsang Souchong (Zhengshan Xiaozhong), Red tea (hong cha)
+  record   place     Wuyi Mountains             Record only, no write-up
+
+Lapsang Souchong  (Wuyi Mountains, Fujian, China)
+  covered  style     Lapsang Souchong (Zhengshan Xiaozhong) Style kit: Lapsang Souchong (Zhengshan Xiaozhong), Red tea (hong cha)
+  record   place     Wuyi Mountains             Record only, no write-up
+
+Meizhan Oolong  (Wuyi Mountains, Fujian, China)
+  covered  style     Wuyi rock tea (yancha)     Style kit: Wuyi rock tea (yancha), Oolong (wulong)
+  record   place     Wuyi Mountains             Record only, no write-up
+
+Meizhan Oolong  (Wuyi Mountains, Fujian, China)
+  covered  style     Wuyi rock tea (yancha)     Style kit: Wuyi rock tea (yancha), Oolong (wulong)
+  record   place     Wuyi Mountains             Record only, no write-up
+
+Shuishalian Yuchi Red  (Yuchi, Nantou, Taiwan)
+  covered  style     Red tea (hong cha)         Style kit: Red tea (hong cha)
+  missing  place     Yuchi                      Nothing in the Wisdom Base yet
+
+GABA Organic High Mountain  (Nantou, Taiwan)
+  covered  style     Taiwan oolong              Style kit: Taiwan oolong, Oolong (wulong)
+  record   place     Nantou                     Record only, no write-up
+  covered  process   GABA                       Written up
+
+Bamboo Tube Shou  (Yunnan, China)
+  covered  style     Shou (ripe pu’er)          Style kit: Shou (ripe pu’er)
+  covered  place     Yunnan                     Written up
+  missing  process   Bamboo tube                Nothing in the Wisdom Base yet
+
+Precious Tieguanyin  (Anxi, Fujian, China)
+  covered  style     Tieguanyin                 Style kit: Tieguanyin, Oolong (wulong)
+  record   place     Anxi                       Record only, no write-up
+  record   grade     Zhen Pin                   Record only, no write-up
+
+Lao Banzhang Best Under Heaven Cake Shou Cha  (Banzhang, Yunnan, China)
+  covered  style     Shou (ripe pu’er)          Style kit: Shou (ripe pu’er)
+  covered  place     Banzhang                   Written up
+
+Honey Note Gaoshan Red  (Taiwan)
+  covered  style     Red tea (hong cha)         Style kit: Red tea (hong cha)
+  record   place     Taiwan                     Record only, no write-up
+
+Zhenghe Bai Cha  (Fuding, Fujian, China)
+  covered  style     Fujian white               Style kit: Fujian white, White tea (bai cha)
+  record   place     Fuding                     Record only, no write-up
+
+Orange Master Box  (China)
+  covered  style     Oolong (wulong)            Style kit: Oolong (wulong)
+  record   place     China                      Record only, no write-up
+  record   named     Orange Master Box          Record only, no write-up
+
+Beipu Oolong  (Beipu, Hsinchu, Taiwan)
+  covered  style     Taiwan oolong              Style kit: Taiwan oolong, Oolong (wulong)
+  record   place     Beipu                      Record only, no write-up
+
+Tie Guan Yin  (Anxi, Fujian, China)
+  covered  style     Tieguanyin                 Style kit: Tieguanyin, Oolong (wulong)
+  record   place     Anxi                       Record only, no write-up
+
+Wild Purple Bud White  (Yunnan, China)
+  covered  style     Yunnan white               Style kit: Yunnan white, White tea (bai cha)
+  covered  place     Yunnan                     Written up
+
+Ancient Wild Shai Hong  (Yunnan, China)
+  covered  style     Dian Hong (Yunnan red)     Style kit: Dian Hong (Yunnan red), Red tea (hong cha)
+  covered  place     Yunnan                     Written up
+
+Purple King  (Yunnan, China)
+  covered  style     Sheng Pu’er                Style kit: Sheng Pu’er
+  covered  place     Yunnan                     Written up
+
+Meizhan Yancha  (Wuyi Mountains, Fujian, China)
+  covered  style     Wuyi rock tea (yancha)     Style kit: Wuyi rock tea (yancha), Oolong (wulong)
+  record   place     Wuyi Mountains             Record only, no write-up
+
+Fujian Tie Guan Yin  (Anxi, Fujian, China)
+  covered  style     Tieguanyin                 Style kit: Tieguanyin, Oolong (wulong)
+  record   place     Anxi                       Record only, no write-up
+
+EU GABA Oolong  (Taiwan)
+  covered  style     Taiwan oolong              Style kit: Taiwan oolong, Oolong (wulong)
+  record   place     Taiwan                     Record only, no write-up
+  covered  process   GABA                       Written up
+
+Red Seal Camphor Puerh  (Yunnan, China)
+  covered  style     Sheng Pu’er                Style kit: Sheng Pu’er
+  covered  place     Yunnan                     Written up
+  record   grade     Red Seal                   Record only, no write-up
+  record   producer  China National Tea Corporation Record only, no write-up
+
+Taiwan Aged Green  (Taiwan)
+  covered  style     Green tea (lü cha)         Style kit: Green tea (lü cha)
+  record   place     Taiwan                     Record only, no write-up
+
+Tie Guan Yin  (Anxi, Fujian, China)
+  covered  style     Tieguanyin                 Style kit: Tieguanyin, Oolong (wulong)
+  record   place     Anxi                       Record only, no write-up
+
+Bulang Mountain Banpen Small Tea Heads  (Bulang Mountain, Yunnan, China)
+  covered  style     Shou (ripe pu’er)          Style kit: Shou (ripe pu’er)
+  covered  place     Bulang Mountain            Written up
+  covered  process   Tea heads                  Written up
+
+1970s Small Yellow Mark (Raw)  (Yunnan, China)
+  covered  style     Sheng Pu’er                Style kit: Sheng Pu’er
+  covered  place     Yunnan                     Written up
+
+Aged Liu An  (Qimen, Anhui, China)
+  covered  style     Liu An                     Style kit: Liu An, Dark tea (hei cha)
+  record   place     Qimen                      Record only, no write-up
+
+Shui Island Mengqing  (Lincang, Yunnan, China)
+  covered  style     Shou (ripe pu’er)          Style kit: Shou (ripe pu’er)
+  covered  place     Lincang                    Written up
+
+Shou  (Yunnan, China)
+  covered  style     Shou (ripe pu’er)          Style kit: Shou (ripe pu’er)
+  covered  place     Yunnan                     Written up
+
+Hong Cha  (Taiwan)
+  covered  style     Red tea (hong cha)         Style kit: Red tea (hong cha)
+  record   place     Taiwan                     Record only, no write-up
+
+Nantou Roasted  (Nantou, Taiwan)
+  covered  style     Taiwan oolong              Style kit: Taiwan oolong, Oolong (wulong)
+  record   place     Nantou                     Record only, no write-up
+
+Golden Award Puerh  (Yunnan, China)
+  covered  style     Shou (ripe pu’er)          Style kit: Shou (ripe pu’er)
+  covered  place     Yunnan                     Written up
+
+Anhua Yi Ji  (Anhua, Hunan, China)
+  covered  style     Anhua dark tea             Style kit: Anhua dark tea, Dark tea (hei cha)
+  record   place     Anhua                      Record only, no write-up
+  record   grade     Yi Ji                      Record only, no write-up
+
+Camphor Fragrance Shou Cha  (Yunnan, China)
+  covered  style     Shou (ripe pu’er)          Style kit: Shou (ripe pu’er)
+  covered  place     Yunnan                     Written up
+
+1990 Old Tea Stem Loose  (China)
+  covered  style     Dark tea (hei cha)         Style kit: Dark tea (hei cha)
+  record   place     China                      Record only, no write-up
+
+Huakang Oolong  (Taiwan)
+  covered  style     Taiwan oolong              Style kit: Taiwan oolong, Oolong (wulong)
+  record   place     Taiwan                     Record only, no write-up
+
+Aged Sheng Cha Essence Hong Cha  (Yunnan, China)
+  covered  style     Dian Hong (Yunnan red)     Style kit: Dian Hong (Yunnan red), Red tea (hong cha)
+  covered  place     Yunnan                     Written up
+
+Yabukita Green  (Japan)
+  covered  style     Green tea (lü cha)         Style kit: Green tea (lü cha)
+  record   place     Japan                      Record only, no write-up
+
+1980s Aged Oolong  (Guangdong, China)
+  covered  style     Oolong (wulong)            Style kit: Oolong (wulong)
+  record   place     Guangdong                  Record only, no write-up
+
+Dark Green Tie Bing  (Yunnan, China)
+  covered  style     Sheng Pu’er                Style kit: Sheng Pu’er
+  covered  place     Yunnan                     Written up
+
+1990s Xiaguan Shou Brick  (Yunnan, China)
+  covered  style     Shou (ripe pu’er)          Style kit: Shou (ripe pu’er)
+  covered  place     Yunnan                     Written up
+  record   producer  Xiaguan Tea Factory        Record only, no write-up
+
+Sheng Puerh  (Yunnan, China)
+  covered  style     Sheng Pu’er                Style kit: Sheng Pu’er
+  covered  place     Yunnan                     Written up
+
+Liu An  (Anhui, China)
+  covered  style     Liu An                     Style kit: Liu An, Dark tea (hei cha)
+  record   place     Anhui                      Record only, no write-up
+
+Duck Shit Aroma  (Phoenix Mountain)
+  covered  style     Phoenix Dancong            Style kit: Phoenix Dancong, Oolong (wulong)
+  record   place     Phoenix Mountain           Record only, no write-up
+
+Bulang Mountain High-End Old Tree Shou Cha  (Bulang Mountain, Yunnan, China)
+  covered  style     Shou (ripe pu’er)          Style kit: Shou (ripe pu’er)
+  covered  place     Bulang Mountain            Written up
+
+Green Powder  (Yunnan, China)
+  covered  style     Sheng Pu’er                Style kit: Sheng Pu’er
+  covered  place     Yunnan                     Written up
+
+Organic GABA Oolong  (Taiwan)
+  covered  style     Taiwan oolong              Style kit: Taiwan oolong, Oolong (wulong)
+  record   place     Taiwan                     Record only, no write-up
+  covered  process   GABA                       Written up
+
+Yiwu Monkey Black Gushu  (Yiwu, Yunnan, China)
+  covered  style     Shou (ripe pu’er)          Style kit: Shou (ripe pu’er)
+  covered  place     Yiwu                       Written up
+
+True Love New  (Yunnan, China)
+  covered  style     Shou (ripe pu’er)          Style kit: Shou (ripe pu’er)
+  covered  place     Yunnan                     Written up
+  record   named     True Love New              Record only, no write-up
+
+Zhengshan Xiaozhong  (Wuyi Mountains, Fujian, China)
+  covered  style     Lapsang Souchong (Zhengshan Xiaozhong) Style kit: Lapsang Souchong (Zhengshan Xiaozhong), Red tea (hong cha)
+  record   place     Wuyi Mountains             Record only, no write-up
+
+Old Rainbow  (Yunnan, China)
+  covered  style     Sheng Pu’er                Style kit: Sheng Pu’er
+  covered  place     Yunnan                     Written up
+  record   named     Old Rainbow                Record only, no write-up
+
+1990 Pre-Qingming Tea  (China)
+  covered  style     Green tea (lü cha)         Style kit: Green tea (lü cha)
+  record   place     China                      Record only, no write-up
+
+Buddha Palm  (Taiwan)
+  covered  style     Taiwan oolong              Style kit: Taiwan oolong, Oolong (wulong)
+  record   place     Taiwan                     Record only, no write-up
+
+Dong Ding Aged  (Lugu, Nantou, Taiwan)
+  covered  style     Taiwan oolong              Style kit: Taiwan oolong, Oolong (wulong)
+  record   place     Lugu                       Record only, no write-up
+
+Golden Award Aged Oolong  (Taiwan)
+  covered  style     Taiwan oolong              Style kit: Taiwan oolong, Oolong (wulong)
+  record   place     Taiwan                     Record only, no write-up
+
+Banzhang Palace Grade Shou Cha  (Banzhang, Yunnan, China)
+  covered  style     Shou (ripe pu’er)          Style kit: Shou (ripe pu’er)
+  covered  place     Banzhang                   Written up
+  drafted  grade     Gong Ting                  Page drafted, waiting for approval
+
+Golden Bull Hengfengyuan Shou Cha  (Yunnan, China)
+  covered  style     Shou (ripe pu’er)          Style kit: Shou (ripe pu’er)
+  covered  place     Yunnan                     Written up
+  record   grade     Golden Bull                Record only, no write-up
+  record   producer  Hengfengyuan               Record only, no write-up
+
+Aged Oolong  (Taiwan)
+  covered  style     Taiwan oolong              Style kit: Taiwan oolong, Oolong (wulong)
+  record   place     Taiwan                     Record only, no write-up
+
+Miracle Fate  (Yunnan, China)
+  covered  style     Shou (ripe pu’er)          Style kit: Shou (ripe pu’er)
+  covered  place     Yunnan                     Written up
+  record   named     Miracle Fate               Record only, no write-up
+
+Anhua Huangye  (Anhua, Hunan, China)
+  covered  style     Anhua dark tea             Style kit: Anhua dark tea, Dark tea (hei cha)
+  record   place     Anhua                      Record only, no write-up
+
+Gushu Bai Cha  (Lincang, Yunnan, China)
+  covered  style     Yunnan white               Style kit: Yunnan white, White tea (bai cha)
+  covered  place     Lincang                    Written up
+
+oolong  (Zhudong, taiwan, China)
+  covered  style     Taiwan oolong              Style kit: Taiwan oolong, Oolong (wulong)
+  missing  place     Zhudong                    Nothing in the Wisdom Base yet
+
+Qing Mao Hong Cha  (Yunnan, China)
+  covered  style     Dian Hong (Yunnan red)     Style kit: Dian Hong (Yunnan red), Red tea (hong cha)
+  covered  place     Yunnan                     Written up
+
+Bai Liang  (Anhua, Hunan, China)
+  covered  style     Anhua dark tea             Style kit: Anhua dark tea, Dark tea (hei cha)
+  record   place     Anhua                      Record only, no write-up
+
+Qing Mao Hong Cha  (Yunnan, China)
+  covered  style     Dian Hong (Yunnan red)     Style kit: Dian Hong (Yunnan red), Red tea (hong cha)
+  covered  place     Yunnan                     Written up
+
+Anhua Yi Ji  (Anhua, Hunan, China)
+  covered  style     Anhua dark tea             Style kit: Anhua dark tea, Dark tea (hei cha)
+  record   place     Anhua                      Record only, no write-up
+  record   grade     Yi Ji                      Record only, no write-up
+
+Ya'an Kang Brick  (Ya'an, Sichuan, China)
+  covered  style     Sichuan border tea         Style kit: Sichuan border tea, Dark tea (hei cha)
+  record   place     Ya'an                      Record only, no write-up
+
+Shou Puerh  (Yunnan, China)
+  covered  style     Shou (ripe pu’er)          Style kit: Shou (ripe pu’er)
+  covered  place     Yunnan                     Written up
+
+600 Year Gushu Red  (Lincang, Yunnan, China)
+  covered  style     Dian Hong (Yunnan red)     Style kit: Dian Hong (Yunnan red), Red tea (hong cha)
+  covered  place     Lincang                    Written up
+
+Xiao Qing Gan  (Yunnan, China)
+  covered  style     Shou (ripe pu’er)          Style kit: Shou (ripe pu’er)
+  covered  place     Yunnan                     Written up
+
+Banzhang Old Tea Heads  (Banzhang, Yunnan, China)
+  covered  style     Shou (ripe pu’er)          Style kit: Shou (ripe pu’er)
+  covered  place     Banzhang                   Written up
+  covered  process   Tea heads                  Written up
+
+Guangxi Liupao  (Guangxi, China)
+  covered  style     Liu Bao                    Style kit: Liu Bao, Dark tea (hei cha)
+  record   place     Guangxi                    Record only, no write-up
+
+Wan Zhi  (Yunnan, China)
+  covered  style     Shou (ripe pu’er)          Style kit: Shou (ripe pu’er)
+  covered  place     Yunnan                     Written up
+
+Tuo Cha  (Menghai, Yunnan, China)
+  covered  style     Shou (ripe pu’er)          Style kit: Shou (ripe pu’er)
+  covered  place     Menghai                    Written up
+
+Li Shan Wild  (Li Shan, Taiwan)
+  covered  style     Taiwan oolong              Style kit: Taiwan oolong, Oolong (wulong)
+  record   place     Li Shan                    Record only, no write-up
+
+1980s Aged Raw  (Yunnan, China)
+  covered  style     Sheng Pu’er                Style kit: Sheng Pu’er
+  covered  place     Yunnan                     Written up
+
+Tie Guan Yin  (Anxi, Fujian, China)
+  covered  style     Tieguanyin                 Style kit: Tieguanyin, Oolong (wulong)
+  record   place     Anxi                       Record only, no write-up
+
+Thousand-Year Wild Chu Hong Cha  (Yunnan, China)
+  covered  style     Dian Hong (Yunnan red)     Style kit: Dian Hong (Yunnan red), Red tea (hong cha)
+  covered  place     Yunnan                     Written up
+
+Maojian Raw Puerh  (Yunnan, China)
+  covered  style     Sheng Pu’er                Style kit: Sheng Pu’er
+  covered  place     Yunnan                     Written up
+
+Shuishalian Yuchi Red  (Yuchi, Nantou, Taiwan)
+  covered  style     Red tea (hong cha)         Style kit: Red tea (hong cha)
+  missing  place     Yuchi                      Nothing in the Wisdom Base yet
+
+White Needle Golden Lotus  (Yunnan, China)
+  covered  style     Sheng Pu’er                Style kit: Sheng Pu’er
+  covered  place     Yunnan                     Written up
+
+Courage  (Yunnan, China)
+  covered  style     Sheng Pu’er                Style kit: Sheng Pu’er
+  covered  place     Yunnan                     Written up
+  record   named     Courage                    Record only, no write-up
+
+Ya Shi Xiang Dancong  (Phoenix Mountain, Guangdong, China)
+  covered  style     Phoenix Dancong            Style kit: Phoenix Dancong, Oolong (wulong)
+  record   place     Phoenix Mountain           Record only, no write-up
+
+Small Basket Liu Bao  (Guangxi, China)
+  covered  style     Liu Bao                    Style kit: Liu Bao, Dark tea (hei cha)
+  record   place     Guangxi                    Record only, no write-up
+
+Wild Ancha  (Anhua, Hunan, China)
+  covered  style     Anhua dark tea             Style kit: Anhua dark tea, Dark tea (hei cha)
+  record   place     Anhua                      Record only, no write-up
+
+Gong Ting Oolong  (Taiwan)
+  covered  style     Taiwan oolong              Style kit: Taiwan oolong, Oolong (wulong)
+  record   place     Taiwan                     Record only, no write-up
+  drafted  grade     Gong Ting                  Page drafted, waiting for approval
+
+te quan yin  (China)
+  covered  style     Oolong (wulong)            Style kit: Oolong (wulong)
+  record   place     China                      Record only, no write-up
+
+Dragon Shou  (Yunnan, China)
+  covered  style     Shou (ripe pu’er)          Style kit: Shou (ripe pu’er)
+  covered  place     Yunnan                     Written up
+
+Yellow Label Tie Bing  (Yunnan, China)
+  covered  style     Shou (ripe pu’er)          Style kit: Shou (ripe pu’er)
+  covered  place     Yunnan                     Written up
+  record   grade     Yellow Label               Record only, no write-up
+
+Osmanthus Tieguanyin  (Anxi, Fujian, China)
+  covered  style     Tieguanyin                 Style kit: Tieguanyin, Oolong (wulong)
+  record   place     Anxi                       Record only, no write-up
+
+Old Oolong  (Taiwan)
+  covered  style     Taiwan oolong              Style kit: Taiwan oolong, Oolong (wulong)
+  record   place     Taiwan                     Record only, no write-up
+
+Passion  (Yunnan, China)
+  covered  style     Sheng Pu’er                Style kit: Sheng Pu’er
+  covered  place     Yunnan                     Written up
+  record   named     Passion                    Record only, no write-up
+
+Inspiration  (Yunnan, China)
+  covered  style     Sheng Pu’er                Style kit: Sheng Pu’er
+  covered  place     Yunnan                     Written up
+  record   named     Inspiration                Record only, no write-up
+
+Tongqinghao  (Yunnan, China)
+  covered  style     Sheng Pu’er                Style kit: Sheng Pu’er
+  covered  place     Yunnan                     Written up
+  record   producer  Tongqinghao                Record only, no write-up
+
+Elephant Village  (Yunnan, China)
+  covered  style     Sheng Pu’er                Style kit: Sheng Pu’er
+  covered  place     Yunnan                     Written up
+
+Purple Bud Sheng  (Lincang, Yunnan, China)
+  covered  style     Sheng Pu’er                Style kit: Sheng Pu’er
+  covered  place     Lincang                    Written up
+
+Yuandu Sheng  (Yunnan, China)
+  covered  style     Sheng Pu’er                Style kit: Sheng Pu’er
+  covered  place     Yunnan                     Written up
+
+Yi-Wu Sheng  (Menghai, Yunnan, China)
+  covered  style     Sheng Pu’er                Style kit: Sheng Pu’er
+  covered  place     Menghai                    Written up
+
+Huangpian Ripe  (Yunnan, China)
+  covered  style     Shou (ripe pu’er)          Style kit: Shou (ripe pu’er)
+  covered  place     Yunnan                     Written up
+
+3 Cranes Liu Bao  (Wuzhou, Guangxi, China)
+  covered  style     Liu Bao                    Style kit: Liu Bao, Dark tea (hei cha)
+  record   place     Wuzhou                     Record only, no write-up
+  record   grade     Three Cranes               Record only, no write-up
+  record   producer  Wuzhou Tea Factory         Record only, no write-up
+
+Award-Winning Red  (Taiwan)
+  covered  style     Red tea (hong cha)         Style kit: Red tea (hong cha)
+  record   place     Taiwan                     Record only, no write-up
+
+Menghai  (Menghai, Yunnan, China)
+  covered  style     Sheng Pu’er                Style kit: Sheng Pu’er
+  covered  place     Menghai                    Written up
+  record   producer  Menghai Tea Factory        Record only, no write-up
+
+Xiao Yuan Shou  (Yunnan, China)
+  covered  style     Shou (ripe pu’er)          Style kit: Shou (ripe pu’er)
+  covered  place     Yunnan                     Written up
+
+Da Xue Shan Wild  (Da Xue Shan, Yunnan, China)
+  covered  style     Sheng Pu’er                Style kit: Sheng Pu’er
+  record   place     Da Xue Shan                Record only, no write-up; Yunnan is written up
+
+Tuo Cha  (Menghai, Yunnan, China)
+  covered  style     Shou (ripe pu’er)          Style kit: Shou (ripe pu’er)
+  covered  place     Menghai                    Written up
+
+Menghai Jia Ji Tuo  (Menghai, Yunnan, China)
+  covered  style     Sheng Pu’er                Style kit: Sheng Pu’er
+  covered  place     Menghai                    Written up
+  record   grade     Jia Ji                     Record only, no write-up
+  record   producer  Menghai Tea Factory        Record only, no write-up
+
+Alishan High Mountain  (Alishan, Chiayi, Taiwan)
+  covered  style     Taiwan oolong              Style kit: Taiwan oolong, Oolong (wulong)
+  record   place     Alishan                    Record only, no write-up
+
+Phoenix Mountain  (China)
+  covered  style     Oolong (wulong)            Style kit: Oolong (wulong)
+  record   place     China                      Record only, no write-up
+
+Purple Bud Sheng  (Lincang, Yunnan, China)
+  covered  style     Sheng Pu’er                Style kit: Sheng Pu’er
+  covered  place     Lincang                    Written up
+
+Zhenghe White  (Zhenghe, Fujian, China)
+  covered  style     Fujian white               Style kit: Fujian white, White tea (bai cha)
+  record   place     Zhenghe                    Record only, no write-up
+
+Red Edge Oolong  (Nantou, Taiwan)
+  covered  style     Taiwan oolong              Style kit: Taiwan oolong, Oolong (wulong)
+  record   place     Nantou                     Record only, no write-up
+
+Fire oolong  (Nantou, Taiwan)
+  covered  style     Taiwan oolong              Style kit: Taiwan oolong, Oolong (wulong)
+  record   place     Nantou                     Record only, no write-up
+
+Yue Chen Yue Xiang  (Yunnan, China)
+  covered  style     Yunnan white               Style kit: Yunnan white, White tea (bai cha)
+  covered  place     Yunnan                     Written up
+  record   named     Yue Chen Yue Xiang         Record only, no write-up
+
+Fuding Eco  (Fuding, Fujian, China)
+  covered  style     Fujian white               Style kit: Fujian white, White tea (bai cha)
+  record   place     Fuding                     Record only, no write-up
+
+Jingmai Old Tree Shou Cha  (Jingmai, Yunnan, China)
+  covered  style     Shou (ripe pu’er)          Style kit: Shou (ripe pu’er)
+  covered  place     Jingmai                    Written up
+
+Purple Bud Sheng  (Lincang, Yunnan, China)
+  covered  style     Sheng Pu’er                Style kit: Sheng Pu’er
+  covered  place     Lincang                    Written up
+
+Aged Liu Bao  (Guangxi, China)
+  covered  style     Liu Bao                    Style kit: Liu Bao, Dark tea (hei cha)
+  record   place     Guangxi                    Record only, no write-up
+
+Oriental Beauty  (Hsinchu, Taiwan)
+  covered  style     Taiwan oolong              Style kit: Taiwan oolong, Oolong (wulong)
+  record   place     Hsinchu                    Record only, no write-up
+
+Yiwu Wild White Tea  (Yiwu, Yunnan, China)
+  covered  style     Yunnan white               Style kit: Yunnan white, White tea (bai cha)
+  covered  place     Yiwu                       Written up
+
+Kunlu Mountain Imperial Tribute Sheng Cha  (Kunlu Mountain, Yunnan, China)
+  covered  style     Sheng Pu’er                Style kit: Sheng Pu’er
+  covered  place     Kunlu Mountain             Written up
+
+Anhua Huangye  (Anhua, Hunan, China)
+  covered  style     Anhua dark tea             Style kit: Anhua dark tea, Dark tea (hei cha)
+  record   place     Anhua                      Record only, no write-up
+
+Oriental Beauty  (Hsinchu, Taiwan)
+  covered  style     Taiwan oolong              Style kit: Taiwan oolong, Oolong (wulong)
+  record   place     Hsinchu                    Record only, no write-up
+
+Gushu Sheng  (Yunnan, China)
+  covered  style     Sheng Pu’er                Style kit: Sheng Pu’er
+  covered  place     Yunnan                     Written up
+
+Shenhua Native Red  (China)
+  covered  style     Red tea (hong cha)         Style kit: Red tea (hong cha)
+  record   place     China                      Record only, no write-up
+
+Dancong  (Phoenix Mountain, Guangdong, China)
+  covered  style     Phoenix Dancong            Style kit: Phoenix Dancong, Oolong (wulong)
+  record   place     Phoenix Mountain           Record only, no write-up
+
+Xinghai Aged Sheng Cha  (Yunnan, China)
+  covered  style     Sheng Pu’er                Style kit: Sheng Pu’er
+  covered  place     Yunnan                     Written up
+  record   producer  Xinghai Tea Factory        Record only, no write-up
+
+Zhong Cha Pai Yuan  (Yunnan, China)
+  covered  style     Shou (ripe pu’er)          Style kit: Shou (ripe pu’er)
+  covered  place     Yunnan                     Written up
+  record   grade     Zhong Cha Pai              Record only, no write-up
+  record   producer  China National Tea Corporation Record only, no write-up
+
+Gaoshan Red  (Taiwan)
+  covered  style     Red tea (hong cha)         Style kit: Red tea (hong cha)
+  record   place     Taiwan                     Record only, no write-up
+
+1958 Aged Raw  (Yunnan, China)
+  covered  style     Sheng Pu’er                Style kit: Sheng Pu’er
+  covered  place     Yunnan                     Written up
+
+Millennial Tree Red  (Yunnan, China)
+  covered  style     Dian Hong (Yunnan red)     Style kit: Dian Hong (Yunnan red), Red tea (hong cha)
+  covered  place     Yunnan                     Written up
+
+Yaobao  (Yunnan, China)
+  covered  style     Yunnan white               Style kit: Yunnan white, White tea (bai cha)
+  covered  place     Yunnan                     Written up
+
+Loose Cake  (Yunnan, China)
+  covered  style     Shou (ripe pu’er)          Style kit: Shou (ripe pu’er)
+  covered  place     Yunnan                     Written up
+
+Menghai Raw Loose  (Menghai, Yunnan, China)
+  covered  style     Sheng Pu’er                Style kit: Sheng Pu’er
+  covered  place     Menghai                    Written up
+  record   producer  Menghai Tea Factory        Record only, no write-up
+
+7572 Menghai  (Menghai, Yunnan, China)
+  covered  style     Shou (ripe pu’er)          Style kit: Shou (ripe pu’er)
+  covered  place     Menghai                    Written up
+  record   grade     7572                       Record only, no write-up
+  record   producer  Menghai Tea Factory        Record only, no write-up
+
+Yecong Ancient Forest  (Yunnan, China)
+  covered  style     Yunnan white               Style kit: Yunnan white, White tea (bai cha)
+  covered  place     Yunnan                     Written up
+
+Yiwu Mushroom  (Yiwu, Yunnan, China)
+  covered  style     Shou (ripe pu’er)          Style kit: Shou (ripe pu’er)
+  covered  place     Yiwu                       Written up
+
+Aged Sour Citrus Tea  (Taiwan)
+  covered  style     Dark tea (hei cha)         Style kit: Dark tea (hei cha)
+  record   place     Taiwan                     Record only, no write-up
+
+1980s Aged Lao Banzhang  (Banzhang, Yunnan, China)
+  covered  style     Sheng Pu’er                Style kit: Sheng Pu’er
+  covered  place     Banzhang                   Written up
+
+Taiwan Tie Guan Yin  (Muzha, Taipei, Taiwan)
+  covered  style     Taiwan oolong              Style kit: Taiwan oolong, Oolong (wulong)
+  record   place     Muzha                      Record only, no write-up
+
+Tea Masters Cake  (Yunnan, China)
+  covered  style     Shou (ripe pu’er)          Style kit: Shou (ripe pu’er)
+  covered  place     Yunnan                     Written up
+  record   named     Tea Masters Cake           Record only, no write-up
+
+Yun Shen Chu  (Yunnan, China)
+  covered  style     Yunnan white               Style kit: Yunnan white, White tea (bai cha)
+  covered  place     Yunnan                     Written up
+  record   named     Yun Shen Chu               Record only, no write-up
+
+Shuishalian Yuchi Red  (Yuchi, Nantou, Taiwan)
+  covered  style     Red tea (hong cha)         Style kit: Red tea (hong cha)
+  missing  place     Yuchi                      Nothing in the Wisdom Base yet
+
+Fujian Bai Cha  (Fujian, China)
+  covered  style     Fujian white               Style kit: Fujian white, White tea (bai cha)
+  record   place     Fujian                     Record only, no write-up
+
+Zhuangyuan Hong  (Wuyi Mountains, Fujian, China)
+  covered  style     Wuyi rock tea (yancha)     Style kit: Wuyi rock tea (yancha), Oolong (wulong)
+  record   place     Wuyi Mountains             Record only, no write-up
+
+Yunnan Bai Cha  (Yunnan, China)
+  covered  style     Yunnan white               Style kit: Yunnan white, White tea (bai cha)
+  covered  place     Yunnan                     Written up
+
+Aged Sheng Pu Song Dynasty Tribute Tea  (Yunnan, China)
+  covered  style     Sheng Pu’er                Style kit: Sheng Pu’er
+  covered  place     Yunnan                     Written up
+
+Yiwu Mahei Gushu  (Yiwu, Yunnan, China)
+  covered  style     Shou (ripe pu’er)          Style kit: Shou (ripe pu’er)
+  covered  place     Yiwu                       Written up
+
+Aged Shou  (Yunnan, China)
+  covered  style     Shou (ripe pu’er)          Style kit: Shou (ripe pu’er)
+  covered  place     Yunnan                     Written up
+
+Xiaguan Wild  (Dali, Yunnan, China)
+  covered  style     Sheng Pu’er                Style kit: Sheng Pu’er
+  record   place     Dali                       Record only, no write-up; Yunnan is written up
+  record   producer  Xiaguan Tea Factory        Record only, no write-up
+
+Taiwan Raw Tea  (Taiwan)
+  covered  style     Taiwan oolong              Style kit: Taiwan oolong, Oolong (wulong)
+  record   place     Taiwan                     Record only, no write-up
+
+Menghai Gaoshan  (Menghai, Yunnan, China)
+  covered  style     Sheng Pu’er                Style kit: Sheng Pu’er
+  covered  place     Menghai                    Written up
+  record   producer  Menghai Tea Factory        Record only, no write-up
+
+Yabukita Green  (Japan)
+  covered  style     Green tea (lü cha)         Style kit: Green tea (lü cha)
+  record   place     Japan                      Record only, no write-up
+
+Mercy  (Yunnan, China)
+  covered  style     Sheng Pu’er                Style kit: Sheng Pu’er
+  covered  place     Yunnan                     Written up
+  record   named     Mercy                      Record only, no write-up
+
+Wisdom  (Yunnan, China)
+  covered  style     Sheng Pu’er                Style kit: Sheng Pu’er
+  covered  place     Yunnan                     Written up
+  record   named     Wisdom                     Record only, no write-up
+
+Light Green Tie Bing  (Yunnan, China)
+  covered  style     Sheng Pu’er                Style kit: Sheng Pu’er
+  covered  place     Yunnan                     Written up
+
+River Town Sheng  (Yunnan, China)
+  covered  style     Sheng Pu’er                Style kit: Sheng Pu’er
+  covered  place     Yunnan                     Written up
+
+Ginseng Puerh  (Yunnan, China)
+  covered  style     Sheng Pu’er                Style kit: Sheng Pu’er
+  covered  place     Yunnan                     Written up
+
+Menghai Bullet Tuo  (Menghai, Yunnan, China)
+  covered  style     Sheng Pu’er                Style kit: Sheng Pu’er
+  covered  place     Menghai                    Written up
+  record   producer  Menghai Tea Factory        Record only, no write-up
+
+Assam Yuchi Red  (Yuchi, Nantou, Taiwan)
+  covered  style     Red tea (hong cha)         Style kit: Red tea (hong cha)
+  missing  place     Yuchi                      Nothing in the Wisdom Base yet
+
+Yiwu Wild  (Yiwu, Yunnan, China)
+  covered  style     Sheng Pu’er                Style kit: Sheng Pu’er
+  covered  place     Yiwu                       Written up
+
+Yunnan Hong Cha  (Yunnan, China)
+  covered  style     Dian Hong (Yunnan red)     Style kit: Dian Hong (Yunnan red), Red tea (hong cha)
+  covered  place     Yunnan                     Written up
+
+Wet-Stored Sheng  (Yunnan, China)
+  covered  style     Sheng Pu’er                Style kit: Sheng Pu’er
+  covered  place     Yunnan                     Written up
+
+Beipu Large Leaf Oolong  (Beipu, Hsinchu, Taiwan)
+  covered  style     Taiwan oolong              Style kit: Taiwan oolong, Oolong (wulong)
+  record   place     Beipu                      Record only, no write-up
+
+Banzhang Gongting  (Menghai, Yunnan, China)
+  covered  style     Shou (ripe pu’er)          Style kit: Shou (ripe pu’er)
+  covered  place     Menghai                    Written up
+  drafted  grade     Gong Ting                  Page drafted, waiting for approval
+
+French Brick  (Yunnan, China)
+  covered  style     Sheng Pu’er                Style kit: Sheng Pu’er
+  covered  place     Yunnan                     Written up
+  record   named     French Brick               Record only, no write-up
+
+Yiwu Xiaoye Shou  (Yiwu, Yunnan, China)
+  covered  style     Shou (ripe pu’er)          Style kit: Shou (ripe pu’er)
+  covered  place     Yiwu                       Written up
+
+Blue Seal Green Label  (Yunnan, China)
+  covered  style     Sheng Pu’er                Style kit: Sheng Pu’er
+  covered  place     Yunnan                     Written up
+  record   grade     Blue Seal Green Label      Record only, no write-up
+  record   producer  China National Tea Corporation Record only, no write-up
+
+Gongjian  (Anhua, Hunan, China)
+  covered  style     Anhua dark tea             Style kit: Anhua dark tea, Dark tea (hei cha)
+  record   place     Anhua                      Record only, no write-up
+  record   grade     Gongjian                   Record only, no write-up
+
+Yiwu Mahei Old Tree Shou Cha  (Yiwu, Yunnan, China)
+  covered  style     Shou (ripe pu’er)          Style kit: Shou (ripe pu’er)
+  covered  place     Yiwu                       Written up
+
+Universe  (China)
+  covered  style     Oolong (wulong)            Style kit: Oolong (wulong)
+  record   place     China                      Record only, no write-up
+  record   named     Universe                   Record only, no write-up
+
+Yesheng Wild Tea  (Yunnan, China)
+  covered  style     Sheng Pu’er                Style kit: Sheng Pu’er
+  covered  place     Yunnan                     Written up
+
+Sheng Puerh  (Yunnan, China)
+  covered  style     Sheng Pu’er                Style kit: Sheng Pu’er
+  covered  place     Yunnan                     Written up
+
+True Love  (Yunnan, China)
+  covered  style     Sheng Pu’er                Style kit: Sheng Pu’er
+  covered  place     Yunnan                     Written up
+  record   named     True Love                  Record only, no write-up
+
+Shou Disk  (Yunnan, China)
+  covered  style     Shou (ripe pu’er)          Style kit: Shou (ripe pu’er)
+  covered  place     Yunnan                     Written up
+
+Wild Round Tea Classic Brand  (Yunnan, China)
+  covered  style     Sheng Pu’er                Style kit: Sheng Pu’er
+  covered  place     Yunnan                     Written up
+
+Yancha  (Wuyi Mountains, Fujian, China)
+  covered  style     Wuyi rock tea (yancha)     Style kit: Wuyi rock tea (yancha), Oolong (wulong)
+  record   place     Wuyi Mountains             Record only, no write-up
+
+New Rainbow  (Yunnan, China)
+  covered  style     Sheng Pu’er                Style kit: Sheng Pu’er
+  covered  place     Yunnan                     Written up
+  record   named     New Rainbow                Record only, no write-up
+
+Millennia Wild White Pearls  (Yunnan, China)
+  covered  style     Yunnan white               Style kit: Yunnan white, White tea (bai cha)
+  covered  place     Yunnan                     Written up
+
+Qi Zi Bing  (Yunnan, China)
+  covered  style     Shou (ripe pu’er)          Style kit: Shou (ripe pu’er)
+  covered  place     Yunnan                     Written up
+
+Liu Bao  (Cangwu, Guangxi, China)
+  covered  style     Liu Bao                    Style kit: Liu Bao, Dark tea (hei cha)
+  record   place     Cangwu                     Record only, no write-up
+
+Wild Ancha  (Anhua, Hunan, China)
+  covered  style     Anhua dark tea             Style kit: Anhua dark tea, Dark tea (hei cha)
+  record   place     Anhua                      Record only, no write-up
+
+Lapsang Souchong  (Wuyi Mountains, Fujian, China)
+  covered  style     Lapsang Souchong (Zhengshan Xiaozhong) Style kit: Lapsang Souchong (Zhengshan Xiaozhong), Red tea (hong cha)
+  record   place     Wuyi Mountains             Record only, no write-up
+
+Ruicaokui  (Anhui, China)
+  covered  style     Green tea (lü cha)         Style kit: Green tea (lü cha)
+  record   place     Anhui                      Record only, no write-up
+
+Mi Lan Xiang Dancong  (Phoenix Mountain, Guangdong, China)
+  covered  style     Phoenix Dancong            Style kit: Phoenix Dancong, Oolong (wulong)
+  record   place     Phoenix Mountain           Record only, no write-up
+
+Galaxy  (China)
+  covered  style     Oolong (wulong)            Style kit: Oolong (wulong)
+  record   place     China                      Record only, no write-up
+  record   named     Galaxy                     Record only, no write-up
+
+213 tea(s) checked. Most-needed pages:
+  Taiwan (place): 15 teas, record only, no write-up
+  Wuyi Mountains (place): 14 teas, record only, no write-up
+  Anhua (place): 8 teas, record only, no write-up
+  China (place): 8 teas, record only, no write-up
+  Guangxi (place): 7 teas, record only, no write-up
+  Menghai Tea Factory (producer): 7 teas, record only, no write-up
+  Anxi (place): 6 teas, record only, no write-up
+  China National Tea Corporation (producer): 4 teas, record only, no write-up
+  Gong Ting (grade): 4 teas, page drafted, waiting for approval
+  Nantou (place): 4 teas, record only, no write-up
+  Phoenix Mountain (place): 4 teas, record only, no write-up
+  Yuchi (place): 4 teas, nothing in the Wisdom Base yet
+  Anhui (place): 2 teas, record only, no write-up
+  Beipu (place): 2 teas, record only, no write-up
+  Cangwu (place): 2 teas, record only, no write-up
+  Fuding (place): 2 teas, record only, no write-up
+  Hsinchu (place): 2 teas, record only, no write-up
+  Japan (place): 2 teas, record only, no write-up
+  Origin (place): 2 teas, no origin recorded: add where it is from
+  Three Cranes (grade): 2 teas, record only, no write-up
+  Wuzhou (place): 2 teas, record only, no write-up
+  Wuzhou Tea Factory (producer): 2 teas, record only, no write-up
+  Xiaguan Tea Factory (producer): 2 teas, record only, no write-up
+  Yi Ji (grade): 2 teas, record only, no write-up
+  7572 (grade): 1 tea, record only, no write-up
+  Alishan (place): 1 tea, record only, no write-up
+  Bamboo tube (process): 1 tea, nothing in the Wisdom Base yet
+  Blue Seal Green Label (grade): 1 tea, record only, no write-up
+  Courage (named): 1 tea, record only, no write-up
+  Da Xue Shan (place): 1 tea, record only, no write-up; Yunnan is written up
+  Dali (place): 1 tea, record only, no write-up; Yunnan is written up
+  French Brick (named): 1 tea, record only, no write-up
+  Fujian (place): 1 tea, record only, no write-up
+  Galaxy (named): 1 tea, record only, no write-up
+  Golden Bull (grade): 1 tea, record only, no write-up
+  Gong Jin (grade): 1 tea, record only, no write-up
+  Gongjian (grade): 1 tea, record only, no write-up
+  Guangdong (place): 1 tea, record only, no write-up
+  Hengfengyuan (producer): 1 tea, record only, no write-up
+  Inspiration (named): 1 tea, record only, no write-up
+  Jia Ji (grade): 1 tea, record only, no write-up
+  Li Shan (place): 1 tea, record only, no write-up
+  Lugu (place): 1 tea, record only, no write-up
+  Mercy (named): 1 tea, record only, no write-up
+  Miracle Fate (named): 1 tea, record only, no write-up
+  Muzha (place): 1 tea, record only, no write-up
+  New Rainbow (named): 1 tea, record only, no write-up
+  Northern Vietnam highlands (place): 1 tea, nothing in the Wisdom Base yet
+  Old Rainbow (named): 1 tea, record only, no write-up
+  Orange Master Box (named): 1 tea, record only, no write-up
+  Passion (named): 1 tea, record only, no write-up
+  Qiaorui (producer): 1 tea, record only, no write-up
+  Qimen (place): 1 tea, record only, no write-up
+  Red Seal (grade): 1 tea, record only, no write-up
+  Tea Masters Cake (named): 1 tea, record only, no write-up
+  Tongqinghao (producer): 1 tea, record only, no write-up
+  True Love (named): 1 tea, record only, no write-up
+  True Love New (named): 1 tea, record only, no write-up
+  Universe (named): 1 tea, record only, no write-up
+  Wisdom (named): 1 tea, record only, no write-up
+  Wuliang Mountain (place): 1 tea, record only, no write-up; Yunnan is written up
+  Xinghai Tea Factory (producer): 1 tea, record only, no write-up
+  Ya'an (place): 1 tea, record only, no write-up
+  Yellow Label (grade): 1 tea, record only, no write-up
+  Yue Chen Yue Xiang (named): 1 tea, record only, no write-up
+  Yun Shen Chu (named): 1 tea, record only, no write-up
+  Zhen Pin (grade): 1 tea, record only, no write-up
+  Zhenghe (place): 1 tea, record only, no write-up
+  Zhong Cha Pai (grade): 1 tea, record only, no write-up
+  Zhudong (place): 1 tea, nothing in the Wisdom Base yet
