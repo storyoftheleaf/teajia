@@ -302,9 +302,6 @@ function SitSheet({ open, sit, busy, onClose, onChange }: {
     api('/places').then(result => { if (live && Array.isArray(result?.places)) setPlaces(result.places); }, () => undefined);
     return () => { live = false; };
   }, [open]);
-  // A session invited ahead has no link of its own until its host asks for one.
-  useEffect(() => { if (open && !sit.link) onChange({ link: true }); }, [open, sit.id, sit.link]); // eslint-disable-line react-hooks/exhaustive-deps
-
   const spaces = places.filter(place => place.space);
   const others = places.filter(place => !place.space);
   const link = sit.link ?? '';
@@ -350,13 +347,22 @@ function SitSheet({ open, sit, busy, onClose, onChange }: {
         </label>
 
         <div className="flex flex-col gap-2 border-t border-tea-border pt-3">
-          <p className={`${TYPOGRAPHY_CLASSES.mono} break-all text-tea-text-sec`}>{link}</p>
+          <p className={TYPOGRAPHY_CLASSES.bodyLight}>
+            {sit.casual ? 'Anyone with the link can open this casual sit.' : 'Guests keep their existing RSVP and approval rules.'}
+          </p>
+          {link && <p className={`${TYPOGRAPHY_CLASSES.mono} break-all text-tea-text-sec`}>{link}</p>}
           <div className="flex flex-wrap justify-end gap-2">
-            {canShare && (
-              <Button type="button" variant="secondary" className="tap-target" disabled={!link}
-                onClick={() => { void navigator.share({ title: sit.title, url: link }).catch(() => undefined); }}>Share</Button>
-            )}
-            <Button type="button" className="tap-target" disabled={!link} onClick={copy}>{copied ? 'Copied' : 'Copy link'}</Button>
+            {link ? (
+              <>
+                <Button type="button" variant="quiet" className="tap-target" disabled={busy}
+                  onClick={() => { setCopied(false); onChange({ link: false }); }}>Turn off link</Button>
+                {canShare && (
+                  <Button type="button" variant="secondary" className="tap-target" disabled={busy}
+                    onClick={() => { void navigator.share({ title: sit.title, url: link }).catch(() => undefined); }}>Share</Button>
+                )}
+                <Button type="button" className="tap-target" disabled={busy} onClick={copy}>{copied ? 'Copied' : 'Copy link'}</Button>
+              </>
+            ) : <Button type="button" className="tap-target" disabled={busy} onClick={() => onChange({ link: true })}>Create link</Button>}
           </div>
         </div>
       </div>

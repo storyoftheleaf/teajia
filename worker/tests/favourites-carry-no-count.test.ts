@@ -43,12 +43,12 @@ describe('favourites carry no count', () => {
     db.sqlite.exec(`
       INSERT INTO customers (id, account_id, name, user_id) VALUES ('cust', '${SHOP}', 'Member', 'member');
       INSERT INTO events (id, account_id, slug, title, event_date) VALUES ('ev', '${SHOP}', 'ev', 'Spring table', '2026-11-01');
-      INSERT INTO event_attendees (id, event_id, customer_id, full_name, magic_token, status, attended) VALUES ('att', 'ev', 'cust', 'Member', 'magic-att', 'confirmed', 1);
+      INSERT INTO event_attendees (id, account_id, event_id, customer_id, full_name, magic_token, status, attended) VALUES ('att', '${SHOP}', 'ev', 'cust', 'Member', 'magic-att', 'confirmed', 1);
       INSERT INTO products (id, account_id, type, product_name, given_name, origin_region, cost_amount, cost_currency, shipping_rate_per_kg, markup_multiplier)
         VALUES ('p1', '${SHOP}', 'Oolong', 'One', 'One', 'Wuyi', NULL, NULL, NULL, NULL),
                ('p2', '${SHOP}', 'Oolong', 'Two', 'Two', 'Wuyi', NULL, NULL, NULL, NULL);
-      INSERT INTO event_tea_menu (id, event_id, product_id) VALUES ('m1', 'ev', 'p1'), ('m2', 'ev', 'p2');
-      INSERT INTO event_tasting_notes (id, event_id, attendee_id, tea_menu_id, is_favorite) VALUES ('n1', 'ev', 'att', 'm1', 1), ('n2', 'ev', 'att', 'm2', 1);
+      INSERT INTO event_tea_menu (id, account_id, event_id, product_id) VALUES ('m1', '${SHOP}', 'ev', 'p1'), ('m2', '${SHOP}', 'ev', 'p2');
+      INSERT INTO event_tasting_notes (id, account_id, event_id, attendee_id, tea_menu_id, is_favorite) VALUES ('n1', '${SHOP}', 'ev', 'att', 'm1', 1), ('n2', '${SHOP}', 'ev', 'att', 'm2', 1);
     `);
     const response = await call(env, '/api/me/journey');
     expect(response.status).toBe(200);
