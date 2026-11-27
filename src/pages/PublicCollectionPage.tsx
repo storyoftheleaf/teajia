@@ -1,8 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams, Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { Plus, ArrowRight, Share2, Link2, Bookmark, MessageCircle, ShoppingBag } from 'lucide-react';
-import { TeaCup } from '../components/TeaCupIcon';
+import { Plus, ArrowRight, Share2, Link2, MessageCircle, ShoppingBag } from 'lucide-react';
 import { api } from '../lib/api';
 import { buildWhatsAppUrl } from '../lib/whatsapp';
 import { useAppStore } from '../lib/store';
@@ -13,7 +12,8 @@ import {
   type LinkTeaDetailFields, type LinkTeaSource,
 } from '../components/shop/linkTea';
 import { LinkTeaPage } from '../components/shop/LinkTeaPage';
-import { ChooseTeaLine, GuideRow, GuideStep, ListTasting } from '../components/shop/GuideStep';
+import { useTastingCounts } from '../hooks/useTastingCount';
+import { boughtAmount, useMyBoughtTeas } from '../lib/myBoughtTeas';
 import { holdKeepTeaser } from '../lib/keepTeaser';
 import { holdReturnPlace, useReturnPlace } from '../hooks/useReturnPlace';
 import { useOpenLinkTea } from '../components/shop/useOpenLinkTea';
@@ -231,31 +231,28 @@ const CollectionShelf: React.FC<{ data: PublicCollectionResponse } & CartHooks> 
   // page marks it received), so Keep is done; signed out, either goes through
   // joining, which shows these teas, and Taste comes back asking which one.
   const navigate = useNavigate();
-  const [params, setParams] = useSearchParams();
+  const [params] = useSearchParams();
   const teaList = useRef<HTMLElement | null>(null);
-  const [choosing, setChoosing] = useState(false);
-  const [tasting, setTasting] = useState<InventoryItem | null>(null);
-  const cartCount = useAppStore(state => state.publicCart.length);
-  const startChoosing = () => { setChoosing(true); teaList.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
-  const join = (thenChoose = false) => {
+  const publicCart = useAppStore(state => state.publicCart);
+  const cartCount = publicCart.length;
+  // Signed out, a save first gets them an account, showing these teas, and
+  // lands them back exactly here: the same tea open, as far down the list.
+  const join = () => {
     holdKeepTeaser({ path: `/c/${slug}`, from: curatorFirstName, teas: visible.map(it => ({ name: linkShelfItem(it).name })) });
-    // Back to exactly here: the same tea open, if one is, and as far down the list.
     holdReturnPlace();
-    const back = new URLSearchParams(params);
-    if (thenChoose) back.set('choose', '1');
-    const query = back.toString();
+    const query = params.toString();
     navigate(authPagePath('signup', `/c/${slug}${query ? `?${query}` : ''}`));
   };
-  const cameBackToChoose = signedIn && params.get('choose') === '1';
-  useReturnPlace(!cameBackToChoose);
-  useEffect(() => {
-    if (!cameBackToChoose) return;
-    const next = new URLSearchParams(params);
-    next.delete('choose');
-    setParams(next, { replace: true });
-    startChoosing();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cameBackToChoose]);
+  useReturnPlace(true);
+  // What they have done with each tea shows on its row, as the shop shows it.
+  const tastingCounts = useTastingCounts();
+  const { byId: boughtById } = useMyBoughtTeas();
+  const rowLine = (tea: InventoryItem): string | null => {
+    const ordered = publicCart.filter(line => line.id === tea.id).reduce((sum, line) => sum + (line.quantityGrams ?? 0), 0);
+    if (ordered > 0) return `In your order · ${ordered}g`;
+    const bought = boughtById.get(tea.id);
+    return bought ? boughtAmount(bought) : null;
+  };
 
   // The strip that keeps "made for you" in sight once the head scrolls away.
   const headRef = useRef<HTMLElement | null>(null);
@@ -331,18 +328,9 @@ const CollectionShelf: React.FC<{ data: PublicCollectionResponse } & CartHooks> 
             <img src={collection.hero_image_url} alt="" className="h-20 w-20 shrink-0 rounded-md object-cover md:h-24 md:w-24" loading="eager" />
           )}
         </header>
-        {visible.length > 0 && (
-          <GuideRow testId="collection-guide">
-            <GuideStep label={signedIn ? 'Kept' : 'Keep'} done={signedIn} lit={!signedIn} icon={<Bookmark size={20} aria-hidden="true" />} onClick={() => { if (signedIn) navigate('/account/collections'); else join(); }} testId="collection-guide-keep" />
-            <GuideStep label="Taste" lit={signedIn} icon={<TeaCup size={20} aria-hidden="true" />} onClick={() => { if (signedIn) startChoosing(); else join(true); }} testId="collection-guide-taste" />
-            <GuideStep label="Order" icon={<ShoppingBag size={20} aria-hidden="true" />} onClick={() => { if (cartCount > 0 && onOpenCart) onOpenCart(); else teaList.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }} testId="collection-guide-order" />
-          </GuideRow>
-        )}
       </div>
 
       <section ref={teaList} aria-label="The teas" className="max-w-6xl mx-auto scroll-mt-4 px-4 md:px-6 lg:px-10 pt-2 pb-10">
-        {choosing && <ChooseTeaLine onCancel={() => setChoosing(false)} />}
-        <ListTasting tea={tasting} onClose={() => setTasting(null)} />
         {visible.length === 0 ? (
           <p className="font-body text-ui-15 leading-[1.65] text-tea-text-sec italic py-10 text-center">
             The teas in this collection are currently unavailable.
@@ -352,7 +340,8 @@ const CollectionShelf: React.FC<{ data: PublicCollectionResponse } & CartHooks> 
             groups={groups}
             activeType="All"
             specialFilter="None"
-            tastingCounts={new Map()}
+            tastingCounts={tastingCounts}
+            boughtFor={rowLine}
             priceWeight={50}
             formatPrice={shopPrice.symbolTotal}
             favoriteIds={favoriteIds}
@@ -363,7 +352,7 @@ const CollectionShelf: React.FC<{ data: PublicCollectionResponse } & CartHooks> 
               toggleFavoriteTea(id);
               if (saving && !signedIn) join();
             }}
-            onOpenProduct={tea => { const it = byProduct.get(tea.id); if (!it) return; if (choosing) { setTasting(tea); setChoosing(false); } else openLinkTea(it.product_id); }}
+            onOpenProduct={tea => { const it = byProduct.get(tea.id); if (it) openLinkTea(it.product_id); }}
             onAddToCart={onAddToCart ? (tea, grams, total) => { const it = byProduct.get(tea.id); if (it) addFromLink(it, grams, total); } : undefined}
             weighOptionsFor={tea => { const it = byProduct.get(tea.id); return it ? linkWeighOptions(it) : undefined; }}
           />
@@ -386,7 +375,10 @@ const CollectionShelf: React.FC<{ data: PublicCollectionResponse } & CartHooks> 
           <LinkTeaPage
             item={card}
             onClose={closeLinkTea}
-            footer={(
+            // The shop's own bottom bar and cart. Only a tea whose price this
+            // link quoted keeps the link's footer, because the shop's bar
+            // prices by the shop's rule.
+            footer={focused.price_quoted ? (
               <CardFooter
                 item={focused}
                 ctx={ctx}
@@ -394,7 +386,10 @@ const CollectionShelf: React.FC<{ data: PublicCollectionResponse } & CartHooks> 
                 onAdd={addFromLink}
                 onOpenCart={onOpenCart ? () => { closeLinkTea(); onOpenCart(); } : undefined}
               />
-            )}
+            ) : undefined}
+            onAddToCart={(_tea, grams, totalUsd) => addFromLink(focused, grams, totalUsd)}
+            onOpenCart={onOpenCart}
+            cartItemCount={cartCount}
             yoursLine={collectionTopLine}
             yoursNote={{ text: focused.item_note, by: curatorFirstName }}
             yoursNav={{
