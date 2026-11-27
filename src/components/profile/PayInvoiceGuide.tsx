@@ -10,7 +10,6 @@ import { keepPayInvoice } from '../../lib/payInvoiceKeepApi';
 import { PayInvoiceDiscount } from './PayInvoiceDiscount';
 
 const KEEP_PARAM = 'keep';
-const TASTE_PARAM = 'choose';
 
 /**
  * Where a signed-out person on an invoice goes to join: sign-up, showing the
@@ -62,7 +61,6 @@ export function useInvoiceKeep({ slug, token, signedIn, kept, yoursToSend = fals
     finished.current = true;
     const next = new URLSearchParams(search);
     next.delete(KEEP_PARAM);
-    next.delete(TASTE_PARAM);
     setSearch(next, { replace: true });
     keep();
     // eslint-disable-next-line react-hooks/exhaustive-deps

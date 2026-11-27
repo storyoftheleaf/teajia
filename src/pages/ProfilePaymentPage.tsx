@@ -37,7 +37,6 @@ export default function ProfilePaymentPage({ onAddToCart }: {
   /** The shop's own Add to cart, so a tea on the invoice can be bought again. */
   onAddToCart?: (item: InventoryItem, grams: number, totalUsd: number) => void;
 } = {}) {
-  // The guide's Pay and Taste point at these two parts of the sheet.
   const { slug = '' } = useParams<{ slug: string }>();
   const [search, setSearch] = useSearchParams();
   const navigate = useNavigate();
@@ -271,7 +270,7 @@ export default function ProfilePaymentPage({ onAddToCart }: {
           <PayInvoiceGift from={firstName(access.contributor.display_name)} discount={access.invoice?.discount} />
         </header>
         <div className="mt-2">
-          <PayInvoiceTeas lines={invoiceLines} invoiceNumber={access.invoice?.invoice_number ?? null} onAddToCart={onAddToCart} 
+          <PayInvoiceTeas lines={invoiceLines} invoiceNumber={access.invoice?.invoice_number ?? null} onAddToCart={onAddToCart}
             onSave={access.invoice?.yours_to_send ? undefined : access.viewer.signed_in ? keepInvoice : () => navigate(invoiceJoinPath({ from: access.contributor.display_name, teas: keepTeaserTeas(invoiceLines) }))}
             discount={access.invoice?.discount ?? null} />
           <PayInvoiceAfter kept={access.invoice?.kept === true} yoursToSend={access.invoice?.yours_to_send === true} collection={access.invoice?.collection ?? null}
