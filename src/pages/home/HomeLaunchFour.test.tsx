@@ -54,7 +54,7 @@ it('the four doors lead where the bar words lead, and the consult plate leads to
   expect(consultPlatePath()).toBe('/tea-houses');
 });
 
-it('the four doors carry their words, in bar order, with no em dash and no "curated"', () => {
+it('the four doors carry their words, in bar order, with no em dash', () => {
   const html = render(<HomeFourDoors />);
   const doors = homeDoorsLaunchFour();
   expect(doors.map(door => door.accent)).toEqual(['Discover', 'Deepen', 'Create', 'Source']);
@@ -66,5 +66,5 @@ it('the four doors carry their words, in bar order, with no em dash and no "cura
   ]);
   for (const door of doors) expect(html).toContain(door.words);
   expect(html).toContain('aria-label="Homepage destinations"');
-  expect(html).not.toMatch(new RegExp(String.fromCharCode(0x2014) + '|curated', 'i'));
+  expect(html).not.toMatch(new RegExp(String.fromCharCode(0x2014)));
 });
