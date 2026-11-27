@@ -36,6 +36,8 @@ interface TeaLedgerProps {
   weighOptionsFor?: (item: InventoryItem) => WeighOption[] | undefined;
   /** "You bought 150g" on a tea the signed-in person has bought. */
   boughtFor?: (item: InventoryItem) => string | null;
+  /** Puts the teacup under each price; the caller opens the tasting. */
+  onTaste?: (item: InventoryItem) => void;
 }
 
 /**
@@ -108,6 +110,7 @@ export function TeaLedger({
   onAddToCart,
   weighOptionsFor,
   boughtFor,
+  onTaste,
 }: TeaLedgerProps) {
   return (
     <div className="flex flex-col animate-[fadeIn_0.5s_ease-out]">
@@ -158,7 +161,7 @@ export function TeaLedger({
                   recommended={showShopRecommendations && !!purchase && SHOP_RECOMMENDATIONS.has(item.id)}
                   trailing={purchase ? (
                     <TeaWeighControl item={item} preferredGrams={priceWeight} formatPrice={formatPrice}
-                      onAddToCart={onAddToCart} onChooseAmount={onChooseAmount} options={linkOptions} />
+                      onAddToCart={onAddToCart} onChooseAmount={onChooseAmount} options={linkOptions} onTaste={onTaste} />
                   ) : (
                     <span className="text-ui-11 uppercase tracking-[0.1em] text-tea-text-dim">
                       {item.ordersPaused ? 'Ordering paused' : soldOut ? 'Sold out' : 'Unavailable'}

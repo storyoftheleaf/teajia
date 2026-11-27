@@ -4591,6 +4591,11 @@ body.cart-panel-open .commerce-dock {
   }
 }
 
+/* A tea opened from a link sits beside the desktop sidebar, never over it. */
+@media (min-width: 1024px) {
+  .link-tea-page { left: var(--teajia-sidebar-w, 0px); }
+}
+
 /* Date and saving share an uninterrupted tea-coloured ground. */
 .tea-save-tile {
   display: flex;

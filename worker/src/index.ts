@@ -28671,7 +28671,7 @@ const handleGetPayAccess: Handler = async (request, env, params) => {
   const { decision, link, grant, refusal } = await resolvePayAccess(env, contributor, viewer, url.searchParams.get(PAY_LINK_PARAM));
   if (refusal) return json(refusal, 409);
 
-  let invoice: { invoice_number: string | null; outstanding_usd: number; lines: PayLinkTeaLine[]; kept: boolean; yours_to_send: boolean; collection: { title: string; path: string } | null;
+  let invoice: { invoice_number: string | null; customer_name: string | null; date: string | null; outstanding_usd: number; lines: PayLinkTeaLine[]; kept: boolean; yours_to_send: boolean; collection: { title: string; path: string } | null;
     discount: { percent: number; amount_usd: number; subtotal_usd: number } | null; discount_editable: boolean } | null = null;
   if (link) {
     await env.DB.prepare(
@@ -28705,6 +28705,8 @@ const handleGetPayAccess: Handler = async (request, env, params) => {
           ? await sendsInvoice(env, link.account_id, ledgerInvoice.id, viewer.userId, contributor.user_id)
           : false;
         const discount = await readInvoiceDiscount(env, link.account_id, ledgerInvoice.id);
+        const written = await env.DB.prepare(`SELECT created_at FROM invoices WHERE id = ? AND account_id = ?`)
+          .bind(ledgerInvoice.id, link.account_id).first<{ created_at: string | null }>();
         // The collection these teas were chosen from, while its link is live.
         const collection = await env.DB.prepare(
           `SELECT c.title, cp.slug FROM invoices i
@@ -28713,7 +28715,10 @@ const handleGetPayAccess: Handler = async (request, env, params) => {
             WHERE i.id = ? AND i.account_id = ?`
         ).bind(ledgerInvoice.id, link.account_id).first<{ title: string; slug: string }>();
         invoice = {
-          invoice_number: ledgerInvoice.invoice_number, outstanding_usd: money.outstanding_usd, lines, kept, yours_to_send: yoursToSend,
+          invoice_number: ledgerInvoice.invoice_number,
+          // Who it is to (first name only) and the day it was written; only this invoice's own link reaches here.
+          customer_name: (ledgerInvoice.customer_name ?? '').trim().split(/\s+/)[0] || null, date: written?.created_at ?? null,
+          outstanding_usd: money.outstanding_usd, lines, kept, yours_to_send: yoursToSend,
           collection: collection ? { title: collection.title, path: `/c/${collection.slug}` } : null,
           // A discount the shop offered, and for the shop itself whether it can still change it.
           discount: discount?.percent ? { percent: discount.percent, amount_usd: discount.discount_usd, subtotal_usd: discount.subtotal_usd } : null,
