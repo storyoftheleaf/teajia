@@ -3495,116 +3495,142 @@ input[type="number"]::-webkit-outer-spin-button {
   inset: calc(-1 * var(--space-3)) calc(-1 * var(--space-2));
 }
 
-/* Ledger: an index read from the top like a page. The rooms in the rail's
-   lowercase serif, a hairline under each; the room you are in is gold with a
-   small dot before it. The word manage, open, is gold with a dot under it. */
-[data-look="ledger"] .nav-drawer { padding: var(--space-8) var(--space-3) var(--space-6); }
-[data-look="ledger"] .nav-drawer-label {
-  padding-bottom: var(--space-3);
+/* Tiles, three ways (Adrian, 2026-11-27: "I like tiles, but more
+   sophisticated"). All three stand off the rail and stack up from the word
+   manage, a glyph over each word. */
+:is([data-look="porcelain"], [data-look="medallion"], [data-look="seal"]) .nav-drawer { background: transparent; justify-content: flex-end; padding: var(--space-2); }
+:is([data-look="porcelain"], [data-look="medallion"], [data-look="seal"]) .nav-room {
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  aspect-ratio: 1;
+  border-radius: var(--radius-lg);
+}
+:is([data-look="porcelain"], [data-look="medallion"], [data-look="seal"]) .nav-drawer-label { display: none; }
+:is([data-look="porcelain"], [data-look="medallion"], [data-look="seal"]) .nav-drawer-rule { display: block; margin: 2px var(--space-3); border-top: 1px solid var(--tea-border); }
+
+/* Porcelain: one quiet card, a hairline edge warmed with gold, the tiles
+   divided by hairlines rather than boxed. Words in the rail's lowercase
+   serif. The room you are in wears a fine gold ring. Open, manage is gold
+   with a gold hairline under it. */
+[data-look="porcelain"] .nav-drawer-list {
+  padding: var(--space-1);
+  border: 1px solid rgb(var(--tea-gold-rgb) / 0.2);
+  border-radius: var(--radius-xl);
+  background: linear-gradient(180deg, var(--tea-elevated), var(--tea-surface));
+  box-shadow: var(--shadow-lg);
+}
+[data-look="porcelain"] .nav-room {
+  font-family: var(--font-display);
+  font-size: var(--fs-ui-13);
+  letter-spacing: 0.03em;
+  text-transform: lowercase;
+}
+[data-look="porcelain"] .nav-room + .nav-room { border-top: 1px solid var(--tea-border); border-radius: 0; }
+[data-look="porcelain"] .nav-room:hover { color: var(--tea-text); }
+[data-look="porcelain"] .nav-room[aria-current="page"] {
+  border-radius: var(--radius-lg);
+  background: rgb(var(--tea-gold-rgb) / 0.07);
+  box-shadow: inset 0 0 0 1px rgb(var(--tea-gold-rgb) / 0.55);
+}
+[data-look="porcelain"] .nav-room[aria-current="page"] + .nav-room { border-top-color: transparent; }
+[data-look="porcelain"] .nav-manage-word[data-open="true"]::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -8px;
+  width: 20px;
+  margin-left: -10px;
+  border-top: 1px solid var(--tea-gold);
+}
+
+/* Medallion: a dark lacquer card; each glyph sits in a round medallion over
+   a small spaced caption. The room you are in has a gold medallion with a
+   soft glow. Open, manage is gold with a small gold diamond under it. */
+[data-look="medallion"] .nav-drawer-list {
+  gap: 2px;
+  padding: var(--space-2) var(--space-1);
+  border: 1px solid var(--tea-border);
+  border-radius: var(--radius-xl);
+  background: rgb(var(--tea-bg-rgb));
+  box-shadow: var(--shadow-lg);
+}
+[data-look="medallion"] .nav-room {
+  font-family: var(--font-sans);
+  font-size: var(--fs-ui-10);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+[data-look="medallion"] .nav-room-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  aspect-ratio: 1;
+  border: 1px solid var(--tea-border);
+  border-radius: 50%;
+  background: var(--tea-surface);
+  transition: border-color 150ms ease, background-color 150ms ease, box-shadow 150ms ease;
+}
+[data-look="medallion"] .nav-room:hover .nav-room-mark { background: var(--tea-elevated); }
+[data-look="medallion"] .nav-room[aria-current="page"] .nav-room-mark {
+  border-color: var(--tea-gold);
+  background: rgb(var(--tea-gold-rgb) / 0.12);
+  box-shadow: 0 0 14px rgb(var(--tea-gold-rgb) / 0.28);
+}
+[data-look="medallion"] .nav-manage-word[data-open="true"]::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -9px;
+  width: 5px;
+  aspect-ratio: 1;
+  margin-left: -2.5px;
+  background: var(--tea-gold);
+  transform: rotate(45deg);
+}
+
+/* Seal: each room its own small raised tile, a lit top edge and a gentle
+   shadow, under a small spaced heading. The room you are in is set into the
+   page's ground with a gold edge and a gold seal in its corner. Open, manage
+   is gold with a short gold line at the rail's edge. */
+[data-look="seal"] .nav-drawer-list { gap: 6px; }
+[data-look="seal"] .nav-drawer-label {
+  display: block;
+  padding: 0 0 var(--space-1);
+  text-align: center;
   font-family: var(--font-sans);
   font-size: var(--fs-ui-10);
   letter-spacing: 0.16em;
   text-transform: uppercase;
 }
-[data-look="ledger"] .nav-drawer-rule { display: none; }
-[data-look="ledger"] .nav-room-glyph { display: none; }
-[data-look="ledger"] .nav-room {
-  padding: var(--space-2) 0 var(--space-2) var(--space-3);
-  border-bottom: 1px solid var(--tea-border);
-  font-family: var(--font-display);
-  font-size: var(--fs-ui-16);
-  letter-spacing: 0.02em;
-  text-transform: lowercase;
-}
-[data-look="ledger"] .nav-room[aria-current="page"] { font-weight: 600; }
-[data-look="ledger"] .nav-room[aria-current="page"]::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 50%;
-  width: 4px;
-  aspect-ratio: 1;
-  margin-top: -2px;
-  border-radius: 50%;
-  background: var(--tea-gold);
-}
-[data-look="ledger"] .nav-manage-word[data-open="true"]::before {
-  content: '';
-  position: absolute;
-  left: 50%;
-  bottom: -8px;
-  width: 4px;
-  aspect-ratio: 1;
-  margin-left: -2px;
-  border-radius: 50%;
-  background: var(--tea-gold);
-}
-
-/* Tiles: a small card standing off the rail, square tiles stacked up from
-   the bottom, a glyph over each word. The room you are in sits on the page's
-   own ground, gold. The word manage, open, is gold with a short rule under. */
-[data-look="tiles"] .nav-drawer { background: transparent; justify-content: flex-end; padding: var(--space-2); }
-[data-look="tiles"] .nav-drawer-list {
-  gap: 2px;
-  padding: var(--space-1);
+[data-look="seal"] .nav-drawer-rule { display: none; }
+[data-look="seal"] .nav-room {
   border: 1px solid var(--tea-border);
-  border-radius: var(--radius-xl);
-  background: var(--tea-surface);
-  box-shadow: var(--shadow-lg);
-}
-[data-look="tiles"] .nav-drawer-label { display: none; }
-[data-look="tiles"] .nav-drawer-rule { display: block; margin: 2px var(--space-2); border-top: 1px solid var(--tea-border); }
-[data-look="tiles"] .nav-room {
-  flex-direction: column;
-  justify-content: center;
-  gap: var(--space-1);
-  aspect-ratio: 1;
-  border-radius: var(--radius-lg);
+  background: linear-gradient(180deg, var(--tea-elevated), var(--tea-surface));
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--tea-text) 7%, transparent), var(--shadow-base);
   font-family: var(--font-sans);
   font-size: var(--fs-ui-10);
+  font-weight: 500;
 }
-[data-look="tiles"] .nav-room:hover { background: var(--tea-elevated); }
-[data-look="tiles"] .nav-room[aria-current="page"] { background: rgb(var(--tea-bg-rgb)); font-weight: 600; }
-[data-look="tiles"] .nav-manage-word[data-open="true"]::before {
+[data-look="seal"] .nav-room:hover { background: var(--tea-elevated); }
+[data-look="seal"] .nav-room[aria-current="page"] {
+  border-color: rgb(var(--tea-gold-rgb) / 0.6);
+  background: rgb(var(--tea-bg-rgb));
+  box-shadow: inset 0 1px 3px rgb(0 0 0 / 0.35);
+  font-weight: 600;
+}
+[data-look="seal"] .nav-room[aria-current="page"]::before {
   content: '';
   position: absolute;
-  left: 50%;
-  bottom: -8px;
-  width: 16px;
-  margin-left: -8px;
-  border-top: 2px solid var(--tea-gold);
+  top: 5px;
+  right: 5px;
+  width: 5px;
+  aspect-ratio: 1;
+  border-radius: 1px;
+  background: var(--tea-gold);
 }
-
-/* Spines: the slimmest. Each room stands upright like a book's spine,
-   stacked up from the bottom; the room you are in is gold with a gold line
-   down its side. The word manage, open, is gold with a short gold line at
-   the rail's edge, pointing into the column. */
-[data-look="spines"] .nav-drawer { justify-content: flex-end; padding-bottom: var(--space-6); }
-[data-look="spines"] .nav-drawer-list { align-items: center; gap: var(--space-4); }
-[data-look="spines"] .nav-drawer-label { display: none; }
-[data-look="spines"] .nav-drawer-rule { display: block; width: 12px; border-top: 1px solid var(--tea-border); }
-[data-look="spines"] .nav-room-glyph { display: none; }
-[data-look="spines"] .nav-room {
-  writing-mode: vertical-rl;
-  transform: rotate(180deg);
-  justify-content: center;
-  min-width: var(--tap-min);
-  padding: 0;
-  font-family: var(--font-sans);
-  font-size: var(--fs-ui-11);
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-[data-look="spines"] .nav-room[aria-current="page"] { font-weight: 600; }
-[data-look="spines"] .nav-room[aria-current="page"]::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  right: 0;
-  border-right: 2px solid var(--tea-gold);
-}
-[data-look="spines"] .nav-manage-word[data-open="true"]::before {
+[data-look="seal"] .nav-manage-word[data-open="true"]::before {
   content: '';
   position: absolute;
   top: 50%;

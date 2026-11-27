@@ -1,28 +1,28 @@
 // Three looks for the Manage column beside the rail, for Adrian to choose
-// from (2026-11-27: "Give me three completely different managed columns").
-// Once he picks one, the other two and this switch come out.
+// from. All three are tiles, his pick of the first round, made finer
+// (2026-11-27: "I like tiles, but more sophisticated"). Once he picks one,
+// the other two and this switch come out.
 //
-//   ledger  an index: the rooms in the rail's own lowercase type, hairlines
-//           between them, read from the top like a page.
-//   tiles   a small floating card of square tiles, a glyph over each word.
-//   spines  the slimmest: each room set upright like a book's spine.
+//   porcelain  one quiet card, hairlines between the tiles, serif words.
+//   medallion  a dark card, each glyph in a round medallion.
+//   seal       each room its own raised tile, a gold seal on the one you are in.
 //
-// Pick one with ?manage=ledger, ?manage=tiles or ?manage=spines on any
+// Pick one with ?manage=porcelain, ?manage=medallion or ?manage=seal on any
 // address; the choice is remembered in this browser.
 
-export type ManageLook = 'ledger' | 'tiles' | 'spines';
+export type ManageLook = 'porcelain' | 'medallion' | 'seal';
 
 const KEY = 'teajia_manage_look';
-const LOOKS: readonly ManageLook[] = ['ledger', 'tiles', 'spines'];
+const LOOKS: readonly ManageLook[] = ['porcelain', 'medallion', 'seal'];
 
 /** How wide each look's column is, in rem. */
-export const MANAGE_LOOK_WIDTH_REM: Record<ManageLook, number> = { ledger: 6.25, tiles: 4.75, spines: 2.75 };
+export const MANAGE_LOOK_WIDTH_REM: Record<ManageLook, number> = { porcelain: 5, medallion: 5.25, seal: 5 };
 
 function isLook(value: string | null | undefined): value is ManageLook {
   return !!value && (LOOKS as readonly string[]).includes(value);
 }
 
-/** The look for this browser: the address first, then the one picked last, then ledger. */
+/** The look for this browser: the address first, then the one picked last, then porcelain. */
 export function manageLook(search: string): ManageLook {
   const asked = new URLSearchParams(search).get('manage');
   if (isLook(asked)) {
@@ -33,5 +33,5 @@ export function manageLook(search: string): ManageLook {
     const kept = window.localStorage.getItem(KEY);
     if (isLook(kept)) return kept;
   } catch { /* storage refused */ }
-  return 'ledger';
+  return 'porcelain';
 }
