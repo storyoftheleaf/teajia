@@ -99,13 +99,13 @@ describe('practice lines, open', () => {
   });
 });
 
-describe('practice lines, closed (the default)', () => {
+describe('practice lines, closed by setting', () => {
   beforeEach(() => {
     db.exec(`UPDATE contributors SET practice_since = 2009, practice_drawn = 'Old trees', practice_doings = 'pours' WHERE id = 'mei-lin'`);
   });
 
-  it('both routes are 404 with the switch unset and with it set to false', async () => {
-    for (const open of [undefined, false]) {
+  it('both routes are 404 with the switch set to false', async () => {
+    for (const open of [false]) {
       expect((await call('/api/public/people/mei-lin/practice', { user: 'mei', open })).status).toBe(404);
       expect((await call('/api/public/people/mei-lin/practice', { method: 'PUT', body: { since: 2001 }, user: 'mei', open })).status).toBe(404);
     }

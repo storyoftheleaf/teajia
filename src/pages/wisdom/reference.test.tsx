@@ -1625,8 +1625,11 @@ describe('three type sizes, and nothing else', () => {
   it('leaves no 15px step anywhere in the reference', () => {
     // Prose at 15 and a row name at 17 are two sizes a reader cannot tell
     // apart and can only feel as noise. They are one size now.
+    // Read's shelves above the page are the site's own row of words, shared
+    // with /read and /craft, not the reference's type, so they are left out.
+    const withoutShelves = (html: string) => html.replace(/<nav[^>]*data-testid="read-shelves"[\s\S]*?<\/nav>/, '');
     for (const path of ['/wisdom', ...INDEX_PAGES, ...DETAIL_PAGES]) {
-      expect(render(path)).not.toContain('text-ui-15');
+      expect(withoutShelves(render(path))).not.toContain('text-ui-15');
     }
   });
 

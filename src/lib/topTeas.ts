@@ -1,6 +1,6 @@
 import { TEA_TYPES, inventoryTeaType } from '../wisdom/vocabulary';
 
-export const TOP_TEAS_OPEN = false;
+export const TOP_TEAS_OPEN = true;
 
 export function topTeasOpen(env?: { TOP_TEAS_OPEN?: string }): boolean {
   const site = (import.meta as { env?: Record<string, string | undefined> }).env;

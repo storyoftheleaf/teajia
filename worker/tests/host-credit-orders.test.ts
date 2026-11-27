@@ -72,7 +72,7 @@ function order(db: Db, o: {
 }
 
 function env(db: Db, open = true) {
-  return { DB: db as any, JWT_SECRET: SECRET, APP_URL: 'https://www.teajia.com', ...(open ? { HOST_CREDIT_OPEN: 'true' } : {}) } as any;
+  return { DB: db as any, JWT_SECRET: SECRET, APP_URL: 'https://www.teajia.com', ...(open ? { HOST_CREDIT_OPEN: 'true' } : { HOST_CREDIT_OPEN: 'false' }) } as any;
 }
 
 async function call(db: Db, path: string, o: { method?: string; body?: unknown; as?: string; account?: string; open?: boolean } = {}) {

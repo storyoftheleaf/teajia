@@ -14,7 +14,7 @@
 // VITE_TEA_HOUSES_OPEN ('true' or 'false'), the worker reads the
 // TEA_HOUSES_OPEN variable. Neither is set on the live site. A test or a local
 // check of the open state sets it to 'true'.
-export const TEA_HOUSES_OPEN = false;
+export const TEA_HOUSES_OPEN = true;
 
 /**
  * The section's name on its pages. Not final (Adrian has not said yes to

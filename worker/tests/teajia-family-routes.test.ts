@@ -82,7 +82,7 @@ function setup() {
     JSON.stringify([{ id: 's1', createdAt: '2026-11-18T08:00:00Z', tasting: { notes: ['orchid'] } }]),
   );
   const env = {
-    DB: db as any, JWT_SECRET: SECRET, MEDIA_BUCKET: bucket as any, GROQ_API_KEY: 'groq',
+    DB: db as any, JWT_SECRET: SECRET, MEDIA_BUCKET: bucket as any, GROQ_API_KEY: 'groq', YOUR_TABLE_PAGE_OPEN: 'false', TEA_TABLE_OPEN: 'false',
     PROVIDER_LIMITER: { limit: async () => ({ success: true }) },
   };
   return { db, bucket, env };

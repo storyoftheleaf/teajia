@@ -19,7 +19,7 @@
 // An explicit setting wins over the constant, either way: the site reads
 // VITE_KNOW_THIS_TEA_OPEN ('true' or 'false'), the worker reads the
 // KNOW_THIS_TEA_OPEN variable. A test or a local check sets it to 'true'.
-export const KNOW_THIS_TEA_OPEN = false;
+export const KNOW_THIS_TEA_OPEN = true;
 
 type Env = { KNOW_THIS_TEA_OPEN?: string } | null | undefined;
 

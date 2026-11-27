@@ -7,7 +7,7 @@
 // An explicit setting wins over the constant, either way: the site reads
 // VITE_ANYONE_HOSTS_OPEN ('true' or 'false'), the worker reads the
 // ANYONE_HOSTS_OPEN variable.
-export const ANYONE_HOSTS_OPEN = false;
+export const ANYONE_HOSTS_OPEN = true;
 
 type Env = { ANYONE_HOSTS_OPEN?: string } | null | undefined;
 

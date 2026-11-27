@@ -1485,7 +1485,7 @@ describe('Events Release 1 persisted route contracts', () => {
         );
 
       // Closed (as live), the menu carries no year or place, as main answers.
-      const closed = await (await worker.fetch(new Request('https://worker.test/api/events/cliff-tea/tea-menu'), { DB: db } as any)).json() as Array<Record<string, unknown>>;
+      const closed = await (await worker.fetch(new Request('https://worker.test/api/events/cliff-tea/tea-menu'), { DB: db, TABLE_CARD_OPEN: 'false' } as any)).json() as Array<Record<string, unknown>>;
       expect(closed).toHaveLength(2);
       for (const row of closed) {
         for (const key of ['product_year', 'product_origin_region', 'product_origin_country']) expect(row).not.toHaveProperty(key);

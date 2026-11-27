@@ -1,5 +1,5 @@
 // Launch 4, K9. Explicit site or worker settings override the default.
-export const HOST_ARTICLES_OPEN = false;
+export const HOST_ARTICLES_OPEN = true;
 
 type Env = { HOST_ARTICLES_OPEN?: string } | null | undefined;
 

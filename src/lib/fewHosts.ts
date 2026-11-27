@@ -10,7 +10,7 @@
 // VITE_FEW_HOSTS_OPEN ('true' or 'false'), the worker reads the
 // FEW_HOSTS_OPEN variable. Neither is set on the live site. A local check of
 // the open state sets it to 'true'.
-export const FEW_HOSTS_OPEN = false;
+export const FEW_HOSTS_OPEN = true;
 
 type Env = { FEW_HOSTS_OPEN?: string } | null | undefined;
 

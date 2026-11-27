@@ -10,6 +10,7 @@ const selection = vi.hoisted(() => ({ accountId: null as string | null, tokenAcc
 vi.mock('../../lib/store', () => ({
   useAppStore: (selector: (state: { activeAccountId: string | null }) => unknown) =>
     selector({ activeAccountId: selection.accountId }),
+  selectIsOwnerTier: () => false,
 }));
 
 vi.mock('../../lib/api', async importOriginal => ({

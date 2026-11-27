@@ -1,6 +1,7 @@
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { describe, expect, it } from 'vitest';
 import { LaunchpadView } from './LaunchpadView';
 import { buildTeaMasterReadiness } from '../readiness/teaMasterReadiness';
@@ -30,14 +31,14 @@ const baseProps = {
 };
 
 const render = (tier: { hasManageRoom?: boolean; isPlatformOwner?: boolean } = {}) => renderToStaticMarkup(
-  <MemoryRouter>
+  <QueryClientProvider client={new QueryClient()}><MemoryRouter>
     {React.createElement(LaunchpadView, {
       ...baseProps,
       hasManageRoom: tier.hasManageRoom ?? false,
       manageEntryPath: '/admin/dashboard',
       isPlatformOwner: tier.isPlatformOwner ?? false,
     } as never)}
-  </MemoryRouter>,
+  </MemoryRouter></QueryClientProvider>,
 );
 
 // Your Table is the person's room. Every tile is theirs, and the shop is one
@@ -129,7 +130,7 @@ const renderWaiting = (
   attentionItems: unknown,
   tier: { isOwner?: boolean; canPublish?: boolean; canSell?: boolean } = {},
 ) => renderToStaticMarkup(
-  <MemoryRouter>
+  <QueryClientProvider client={new QueryClient()}><MemoryRouter>
     {React.createElement(LaunchpadView, {
       ...baseProps,
       hasManageRoom: tier.isOwner ?? false,
@@ -137,7 +138,7 @@ const renderWaiting = (
       isPlatformOwner: false,
       attentionItems,
     } as never)}
-  </MemoryRouter>,
+  </MemoryRouter></QueryClientProvider>,
 );
 
 describe('Launchpad: what needs you', () => {
@@ -191,7 +192,7 @@ describe('Launchpad: what needs you', () => {
 // leaves when there is nothing left.
 
 const renderSetup = (readiness: unknown) => renderToStaticMarkup(
-  <MemoryRouter>
+  <QueryClientProvider client={new QueryClient()}><MemoryRouter>
     {React.createElement(LaunchpadView, {
       ...baseProps,
       hasManageRoom: true,
@@ -199,7 +200,7 @@ const renderSetup = (readiness: unknown) => renderToStaticMarkup(
       isPlatformOwner: false,
       readiness,
     } as never)}
-  </MemoryRouter>,
+  </MemoryRouter></QueryClientProvider>,
 );
 
 const unfinished = buildTeaMasterReadiness({

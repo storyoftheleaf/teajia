@@ -12,7 +12,7 @@
 // VITE_TEA_TABLE_OPEN ('true' or 'false'), the worker reads the TEA_TABLE_OPEN
 // variable. Neither is set on the live site. A test or a local check of the
 // open state sets it to 'true'.
-export const TEA_TABLE_OPEN = false;
+export const TEA_TABLE_OPEN = true;
 
 type Env = { TEA_TABLE_OPEN?: string } | null | undefined;
 

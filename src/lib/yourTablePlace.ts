@@ -12,7 +12,7 @@
 // An explicit setting wins over the constant, either way: the site reads
 // VITE_YOUR_TABLE_PLACE_OPEN ('true' or 'false'), the worker reads the
 // YOUR_TABLE_PLACE_OPEN variable. Neither is set on the live site.
-export const YOUR_TABLE_PLACE_OPEN = false;
+export const YOUR_TABLE_PLACE_OPEN = true;
 
 type Env = { YOUR_TABLE_PLACE_OPEN?: string } | null | undefined;
 

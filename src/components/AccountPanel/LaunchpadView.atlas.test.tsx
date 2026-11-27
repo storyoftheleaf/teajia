@@ -1,6 +1,7 @@
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { describe, expect, it } from 'vitest';
 import { LaunchpadView } from './LaunchpadView';
 
@@ -35,9 +36,9 @@ const props = {
 };
 
 const render = (canReadAtlas?: boolean) => renderToStaticMarkup(
-  <MemoryRouter>
+  <QueryClientProvider client={new QueryClient()}><MemoryRouter>
     {React.createElement(LaunchpadView, { ...props, ...(canReadAtlas === undefined ? {} : { canReadAtlas }) } as never)}
-  </MemoryRouter>,
+  </MemoryRouter></QueryClientProvider>,
 );
 
 describe('Your Table: the Tea Atlas door', () => {

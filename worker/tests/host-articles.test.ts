@@ -67,9 +67,9 @@ const draft = (credit = 'false', submissionId = crypto.randomUUID(), photo = tru
 const publish = () => form({ action: 'publish', title: 'Winter oolong', body: 'An edited article.\n\nA second paragraph.' });
 
 describe('host article offers', () => {
-  it('defaults closed, requires sign-in and checks actual hosting', async () => {
+  it('closes when set to false, requires sign-in and checks actual hosting', async () => {
     const { env } = setup();
-    expect((await call({ ...env, HOST_ARTICLES_OPEN: '' }, 'host', MINE)).status).toBe(404);
+    expect((await call({ ...env, HOST_ARTICLES_OPEN: 'false' }, 'host', MINE)).status).toBe(404);
     expect((await call(env, null, MINE)).status).toBe(401);
     expect(await (await call(env, 'guest', MINE)).json()).toEqual({ can_offer: false, offers: [] });
     expect((await call(env, 'guest', MINE, draft())).status).toBe(403);

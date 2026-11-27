@@ -16,7 +16,7 @@
 // An explicit setting wins over the constant, either way: the site reads
 // VITE_HOST_CREDIT_OPEN ('true' or 'false'), the worker reads the
 // HOST_CREDIT_OPEN variable. A test or a local check sets it to 'true'.
-export const HOST_CREDIT_OPEN = false;
+export const HOST_CREDIT_OPEN = true;
 
 /**
  * The two terms of the rule, each an account setting: the share of the tea

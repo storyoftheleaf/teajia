@@ -11,6 +11,8 @@ const tokenScope = vi.hoisted(() => ({ accountId: null as string | null }));
 
 vi.mock('../../lib/store', () => ({
   useAppStore: (selector: (state: typeof appStoreState) => unknown) => selector(appStoreState),
+  // Host credit is open: its section asks whether the reader is the owner.
+  selectIsOwnerTier: () => false,
 }));
 
 vi.mock('../../lib/api', async importOriginal => ({

@@ -14,7 +14,7 @@
 // An explicit setting wins over the constant, either way: the site reads
 // VITE_HOME_BAR_OPEN ('true' or 'false'). Neither is set on the live site. A
 // test or a local check of the open state sets it to 'true'.
-export const HOME_BAR_OPEN = false;
+export const HOME_BAR_OPEN = true;
 
 /** Whether the new Home and bar are on. */
 export function homeBarOpen(): boolean {

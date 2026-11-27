@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { YOUR_TABLE_PLACE_OPEN, yourTableLine, yourTablePlaceOpen } from './yourTablePlace';
 
 describe('Add your table (Launch 4, K4)', () => {
-  it('is closed until Adrian opens it, and an explicit setting wins', () => {
-    expect(YOUR_TABLE_PLACE_OPEN).toBe(false);
+  it('is open since Adrian turned it on, and an explicit setting wins', () => {
+    expect(YOUR_TABLE_PLACE_OPEN).toBe(true);
     expect(yourTablePlaceOpen({ YOUR_TABLE_PLACE_OPEN: 'true' })).toBe(true);
     expect(yourTablePlaceOpen({ YOUR_TABLE_PLACE_OPEN: 'false' })).toBe(false);
   });

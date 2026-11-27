@@ -14,7 +14,7 @@
 // VITE_YOUR_TABLE_PAGE_OPEN ('true' or 'false'), the worker reads the
 // YOUR_TABLE_PAGE_OPEN variable. Neither is set on the live site. A test or a
 // local check of the open state sets it to 'true'.
-export const YOUR_TABLE_PAGE_OPEN = false;
+export const YOUR_TABLE_PAGE_OPEN = true;
 
 type Env = { YOUR_TABLE_PAGE_OPEN?: string } | null | undefined;
 

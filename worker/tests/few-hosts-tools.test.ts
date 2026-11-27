@@ -59,7 +59,7 @@ async function rpc(who: Who, method: string, params: Record<string, unknown>) {
     body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
   }), {
     DB: new AsyncD1(db), JWT_SECRET: 'few-hosts-tools-secret', APP_URL: 'https://hosts.test',
-    FEW_HOSTS_OPEN: open ? 'true' : 'false',
+    FEW_HOSTS_OPEN: open ? 'true' : 'false', ANYONE_HOSTS_OPEN: 'false',
   } as any, { waitUntil() {}, passThroughOnException() {} } as any);
   return await response.json() as any;
 }

@@ -34,8 +34,8 @@ function render(node: React.ReactNode) {
 const text = (html: string) => html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
 
 describe('the switch', () => {
-  it('ships closed, and an explicit setting wins either way', () => {
-    expect(KNOW_THIS_TEA_OPEN).toBe(false);
+  it('ships open since Adrian turned it on, and an explicit setting wins either way', () => {
+    expect(KNOW_THIS_TEA_OPEN).toBe(true);
     expect(knowThisTeaOpen({ KNOW_THIS_TEA_OPEN: 'true' })).toBe(true);
     expect(knowThisTeaOpen({ KNOW_THIS_TEA_OPEN: 'false' })).toBe(false);
   });
