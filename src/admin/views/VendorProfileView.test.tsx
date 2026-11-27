@@ -83,13 +83,17 @@ describe('vendor profile route', () => {
     expect(html).toContain('href="/wisdom/region/yunnan"');
   });
 
-  it('reads in order: numbers, teas, bought from them, sold, then notes', () => {
+  it('reads in order: numbers, teas, Curate, bought from them, sold', () => {
     const html = renderToString(<VendorProfileView />);
     const at = (text: string) => html.indexOf(text);
     expect(at('At a glance')).toBeLessThan(at('Products supplied'));
-    expect(at('Products supplied')).toBeLessThan(at('Bought from them'));
+    expect(at('Products supplied')).toBeLessThan(at('In Curate'));
+    expect(at('In Curate')).toBeLessThan(at('Bought from them'));
     expect(at('Bought from them')).toBeLessThan(at('Their teas, sold'));
-    expect(at('Their teas, sold')).toBeLessThan(at('data-testid="vendor-notes"'));
+  });
+
+  it('has no notes section when nothing is written', () => {
+    expect(renderToString(<VendorProfileView />)).not.toContain('data-testid="vendor-notes"');
   });
 
   it('makes the details editable where they sit', () => {

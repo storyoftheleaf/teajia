@@ -31,17 +31,35 @@ export const VendorNotesCard: React.FC<{ vendorId: string; notes?: string | null
     finally { setAdding(null); }
   };
 
+  const [clearing, setClearing] = useState(false);
+  // Nothing written: no notes section at all. Everything about a vendor has its
+  // own place in the card (Adrian, 2026-11-27: "they should all have a place in
+  // the actual card itself").
+  if (!lines.length && !editing) return null;
+  const clear = async () => {
+    setClearing(true);
+    setAddError('');
+    try { await save({ notes: null }); }
+    catch { setAddError("That didn't save. Try again."); }
+    finally { setClearing(false); }
+  };
+
   return (
     <section className="bg-tea-surface border border-tea-border rounded-xl p-4 sm:p-5" data-testid="vendor-notes">
-      <div className="flex items-center justify-between gap-2 mb-2">
-        <h3 className="h3">Notes</h3>
+      <div className="flex items-center justify-between gap-2 mb-1">
+        <h3 className="h3">Old note</h3>
         {!editing && (
           <Button type="button" variant="quiet" size="sm" onClick={() => setEditing(true)}
             icon={<Pencil size={14} strokeWidth={1.5} aria-hidden="true" />}>
-            {lines.length ? 'Edit' : 'Add notes'}
+            Edit
           </Button>
         )}
       </div>
+      {!editing && (
+        <p className="mb-2 text-ui-13 text-tea-text-sec">
+          Written when this vendor was added, before these details had their own places. Move what matters into the card, then clear it.
+        </p>
+      )}
       {editing ? (
         <InlineField
           label="Notes"
@@ -53,8 +71,6 @@ export const VendorNotesCard: React.FC<{ vendorId: string; notes?: string | null
           placeholder="One thought per line"
           onSave={next => save({ notes: next || null })}
         />
-      ) : lines.length === 0 ? (
-        <p className="text-ui-13 text-tea-text-sec">No notes yet.</p>
       ) : (
         <ul className="divide-y divide-tea-border">
           {lines.map((line, i) => (
@@ -65,8 +81,8 @@ export const VendorNotesCard: React.FC<{ vendorId: string; notes?: string | null
           ))}
         </ul>
       )}
-      {!editing && offers.length > 0 && (
-        <div className="mt-3 flex flex-wrap gap-2" data-testid="vendor-note-contacts">
+      {!editing && (
+        <div className="mt-3 flex flex-wrap items-center gap-2" data-testid="vendor-note-contacts">
           {offers.map(offer => (
             <Button key={offer.channel} type="button" variant="secondary" size="sm" loading={adding === offer.channel}
               onClick={() => void addContact(offer)}
@@ -74,6 +90,12 @@ export const VendorNotesCard: React.FC<{ vendorId: string; notes?: string | null
               Add {offer.label} {offer.handle} to contacts
             </Button>
           ))}
+          {/* Clearing waits until every handle in it has moved, so nothing is lost. */}
+          {offers.length === 0 && (
+            <Button type="button" variant="quiet" size="sm" loading={clearing} onClick={() => void clear()}>
+              Clear the note
+            </Button>
+          )}
         </div>
       )}
       {addError && <p role="alert" className="mt-1 text-ui-12 text-tea-error">{addError}</p>}

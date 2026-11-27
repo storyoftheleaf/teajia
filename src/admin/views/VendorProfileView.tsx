@@ -204,6 +204,9 @@ export const VendorProfileView: React.FC = () => {
       <div className="max-w-3xl mx-auto px-4 md:px-6 pb-12 space-y-6">
         <VendorDetailsCard vendor={vendor} vendorId={vendorId!} />
 
+        {/* An old note sits right under the card, so each part can move into it. */}
+        <VendorNotesCard vendorId={vendorId!} notes={vendor.notes} contacts={vendorContacts(vendor)} />
+
         {/* Stats row */}
         <section className="bg-tea-surface border border-tea-border rounded-xl p-5">
           <h3 className="h3 mb-4">At a glance</h3>
@@ -262,25 +265,25 @@ export const VendorProfileView: React.FC = () => {
                       ) : (
                         <div className="w-9 h-9 rounded-md bg-tea-elevated shrink-0" />
                       )}
+                      {/* The whole name across the top, then stock and cost under it, so a
+                          long name is never cut off (Adrian, 2026-11-27). */}
                       <div className="min-w-0 flex-1">
-                        <p className="text-ui-13 text-tea-text truncate">
+                        <p className="text-ui-14 text-tea-text break-words">
                           {p.given_name || p.product_name}
                         </p>
-                        {!typeLink && !placeLink && (
-                          <p className="label-caps text-tea-text-dim mt-0.5 truncate">
+                        <p className="mt-0.5 font-mono text-ui-12 text-tea-text-sec tabular-nums">
+                          {[p.stock_grams == null ? 'Stock ?' : `${Number(p.stock_grams).toLocaleString()}g${stock ? ` · ${stock.label}` : ''}`, recordedCost(p) ?? 'Cost ?'].join(' · ')}
+                        </p>
+                        {!typeLink && !placeLink && (p.type || p.origin_region || p.origin_country) && (
+                          <p className="label-caps text-tea-text-dim mt-0.5 break-words">
                             {[p.type, p.origin_region, p.origin_country].filter(Boolean).join(' · ')}
                           </p>
                         )}
                       </div>
-                      {/* Stock and cost stack on the right, so the row never runs off a phone. */}
-                      <div className="shrink-0 text-right font-mono text-ui-12 text-tea-text-sec tabular-nums leading-snug">
-                        <p>{p.stock_grams == null ? 'Stock ?' : `${Number(p.stock_grams).toLocaleString()}g`}{stock ? ` · ${stock.label}` : ''}</p>
-                        <p>{recordedCost(p) ?? 'Cost ?'}</p>
-                      </div>
                       <ChevronRight size={16} strokeWidth={1.5} className="shrink-0 text-tea-text-dim" aria-hidden="true" />
                     </Link>
                     {(typeLink || placeLink) && (
-                      <div className="basis-full -mt-2 pb-3 pl-14 flex flex-wrap gap-x-3 gap-y-1 label-caps text-tea-text-dim">
+                      <div className="basis-full -mt-2 pb-3 pl-12 flex flex-wrap gap-x-3 gap-y-1 label-caps text-tea-text-dim">
                         {typeLink ? <Link to={typeLink.href} className={metaLink}>{typeLink.label}</Link> : p.type && <span>{p.type}</span>}
                         {placeLink ? <Link to={placeLink.href} className={metaLink}>{placeLink.label}</Link> : (p.origin_region || p.origin_country) && <span>{[p.origin_region, p.origin_country].filter(Boolean).join(' · ')}</span>}
                       </div>
@@ -359,8 +362,6 @@ export const VendorProfileView: React.FC = () => {
           ownOrders={ownOrdersData}
           ownOrdersLoading={ownOrdersLoading}
         />
-
-        <VendorNotesCard vendorId={vendorId!} notes={vendor.notes} contacts={vendorContacts(vendor)} />
 
         {/* The working records (people, quotes, files, history) sit last, below
             what Adrian reads (Adrian, 2026-11-23: "put these at the very bottom"). */}
