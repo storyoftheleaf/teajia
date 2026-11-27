@@ -13,8 +13,9 @@ const KEEP_PARAM = 'keep';
  * account so what was bought stays with them, with the photos and tastings
  * they add later. Saving puts the invoice in their orders and keeps its teas
  * in their saved teas. Signed out, it goes through sign-up and finishes by
- * itself on the way back. The words are option 1 of three put to Adrian;
- * swap them here when he chooses.
+ * itself on the way back. Adrian asked for the why, brief and actionable,
+ * in place of the closed beta paragraph (2026-11-27); the words are a
+ * placeholder until he chooses.
  *
  * The shop that sent the invoice never saves it: its owner sees it as theirs
  * to send, with the link to copy (Adrian, 2026-11-27).
@@ -115,17 +116,19 @@ function KeepOffer({ slug, token, productIds, signedIn, kept: keptAtLoad }: {
         </div>
       ) : (
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-          <p className="min-w-0 flex-1 basis-64 font-body text-ui-14 leading-[1.5] text-tea-text-sec">
-            Teajia is in a closed beta, shared among close friends. Save these teas to your account and they stay with you.
-            Add a photo or a tasting note when you drink them, and it all sits together.
-          </p>
+          <div className="min-w-0 flex-1 basis-64">
+            <p className="font-body text-ui-15 leading-[1.45] text-tea-text">Keep these teas with you.</p>
+            <p className="mt-0.5 font-body text-ui-13 leading-[1.5] text-tea-text-sec">
+              Order any of them again in a tap, and note how each one tasted.
+            </p>
+          </div>
           {!signedIn ? (
             <Link to={authPagePath('signup', returnTo)} className="btn-secondary tap-target shrink-0">
-              <Bookmark size={13} /> Save to my account
+              <Bookmark size={13} /> Save my teas
             </Link>
           ) : (
             <button type="button" onClick={save} disabled={state === 'saving' || !token} className="btn-secondary tap-target shrink-0">
-              <Bookmark size={13} /> {state === 'saving' ? 'Saving' : 'Save to my account'}
+              <Bookmark size={13} /> {state === 'saving' ? 'Saving' : 'Save my teas'}
             </button>
           )}
           {error && <p role="alert" className="basis-full font-sans text-ui-12 text-tea-text-sec">{error}</p>}

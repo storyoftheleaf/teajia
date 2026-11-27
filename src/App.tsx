@@ -1356,7 +1356,7 @@ const AppContent = () => {
                   <ErrorBoundary><Suspense fallback={<EmblemLoader />}><FollowRenamedPerson><ProfileFavoritesPage /></FollowRenamedPerson></Suspense></ErrorBoundary>
                 } />
                 <Route path="/people/:slug/pay" element={
-                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><FollowRenamedPerson><ProfilePaymentPage /></FollowRenamedPerson></Suspense></ErrorBoundary>
+                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><FollowRenamedPerson><ProfilePaymentPage onAddToCart={handleAddToCart} /></FollowRenamedPerson></Suspense></ErrorBoundary>
                 } />
                 <Route path="/people" element={
                   <ErrorBoundary>
