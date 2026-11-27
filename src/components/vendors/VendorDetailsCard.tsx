@@ -136,21 +136,22 @@ export const VendorDetailsCard: React.FC<{ vendor: VendorRecord; vendorId: strin
           <InlineField label="Chinese name" value={vendor.chinese_name} onSave={v => save({ chinese_name: v || null })} />
           <InlineField label="Shop" value={vendor.company} onSave={v => save({ company: v || null })} />
           {profile.isSuccess && <InlineField label="Vendor code" value={vendorCode} onSave={saveCode} />}
-          <div className="flex items-start gap-1">
-            <div className="min-w-0 flex-1">
-              {/* One line: paste the whole address as Google Maps or the vendor writes it. */}
-              <InlineField label="Address" value={vendor.address} placeholder="Paste the whole address"
-                display={address} onSave={v => save({ address: v || null })} />
-            </div>
-            {address && <>
+          <div>
+            {/* One line: paste the whole address as Google Maps or the vendor writes it. It gets the full width;
+                the map and copy taps sit underneath, under the address itself. */}
+            <InlineField label="Address" value={vendor.address} placeholder="Paste the whole address"
+              display={address} onSave={v => save({ address: v || null })} />
+            {address && <div className="-mt-1 pb-2 ml-[6.75rem] flex flex-wrap gap-2">
               <a href={mapsHref(address)!} target="_blank" rel="noreferrer" aria-label={`Open ${address} in Google Maps`}
-                className="btn-icon tap-target mt-1 shrink-0 inline-flex items-center justify-center">
-                <MapPin size={14} strokeWidth={1.5} aria-hidden="true" />
+                className="btn-quiet btn-sm inline-flex items-center gap-1.5">
+                <MapPin size={14} strokeWidth={1.5} aria-hidden="true" /><span>Map</span>
               </a>
-              <Button type="button" variant="icon" onClick={() => void copyText('address', address)}
-                aria-label={copied === 'address' ? 'Copied the address' : 'Copy the address'} className="tap-target mt-1 shrink-0"
-                icon={copied === 'address' ? <Check size={14} strokeWidth={1.5} aria-hidden="true" /> : <Copy size={14} strokeWidth={1.5} aria-hidden="true" />} />
-            </>}
+              <Button type="button" variant="quiet" size="sm" onClick={() => void copyText('address', address)}
+                aria-label={copied === 'address' ? 'Copied the address' : 'Copy the address'}
+                icon={copied === 'address' ? <Check size={14} strokeWidth={1.5} aria-hidden="true" /> : <Copy size={14} strokeWidth={1.5} aria-hidden="true" />}>
+                {copied === 'address' ? 'Copied' : 'Copy'}
+              </Button>
+            </div>}
           </div>
           <InlineField label="City, country" value={[vendor.city, vendor.country].filter(Boolean).join(', ')}
             onSave={v => save(splitPlace(v))} />
