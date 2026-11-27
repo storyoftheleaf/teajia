@@ -419,7 +419,7 @@ test.describe(`W1 the guest (site ${SITE_SET}, worker ${WORKER_SET})`, () => {
     await task(page, '6 buy a tea from the thank-you (3)', { clicks: 3 }, async () => {
       await page.getByRole('region', { name: 'Teas served' }).getByRole('link', { name: 'Old tree white, test' }).click();
       await page.getByRole('button', { name: /add to order/i }).click();
-      await page.getByText(/view order/i).first().click();
+      // From a thank-you the order sheet opens on Add to order, no toast to tap (U1-8, todo/review/fixes/taps.md).
       await expect(page.locator('#checkout-location')).toBeVisible();
       // Fill only what is empty: what the site knows should not be asked.
       for (const [id, value] of [['#checkout-location', 'Ubud'], ['#checkout-country', 'Indonesia'], ['#checkout-name', 'Mei Guest'], ['#checkout-contact', 'mei@sandbox.test']] as const) {
