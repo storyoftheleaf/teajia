@@ -16,6 +16,7 @@ import { PART_QUERY, partView } from '../../lib/closedPart';
 import { LoadFailed } from '../shared/LoadFailed';
 import type { YourTableAnswer, YourTablePlace } from '../../lib/hostingApi';
 import { hostSmallText, hostText } from './hostTableParts';
+import { PourLink } from './PourLink';
 
 const AREA_MAX = 80;
 const fieldClass = 'btn-field block min-h-tap w-full min-w-0';
@@ -65,9 +66,12 @@ export function YourTablePlaceSection() {
                       onChange={event => show.mutate({ placeId: space.id, shown: event.target.checked })} />
                     Show it on the tea spaces page, by its area only
                   </label>
-                  <Button type="button" variant="quiet" className="tap-target" disabled={undo.isPending} onClick={() => undo.mutate(space.id)}>
-                    {undo.isPending && undo.variables === space.id ? 'Undoing…' : 'Undo'}
-                  </Button>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <PourLink placeId={space.id} />
+                    <Button type="button" variant="quiet" className="tap-target" disabled={undo.isPending} onClick={() => undo.mutate(space.id)}>
+                      {undo.isPending && undo.variables === space.id ? 'Undoing…' : 'Undo'}
+                    </Button>
+                  </div>
                 </li>
               ))}
             </ul>

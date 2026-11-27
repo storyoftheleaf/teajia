@@ -15,6 +15,7 @@ import { useAuth } from '../hooks/useAuth';
 import { currentSignInToken } from '../lib/api';
 import { holdAfterSitCredential } from '../lib/afterSitAccess';
 import { authPagePath } from '../lib/authNavigation';
+import { wayWithBasics } from '../lib/basicWay';
 import { joinSit, readSitLink, type SitLink } from '../lib/sitLink';
 import type { PublicSessionTea } from '../../shared/sessionTea';
 import type { InventoryItem } from '../types';
@@ -117,6 +118,8 @@ function sitDay(sit: SitLink) {
 }
 
 function Way({ way }: { way: NonNullable<SitLink['way']> }) {
+  // A place given by its basics alone still reads as steps (src/lib/basicWay.ts).
+  const guide = wayWithBasics(way.guide, { place: way.place, address: way.address, mapLink: way.map_link });
   return (
     <section aria-label="The way in" className="border-t border-tea-border pt-4">
       {(way.place || way.address) && (
@@ -124,8 +127,8 @@ function Way({ way }: { way: NonNullable<SitLink['way']> }) {
           {[way.place, way.address].filter(Boolean).join(', ')}
         </p>
       )}
-      {way.guide
-        ? <VenueGuide venueGuide={way.guide} mapLink={way.map_link ?? undefined} />
+      {guide
+        ? <VenueGuide venueGuide={guide} mapLink={way.map_link ?? undefined} />
         : way.map_link && (
           <a href={way.map_link} target="_blank" rel="noopener noreferrer" className="btn-secondary tap-target">Open in maps</a>
         )}

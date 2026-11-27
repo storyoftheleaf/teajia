@@ -36,6 +36,8 @@ export default function PourView() {
   const [order, setOrder] = useStepParam('order', 'price');
   const [teaId, setTeaId] = useStepParam('tea');
   const [sheet, setSheet] = useStepParam('sit');
+  // Opened from a tea space: the sit made or poured into here is placed there, unless it already has a place.
+  const [placeId] = useStepParam('place');
   const back = useAdminBack('/admin/pour');
 
   const [teas, setTeas] = useState<PourTea[] | null>(null);
@@ -72,6 +74,10 @@ export default function PourView() {
     setSits(current => (current.some(one => one.id === next.id) ? current.map(one => (one.id === next.id ? next : one)) : [next, ...current]));
     setChosenSit(next.id);
   };
+  const placed = async (next: PourSit): Promise<PourSit> => {
+    if (!placeId || next.place) return next;
+    return send('PUT', `/sits/${encodeURIComponent(next.id)}`, { place_id: placeId }).then(result => result.sit as PourSit, () => next);
+  };
   const guard = async (work: () => Promise<void>) => {
     if (busy) return;
     setBusy(true);
@@ -97,7 +103,7 @@ export default function PourView() {
       ...(tea ? { product_id: tea.id } : { name: typedName }),
     };
     const result = await send('POST', '', body);
-    keep(result.sit);
+    keep(await placed(result.sit));
     if (tea && weight !== null) {
       const left = result.sit.teas.find((one: { id: string }) => one.id === result.poured)?.stock_grams;
       setTeas(current => (current ?? []).map(one => (one.id === tea.id && typeof left === 'number' ? { ...one, stock_grams: left } : one)));
@@ -110,7 +116,7 @@ export default function PourView() {
     setTeas((await api('/teas')).teas);
   });
   const openSit = () => guard(async () => {
-    if (!sit) keep((await send('POST', '/sits', { date: day, timezone })).sit);
+    if (!sit) keep(await placed((await send('POST', '/sits', { date: day, timezone })).sit));
     setSheet('open');
   });
 

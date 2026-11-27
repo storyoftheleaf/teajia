@@ -9,6 +9,7 @@ import CancelConfirmModal from './CancelConfirmModal';
 import TastingDoor from './TastingDoor';
 import { anyoneHostsOpen } from '../../../lib/anyoneHosts';
 import { wayEndsAt } from '../../../lib/keptWay';
+import { wayWithBasics } from '../../../lib/basicWay';
 import type { SessionMoment } from '../../../../shared/sessionEnd';
 
 const VenueGuide = lazy(() => import('../VenueGuide'));
@@ -78,6 +79,8 @@ const ConfirmedView: React.FC<ConfirmedViewProps> = ({
   cancelPending,
 }) => {
   const { attendee, event, guestInvites } = data;
+  // A place given by its basics alone still reads as steps (src/lib/basicWay.ts).
+  const wayGuide = wayWithBasics(event.venueGuide, { place: event.locationName, address: event.addressText, mapLink: event.mapLink });
   const status = attendee.status;
   // "I can't come" at a person's table is Launch 3's (J13 finding 6); closed, main's words.
   const personsTableWords = event.privateHost === true && anyoneHostsOpen();
@@ -180,10 +183,10 @@ const ConfirmedView: React.FC<ConfirmedViewProps> = ({
         )}
 
         {/* Venue guide */}
-        {event.venueGuide && (
+        {wayGuide && (
           <Suspense fallback={null}>
             <VenueGuide
-              venueGuide={event.venueGuide}
+              venueGuide={wayGuide}
               mapLink={event.mapLink}
               className="mb-10"
               // Kept on this phone for where the signal ends, until the session ends (H8).
