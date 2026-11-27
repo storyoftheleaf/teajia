@@ -13,10 +13,13 @@ import type { YoursStripNav } from './YoursStrip';
  * an invoice's tea keeps the shop's own, to get more of it. A private tea the
  * shop does not list opens from what the link carries, with no footer.
  */
-export function LinkTeaPage({ item, onClose, footer, top, yoursLine, yoursNote, yoursNav, onAddToCart }: {
+export function LinkTeaPage({ item, onClose, footer, top, yoursLine, yoursNote, yoursNav, onAddToCart, onOpenCart, cartItemCount }: {
   item: InventoryItem;
   onAddToCart?: (item: InventoryItem, grams: number, totalUsd: number) => void;
   onClose: () => void;
+  /** The shop's cart, opened from the shop's own bar. */
+  onOpenCart?: () => void;
+  cartItemCount?: number;
   footer?: React.ReactNode;
   top?: React.ReactNode;
   /** The tea is theirs on this link: the page shows the strip that is theirs with this line. */
@@ -44,7 +47,7 @@ export function LinkTeaPage({ item, onClose, footer, top, yoursLine, yoursNote, 
       className="fixed inset-0 z-modal overflow-y-auto bg-tea-bg pb-nav-gap"
       data-testid="link-tea-page"
     >
-      <ProductPage onAddToCart={onAddToCart} link={{ productKey: item.id, fallbackItem: item, top, yoursLine, yoursNote, yoursNav, footer, onBack: onClose }} />
+      <ProductPage onAddToCart={onAddToCart} onCartClick={onOpenCart} cartItemCount={cartItemCount} link={{ productKey: item.id, fallbackItem: item, top, yoursLine, yoursNote, yoursNav, footer, onBack: onClose }} />
     </div>,
     document.body,
   );
