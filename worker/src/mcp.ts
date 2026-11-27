@@ -124,6 +124,9 @@ import { settleHostCredit } from './hostCreditLedger';
 import { hostTokenMayAct } from './hostTokens';
 import { HOST_SELF_SCOPE } from '../../src/lib/hostTokens';
 
+/** Freight rates are typed only in Logistics (Adrian, 2026-11-27), never on a tea. */
+const FREIGHT_RATE_IN_LOGISTICS = 'A tea\'s freight rate is not set here. Rates live in Logistics with the services and the shop default: give the tea a service on its page (freight_service_id), or change the service\'s rate. To hand back a tea that still carries an older rate of its own, pass "shipping_rate_per_kg" in clear_fields on update_tea_pricing.';
+
 type Env = {
   DB: D1Database;
   curateReceipts?: CurateReceiptService;
@@ -923,18 +926,14 @@ async function toolCreateTea(env: Env, auth: McpAuth, args: any) {
   if (missingCost) throw new Error(`${COST_REQUIRED_ON_CREATE} (missing: ${missingCost})`);
 
   const costAmount = Math.max(0, Number(args.cost_amount));
-  /* Freight, optional and read the same way every other nullable number is:
-     absent means nobody said, which is the shop rate, NOT zero. `?? null`
-     before any coercion, because Number(undefined) is NaN and Number(null) is
-     0, and a 0 here is Adrian saying this one tea ships free. */
+  /* Freight is not set on a tea (Adrian, 2026-11-27). Rates live with the
+     logistics services and the shop default in Logistics; a new tea follows
+     its service or the shop default, so its own rate is always NULL here. */
   const rawShipping = args?.shipping_rate_per_kg;
-  const shippingRatePerKg = rawShipping === undefined || rawShipping === null
-    || (typeof rawShipping === 'string' && rawShipping.trim() === '')
-    ? null
-    : Number(rawShipping);
-  if (shippingRatePerKg !== null && !Number.isFinite(shippingRatePerKg)) {
-    throw new Error('shipping_rate_per_kg must be a number, or left out to follow the shop rate');
+  if (!(rawShipping === undefined || rawShipping === null || (typeof rawShipping === 'string' && rawShipping.trim() === ''))) {
+    throw new Error(FREIGHT_RATE_IN_LOGISTICS);
   }
+  const shippingRatePerKg = null;
   const fixedRetailPriceUsd = args?.fixed_retail_price_usd ?? null;
   if (fixedRetailPriceUsd !== null && (
     typeof fixedRetailPriceUsd !== 'number' || !Number.isFinite(fixedRetailPriceUsd) || fixedRetailPriceUsd < 0
@@ -2354,7 +2353,11 @@ async function toolUpdateTeaPricing(env: Env, auth: McpAuth, args: any) {
   const hasNewQty = 'quantity_purchased' in (args || {});
   const hasNewDesc = typeof args?.description === 'string';
   const hasNewStockVerify = 'stock_verified' in (args || {});
-  const hasNewShipping = 'shipping_rate_per_kg' in (args || {});
+  /* Setting a tea's own freight rate is refused (rates live in Logistics);
+     clearing one through clear_fields is still the way to hand it back. */
+  if ('shipping_rate_per_kg' in (args || {})) throw new Error(FREIGHT_RATE_IN_LOGISTICS);
+  const hasNewShipping = false;
+  const hasClearFields = Array.isArray(args?.clear_fields) && args.clear_fields.length > 0;
   const hasNewTasting = Array.isArray(args?.tasting_notes);
   const hasNewOrigin = 'origin_country' in (args || {}) || 'origin_region' in (args || {});
   const hasNewLore = typeof args?.lore === 'string';
@@ -2363,8 +2366,8 @@ async function toolUpdateTeaPricing(env: Env, auth: McpAuth, args: any) {
   const hasNewYear = 'year' in (args || {});
   const hasNewStatus = typeof args?.status === 'string';
   const status: string | null = hasNewStatus ? String(args.status).trim() : null;
-  if (!hasNewCost && !hasNewRetail && !hasNewQty && !hasNewYear && !hasNewStatus && !hasNewDesc && !hasNewStockVerify && !hasNewShipping && !hasNewTasting && !hasNewOrigin && !hasNewLore && !hasNewTerroir && !hasNewProcessing) {
-    throw new Error('At least one of cost_amount, cost_currency, retail_price_usd, quantity_purchased, year, status, description, lore, terroir, processing_notes, stock_verified, shipping_rate_per_kg, tasting_notes, or origin_country/origin_region is required');
+  if (!hasNewCost && !hasNewRetail && !hasNewQty && !hasNewYear && !hasNewStatus && !hasNewDesc && !hasNewStockVerify && !hasNewShipping && !hasClearFields && !hasNewTasting && !hasNewOrigin && !hasNewLore && !hasNewTerroir && !hasNewProcessing) {
+    throw new Error('At least one of cost_amount, cost_currency, retail_price_usd, quantity_purchased, year, status, description, lore, terroir, processing_notes, stock_verified, clear_fields, tasting_notes, or origin_country/origin_region is required');
   }
 
   const costAmount: number | null = 'cost_amount' in (args || {}) ? Number(args.cost_amount) : null;
@@ -6407,15 +6410,6 @@ const TOOL_DEFS: ToolDefinition[] = [
             + 'There is deliberately no default. A yuan invoice recorded as dollars prices the tea about '
             + 'seven times too high and nothing objects, because the number itself is fine.',
         },
-        shipping_rate_per_kg: {
-          type: 'number',
-          description:
-            'OPTIONAL, and usually left out. Leave it out and the tea follows the shop freight rate '
-            + '(85 Yuan/kg, converted live), which is what Adrian pays to air-freight from China, and it '
-            + 'keeps following that rate when he renegotiates it. Pass a number ONLY when this particular '
-            + "tea cost more or less to ship. Written in the tea's OWN cost currency, not USD: on a tea "
-            + 'bought in CNY, pass the CNY rate. A 0 means this tea genuinely ships free.',
-        },
         fixed_retail_price_usd: { type: 'number', description: 'Optional fixed retail price; omit to use markup-based pricing.' },
         low_stock_threshold: { type: 'number', default: 100 },
         notes: { type: 'string', description: 'Optional description/notes.' },
@@ -6536,7 +6530,6 @@ const TOOL_DEFS: ToolDefinition[] = [
         quantity_purchased: { type: 'number', description: 'Total grams purchased (e.g. 2490 for 7 x 357g cakes, 1000 for 1kg).' },
         year: { type: 'number', description: 'The year of the tea (e.g. 2025, 2019). Maps to the reference year.' },
         status: { type: 'string', description: 'Product status, e.g. Active or Sold Out. Keeps products + listing in sync.' },
-        shipping_rate_per_kg: { type: 'number', description: 'Shipping freight per kg, added to the price at cost after the markup (price = leaf cost x3 + freight), never multiplied. Written in the tea\'s OWN cost currency, not USD: on a tea bought in CNY, pass the CNY rate. Setting it PINS this tea to that figure; to hand it back to the shop rate (85 Yuan/kg, converted live) pass "shipping_rate_per_kg" in clear_fields instead. Not a separate sales charge.' },
         tasting_notes: { type: 'array', items: { type: 'string' }, description: 'Flavor/taste terms for the catalog tasting field (NOT the description). Up to 8.' },
         description: { type: 'string', description: 'Customer-facing "About this tea" (origin/character — NOT flavors; personal note space, shows only when present).' },
         lore: { type: 'string', description: 'Real, sourced historical/cultural background (terse, never fabricated).' },
@@ -6545,7 +6538,7 @@ const TOOL_DEFS: ToolDefinition[] = [
         origin_country: { type: 'string', description: 'Harvest country (not the trading house), e.g. Vietnam.' },
         origin_region: { type: 'string', description: 'Harvest region, e.g. Northern Vietnam wild tea trees, on the Yunnan border.' },
         stock_verified: { type: 'boolean', description: 'true = mark stock verified; false = set needs-verification flag. Omit to leave unchanged.' },
-        clear_fields: { type: 'array', items: { type: 'string' }, description: 'Fields to blank rather than set: lore, experience, mood, terroir, processing_notes, shipping_rate_per_kg. Clearing shipping_rate_per_kg hands the tea back to the shop freight rate and it follows that rate from then on; anything else is ignored.' },
+        clear_fields: { type: 'array', items: { type: 'string' }, description: 'Fields to blank rather than set: lore, experience, mood, terroir, processing_notes, shipping_rate_per_kg. Clearing shipping_rate_per_kg hands a tea that still carries its own older freight rate back to its logistics service or the shop default; a rate cannot be set here, rates live in Logistics. Anything else is ignored.' },
         confirm: { type: 'string', description: 'Confirmation token from preview response.' },
       },
       required: ['product_id'],

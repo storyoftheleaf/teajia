@@ -25,7 +25,7 @@ import {
  *     would touch first and lands everywhere in one step (worker/src/supplierRename.ts).
  *   - Contact details save on their own as each is edited, on the same card.
  *   - Shipping shows the freight bills recorded for this supplier and the
- *     shop's routes, with a way into Settings to change a route.
+ *     shop's routes, with a way into Logistics, where freight rates are set.
  *
  * Not wired into any list here: whoever lists suppliers opens it.
  */
@@ -301,14 +301,14 @@ export const SupplierSheet: React.FC<SupplierSheetProps> = ({ vendorId, vendorNa
                         <span className="shrink-0 text-ui-14 text-tea-text">{r.mode === 'air' ? 'Air' : 'Boat'}</span>
                         <span className="min-w-0 truncate text-ui-12 text-tea-text-sec">{r.carrier || 'no carrier named'}</span>
                         <span className="ml-auto shrink-0 num text-ui-14 text-tea-text">
-                          {r.rate_per_kg == null ? <span className="text-tea-text-dim">no rate</span> : <>{amount(r.rate_per_kg, r.rate_currency ?? 'Yuan')} <span className="text-ui-12 text-tea-text-sec">/ kg</span></>}
+                          {r.destination || <span className="text-tea-text-dim">no address</span>}
                         </span>
                       </li>
                     ))}
                   </ul>
                 )}
-              <Link to="/admin/account-settings" onClick={onClose} className="tap-target mt-2 inline-block text-ui-13 text-tea-gold-lt hover:text-tea-gold">
-                Change routes in Store Settings
+              <Link to="/admin/purchase-orders" onClick={onClose} className="tap-target mt-2 inline-block text-ui-13 text-tea-gold-lt hover:text-tea-gold">
+                Freight rates are set in Logistics
               </Link>
             </section>
           </>

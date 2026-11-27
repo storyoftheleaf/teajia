@@ -1555,6 +1555,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                 </TeaLine>
                 <TeaFreight product={product} shopPerKgUsd={shopFreight.perKgUsd} rates={rates} costRateToUsd={costRateToUsd}
                   onChoose={(serviceId) => persistField(product.id, 'freightServiceId', serviceId)}
+                  onClearOwnRate={() => persistField(product.id, 'shippingRatePerKg', null)}
                   onOpenLogistics={() => navigate('/admin/purchase-orders')} />
                 {(() => {
                   const calc = pricingCalc && pricingCalc.suggestedRetailUSD > 0 ? pricingCalc : null;

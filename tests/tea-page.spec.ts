@@ -46,7 +46,9 @@ async function install(page: Page) {
   }
   await page.route('**/api/compass/entries**', r => r.fulfill({ json: { entries: [] } }));
   // Freight rates live with the logistics companies' services, not on the tea.
-  await page.route('**/api/logistics', r => r.fulfill({ json: { orders: [], shipments: [], addresses: [], services: [
+  await page.route('**/api/logistics', r => r.fulfill({ json: { orders: [], addresses: [], shipments: [
+    { id: 'ship-1', service_id: 'air', logistics_company_id: 'co', logistics_company_name: 'Guangzhou', mode: 'air', state: 'in_transit', eta: '2026-12-04', created_at: '2026-11-25', lines: [{ id: 'sl1', product_id: 'liu-bao' }] },
+  ], services: [
     { id: 'air', logistics_company_id: 'co', logistics_company_name: 'Guangzhou', name: 'Airmail', mode: 'air', basis: 'kg', rate: 2, currency: 'USD', active: true },
   ] } }));
 }
@@ -75,18 +77,16 @@ test('the tea page reads in editing order and Next keeps the part you are on', a
   await page.waitForTimeout(400);
   await page.screenshot({ path: testInfo.outputPath('tea-page-top.png') });
 
-  // The tea only names the service it travels by; each says the price it gives before it is
-  // picked: Liu Bao costs 0.50 a gram, so Airmail at 2 dollars a kilo sells at 1.50 (0.50 x3, plus freight at cost). Nothing
-  // on the tea edits a freight price: the rates are set in Logistics.
-  const freight = tea.getByRole('combobox', { name: 'Travels by' });
-  await expect(freight).toHaveValue('');
-  await expect(freight.locator('option')).toHaveText(['Shop rate', 'Guangzhou · Airmail, $1.50 a gram']);
+  // Shipping is one line on the tea, and it is a link to the shipment (Adrian, 2026-11-27):
+  // when it arrives, what shipping adds to a gram, and by what. Nothing on the tea edits freight.
+  const shipping = tea.getByTestId('tea-shipping');
+  await expect(shipping).toHaveText(/^Arrives 4 Dec · .* · shop default$/);
+  await expect(shipping).toHaveAttribute('href', '/admin/purchase-orders?shipmentId=ship-1');
+  await expect(tea.getByRole('combobox', { name: 'Travels by' })).toHaveCount(0);
   await expect(tea.getByRole('spinbutton', { name: /freight/i })).toHaveCount(0);
-  await expect(tea.getByRole('button', { name: 'Rates are set in Logistics' })).toBeVisible();
-  const saved = page.waitForRequest(r => r.url().includes('/api/products/liu-bao/commercial') && r.method() === 'PUT');
-  await page.route('**/api/products/liu-bao/commercial', r => r.fulfill({ json: { success: true } }));
-  await freight.selectOption('air');
-  expect((await saved).postDataJSON()).toEqual({ freight_service_id: 'air' });
+  await shipping.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: testInfo.outputPath('tea-page-journey.png') });
 
   await page.getByRole('navigation', { name: 'Parts of this tea' }).getByRole('button', { name: 'Price' }).click();
   await page.getByRole('button', { name: 'Next product' }).click();
@@ -106,4 +106,29 @@ test('the tea page reads in editing order and Next keeps the part you are on', a
   await expect.poll(() => tea.evaluate(el => el.scrollWidth - el.clientWidth)).toBeLessThanOrEqual(0);
   await page.waitForTimeout(400);
   await page.screenshot({ path: testInfo.outputPath('tea-page-phone.png') });
+});
+
+test('a tea that kept its own older freight rate shows it read-only, with Clear and the new price first', async ({ page }, testInfo) => {
+  await install(page);
+  // Liu Bao still carries 6 dollars a kilo from before rates moved to Logistics; the shop default is 70 yuan.
+  await page.route('**/api/products', r => r.fulfill({ json: [{ ...products[0], shipping_rate_per_kg: 6 }, products[1]] }));
+  await page.route('**/api/rates', r => r.fulfill({ json: [{ currency: 'USD', rate_to_usd: 1 }, { currency: 'Yuan', rate_to_usd: 7 }] }));
+  await page.route('**/api/accounts/acct', r => r.fulfill({ json: { id: 'acct', name: 'Test', slug: 'test', default_shipping_rate_per_kg: 70, default_shipping_rate_currency: 'Yuan' } }));
+  await page.goto('/admin/stock');
+  await page.locator('tr[data-product-id="liu-bao"]').dispatchEvent('click', { metaKey: true });
+  await page.getByRole('toolbar', { name: 'Selection actions' }).getByRole('button', { name: 'Edit', exact: true }).click();
+  const tea = page.getByTestId('tea-page');
+  // $6.00 a kilo is $0.006 a gram, and the line says it is the tea's own rate.
+  await expect(tea.getByTestId('tea-shipping')).toHaveText('Arrives 4 Dec · $0.006/g shipping · its own rate');
+  await expect(tea.getByRole('spinbutton', { name: /freight/i })).toHaveCount(0);
+  const sheet = tea;
+  // 0.50 a gram of tea: 0.50 × 3 + 0.006 now, and 0.50 × 3 + 0.01 once it follows 70 yuan (freight at cost).
+  await expect(sheet.getByTestId('tea-freight-clear-preview')).toHaveText('Clear → $1.51/g');
+  await tea.getByTestId('tea-shipping').scrollIntoViewIfNeeded();
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: testInfo.outputPath('tea-page-freight-clear.png') });
+  const saved = page.waitForRequest(r => r.url().includes('/api/products/liu-bao/commercial') && r.method() === 'PUT');
+  await page.route('**/api/products/liu-bao/commercial', r => r.fulfill({ json: { success: true } }));
+  await sheet.getByRole('button', { name: /^Clear this tea's rate/ }).click();
+  expect((await saved).postDataJSON()).toEqual({ shipping_rate_per_kg: null });
 });
