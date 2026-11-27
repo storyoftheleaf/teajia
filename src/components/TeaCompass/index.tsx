@@ -14,7 +14,8 @@ import type { VoiceRecording } from '../../lib/pendingTranscriptions';
 import { LegacyLocalRecovery } from './LegacyLocalRecovery';
 import { useLedgerStore } from '../../lib/ledgerStore';
 import { syncCompassEntries } from '../../lib/teaCompassSync';
-import { BottomSheet, SheetOption } from '../shared/BottomSheet';
+import { BottomSheet } from '../shared/BottomSheet';
+import { BringInSheet, usePendingCaptureAction, type BringInKind } from '../curate/BringInSheet';
 import { useAppStore } from '../../lib/store';
 import { useSampleStore } from '../../samples/sampleStore';
 import type { SampleTasting } from '../../samples/types';
@@ -54,6 +55,8 @@ interface TeaCompassProps {
   initialDevelopmentProduct?: { id: string; name: string; type?: string };
   /** In sourcing mode, preselect the capture method. */
   initialCaptureOption?: 'tea' | 'teaware';
+  /** Open the Bring in sheet on arrival (Stock's Add tea sends ?bring=1). */
+  initialBringIn?: boolean;
   initialSampleOrder?: 'open' | 'manage';
   initialSampleSetId?: string;
   onSampleOrderRouteClose?: () => void;
@@ -94,7 +97,7 @@ const CompassRightEmptyState: React.FC<{
 
 // ─── Main Tea Compass ────────────────────────────────────────────────────
 
-export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, initialEntryId, initialDevelopmentProduct, initialCaptureOption, initialSampleOrder, initialSampleSetId, onSampleOrderRouteClose, onModeChange }) => {
+export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, initialEntryId, initialDevelopmentProduct, initialCaptureOption, initialBringIn, initialSampleOrder, initialSampleSetId, onSampleOrderRouteClose, onModeChange }) => {
   useReconcileReceivedSampleDrafts();
   const [libraryDisplayPreference, setLibraryDisplayPreference] = useState(readLibraryPricePreference);
   const activeEntryId = useTeaCompassStore((s) => s.activeEntryId);
@@ -129,7 +132,9 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   // Mode: sourcing (editing an entry), library (browse past captures), or buying (ledger).
   // Tasting (the Tasting Journal) is its own surface at /account/journal, not a Compass mode.
   const [mode, setMode] = useState<CompassMode>(initialMode || 'sourcing');
-  const [libraryAddOpen, setLibraryAddOpen] = useState(false);
+  const [libraryAddOpen, setLibraryAddOpen] = useState(!!initialBringIn);
+  // Bring in's "Sample, or bought?" answer, opened on the new capture once it is drawn.
+  const pendingCaptureAction = useRef<BringInKind | null>(null);
   const [developmentStarted, setDevelopmentStarted] = useState(false);
 
   // Account changes always swap the isolated draft bucket. Only Source owns
@@ -367,6 +372,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
 
   // ── Capture action footer state ─────────────────────────────────────────
   const captureCardActionsRef = useRef<CaptureCardActions | null>(null);
+  const mobileCaptureActionsRef = useRef<CaptureCardActions | null>(null);
   const [captureSaveState, setCaptureSaveState] = useState({ busy: false, error: '' });
   const [captureBuyExpanded, setCaptureBuyExpanded] = useState(false);
   // Done needs a photo OR a name, the promised saveable minimum.
@@ -378,6 +384,8 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
     setFromLibrary(false);
     setMode('sourcing');
   }, [startNewCapture, activeCategory]);
+
+  usePendingCaptureAction(pendingCaptureAction, [captureCardActionsRef, mobileCaptureActionsRef], mode === 'sourcing' ? activeEntryId : null);
 
   const handleCategorySwitch = useCallback((category: CompassCategory) => {
     // If the current entry is still empty, just switch its category instead of creating a new one
@@ -1061,7 +1069,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                         onCommit={handleCommitEntry}
                         onReturnToLibrary={fromLibrary ? () => { setFromLibrary(false); setMode('library'); } : undefined}
                         onShare={hasToken() ? () => setShareModalOpen(true) : undefined}
-                        purchasePickerId={`capture-purchase-picker-mobile-${activeEntryId}`}
+                        purchasePickerId={`capture-purchase-picker-mobile-${activeEntryId}`} actionRef={mobileCaptureActionsRef}
                         openPurchasePicker={pendingLibraryAcquisitionId === activeEntryId}
                         batchMode={batchMode}
                         onToggleBatchMode={() => setBatchMode((v) => !v)}
@@ -1789,14 +1797,12 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
           onOpenInventory={(productId) => navigate(`/admin/stock?panel=${encodeURIComponent(productId)}`)}
           onShare={hasToken() ? (id) => { setActiveEntry(id); setShareModalOpen(true); } : undefined} />}
       </BottomSheet>
-      <BottomSheet open={libraryAddOpen} onOpenChange={setLibraryAddOpen} title="Add to Library" description="Capture something new or continue an import" large>
-        <SheetOption label="New tea" hint="Capture notes, photos and a supplier quote in Source" onSelect={() => { setLibraryAddOpen(false); handleNewCapture(); }} />
-        <SheetOption label="New teaware" hint="Capture a piece and its provenance" onSelect={() => { setLibraryAddOpen(false); handleNewCapture('teaware'); }} />
-        <SheetOption label="Import files" hint="A list, source documents or photos" onSelect={() => { setLibraryAddOpen(false); beginNewImport(); }} />
+      <BringInSheet open={libraryAddOpen} onOpenChange={setLibraryAddOpen} onImport={beginNewImport}
+        onNewTea={kind => { pendingCaptureAction.current = kind; handleNewCapture(); }} onNewTeaware={kind => { pendingCaptureAction.current = kind; handleNewCapture('teaware'); }}>
         <LibraryImportsSection embedded imports={importAccountId === activeAccountId ? importDetails : []} busyImportId={busyLibraryImportId}
           errorByImportId={libraryImportErrors} focusRequest={libraryDeleteFocusRequest} fallbackFocusRef={visibleSearchInputRef}
           onOpen={(detail, trigger) => { setLibraryAddOpen(false); openSavedImport(detail, libraryAddTriggerRef.current ?? trigger); }} onDelete={deleteSavedImport} />
-      </BottomSheet>
+      </BringInSheet>
 
       {/* Share modal, global, unchanged */}
       <AnimatePresence>

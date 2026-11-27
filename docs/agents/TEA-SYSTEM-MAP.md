@@ -21,7 +21,7 @@ Every step exists and works on its own. What is missing are the joins between st
 
 | Step | What happens | Where (screen) | Agent tools | Owner doc | Leads to |
 |---|---|---|---|---|---|
-| 1 Find it | A tea or sample comes in by talk, photo, paste, typing or an agent | Curate Source sheet (with the mic), package scan, Curate Import, Stock Add tea, Stock Bulk intake (`/admin/intake`), AR Create voice handoff | `curate_add_tea`, `intake_*`, `create_tea` | [CURATE-AGENTS.md](CURATE-AGENTS.md), [curate-intake.md](../claude/curate-intake.md) | 2 |
+| 1 Find it | A tea or sample comes in by talk, photo, paste, typing or an agent | The Library's Bring in sheet (`src/components/curate/BringInSheet.tsx`: "Sample, or bought?" then New tea, New teaware or Import files; Stock's Add tea and the command palette open it with `?bring=1`), Curate Source sheet (with the mic), package scan, Curate Import, Stock Bulk intake (`/admin/intake`), AR Create voice handoff | `curate_add_tea`, `intake_*`, `create_tea` | [CURATE-AGENTS.md](CURATE-AGENTS.md), [curate-intake.md](../claude/curate-intake.md) | 2 |
 | 2 The tea card | One card per tea in the Library, grouped by supplier with their face | Manage › Curate › Library (`/admin/compass`, code in `src/components/TeaCompass`; new parts in `src/components/curate/`). The face opens `/admin/vendors/:id` | `curate_get_tea`, `curate_update_tea`, `curate_get_vendor`, `curate_save_vendor` | [CURATE_WORKSPACE.md](../CURATE_WORKSPACE.md) | 3, 4, 6 |
 | 3 Taste and decide | Taste it, then Want or Reject | Taste on the card (score, terms, notes); Stock › Samples (grams used) | `set_tasting`, `curate_update_tea` (`wants`) | [CURATE-AGENTS.md](CURATE-AGENTS.md) | 4 or 6 |
 | 4 Buy and bring home | A supplier order or an invoice becomes a purchase on its way | Order shop stock on the card; invoice Import; Purchases (`/admin/purchase-orders`) and Logistics for each leg | `curate_order`, `intake_finalize`, `update_delivery_tracking` | [PURCHASE_LOGISTICS.md](../PURCHASE_LOGISTICS.md), [invoice-intake-flow.md](../invoice-intake-flow.md) | 5 |
@@ -62,7 +62,7 @@ Closed: the tea's path used to stop at "Written up". PR 586 (commit c215452) car
 
 Closed: freight at cost went live with PR 588, with the money docs changed in the same piece of work.
 
-1. **Three doors skip the Library.** Stock Add tea, Bulk intake and the agent's `create_tea` make a Stock tea with no supplier, quote or tasting behind it. Already agreed: one Bring in sheet (intake plan step 2).
+1. **Two doors skip the Library.** Bulk intake and the agent's `create_tea` make a Stock tea with no supplier, quote or tasting behind it. Stock's Add tea now opens the Library's Bring in sheet (intake plan step 2, 2026-11-27).
 2. **Two Taste doors, four approve doors, and Add to Stock arrives empty.** A new Stock tea starts with no counted amount and no price, and nothing asks. Already planned: intake plan step 4 (one Taste door with the grams; Add to Stock brings amount and cost from the arrival or quote).
 3. **Two write-ups.** The Story description is live the moment it is saved. The Tea Wisdom entry lives in `data/tea-reference/entries/` and is live only after a push. The signal between them is now built: "Public, no Tea Wisdom entry yet" in Waiting for you (PR 586, open). The chain still runs only on Adrian's word.
 4. **The selling half has tools but no agent guide.** Collections, invoices, payment and dispatch tools exist (step 8 and 9 rows above) and only this table names them. Recommended: a short "Selling" section in `CURATE-AGENTS.md`.
