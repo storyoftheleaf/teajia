@@ -3,6 +3,7 @@
 Every freight rate is typed in Logistics services on the Purchases page and nowhere else. No tea's price moves.
 
 - **Shop default** moved there from Store Settings (same account columns; `update_account_settings` still writes it).
+- **+ Logistics company** asks for two things, the name and the rate; air, per kg, the shop currency and the service name default behind More details. A new name becomes a contact on save.
 - **+ My suitcase** makes a free-by-the-kilo air service under a "My luggage" contact, picked on the tea page like any service.
 - **No per-tea typing**: the Add tea form, the phone Freight sheet and `create_tea` / `update_tea_pricing` set no rate. A tea that kept its own shows it read-only with Clear and the price it would move to.
 - **Shipping routes** keep addresses, packing and rounding; their rate is no longer read or written. The buying basket prices from the dearest active service of each mode, else the shop default for air.

@@ -50,6 +50,21 @@ test('Logistics holds the shop default and adds My suitcase as an ordinary servi
   await expect(page.locator('.logistics-service-row').filter({ hasText: 'My suitcase' })).toContainText('0 Yuan/kg');
   expect(writes.find(w => w.url === '/api/logistics/services')?.body).toMatchObject({ logistics_company_name: 'My luggage', name: 'My suitcase', mode: 'air', basis: 'kg', rate: 0, currency: 'Yuan' });
   await expect(page.getByRole('button', { name: '+ My suitcase' })).toHaveCount(0);
+
+  // A new company takes two fields: its name and its rate. The rest defaults, behind More details.
+  await page.getByRole('button', { name: '+ Logistics company' }).click();
+  const add = page.getByRole('form', { name: 'Add a logistics company' });
+  await expect(add.getByRole('combobox', { name: 'Service transport' })).toHaveCount(0);
+  await expect(add).toContainText('By air, per kg, in Yuan.');
+  await page.waitForTimeout(200);
+  await page.screenshot({ path: info.outputPath('add-logistics-company.png') });
+  await add.getByRole('button', { name: 'Save' }).click();
+  await expect(add.getByRole('alert')).toHaveText('Name the logistics company.');
+  await add.getByRole('combobox', { name: 'Logistics company' }).fill('Keelung Sea Freight');
+  await add.getByRole('textbox', { name: 'Service rate' }).fill('12');
+  await add.getByRole('button', { name: 'Save' }).click();
+  await expect(page.locator('.logistics-service-row').filter({ hasText: 'Keelung Sea Freight' })).toContainText('12 Yuan/kg');
+  expect(writes.filter(w => w.url === '/api/logistics/services').at(-1)?.body).toMatchObject({ logistics_company_name: 'Keelung Sea Freight', name: 'Air', mode: 'air', basis: 'kg', rate: 12, currency: 'Yuan' });
   await page.waitForTimeout(300);
   await page.screenshot({ path: info.outputPath('logistics-services.png') });
 });
