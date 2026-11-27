@@ -45,7 +45,8 @@ interface ProductPageProps {
     productKey: string;
     fallbackItem: InventoryItem;
     top?: React.ReactNode;
-    footer: React.ReactNode;
+    /** The link's own order footer; null for none; left out, the shop's own for a tea the shop sells, none for a private one. */
+    footer?: React.ReactNode;
     onBack: () => void;
   };
 }
@@ -503,7 +504,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
           onOpenOrder={onCartClick}
           isAdmin={isAdmin}
           onEditProductTasting={isAdmin ? (editItem) => setAdminTastingItem(editItem) : undefined}
-          {...(link ? { linkFooter: link.footer } : {})}
+          {...(link && (link.footer !== undefined || !browseItem) ? { linkFooter: link.footer ?? null } : {})}
         />
       </ProductDetailPageContext.Provider>
 
