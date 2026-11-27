@@ -131,7 +131,7 @@ export async function keepWay(page: string, way: Omit<KeptWay, 'v' | 'photos'>, 
     await forgetWay(page);
     return;
   }
-  const photos = [...new Set(way.guide.steps.map(step => wayPhotoUrl(step.image_url)).filter((url): url is string => Boolean(url)))];
+  const photos = [...new Set([...way.guide.steps.map(step => wayPhotoUrl(step.image_url)), wayPhotoUrl(way.guide.space_image_url)].filter((url): url is string => Boolean(url)))];
   // An undated copy keeps the time it was first kept, so opening the page
   // again does not keep it on for ever.
   const earlier = (() => { try { return parse(storage()?.getItem(recordKey(page)) ?? null); } catch { return null; } })();

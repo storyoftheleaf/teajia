@@ -63,7 +63,9 @@ const VenueGuide: React.FC<VenueGuideProps> = ({ venueGuide, mapLink, className 
   const [activeStep, setActiveStep] = useState(0);
   const index = Math.min(activeStep, Math.max(steps.length - 1, 0));
   const photoUrls = steps.map(step => wayPhotoUrl(step.image_url));
-  const source = usePhotoSources(photoUrls, fromKept);
+  const spaceUrl = wayPhotoUrl(venueGuide.space_image_url);
+  const source = usePhotoSources([...photoUrls, spaceUrl], fromKept);
+  const spacePhoto = source(spaceUrl);
 
   // Keep the way on this phone, each time it is opened with signal.
   const keepSignature = keep ? JSON.stringify([keep.page, keep.endsAt, keep.title, keep.address, mapLink, venueGuide]) : '';
@@ -109,6 +111,11 @@ const VenueGuide: React.FC<VenueGuideProps> = ({ venueGuide, mapLink, className 
           </a>
         )}
       </div>
+
+      {spacePhoto && (
+        <img src={spacePhoto} alt="The tea space" data-way-space
+          className="mb-6 aspect-[4/3] w-full rounded-md border border-tea-border object-cover" />
+      )}
 
       {step && (
         <div

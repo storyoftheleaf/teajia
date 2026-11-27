@@ -28,6 +28,8 @@ export const WAY_MAX_PLACES = 50;
 export type WayStep = { description: string; image_url?: string };
 export type WayGuide = {
   steps: WayStep[];
+  /** A picture of the tea space itself, shown at the head of the way in. */
+  space_image_url?: string;
   parking_notes?: string;
   transit_notes?: string;
   arrival_notes?: string;
@@ -148,6 +150,11 @@ export function readTableWayInput(body: Record<string, unknown> | null, accountI
       if (isRefused(line)) return line;
       if (line) notes[field] = line;
     }
+    const space = source.space_image_url === undefined || source.space_image_url === null || source.space_image_url === '' ? null : source.space_image_url;
+    if (space !== null && (typeof space !== 'string' || !isOwnWayPhoto(space, accountId))) {
+      return refuse('table_way_photo', 'Add each photograph through the editor on this page.');
+    }
+    if (space) notes.space_image_url = bareWayPhotoUrl(space);
     if (steps.length || Object.keys(notes).length) guide = { steps, ...notes };
   }
   return { address, map_link: mapLink, venue_guide: guide };
@@ -189,7 +196,19 @@ export function guardGuideWrite(value: unknown, accountId: string, stored: unkno
     }
     steps.push(step);
   }
-  return { venue_guide: JSON.stringify({ ...source, steps }) };
+  const cleaned: Record<string, unknown> = { ...source, steps };
+  const space = cleaned.space_image_url;
+  if (space === undefined || space === null || space === '') {
+    delete cleaned.space_image_url;
+  } else {
+    if (typeof space !== 'string') return refuse('table_way_photo', 'Add each photograph through the editor on this page.');
+    const bare = bareWayPhotoUrl(space);
+    if (!isOwnWayPhoto(bare, accountId) && !kept.has(bare)) {
+      return refuse('table_way_photo', 'Add each photograph through the editor on this page.');
+    }
+    cleaned.space_image_url = bare;
+  }
+  return { venue_guide: JSON.stringify(cleaned) };
 }
 
 /** The way and saved places with their step photographs signed for the host. */

@@ -19,11 +19,14 @@ export interface WayStepPhotoProps {
   /** Shown when an upload fails. Defaults to a line under the control. */
   onError?: (message: string) => void;
   compact?: boolean;
+  /** What the photograph is of, when it is not a step: "the tea space". */
+  of?: string;
 }
 
-export function WayStepPhoto({ step, imageUrl, upload, onChange, onError, compact = false }: WayStepPhotoProps) {
+export function WayStepPhoto({ step, imageUrl, upload, onChange, onError, compact = false, of }: WayStepPhotoProps) {
+  const what = of ?? `step ${step}`;
   const picker = useRef<HTMLInputElement>(null);
-  const { editPhoto, photoEditor } = usePhotoEditor({ freeShape: true, title: `Photograph for step ${step}`, confirmLabel: 'Use photograph' });
+  const { editPhoto, photoEditor } = usePhotoEditor({ freeShape: true, title: `Photograph for ${what}`, confirmLabel: 'Use photograph' });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,18 +52,18 @@ export function WayStepPhoto({ step, imageUrl, upload, onChange, onError, compac
     <div className="space-y-2" data-way-step-photo={step}>
       {shown && (
         <div className={`overflow-hidden rounded-md border border-tea-border bg-tea-surface ${compact ? 'h-24' : 'aspect-[4/3]'}`}>
-          <img src={shown} alt={`Step ${step}`} className="h-full w-full object-cover" loading="lazy" />
+          <img src={shown} alt={of ? `A picture of ${of}` : `Step ${step}`} className="h-full w-full object-cover" loading="lazy" />
         </div>
       )}
       <div className="flex flex-wrap items-center gap-2">
         <Button type="button" variant="secondary" size="sm" className="tap-target" disabled={busy}
-          onClick={() => picker.current?.click()} aria-label={`${shown ? 'Change' : 'Add'} the photograph for step ${step}`}
+          onClick={() => picker.current?.click()} aria-label={`${shown ? 'Change' : 'Add'} the photograph for ${what}`}
           icon={busy ? <Loader2 size={14} className="animate-spin" aria-hidden /> : <ImagePlus size={14} aria-hidden />}>
           {busy ? 'Uploading…' : shown ? 'Change photograph' : 'Add a photograph'}
         </Button>
         {shown && !busy && (
           <Button type="button" variant="quiet" size="sm" className="tap-target" onClick={() => onChange('')}
-            aria-label={`Take out the photograph for step ${step}`}>
+            aria-label={`Take out the photograph for ${what}`}>
             Take out
           </Button>
         )}

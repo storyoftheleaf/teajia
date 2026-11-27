@@ -62,6 +62,8 @@ export interface VenueGuideStep {
 
 export interface VenueGuide {
   steps: VenueGuideStep[];
+  /** A picture of the tea space itself, shown at the head of the way in. */
+  space_image_url?: string;
   parking_notes?: string;
   transit_notes?: string;
   arrival_notes?: string;

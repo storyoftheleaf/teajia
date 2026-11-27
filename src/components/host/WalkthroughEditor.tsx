@@ -29,6 +29,8 @@ interface Draft {
   steps: VenueGuideStep[];
   /** One key per step, for this page only. */
   keys: string[];
+  /** The picture of the tea space; empty when there is none. */
+  space_image_url: string;
   parking_notes: string;
   arrival_notes: string;
   lost_phone: string;
@@ -48,6 +50,7 @@ function draftFrom(guide: VenueGuide | null, address: string | null, mapLink: st
   return {
     steps,
     keys: steps.map(newKey),
+    space_image_url: guide?.space_image_url ?? '',
     parking_notes: guide?.parking_notes ?? '',
     arrival_notes: guide?.arrival_notes ?? '',
     lost_phone: guide?.lost_phone ?? '',
@@ -62,11 +65,12 @@ function inputFrom(draft: Draft): HostedTableWayInput {
     .map(step => ({ description: step.description.trim(), ...(step.image_url ? { image_url: step.image_url } : {}) }))
     .filter(step => step.description || step.image_url);
   const guide: VenueGuide = { steps };
+  if (draft.space_image_url) guide.space_image_url = draft.space_image_url;
   for (const field of ['parking_notes', 'arrival_notes', 'lost_phone', 'transit_notes'] as const) {
     const line = draft[field].trim();
     if (line) guide[field] = line;
   }
-  const empty = !steps.length && !guide.parking_notes && !guide.arrival_notes && !guide.lost_phone && !guide.transit_notes;
+  const empty = !steps.length && !guide.space_image_url && !guide.parking_notes && !guide.arrival_notes && !guide.lost_phone && !guide.transit_notes;
   return { address: draft.address.trim() || null, map_link: draft.map_link.trim() || null, venue_guide: empty ? null : guide };
 }
 
@@ -237,6 +241,10 @@ function WayForm({ tableId, answer, tableArea }: { tableId: string; answer: Host
       )}
 
       <div className="space-y-3">
+        <h3 className={TYPOGRAPHY_CLASSES.h3}>The tea space</h3>
+        <WayStepPhoto step={0} of="the tea space" imageUrl={draft.space_image_url || undefined}
+          upload={async file => (await api.tables.uploadWayPhoto(tableId, file)).url}
+          onChange={url => change(() => ({ space_image_url: url }))} />
         <h3 className={TYPOGRAPHY_CLASSES.h3}>Steps</h3>
         {draft.steps.length === 0 && (
           <p className={hostSmallText}>No steps yet. Add one for each point where a guest might wonder which way to go.</p>

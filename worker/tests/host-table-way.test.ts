@@ -6,7 +6,8 @@
 // unchanged: a confirmed guest, until the session ends.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import worker from '../src/index';
-import { isOwnWayPhoto } from '../src/hostTableWay';
+import { guardGuideWrite, isOwnWayPhoto } from '../src/hostTableWay';
+import { guidePhotoUrls, signWayGuide } from '../src/wayMedia';
 import { SqliteD1, seedIdentity, signedToken } from './helpers/sqliteD1';
 
 const SECRET = 'synthetic-host-way-secret';
@@ -118,6 +119,30 @@ describe('the host saves the way in', () => {
     expect(again.venue_guide).toBe(row.venue_guide);
   });
 
+  it('keeps a picture of the tea space with the way, signed for the host and stored bare, and refuses one that is not theirs', async () => {
+    const space = photo(9);
+    const saved = await call('/api/me/tables/t-ana/way', {
+      actor: ana, method: 'PUT', body: { venue_guide: { steps: [{ description: 'Gate' }], space_image_url: space } },
+    });
+    expect(saved.status).toBe(200);
+    const read = await (await call('/api/me/tables/t-ana/way', { actor: ana })).json() as Record<string, any>;
+    expect(read.way.venue_guide.space_image_url).toMatch(/\?exp=\d+&for=host&sig=[0-9a-f]{64}$/);
+    const row = db.sqlite.prepare('SELECT venue_guide FROM events WHERE id = ?').get('t-ana') as Record<string, string>;
+    expect(JSON.parse(row.venue_guide).space_image_url).toBe(space);
+    // Saving back the signed address stores it bare again; a picture alone is a way worth keeping.
+    const alone = await call('/api/me/tables/t-ana/way', {
+      actor: ana, method: 'PUT', body: { venue_guide: { steps: [], space_image_url: read.way.venue_guide.space_image_url } },
+    });
+    expect(alone.status).toBe(200);
+    const again = db.sqlite.prepare('SELECT venue_guide FROM events WHERE id = ?').get('t-ana') as Record<string, string>;
+    expect(JSON.parse(again.venue_guide)).toEqual({ steps: [], space_image_url: space });
+    const refused = await call('/api/me/tables/t-ana/way', {
+      actor: ana, method: 'PUT', body: { venue_guide: { steps: [], space_image_url: photo(1, bo.accountId) } },
+    });
+    expect(refused.status).toBe(400);
+    expect(await refused.json()).toMatchObject({ code: 'table_way_photo' });
+  });
+
   it('clears the way when every part is left empty, and leaves out a step with nothing in it', async () => {
     await call('/api/me/tables/t-ana/way', { actor: ana, method: 'PUT', body: threeSteps });
     const partial = await call('/api/me/tables/t-ana/way', {
@@ -221,5 +246,24 @@ describe('who receives the way is unchanged', () => {
     const waiting = await (await call('/api/rsvp/magic-g-wait')).json() as Record<string, any>;
     expect(waiting.event.venue_guide).toBeNull();
     expect(waiting.event.address_text).toBeNull();
+  });
+});
+
+describe('the picture of the tea space follows the same rules as a step photograph', () => {
+  it('is held to the admin write guard, stored bare, and kept when the stored guide names it', () => {
+    const own = guardGuideWrite({ steps: [], space_image_url: `${photo(9)}?exp=1&for=host&sig=x` }, ana.accountId, null);
+    expect(JSON.parse((own as { venue_guide: string }).venue_guide).space_image_url).toBe(photo(9));
+    expect(guardGuideWrite({ steps: [], space_image_url: photo(1, bo.accountId) }, ana.accountId, null)).toHaveProperty('refused');
+    expect(guardGuideWrite({ steps: [], space_image_url: 5 }, ana.accountId, null)).toHaveProperty('refused');
+    const older = photo(1, bo.accountId);
+    expect(guardGuideWrite({ steps: [], space_image_url: older }, ana.accountId, JSON.stringify({ steps: [], space_image_url: older }))).toHaveProperty('venue_guide');
+    expect(guidePhotoUrls({ steps: [], space_image_url: photo(9) }).has(photo(9))).toBe(true);
+  });
+
+  it('is signed for its holder, and left out when nothing can be signed', async () => {
+    const guide = { steps: [], space_image_url: photo(9) };
+    const signed = await signWayGuide(SECRET, guide, 'host') as { space_image_url: string };
+    expect(signed.space_image_url).toMatch(/\?exp=\d+&for=host&sig=[0-9a-f]{64}$/);
+    expect(await signWayGuide(undefined, JSON.stringify(guide), 'host')).toBe(JSON.stringify({ steps: [] }));
   });
 });

@@ -87,7 +87,13 @@ export async function signWayGuide<T>(secret: string | undefined, guide: T, hold
     }
     return { ...step, image_url: await signedWayPhotoUrl(secret, key, holder, exp) };
   }));
-  const signed = { ...parsed, steps };
+  const signed: Record<string, unknown> = { ...parsed, steps };
+  // The picture of the tea space travels with the way and is signed like a step photograph.
+  const spaceKey = wayPhotoKey(parsed.space_image_url);
+  if (spaceKey) {
+    if (secret) signed.space_image_url = await signedWayPhotoUrl(secret, spaceKey, holder, exp);
+    else delete signed.space_image_url;
+  }
   return (typeof guide === 'string' ? JSON.stringify(signed) : signed) as T;
 }
 
@@ -98,6 +104,7 @@ export function guidePhotoUrls(guide: unknown): Set<string> {
   for (const step of parsed?.steps ?? []) {
     if (step && typeof step.image_url === 'string' && step.image_url) urls.add(bareWayPhotoUrl(step.image_url));
   }
+  if (typeof parsed?.space_image_url === 'string' && parsed.space_image_url) urls.add(bareWayPhotoUrl(parsed.space_image_url));
   return urls;
 }
 
