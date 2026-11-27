@@ -1,6 +1,10 @@
 ## 2026-11-27: Every switch from Launches 1 to 5 is on
 
 Adrian chose "All at once, credit too". All sixteen switch constants in `src/lib` are now true (hosting for a few and for anyone, practice lines, Your Table as a page and its place, favourites, the Tea Table, "Does anyone know this tea?", the new bar and Home, host articles, top teas, circles, host assistant keys, the table card, tea houses and tea credit). An env value of 'false' still shuts any one. Tests of the closed state now ask for it with an explicit 'false'. With them: no counts on people and collection pages (Adrian: remove the counts), and no view count in public collection answers; "Serves at tables" under a name on the people list, worked out from who has hosted (Adrian: "the more automated the better"); one "Take it off the table?" before a shared tasting comes off; a host's place section is headed "Your tea space" (Adrian: a tea house holds tea spaces, and anyone can own a space); and host article offers, practice lines, top teas and the tea credit tile show nothing rather than breaking the page when an answer is missing its list.
+## 2026-11-27: One Bring in sheet asks "Sample, or bought?"
+
+Intake plan step 2. The Library's + now opens Bring in (`src/components/curate/BringInSheet.tsx`, working name). It asks once whether the tea is just noted, a sample that is here, or bought, then how it comes in: New tea (type, talk or photograph the package in Source), New teaware or Import files. A sample opens Source with its received-sample record already open, and bought opens the order record, so nobody has to find the Sample or Order button. Stock's Add tea and the command palette's add product now open this same sheet (`/admin/compass?tab=library&bring=1`), so every tea starts in the Library with its supplier (Adrian, 2026-11-27: one record).
+
 ## 2026-11-27: Short codes for vendors and teas (V1, V1T12)
 
 Adrian: every vendor and every tea or sample has a short code, so he can say "V1T12" instead of typing the vendor and tea names.
