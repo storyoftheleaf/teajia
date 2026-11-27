@@ -9,7 +9,7 @@ let db: SqliteD1;
 
 const requireHost = async (request: Request) => {
   const accountId = request.headers.get('Test-Host');
-  return accountId ? { accountId, email: 'host@test.dev' } : { error: new Response(null, { status: 403 }) };
+  return accountId ? { accountId, userId: request.headers.get('Test-Host-User'), email: 'host@test.dev' } : { error: new Response(null, { status: 403 }) };
 };
 const requireUser = async (request: Request) => {
   const userId = request.headers.get('Test-User');
@@ -18,19 +18,20 @@ const requireUser = async (request: Request) => {
 const routes = [
   ...pourSitRoutes<Env>({
     requireHost, requireUser, limit: async () => null,
+    ownPlacesAccount: async (_env, userId) => (userId === 'host' ? 'host-own' : null),
     readPublic: () => async () => null, appOrigin: () => 'https://teajia.test',
   }),
   ...afterSitRoutes<Env>({ requireHost, requireUser, limit: async () => null }),
 ];
 
 async function call(method: string, pattern: string, options: {
-  host?: string; user?: string; body?: unknown; params?: Record<string, string>; query?: string;
+  host?: string; hostUser?: string; user?: string; body?: unknown; params?: Record<string, string>; query?: string;
 } = {}) {
   const route = routes.find(([verb, path]) => verb === method && path === pattern);
   if (!route) throw new Error(`no route ${method} ${pattern}`);
   const request = new Request(`https://teajia.test${pattern}${options.query ?? ''}`, {
     method,
-    headers: { ...(options.host ? { 'Test-Host': options.host } : {}), ...(options.user ? { 'Test-User': options.user } : {}) },
+    headers: { ...(options.host ? { 'Test-Host': options.host } : {}), ...(options.hostUser ? { 'Test-Host-User': options.hostUser } : {}), ...(options.user ? { 'Test-User': options.user } : {}) },
     body: options.body === undefined ? undefined : JSON.stringify(options.body),
   });
   const response = await route[2](request, { DB: db as unknown as D1Database, FIRST_TABLE_OPEN: 'false' } as never, options.params ?? {});
@@ -147,6 +148,33 @@ describe('the one link', () => {
     expect(JSON.stringify(body.teas)).not.toContain('grams');
     expect(body.way).toEqual(expect.objectContaining({ place: 'The studio', address: '1 Gate Lane', map_link: 'https://maps.test/x' }));
     expect(JSON.parse(body.way.guide).steps[0].description).toBe('Through the green gate');
+  });
+
+  it('offers the host\'s tea spaces first, then the places sat at, and never another shop\'s', async () => {
+    await sitWithPlace();
+    db.exec(`INSERT INTO saved_locations (id, account_id, name, address, is_host_table, area_hint)
+      VALUES ('room', 'shop-a', 'The garden room', '2 Gate Lane', 1, 'Ubud'),
+             ('cafe', 'shop-a', 'A cafe', '3 Gate Lane', 0, NULL)`);
+    const { body } = await call('GET', '/api/admin/pour/places', { host: 'shop-a' });
+    expect(body.places).toEqual([
+      { id: 'room', name: 'The garden room', space: true, sat: false },
+      { id: 'studio', name: 'The studio', space: false, sat: true },
+      { id: 'cafe', name: 'A cafe', space: false, sat: false },
+    ]);
+  });
+
+  it('offers the host\'s own tea spaces beside the shop\'s places, and takes one as the way in', async () => {
+    const sit = await sitWithPlace();
+    db.exec(`INSERT INTO saved_locations (id, account_id, name, address, is_host_table, area_hint)
+      VALUES ('home', 'host-own', 'The house, upstairs', '5 Home Lane', 1, 'Ubud')`);
+    const listed = await call('GET', '/api/admin/pour/places', { host: 'shop-a', hostUser: 'host' });
+    expect(listed.body.places.map((place: { id: string }) => place.id)).toEqual(['home', 'studio']);
+    const unseen = await call('GET', '/api/admin/pour/places', { host: 'shop-a' });
+    expect(unseen.body.places.map((place: { id: string }) => place.id)).toEqual(['studio']);
+    const refused = await call('PUT', '/api/admin/pour/sits/:id', { host: 'shop-a', params: { id: sit.id }, body: { place_id: 'home' } });
+    expect(refused.status).toBe(404);
+    const placed = await call('PUT', '/api/admin/pour/sits/:id', { host: 'shop-a', hostUser: 'host', params: { id: sit.id }, body: { place_id: 'home' } });
+    expect(placed.body.sit.place).toMatchObject({ id: 'home', name: 'The house, upstairs' });
   });
 
   it('drops the way in once the day is over, and keeps the rest', async () => {

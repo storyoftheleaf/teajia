@@ -33876,6 +33876,7 @@ const routes: [string, string, Handler][] = [
     requireUser: requireAuthenticatedUser,
     limit: (_request, env, key) => enforceDurableLimit(env.AFTER_SIT_LIMITER, 'AFTER_SIT_LIMITER', 'after-sit:' + key),
     readPublic: sessionTeaReader,
+    ownPlacesAccount: async (env, userId) => (await personalInventoryAccount(env.DB, userId))?.id ?? null,
     appOrigin,
     optionalUser: async (request, env) => {
       if (!isAuthed(request)) return null;

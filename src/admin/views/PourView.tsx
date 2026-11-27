@@ -18,7 +18,7 @@ import { BottomSheet } from '../../components/shared/BottomSheet';
 import { Button } from '../../components/shared/Button';
 import { addKey, gramsOf, kindsOf, localDay, matchesTea, namedKindsFrom, sitForDay, type NamedKind, type PourSit, type PourTea } from './pourPage';
 
-type Place = { id: string; name: string };
+type Place = { id: string; name: string; space: boolean; sat: boolean };
 
 const api = (path: string, init?: RequestInit) => authedFetch(`${API_URL}/api/admin/pour${path}`, { reportIncident: false, ...init });
 const send = (method: string, path: string, body?: unknown) =>
@@ -265,13 +265,14 @@ function SitSheet({ open, sit, busy, onClose, onChange }: {
   useEffect(() => {
     if (!open) return undefined;
     let live = true;
-    authedFetch(`${API_URL}/api/admin/locations`, { reportIncident: false })
-      .then(result => { if (live && Array.isArray(result)) setPlaces(result); }, () => undefined);
+    api('/places').then(result => { if (live && Array.isArray(result?.places)) setPlaces(result.places); }, () => undefined);
     return () => { live = false; };
   }, [open]);
   // A session invited ahead has no link of its own until its host asks for one.
   useEffect(() => { if (open && !sit.link) onChange({ link: true }); }, [open, sit.id, sit.link]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const spaces = places.filter(place => place.space);
+  const others = places.filter(place => !place.space);
   const link = sit.link ?? '';
   const copy = async () => {
     try { await navigator.clipboard.writeText(link); setCopied(true); } catch { setCopied(false); }
@@ -288,17 +289,23 @@ function SitSheet({ open, sit, busy, onClose, onChange }: {
             onBlur={() => { if (title.trim() && title.trim() !== sit.title) onChange({ title: title.trim() }); }} />
         </label>
 
-        <div className="flex flex-col gap-1">
+        <label className="flex flex-col gap-1">
           <span className={TYPOGRAPHY_CLASSES.label}>The way in</span>
-          <div className="flex flex-wrap gap-1">
-            <Button type="button" variant="chip" className="tap-target" aria-pressed={!sit.place} disabled={busy}
-              onClick={() => onChange({ place_id: null })}>None</Button>
-            {places.map(place => (
-              <Button key={place.id} type="button" variant="chip" className="tap-target" aria-pressed={sit.place?.id === place.id} disabled={busy}
-                onClick={() => onChange({ place_id: place.id })}>{place.name}</Button>
-            ))}
-          </div>
-        </div>
+          <select value={sit.place?.id ?? ''} disabled={busy} className="btn-field w-full"
+            onChange={event => onChange({ place_id: event.target.value || null })}>
+            <option value="">None</option>
+            {spaces.length > 0 && (
+              <optgroup label="Your tea spaces">
+                {spaces.map(place => <option key={place.id} value={place.id}>{place.name}</option>)}
+              </optgroup>
+            )}
+            {others.length > 0 && (
+              <optgroup label="Places you sit at">
+                {others.map(place => <option key={place.id} value={place.id}>{place.name}</option>)}
+              </optgroup>
+            )}
+          </select>
+        </label>
 
         <label className="flex flex-col gap-1">
           <span className={TYPOGRAPHY_CLASSES.label}>A note to your guests</span>

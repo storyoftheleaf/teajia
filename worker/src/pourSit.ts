@@ -27,12 +27,14 @@ import { sessionInstant, sitWayEndsAt, sitWayOpen } from '../../shared/sessionEn
 
 type PourEnv = { DB: D1Database; JWT_SECRET?: string };
 type Handler<E> = (request: Request, env: E, params: Record<string, string>) => Promise<Response>;
-type Host = { accountId: string; email?: string | null };
+type Host = { accountId: string; userId?: string | null; email?: string | null };
 type Guest = { userId: string; email?: string | null; name?: string | null };
 
 type Deps<E> = {
   requireHost: (request: Request, env: E) => Promise<Host | { error: Response }>;
   requireUser: (request: Request, env: E) => Promise<Guest | { error: Response }>;
+  /** The account that holds the host's own tea spaces (their personal one), when it is not the shop. */
+  ownPlacesAccount?: (env: E, userId: string) => Promise<string | null>;
   limit: (request: Request, env: E, key: string) => Promise<Response | null>;
   readPublic: (env: E) => PublicProductReader;
   appOrigin: (env: E) => string;
@@ -258,6 +260,32 @@ export function pourSitRoutes<E extends PourEnv>(deps: Deps<E>): [string, string
     return reply({ sit: await hostSit(deps, env, sit) }, 201);
   };
 
+  /** The host's own account beside the shop: their tea spaces are kept there. */
+  const ownAccount = async (env: E, host: Host) =>
+    (host.userId && deps.ownPlacesAccount ? await deps.ownPlacesAccount(env, host.userId) : null) ?? host.accountId;
+
+  // GET /api/admin/pour/places: where a sit can be, for the send sheet. The
+  // host's tea spaces first, then their other saved places, each group with
+  // the place sat at most lately on top. Names only: the way in stays behind.
+  const places: Handler<E> = async (request, env) => {
+    const host = await deps.requireHost(request, env);
+    if ('error' in host) return host.error;
+    const own = await ownAccount(env, host);
+    const { results } = await env.DB.prepare(
+      `SELECT l.id, l.name, l.is_host_table,
+              (SELECT MAX(substr(e.event_date, 1, 10)) FROM events e
+                WHERE e.location_id = l.id AND e.account_id = ?1
+                  AND e.lifecycle_status NOT IN ('cancelled')) AS last_sat
+         FROM saved_locations l WHERE l.account_id IN (?1, ?2)
+        ORDER BY l.is_host_table DESC, last_sat IS NULL, last_sat DESC, l.name COLLATE NOCASE ASC LIMIT 100`,
+    ).bind(host.accountId, own).all<{ id: string; name: string | null; is_host_table: number; last_sat: string | null }>();
+    return reply({
+      places: results.map(row => ({
+        id: String(row.id), name: String(row.name ?? ''), space: Number(row.is_host_table) === 1, sat: Boolean(row.last_sat),
+      })),
+    });
+  };
+
   // PUT /api/admin/pour/sits/:id { title?, note?, place_id?, link? }: name it,
   // say a word to the guests, choose the place whose way in it shows, or give
   // a session that was invited ahead its one link.
@@ -287,13 +315,13 @@ export function pourSitRoutes<E extends PourEnv>(deps: Deps<E>): [string, string
              updated_at = datetime('now') WHERE id = ? AND account_id = ?`,
         ).bind(sit.id, host.accountId).run();
       } else {
-        // The place is one this shop saved; its way in is copied onto the sit, as the session form does.
+        // The place is one this shop saved, or a tea space of the host's own; its way in is copied onto the sit, as the session form does.
         const placed = await env.DB.prepare(
           `UPDATE events SET location_id = l.id, location_name = l.name, address_text = l.address, map_link = l.map_link,
              venue_guide = l.venue_guide, updated_at = datetime('now')
            FROM saved_locations l
-           WHERE events.id = ? AND events.account_id = ? AND l.id = ? AND l.account_id = events.account_id`,
-        ).bind(sit.id, host.accountId, String(body.place_id)).run();
+           WHERE events.id = ? AND events.account_id = ? AND l.id = ? AND l.account_id IN (events.account_id, ?)`,
+        ).bind(sit.id, host.accountId, String(body.place_id), await ownAccount(env, host)).run();
         if (!placed.meta?.changes) return refuse('That place is not one of yours.', 'sit_place', 404);
       }
     }
@@ -481,6 +509,7 @@ export function pourSitRoutes<E extends PourEnv>(deps: Deps<E>): [string, string
   return [
     ['GET', '/api/admin/pour/teas', teas],
     ['GET', '/api/admin/pour/sits', sits],
+    ['GET', '/api/admin/pour/places', places],
     ['POST', '/api/admin/pour/sits', createSit],
     ['PUT', '/api/admin/pour/sits/:id', changeSit],
     ['POST', '/api/admin/pour', pour],
