@@ -226,7 +226,6 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
     ? quoteGrams(pricePerGram, grams, { wholePieceGrams: wholePiece?.grams }).totalUsd
     : pricePerGram * grams);
   const publicCart = useAppStore(st => st.publicCart);
-  const orderTotalUsd = publicCart.reduce((sum, line) => sum + (line.totalPrice ?? 0), 0);
   /* What the order actually holds of THIS tea, which is not the same fact as
      which row is highlighted. A tea can be on the order at more than one pack
      size, so this is every line of it added up, and it is stated as packs
@@ -457,17 +456,10 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
               <Share size={17} strokeWidth={1.4} />
             </button>
           </div>}
-          {publicCart.length > 0 && (
-            <button
-              type="button"
-              onClick={onOpenOrder}
-              className="alcove-dock-cta tap-target"
-              aria-label={`Open order, ${resolvedTotal(orderTotalUsd)}`}
-            >
-              <span className="alcove-dock-cta-verb">Order</span>
-              <span className="alcove-dock-cta-total tabular-nums">{resolvedTotal(orderTotalUsd)}</span>
-            </button>
-          )}
+          {/* No order button here. With something in the order it made a
+              fifth thing on the bar, dropped to a second line on a phone and
+              fell behind the bottom bar (Adrian, 2026-11-27: "that doesn't
+              belong there"). The page's top bar carries View order. */}
         </div>
       ) : (
       <div className={isRail ? 'flex flex-col gap-2' : 'flex gap-2'}>

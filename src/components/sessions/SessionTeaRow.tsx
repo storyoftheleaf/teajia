@@ -26,11 +26,13 @@ export function sessionOfferItem(product: Record<string, unknown>): InventoryIte
 type RowIdentity = Pick<InventoryItem, 'name' | 'year' | 'type' | 'origin'>;
 
 /** A real tea in the shop's row; for sale when `sale` carries the product. */
-export function SaleTeaRow({ identity, sale, href, count }: {
+export function SaleTeaRow({ identity, sale, href, count, onOpen }: {
   identity: RowIdentity;
   sale?: InventoryItem | null;
   href: string | null;
   count?: SaleCount;
+  /** Opens the tea in place (a link's own tea page) instead of leaving for its page. */
+  onOpen?: () => void;
 }) {
   const navigate = useNavigate();
   const shopPrice = useShopPrice();
@@ -44,7 +46,7 @@ export function SaleTeaRow({ identity, sale, href, count }: {
         showType
         saved={Boolean(saveId && favorites.includes(saveId))}
         onToggleSave={saveId ? () => toggleFavorite(saveId) : undefined}
-        onOpen={href ? () => navigate(href) : undefined}
+        onOpen={onOpen ?? (href ? () => navigate(href) : undefined)}
         openLabel={`Open ${identity.name}`}
         trailing={sale && href ? (
           <TeaWeighControl item={{ ...sale, name: identity.name }} preferredGrams={50} formatPrice={shopPrice.symbolTotal}
@@ -56,7 +58,7 @@ export function SaleTeaRow({ identity, sale, href, count }: {
 }
 
 /** One poured tea, in the order it was poured. */
-export function SessionTeaRow({ tea }: { tea: PublicSessionTea }) {
+export function SessionTeaRow({ tea, onOpen }: { tea: PublicSessionTea; onOpen?: () => void }) {
   if (tea.kind === 'name') {
     return (
       <div data-testid="session-tea-row" data-tea-kind="name" className="tea-ledger-row -mx-4 border-b border-tea-border px-4">
@@ -75,6 +77,7 @@ export function SessionTeaRow({ tea }: { tea: PublicSessionTea }) {
       sale={sale}
       href={tea.href}
       count={tea.offer?.count}
+      onOpen={onOpen}
     />
   );
 }
