@@ -535,7 +535,7 @@ for (const size of SIZES) {
         // This probe asks for what the guest must not have, so the refusal it gets is expected.
         asGuest.allow.push(/\/api\/me\/tables\//);
         await asGuest.page.goto(`/account/host/${table!.id}`);
-        await expect(asGuest.page.getByText('This table was not found.')).toBeVisible();
+        await expect(asGuest.page.getByText('Page not found', { exact: true })).toBeVisible();
         const token = await asGuest.page.evaluate(() => localStorage.getItem('teajia_token'));
         const notes = await asGuest.page.request.get(`/api/me/tables/${table!.id}/notes`, { headers: { Authorization: `Bearer ${token}` } });
         expect([403, 404], `the guest asking for the host's notes: ${notes.status()}`).toContain(notes.status());

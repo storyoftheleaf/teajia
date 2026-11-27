@@ -1,5 +1,5 @@
 import { useRef, useState, type FormEvent, type ReactNode } from 'react';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, Navigate, useLocation } from 'react-router-dom';
 import { Button } from '../components/shared/Button';
 import { TYPOGRAPHY_CLASSES } from '../designTokens';
@@ -15,13 +15,18 @@ import { circlesOpen } from '../lib/circles';
 import { HostAssistantSection } from '../components/host/HostAssistant';
 import { hostTokensOpen } from '../lib/hostTokens';
 import { TABLE_AREA_HINT } from '../components/host/hostTableParts';
+import { SiteNotFound } from '../components/SiteNotFound';
+import { LoadFailed } from '../components/shared/LoadFailed';
+import { PART_QUERY, partView } from '../lib/closedPart';
 
 const textClass = `${TYPOGRAPHY_CLASSES.body} text-tea-text-sec`;
 const fieldClass = 'btn-field block min-h-tap w-full min-w-0';
 const labelClass = `${TYPOGRAPHY_CLASSES.label} grid min-w-0 gap-1 text-tea-text-sec`;
 
+// Closed on the site, the address is what it was before Launch 2: the site's
+// not-found page, never a blank one (A10-8, W1-16).
 export default function HostTablePage() {
-  return fewHostsOpen() ? <HostingAccess /> : null;
+  return fewHostsOpen() ? <HostingAccess /> : <SiteNotFound />;
 }
 
 function HostingAccess() {
@@ -33,17 +38,20 @@ function HostingAccess() {
     queryFn: () => api.hosting.get(),
     enabled: signedIn && isSessionReady,
     staleTime: 60_000,
-    retry: false,
+    ...PART_QUERY,
   });
+  const view = partView(hosting);
 
   if (!signedIn) return <Navigate replace to={authPagePath('signin', pathname + search)} />;
+  // Open on the site and not yet on the worker: the address is not a page yet (A10-3).
+  if (view.state === 'closed') return <SiteNotFound />;
 
   let content: ReactNode;
-  if (!isSessionReady || hosting.isPending) {
+  if (!isSessionReady || view.state === 'loading' || view.state === 'off') {
     content = <p className={textClass} role="status">Checking hosting access…</p>;
-  } else if (hosting.isError) {
-    content = <p className={textClass} role="alert">Could not check hosting access. Reload to try again.</p>;
-  } else if (hosting.data.stopped) {
+  } else if (view.state === 'failed') {
+    content = <LoadFailed sentence="Could not check hosting access just now." onRetry={view.retry} />;
+  } else if (view.data.stopped) {
     // Launch 3: Teajia paused this person's hosting. Told to them alone, here.
     // Launch 5, M6: a stopped host still sees and may disconnect their assistant keys; none of them works.
     content = (
@@ -52,7 +60,7 @@ function HostingAccess() {
         {hostTokensOpen() && <HostAssistantSection />}
       </>
     );
-  } else if (!hosting.data.doors?.length) {
+  } else if (!view.data.doors?.length) {
     content = (
       <>
         <p className={textClass}>Hosting opens by invitation for now.</p>
@@ -62,7 +70,7 @@ function HostingAccess() {
   } else {
     content = (
       <>
-        <MakeTable key={user?.email} doors={hosting.data.doors} />
+        <MakeTable key={user?.email} doors={view.data.doors} />
         {yourTablePlaceOpen() && <YourTablePlaceSection />}
         {circlesOpen() && <HostCirclesSection />}
         {hostTokensOpen() && <HostAssistantSection />}
@@ -114,6 +122,7 @@ function YourRecord() {
 
 function MakeTable({ doors }: { doors: HostedTableDoor[] }) {
   const [tableId, setTableId] = useStepParam('made');
+  const queryClient = useQueryClient();
   const saving = useRef(false);
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const timezoneLabel = new Intl.DateTimeFormat(undefined, { timeZone: timezone, timeZoneName: 'longGeneric' })
@@ -121,7 +130,11 @@ function MakeTable({ doors }: { doors: HostedTableDoor[] }) {
   const create = useMutation({
     mutationFn: api.tables.create,
     retry: false,
-    onSuccess: table => setTableId(table.id),
+    onSuccess: table => {
+      setTableId(table.id);
+      // A first table can make this person a host of circles; read them again (W1-13).
+      void queryClient.invalidateQueries({ queryKey: ['host-circles'] });
+    },
   });
   const justMade = create.data?.id === tableId && create.variables
     ? { link: create.data.link, day: formatDay(create.variables.date, 'UTC') }
@@ -213,7 +226,7 @@ function formatDay(date: string, timezone?: string) {
 function TableLink({ id, justMade }: { id: string; justMade?: { link: string; day: string } }) {
   const [feedback, setFeedback] = useState('');
   const { user } = useAuth();
-  const { data, isError } = useQuery({
+  const { data, isError, refetch } = useQuery({
     queryKey: ['host-table-link', user?.email, id],
     queryFn: () => api.tables.get(id),
     enabled: !justMade,
@@ -223,7 +236,7 @@ function TableLink({ id, justMade }: { id: string; justMade?: { link: string; da
   const details = justMade ?? (table && { link: table.link, day: formatDay(table.event_date, table.timezone ?? undefined) });
   if (!details) {
     return isError
-      ? <p className={textClass} role="alert">Could not open the table link. Reload to try again.</p>
+      ? <LoadFailed sentence="Could not open the table link just now." onRetry={() => void refetch()} />
       : <p className={textClass} role="status">Opening the table link…</p>;
   }
 

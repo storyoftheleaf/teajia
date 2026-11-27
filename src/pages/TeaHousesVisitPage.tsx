@@ -2,6 +2,7 @@ import React from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { LoadFailed } from '../components/shared/LoadFailed';
 import type { Account, NetworkNextSession } from '../types';
 import { fetchNetworkStores } from '../lib/storefrontApi';
 import { SectionSkeleton } from '../components/shared/SectionSkeleton';
@@ -75,7 +76,7 @@ function HouseRow({ house, hasPortfolio }: { house: Account; hasPortfolio: boole
 }
 
 export default function TeaHousesVisitPage() {
-  const { data: houses = [], isLoading, isError } = useQuery<Account[]>({
+  const { data: houses = [], isLoading, isError, refetch } = useQuery<Account[]>({
     queryKey: ['network', 'stores'],
     queryFn: fetchNetworkStores,
     staleTime: 1000 * 60 * 5,
@@ -104,9 +105,7 @@ export default function TeaHousesVisitPage() {
       {isLoading && <SectionSkeleton variant="grid" />}
 
       {isError && (
-        <p className={`${T.body} text-center text-tea-text-sec py-12`}>
-          The tea houses could not be loaded just now.
-        </p>
+        <LoadFailed className="justify-center py-12" sentence="The tea houses could not be loaded just now." onRetry={() => void refetch()} />
       )}
 
       {!isLoading && !isError && houses.length === 0 && (

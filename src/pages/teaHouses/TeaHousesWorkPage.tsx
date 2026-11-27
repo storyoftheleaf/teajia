@@ -6,6 +6,9 @@ import { TEA_HOUSES_TITLE } from '../../lib/teaHouses';
 import { useTeaHouseWork } from '../../lib/teaHousesApi';
 import { teaHousePagePath, type TeaHouseWorkItem } from '../../lib/teaHousesContract';
 import { SectionSkeleton } from '../../components/shared/SectionSkeleton';
+import { LoadFailed } from '../../components/shared/LoadFailed';
+import { SiteNotFound } from '../../components/SiteNotFound';
+import { partView } from '../../lib/closedPart';
 
 /**
  * Work, /tea-houses/work (Launch 4, K5 part two): the houses Adrian worked on,
@@ -35,7 +38,10 @@ function HouseRow({ house }: { house: TeaHouseWorkItem }) {
 
 export default function TeaHousesWorkPage() {
   const query = useTeaHouseWork();
+  const view = partView(query);
   const houses = query.data?.houses ?? [];
+  // Open on the site, not yet on the worker: the address is not a page yet (A10-3).
+  if (view.state === 'closed') return <SiteNotFound />;
   return (
     <div className="w-full max-w-3xl mx-auto pt-12 pb-16" data-testid="tea-houses-work">
       <Helmet><title>{`Work | ${TEA_HOUSES_TITLE} | Teajia`}</title></Helmet>
@@ -44,7 +50,7 @@ export default function TeaHousesWorkPage() {
         <h1 className={`${T.h1} mt-3`}>Houses I have worked on</h1>
       </header>
       {query.isPending && <SectionSkeleton variant="grid" />}
-      {query.isError && <p className={`${T.body} text-center text-tea-text-sec py-12`}>The houses could not be loaded just now.</p>}
+      {view.state === 'failed' && <LoadFailed className="justify-center py-12" sentence="The houses could not be loaded just now." onRetry={view.retry} />}
       {query.isSuccess && houses.length === 0 && (
         <div className="text-center py-12" data-testid="work-empty">
           <p className={`${T.body} text-tea-text-sec`}>Nothing is shown here yet.</p>

@@ -9,6 +9,8 @@ import { mediaUrl } from '../../../lib/mediaUrl';
 import { useAppStore } from '../../../lib/store';
 import { Chip, SectionHeading, TextAction, dayLabel, errorSentence } from './parts';
 import { OFFERED_KEY } from './OfferedPhotographs';
+import { PART_QUERY, partView } from '../../../lib/closedPart';
+import { LoadFailed } from '../../../components/shared/LoadFailed';
 import { FEEDBACK_KEY } from './FeedbackList';
 
 /**
@@ -140,7 +142,11 @@ export function ReportsAndRequests() {
     queryKey: SESSION_REPORTS_KEY,
     queryFn: (): Promise<{ reports: SessionReport[] }> => authedFetch(SESSION_REPORTS_URL),
     enabled: showSessionReports,
+    ...PART_QUERY,
   });
+  // A 404 is the worker not open yet (A10-3): session reports are simply not listed.
+  const sessionView = partView(sessionReports);
+  const sessionFailed = showSessionReports && sessionView.state === 'failed';
   const requests = useQuery({ queryKey: RESTOCK_KEY, queryFn: () => familyApi.shop.restockRequests('open') });
   const familyReports = reports.data?.reports ?? [];
   const reportList = [...familyReports, ...(showSessionReports ? sessionReports.data?.reports ?? [] : [])]
@@ -149,7 +155,7 @@ export function ReportsAndRequests() {
 
   return (
     <>
-      {(reportList.length > 0 || (showSessionReports && sessionReports.isError)) && (
+      {(reportList.length > 0 || sessionFailed) && (
         <section aria-label="Reports" className="mt-8">
           <SectionHeading>Reports</SectionHeading>
           {/* Every staff member sees the count of the reports they can act on, as on main; only
@@ -160,10 +166,8 @@ export function ReportsAndRequests() {
               {familyReports.length > 0 && 'Hiding takes it off every page at once.'}
             </p>
           )}
-          {showSessionReports && sessionReports.isError && (
-            <p role="alert" className={`${TYPOGRAPHY_CLASSES.bodyLight} text-tea-text-sec`}>
-              Could not load session and person reports.
-            </p>
+          {sessionView.state === 'failed' && sessionFailed && (
+            <LoadFailed sentence="Could not load session and person reports." onRetry={sessionView.retry} />
           )}
           {reportList.length > 0 && (
             <ul className="mt-2">

@@ -13,6 +13,12 @@ type Choice = 'private' | 'page' | 'offered';
 
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
+/** The line after a share, from what was recorded. */
+export function shareLine(askedForTable: boolean, onTable: boolean): string {
+  if (onTable) return 'On your page and the Tea Table.';
+  return askedForTable ? 'On your page. The Tea Table could not take it just now.' : 'On your page.';
+}
+
 /**
  * After Save: where this tasting goes. Keep private is the default, and Done
  * writes it; Not now leaves things as they were. The score never travels with
@@ -27,6 +33,10 @@ export function TastingShareStep({ productId, photographCount, onClose }: {
   const [choice, setChoice] = useState<Choice>('private');
   const [state, setState] = useState<'idle' | 'sharing' | 'shared' | 'error'>('idle');
   const [message, setMessage] = useState('');
+  // What the worker says it recorded, never what was asked for (A10-2): with
+  // the site open and the worker not yet, a Tea Table share is recorded as a
+  // page share only, and the person is told so.
+  const [onTable, setOnTable] = useState(false);
 
   // While the Tea Table is open, one share choice covers both places, as its
   // plan decided: "On my page and the Tea Table". Only a share made under
@@ -50,7 +60,8 @@ export function TastingShareStep({ productId, photographCount, onClose }: {
       let lastError: unknown;
       for (let attempt = 0; attempt < 3; attempt += 1) {
         try {
-          await familyApi.shareTasting(productId, choice as FamilyShareState, table);
+          const answer = await familyApi.shareTasting(productId, choice as FamilyShareState, table);
+          setOnTable(table && answer?.on_tea_table === true);
           void queryClient.invalidateQueries({ queryKey: TEA_TABLE_MINE_KEY });
           if (choice === 'private') { onClose(); return; }
           setState('shared');
@@ -77,7 +88,7 @@ export function TastingShareStep({ productId, photographCount, onClose }: {
   return <section className="tasting-share-step" role="dialog" aria-label="Share this tasting">
     <h3 className={TYPOGRAPHY_CLASSES.label}>Share this tasting</h3>
     {state === 'shared'
-      ? <p className={TYPOGRAPHY_CLASSES.bodyLight} role="status">{`${table ? 'On your page and the Tea Table.' : 'On your page.'}${choice === 'offered' ? ' Your photographs are offered to Teajia.' : ''}`}</p>
+      ? <p className={TYPOGRAPHY_CLASSES.bodyLight} role="status">{`${shareLine(table, onTable)}${choice === 'offered' ? ' Your photographs are offered to Teajia.' : ''}`}</p>
       : <div className="tasting-share-options" role="group" aria-label="Where this tasting goes">
           {options.map(option => <Button variant="plain" type="button" key={option.id} className="tap-target" aria-pressed={choice === option.id}
             disabled={state === 'sharing'} onClick={() => setChoice(option.id)}>{option.label}</Button>)}

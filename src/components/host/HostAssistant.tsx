@@ -14,6 +14,8 @@ import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import { useAuth } from '../../hooks/useAuth';
 import { useStepParam } from '../../hooks/useStepParam';
 import { api } from '../../lib/api';
+import { PART_QUERY, partView } from '../../lib/closedPart';
+import { LoadFailed } from '../shared/LoadFailed';
 import { HOST_TOKEN_LABEL_MAX, type HostToken, type HostTokenMinted } from '../../lib/hostTokens';
 import { hostSmallText, hostText } from './hostTableParts';
 
@@ -38,11 +40,14 @@ export function HostAssistantSection({ onlyWithKeys = false }: { onlyWithKeys?: 
   const queryClient = useQueryClient();
   const key = ['host-assistant-tokens', user?.email] as const;
   const [step, setStep] = useStepParam('assistant');
-  const tokens = useQuery({ queryKey: key, queryFn: () => api.hostTokens.list(), retry: false });
+  const tokens = useQuery({ queryKey: key, queryFn: () => api.hostTokens.list(), ...PART_QUERY });
+  const view = partView(tokens);
   const refresh = () => queryClient.invalidateQueries({ queryKey: key });
   const list = tokens.data?.tokens ?? [];
   const stopping = step.startsWith(OFF) ? list.find(token => token.id === step.slice(OFF.length)) : undefined;
   if (onlyWithKeys && list.length === 0) return null;
+  // Not open on the worker yet: the part is not offered (A10-3).
+  if (view.state === 'closed') return null;
 
   return (
     <section aria-labelledby="host-assistant-heading" className="mt-8 space-y-3 border-t border-tea-border pt-4" data-testid="host-assistant">
@@ -53,7 +58,7 @@ export function HostAssistantSection({ onlyWithKeys = false }: { onlyWithKeys?: 
         before it changes anything.
       </p>
       {tokens.isPending && <p className={hostSmallText} role="status">Opening your keys…</p>}
-      {tokens.isError && <p className={hostSmallText} role="alert">Could not open your keys. Reload to try again.</p>}
+      {view.state === 'failed' && <LoadFailed sentence="Could not open your keys just now." onRetry={view.retry} />}
       {list.length > 0 && (
         <ul className="space-y-2" data-testid="host-assistant-keys">
           {list.map(token => (
