@@ -86,7 +86,7 @@ async function prepare(page: Page): Promise<Seen> {
       await expect(sheet.getByTestId('supplier-freight-bill').first()).toContainText('¥85');
       await expect(sheet.getByTestId('supplier-freight-bill').first()).toContainText('850');
       await expect(sheet.getByTestId('supplier-shop-route')).toContainText('DHL');
-      await expect(sheet.getByRole('link', { name: 'Change routes in Store Settings' })).toBeVisible();
+      await expect(sheet.getByRole('link', { name: 'Freight rates are set in Logistics' })).toHaveAttribute('href', '/admin/purchase-orders');
 
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 2)).toBe(true);
       await page.screenshot({ path: `test-results/supplier-sheet/${info.project.name.replace(' ', '-')}-open.png` });

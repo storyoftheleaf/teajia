@@ -336,7 +336,11 @@ test.describe('Deciding on a sample, phone', () => {
       receipts.push(route.request().url());
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: 'r-1' }) });
     });
-    // The routes from Settings: air billed by the kilo with packing; no boat route yet.
+    // The rate comes from Logistics: one air service at 85 yuan a kilo, no boat service.
+    await page.route('**/api/logistics', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ orders: [], shipments: [], addresses: [], services: [
+      { id: 'air', logistics_company_id: 'co', logistics_company_name: 'Bali Air Cargo', name: 'Airmail', mode: 'air', basis: 'kg', rate: 85, currency: 'Yuan', active: true },
+    ] }) }));
+    // The routes from Settings: packing and the kilo step, and where tea arrives.
     await page.route('**/api/shipping-routes', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([{ id: 'r1', mode: 'air', carrier: 'Bali Air Cargo', destination: 'Teajia Bali', rate_per_kg: 85, rate_currency: 'Yuan', packing_percent: 35, billing_step_kg: 1, minimum_kg: null, learned: null }]) }));
     const row = page.getByTestId('sample-decide-row').filter({ hasText: '1958 Aged Raw' });
     await row.getByRole('button', { name: 'Open 1958 Aged Raw' }).click();
@@ -357,7 +361,7 @@ test.describe('Deciding on a sample, phone', () => {
     await expect(page.getByTestId('receiving-tile')).toContainText('add one in Settings');
     await shot(page, 'buying-basket-boat');
     await line.getByRole('radio', { name: 'Air' }).click();
-    // 7 cakes, 2.5 kg, plus 35% packing, billed by the kilo: 4 kg at ¥85.
+    // 7 cakes, 2.5 kg, plus 35% packing, billed by the kilo: 4 kg at the service's ¥85.
     await expect(page.getByText('freight ≈ ¥340, packing included')).toBeVisible();
     await expect(page.getByTestId('receiving-tile')).toContainText('Teajia Bali');
     await shot(page, 'buying-basket');

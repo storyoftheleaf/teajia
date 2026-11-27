@@ -28,16 +28,75 @@ Adrian, 2026-11-26: "Let's break this into the totality of the plan. Update all 
 | # | Question | Blocks |
 |---|---|---|
 | Q1 | Is Launch 1 the right first version (his own tables only)? | Launch 1 as a whole. Treated as the working assumption until he says otherwise |
-| Q2 | The one sentence for Home | L1-08 |
+| Q2 | Yes to a draft, 2026-11-26. Drafts are with him | The final pick |
 | Q3 | Which coming session to run by hand | L1-00 |
-| Q4 | Any tea from anyone, shown properly | L2-04 |
-| Q5 | Free to host and a host can take their record away, said on the site | L2-01 copy |
-| Q6 | The Tea Table exception wording in CLAUDE.md | All of Launch 4's Tea Table work |
-| Q7 | The four bar words: read, table, houses, shop | L4-05 only. No navigation label changes without his explicit yes |
-| Q8 | The credit rule: how much, on which teas, for how long | L5-01 (tracking itself is not blocked) |
-| Q9 | The wrapper reader opened to hosts | L5-02 |
-| Q10 | A small host's box brought forward | L5-07 |
-| Q11 | May hosts offer articles | L4-07 |
+| Q4 | Any tea from anyone, shown properly. **Answered yes, 2026-11-26** | Nothing now |
+| Q5 | Answered yes, 2026-11-26 | Nothing |
+| Q6 | Answered yes, 2026-11-26. The Tea Table is in force; further social parts wait for him to name them | Nothing |
+| Q7 | Answered 2026-11-26: read, tea table, tea house, shop; the bar keeps its shape | Nothing. The switch waits only for the pages behind the words |
+| Q8 | Answered 2026-11-26: tea credit first, 10 percent, all teas; cash later, no time window, held securely | Nothing |
+| Q9 | Answered 2026-11-26: not yet, once hosts are active | L5-02 waits |
+| Q10 | Answered 2026-11-26: wait until the first hosts are running | L5-07 waits |
+| Q11 | Answered yes, 2026-11-26, with Adrian editing first | Nothing |
+
+## Adrian's answers, 2026-11-26, in the build thread
+
+- **Q4, yes.** "Yes, this is correct." A host may put any tea on a session, from anywhere, with no price, and a host's session may link Adrian's teas to his shop. Launch 2's H6 is unblocked. He added: distribution and shipping go on the to-do list for a later date. It is in `TODO.md`.
+- **Old private sits.** "This has not been used yet." So there is nothing to carry over. Launch 3's J3 stands as written: the old sits are left where they are and the private sit door makes a hosted table from now on. No migration.
+- **Hosting.** "Anyone can make their own tea table. Maybe there is an extra thing when I get to know them and I approve them. So the curated tables versus just people hosting." Read as: hosting is open to everyone, and his approval is a second level on top, not the entry ticket. This is the model in the Launch 3 sheet (anyone hosts by request; a host he approves gains the by-link door and reach). It changes Launch 2 in one way: its approval gate is a rollout step for the first few hosts, not the lasting rule, and the words "Hosting opens by invitation for now" are temporary. Whether "curated" is ever shown as a word on a table is not decided; until he says so, it shows only as where a table can be found, never as a label.
+- **Q6, yes, and wider than asked (project chat, later the same day).** "It can have a little bit of a social feed. I would like to go back on that and remove where it says. I just want it to be a classy social feed, like curated, not like facebook... We don't want to make this a traditional social network but some of the aspects that work can be integrated... That's not the main feature. The main feature is more bringing people together over tea." The Tea Table is in force and the hard stop is lifted: Launch 4's K1 and K2 and Launch 5's M8 may be built as their sheets describe. `CLAUDE.md` and `docs/PILLAR.md` are rewritten to match. What is not yet decided is which further social parts he wants (a way to show appreciation, replies, following a host). None of those is built until he names it.
+- **Q8, tea credit first.** "Let's start with full tea credit. Later on we can work on a cash system." The starting rule, from the example put to him: a host earns 10 percent of a Filled order that came through their session, as credit spendable only on tea from Adrian, on all teas, reversed if the order is voided. The 10 percent and all teas were in the example he answered. The 30 day window first written here was dropped by him the same day (see below). No cash moves; a cash system is later work. Launch 5's M1 is unblocked.
+- **Q8, added later the same day: an ongoing bank, held securely.** "It doesn't have to be 30 days, it can be ongoing. Ongoing bank. Make sure this is security held so no one can hack an order and anything that uses the percentage has to be approved or verified when the order comes in to make sure if a hacker does get at it, it doesn't clear it out." Read as: no 30 day window, so an order that began from a host's thank-you or page counts whenever it comes, and a host's credit does not expire. The security rules are in the Launch 5 sheet under "Credit is held securely" and are part of M1's contract, not an extra.
+- **Q7, the bar words.** One word is settled in his mind: "I think just the word tea house will actually fit" (over tea home). The other slot, table or gather or another, is not picked. No label changes until he gives all four.
+- **No "curated" word.** "Let's do no label then." Approval shows only as where a table can be found, never as a word on it.
+
+- **Scores are personal, words are shared (project chat, 2026-11-26).** "We're not trying to be Amazon with how many stars was tea. You can rate it for yourself... I think it's usually more personal than global. But good comments or reviews we can put on the tea so people who like it can hear more about it." So: a score a person gives a tea is theirs, shown to them and never as a public number, star count or average on a tea. Chosen words about a tea may be shown on that tea's page, by hand, with the writer's yes. A host's live tasting results stay as they are, seen by that tasting's host. Launch 4 slice K14.
+- **A tea master's top teas (same message, an idea, not yet a decision).** "Maybe every tea master can pick a top tea from every category into their profile as well, or a top two: one from themselves and one from someone else." Folded into the favourites work as K14's second half; the exact shape (one per category, or two) is his to pick.
+- **The bar words fit (measured 2026-11-26).** In the real bottom bar at 320, 375, 390 and 430 wide, every candidate set fits on one line at the present letter size with no side scroll, "read, tea table, tea house, shop" included. At 320 that set leaves about 4 pixels each side of the two long words, so it is the tightest. Pictures are in the project files under `bar-words/`. He is weighing "tea table" and "tea house"; no pick yet, no label changes.
+
+- **The two icons on the bar (asked 2026-11-26, not decided).** He asked whether the three lines (the site panel: search, sessions, people, places, tea wisdom, cart, Manage) and Your Table could go, or Your Table sit in the centre, to give the words room. Measured with "read, tea table, tea house, shop": air each side of the long words is about 4 to 6 pixels at 320 wide and 9 to 11 at 360 and 375 as the bar is; removing the three lines adds about 2, removing both about 4, Your Table in the centre with empty ends about 6. Fable's recommendation: keep the bar as it is, and let the letters step down one size below 340 wide. Pictures in the project files, `bar-words/bar-icons-*.png`. No change until he says.
+
+- **Q7 answered: read, tea table, tea house, shop (project chat, 2026-11-26).** Shown the bar with those words and Fable's advice to keep its shape, he said: "Okay, let's go with your suggestion." So the bar keeps the three lines, the teajia word and Your Table where they are, the four words are read, tea table, tea house, shop, and below 340 wide the bar letters step down one size. The switch itself is still one change in Launch 4 (K7, K10), made when the Tea Table and Tea Houses pages exist, with where everything under craft and advise lands shown to him first.
+- **The map and the to-do list.** He asked for one page showing where everything goes and the state of every build item. It is a living document kept by the Fable thread: https://claude.ai/artifact/RsfqjYxTojAvELcbh9DsHd
+
+### The fourteen waiting points, answered 2026-11-26 (project chat)
+
+His words: "One, yes, two, yes. Three, yes. Four, yes. Five. Yes, but they are not just like tea house facts. They are portfolio in what I contributed in them. Six these are being created in AR Create. Seven. Yes. Eight Yes, one per category and one inside of theirs and one inside of someone else's. Nine, no credit ceiling. I can tell something's off. 10. You can have venue photos. It's a house. Or a tea table. Address is hidden. Eleven yes to all. Twelve, go with your suggestion. Thirteen. Same. Fourteen Skip for now."
+
+1. **The sharing and score fixes: ship.** The build thread carries the release.
+2. **Home's sentence (Q2): yes to a draft.** Drafts are with him; the sentence is not final until he picks one.
+3. **"Host a table" sits in both places:** one line on Home, and in Sessions in Your Table.
+4. **Q5, yes.** "Free to host, and your record is yours" is said on the site, with the export.
+5. **Tea Houses is a portfolio.** Each house is shown by what Adrian contributed to it, not as a list of facts about the place. See the Launch 4 sheet, "Tea Houses as a portfolio". The content is still his to give, house by house.
+6. **The first people articles are being made in AR Create.** Nothing is written here. Launch 4 only needs the place they appear.
+7. **Q11, yes.** A host may offer an article; Adrian edits and decides before anything is published.
+8. **A tea master's top teas.** Read as: per category, up to two picks, one of their own teas and one from someone else. To be confirmed in the first mock-up, since the sentence can also be read as one per category plus two overall.
+9. **No credit ceiling.** "I can tell something's off." Rule 6 of "Credit is held securely" is removed. Every spend still needs his approval by hand, which is the safeguard he chose.
+10. **Venue photos may be shown** for a tea house or a tea table. The address stays hidden until the host's yes. This reverses the tighter setting made in H2 and H7 for photographs of the place; the step-by-step way-in photographs stay with confirmed guests, because they show how to get in.
+11. **Tea Table details, yes to all three:** a write-up goes on the table only on its host's tap; order is by when a piece was put on the table; a hold lasts 1 to 14 days.
+12. **Q9, not yet.** The wrapper reader opens to hosts once hosts are active.
+13. **Q10, wait.** The host's box waits until the first hosts are running.
+14. **Q12, skipped for now.** A tea for the table is not built.
+
+### Home's words: what exists, and Fable's recommendation (2026-11-26, awaiting his yes)
+
+Adrian shared what the site and Instagram say today. Home opens with the core line "Tea deepens with what you bring to the table and what you leave behind.", then four tags, Source, Discover, Deepen, Create, then the house line "a home for tea: source, study, share". Instagram's bio says "no tea masters here, forever students of the leaf".
+
+- **Recommendation for Home:** keep the core line as the headline and the house line as it is. Do not add a new sentence. Make the four tags the four doors, each with a few plain words under it and each leading to a bar word: Discover to read, Deepen to tea table, Create to tea house, Source to shop. The two doors "Come to a table" and "Host a table" follow.
+- **Answered 2026-11-27, "4 yes":** to the point that asked for a yes or no on the four Home tags as doors. The tags become the four doors as in the recommendation above; the core line and house line stay. Built behind `HOME_BAR_OPEN`. The same point also asked whether "Tea Masters" labels become "Hosts"; because that is a label change, it was put to him again on its own before anything is renamed.
+- **"Tea master" against "no tea masters here":** raised with him. Recommendation: "host" is the everyday word for anyone who opens a table ("hosted by", "pouring"); "tea master" is never a rank or a title anyone claims, and where it stays it is explained once as the person pouring at that table, a student like everyone else. His choice.
+
+### The word "tea master" and what a person's page shows (Adrian, 2026-11-26, in the build thread)
+
+His words: taking the title "is a bit cringe in the west" though in the east it is "something people look up to"; "who am I to give someone the title of a tea master?"; yet "there is a difference between someone who has committed to drinking tea every day and studying it versus someone who is just getting into it". On what to show: "Maybe it's an experience level, yes, as well as what drives you. Amount of years potentially. What you do, yes. The studied with feels a bit like collecting lineage titles. I don't like that. But the other ones are good. Also this needs to be easy to interact with and simple. Not make a massive complex long form."
+
+- **No title.** Nobody takes "tea master" and Adrian does not hand it out. Everyone who opens a table is a host; pages say "hosted by" and "pouring". The difference between a newcomer and a committed person is shown by describing their practice, not by ranking them.
+- **Three small things on a person's page, each optional, each one tap or one line:** how long they have been with tea, shown as "With tea since 2011" (a year they pick, never a named level such as beginner or advanced); what draws them to tea, one short line in their own words, typed or spoken; what they do, tapped from a short list (host tables, source tea, write, make teaware, keep a tea house, drink and learn).
+- **Not shown:** "studied with" or any lineage line.
+- **Still there:** what they have done on Teajia (tables hosted, articles, teas chosen) and what others gave them (guests' words, "poured with").
+- **Simple by rule:** no form page. The three things are asked one at a time where the page shows them, can each be skipped, and are changed in place.
+- **Go-ahead, later the same day:** "Okay, let's do these, but we will have to refine them." The three things are built as a first version. Their wording and the list of things-you-do are provisional and kept in one place so they can be changed without a rebuild; he sees them in the sandbox before the launch gate.
+- **Labels, decided 2026-11-27 on a card:** "Rename to Hosts". The Manage room and the pages that say "Tea Masters" say "Hosts". Addresses and old links keep working; only the words change. One change by one builder, with the phone menu and the rail checked together.
 
 ## How the build is run
 
@@ -139,6 +198,8 @@ It keeps a short ledger at the bottom of this file: each package, its branch, it
 
 ## Launch 2: a few hosts
 
+> **Launch 2 is cut for running in [guests-and-tea-masters-launch-2-run.md](guests-and-tea-masters-launch-2-run.md) (2026-11-26).** Where it differs from the table below it is the newer one.
+
 **What changes.** Three to five people Adrian trusts host their own tables with the same thing he used. They are set up by him.
 
 | # | Package | Tier | Closes |
@@ -157,6 +218,8 @@ It keeps a short ledger at the bottom of this file: each package, its branch, it
 **Done when** each of those hosts has run a session without asking Adrian how.
 
 ## Launch 3: anyone can host
+
+> **Launch 3 is cut for running in [guests-and-tea-masters-launch-3-run.md](guests-and-tea-masters-launch-3-run.md) (2026-11-26).** Five of its slices can start before Launch 2 is merged. Where it differs from the table below it is the newer one.
 
 **What changes.** "Host a table" opens to everyone. This holds the one large piece of engineering.
 
@@ -178,7 +241,9 @@ It keeps a short ledger at the bottom of this file: each package, its branch, it
 
 ## Launch 4: what happened becomes visible
 
-**Needs first:** Q6 for the Tea Table, Q7 for the bar words.
+> **Launch 4 is cut for running in [guests-and-tea-masters-launch-4-run.md](guests-and-tea-masters-launch-4-run.md) (2026-11-26).** Most of it waits on Adrian's answers; five slices can start today. Where it differs from the table below it is the newer one.
+
+**Needs first:** Q7 for the bar words. Q6 was answered yes on 2026-11-26.
 
 | # | Package | Tier | Closes |
 |---|---|---|---|
@@ -196,6 +261,8 @@ It keeps a short ledger at the bottom of this file: each package, its branch, it
 
 ## Launch 5: the wider service
 
+> **Launch 5 is cut for running in [guests-and-tea-masters-launch-5-run.md](guests-and-tea-masters-launch-5-run.md) (2026-11-26).** Each package ships alone; three can start today. Where it differs from the table below it is the newer one.
+
 Each of these stands alone and can ship when ready. The order is by value.
 
 | # | Package | Tier | Needs |
@@ -209,6 +276,45 @@ Each of these stands alone and can ship when ready. The order is by value.
 | L5-07 | The host's box, then the tasting box | A | Q10 |
 | L5-08 | "Does anyone know this tea?" on the Tea Table | B | Q6 |
 | L5-09 | Short video. The app | Later | G16 |
+
+## Everything at once: what can run today, and what waits
+
+Adrian, 2026-11-26: "I want to do all the build out... Better to run multiple simultaneously." This is the one map across all five launches. Each row's detail and its worker message are in that launch's run sheet.
+
+**Running today, side by side, with no answer needed from Adrian.** Three lanes, so the Mac is never asked for more than four GPT workers at once.
+
+| Lane | Work | Who |
+|---|---|---|
+| Repair, ships alone | L2 H0: the public session answer stops carrying the address | Opus |
+| Launch 2 spine | L2 H1 contract, then H2 beside H3, then H4, then H8, H9, H10, H6 | Opus, Sol |
+| Read-only audits on `main` | L2 A1 (address doors), L3 J9 (waiting list), L4 K0 (sharing and taking back), L5 M1 audit (credit history) | Astra, one after another |
+| Independent builds | L3 J5 reports, J7 gallery, J8 tasting, J11 contribution line; L4 K3 favourites, K5 Visit, K6 acknowledgement; L5 M3 the card | Sol, and a second Opus builder for overflow |
+| Opus's own, independent | L4 K8, Your Table as a page | A second Opus builder |
+| Cloud helpers | L5 M6 inventory of actions without tools; first reads of every GPT pull request | Haiku, Sonnet |
+
+**Waits on an earlier launch's contract, not on Adrian.** L3 J1, J2, J3, J6, J10, J12 wait for Launch 2's H1 and H2. L4 K4 and K9 wait for Launch 2. L5 M4 and the host's token in M6 wait for Launch 3. Each integration branch is brought up to date from the launch before it, not from `main`, until that launch ships.
+
+**Waits on Adrian.** One answer each; none of them stops the lanes above.
+
+| His answer | Unlocks |
+|---|---|
+| "ship" for the address repair | L2 H0 reaching the live site |
+| Q4, any tea from anyone, and his teas linked from a host's session | L2 H6 |
+| Q5, "free, and your record is yours" | L2 H11's wording and export |
+| Where "Host a table" is found | The door in L2, and L3 J4 |
+| Old private sits stay where they are | L3 J3 |
+| Q6, the Tea Table rule | Answered yes. K1, K2 and M8 are free to start |
+| Q7, the four bar words | L4 K7, K10 |
+| Your Table as a page | L4 K8 reaching people |
+| His seven facts about building a tea house | L4 K5's Build and Work pages |
+| Q11, hosts may offer articles | L4 K9 |
+| Three people for the first articles | L4 K6's articles |
+| Q8, the credit rule | Answered. M1 is free to start |
+| Q9, the wrapper reader for hosts | L5 M2 |
+| Q10, the host's box | L5 M7 |
+| Q12, a tea for the table | L5 M5 |
+
+**Three rules for running many at once.** One owner per file: a shared file is edited only by the launch's Opus owner, and two launches never edit the same shared file in the same hour without one rebasing on the other. One migration number per launch, taken in launch order (0129 Launch 2, 0130 Launch 3, 0131 Launch 4, then one per Launch 5 package), so numbers never collide. And a launch is switched on only in order: a later launch's code may be merged behind its flag early, but its flag turns on after the launch before it has shipped.
 
 ## Who builds what
 

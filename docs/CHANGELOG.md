@@ -2,6 +2,21 @@
 
 Built on `build/practice-lines`, off until shipped (`PRACTICE_LINES_OPEN` in `src/lib/practiceLines.ts`, `VITE_PRACTICE_LINES_OPEN` on the site). Part of K6 and K8 (Adrian, 2026-11-26: "Okay, let's do these, but we will have to refine them"). A person's page carries three optional lines: "With tea since" a year, what draws them to tea in one short line (typed, or said through `/api/transcribe`), and what they do, tapped from a short fixed list. The owner answers each one in place, on their page at `/people/:slug` or on their profile at `/account/profile`; opening a line is a step in the address (`?practice=since|drawn|doings`), and a visitor sees only the lines that were answered. The three prompts, the field words and the list of things-you-do (a draft for Adrian) live in that one module, and the worker checks answers with the same code. No "studied with" line, no lineage, no title, no level, and nothing is counted or ranked from these. Routes: `GET` and `PUT /api/public/people/:slug/practice`, 404 while closed. Migration `0150_practice_lines.sql` adds `contributors.practice_since`, `practice_drawn` and `practice_doings`, columns only; no other answer ever carries them. Guards: `worker/tests/practice-lines.test.ts`, `src/components/people/PracticeLines.test.tsx`; browser check `tests/person-practice.spec.ts` at 320, 390 and 1280 wide.
 
+## 2026-11-27: Freight rates live in Logistics
+
+Every freight rate is typed in Logistics services on the Purchases page and nowhere else. No tea's price moves.
+
+- **Shop default** moved there from Store Settings (same account columns; `update_account_settings` still writes it).
+- **+ Logistics company** asks for two things, the name and the rate; air, per kg, the shop currency and the service name default behind More details. A new name becomes a contact on save.
+- **+ My suitcase** makes a free-by-the-kilo air service under a "My luggage" contact, picked on the tea page like any service.
+- **No per-tea typing**: the Add tea form, the phone Freight sheet and `create_tea` / `update_tea_pricing` set no rate. A tea that kept its own shows it read-only with Clear and the price it would move to.
+- **Shipping routes** keep addresses, packing and rounding; their rate is no longer read or written. The buying basket prices from the dearest active service of each mode, else the shop default for air.
+- **Imports** stamp no rate on a batch.
+- **One shipping line on the tea.** The Price part shows a single link: when it arrives, what shipping adds to a gram, and by what, opening the shipment (or the service). The detail lives in Logistics, and a tea is put on a service by hand with "+ Add tea" on that service's card.
+- **Journey track.** Each logistics service is a card with four stages, ordered, at the forwarder, on the way, arrived, each counting its orders or shipments and opening them as links; its teas sit below as tags. The tea page and shipment cards use the same tags. Separated by close tones, no lines.
+- **Everything is connected, every connection a link.** A service row lists its company's waiting orders, its shipments and the teas it prices (`?serviceId=` opens it). The tea page lists the shipments it is on and links its service. A shipment card links its service and each tea; an order links its company's service and its shipments. Once a shipment's bill is confirmed, every tea on it with no service yet travels by that service (`adoptShipmentService` in `worker/src/logistics.ts`), so its freight comes from that bill; a service picked by hand is kept.
+- **Product REST doors** refuse a typed rate (clearing allowed; an edit may only carry an existing rate across a cost-currency change).
+
 ## 2026-11-26: Launch 5 ready to ship (behind its flags)
 
 Finished on `build/l5-finish`, every part off until Adrian says "ship".
