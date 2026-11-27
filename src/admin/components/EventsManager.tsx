@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Button } from '../../components/shared/Button';
 import { Plus, Calendar, Copy, Bell, Search, X } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useEvents } from '../hooks/useEventData';
@@ -153,9 +154,15 @@ function SessionsList({ linkedSearch, onClearLinkedSearch }: { linkedSearch: str
             )}
           </div>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
           {/* Tastings and Venues had no other door: venues showed on desktop
               only, and tastings only in the command palette. */}
+          <Button variant="plain" type="button"
+            onClick={() => navigate('/admin/pour')}
+            className="tap-target inline-flex items-center px-2 rounded-md text-xs text-tea-text-sec hover:text-tea-text transition-colors"
+          >
+            Pour
+          </Button>
           <button
             onClick={() => navigate('/admin/tasting-events')}
             className="tap-target inline-flex items-center px-2 rounded-md text-xs text-tea-text-sec hover:text-tea-text transition-colors"

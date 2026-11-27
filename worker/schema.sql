@@ -4420,3 +4420,10 @@ CREATE TABLE IF NOT EXISTS host_credit_shortfalls (
   created_at     TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_host_credit_shortfalls_account ON host_credit_shortfalls (account_id, created_at);
+
+-- A sit sent by one link, and what was poured at it (migration 0158).
+ALTER TABLE events ADD COLUMN sit_link_code TEXT;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_events_sit_link_code ON events(sit_link_code) WHERE sit_link_code IS NOT NULL;
+ALTER TABLE events ADD COLUMN casual_sit INTEGER NOT NULL DEFAULT 0 CHECK (casual_sit IN (0, 1));
+ALTER TABLE event_tea_menu ADD COLUMN poured_grams REAL;
+ALTER TABLE event_tea_menu ADD COLUMN stock_taken_grams REAL;

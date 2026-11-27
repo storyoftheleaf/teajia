@@ -17,11 +17,13 @@
 // still opens with no signal. House photographs (accounts/<id>/venues/) are
 // public by Adrian's decision (2026-11-26) and are not decided here.
 
-import { sessionHasEnded } from '../../shared/sessionEnd';
+import { sessionHasEnded, sitWayOpen } from '../../shared/sessionEnd';
 
 export const WAY_MEDIA_ORIGIN = 'https://media.teajia.co/';
 export const WAY_SIGNED_SECONDS = 60 * 60;
 export const WAY_HOST = 'host';
+/** A photograph signed for whoever holds one sit's link: `sit:<event id>`. */
+export const SIT_HOLDER = 'sit:';
 
 const STEP_KEY = /^accounts\/[^/]+\/venue-guide\//;
 const FLYER_KEY = /^accounts\/([^/]+)\/flyers\/[^/]+$/;
@@ -148,6 +150,15 @@ export async function wayMediaVerdict(
   if (!holder) return 'refused';
   if (holder === WAY_HOST) return 'signed';
   if (!db) return 'refused';
+  // A sit sent by its own link (pourSit.ts): the photograph is served while
+  // that sit still names it, still has its link, and its day is not over.
+  if (holder.startsWith(SIT_HOLDER)) {
+    const sit = await db.prepare(
+      `SELECT e.event_date, e.event_end_date, e.timezone, e.lifecycle_status, e.status FROM events e
+        WHERE e.id = ? AND e.sit_link_code IS NOT NULL AND e.venue_guide IS NOT NULL AND instr(e.venue_guide, ?) > 0`,
+    ).bind(holder.slice(SIT_HOLDER.length), `${WAY_MEDIA_ORIGIN}${key}`).first<Record<string, unknown>>();
+    return sit && sitWayOpen(sit, now) ? 'signed' : 'refused';
+  }
   const seat = await db.prepare(
     `SELECT ea.status, e.event_date, e.event_end_date, e.timezone, e.lifecycle_status, e.status AS event_status,
             ${doorSql} AS door_open

@@ -72,6 +72,7 @@ const SharedCollection = lazyWithRetry(() => import('./components/SharedCollecti
 const EventLanding = lazyWithRetry(() => import('./components/events/EventLanding'));
 const CasualSitRecapPage = lazyWithRetry(() => import('./pages/CasualSitRecapPage'));
 const AfterSitPage = lazyWithRetry(() => import('./pages/AfterSitPage'));
+const SitLinkPage = lazyWithRetry(() => import('./pages/SitLinkPage'));
 const MemberSitPage = lazyWithRetry(() => import('./pages/MemberSitPage').then(module => ({ default: module.MemberSitPage })));
 const MemberSitInvitePage = lazyWithRetry(() => import('./pages/MemberSitPage').then(module => ({ default: module.MemberSitInvitePage })));
 const EventRecapPage = lazyWithRetry(() => import('./pages/EventRecapPage'));
@@ -1306,6 +1307,7 @@ const AppContent = () => {
                 <Route path="/tea-feed" element={<Navigate to={teaTableOpen() ? '/tea-table' : '/'} replace />} />
                 <Route path="/event/:slug" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><EventLanding /></Suspense></ErrorBoundary>} />
                 <Route path="/sits/casual/:slug" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><CasualSitRecapPage /></Suspense></ErrorBoundary>} />
+                <Route path="/sit/:code" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><SitLinkPage /></Suspense></ErrorBoundary>} />
                 <Route path="/after-sit" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><AfterSitPage /></Suspense></ErrorBoundary>} />
                 <Route path="/event/:slug/recap" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><EventRecapPage /></Suspense></ErrorBoundary>} />
                 <Route path="/m/:magicToken" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><GuestManagement /></Suspense></ErrorBoundary>} />

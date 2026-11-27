@@ -74,6 +74,7 @@ import { ActivityView } from './components/ActivityView';
 // it. Both then share a single on-demand InventoryView chunk.
 const CatalogTeaReading = lazy(() => import('./views/CatalogTeaReading'));
 const StockGalleryProposal = lazy(() => import('./views/StockGalleryProposal'));
+const PourView = lazy(() => import('./views/PourView'));
 const SessionCardPage = lazy(() => import('../pages/SessionCardPage'));
 const OwnerYixing = lazy(() => import('./views/yixing/OwnerYixing'));
 const DraftsView = lazy(() => import('./components/DraftsView').then((m) => ({ default: m.DraftsView })));
@@ -583,6 +584,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
               } />
 
               {/* Member tools, events + samples open to all members */}
+              <Route path="pour" element={<ProtectedRoute hasAccess={hasGatherBundle} isLoggingIn={!isLoggedIn}><PageTransition><PourView /></PageTransition></ProtectedRoute>} />
               <Route path="events" element={<ProtectedRoute hasAccess={hasGatherBundle} isLoggingIn={!isLoggedIn}><PageTransition><EventsManager /></PageTransition></ProtectedRoute>} />
               <Route path="events/:id" element={<ProtectedRoute hasAccess={hasGatherBundle} isLoggingIn={!isLoggedIn}><PageTransition><EventDetail /></PageTransition></ProtectedRoute>} />
               {tableCardOpen() && <Route path="events/:slug/card" element={<ProtectedRoute hasAccess={hasGatherBundle} isLoggingIn={!isLoggedIn}><SessionCardPage /></ProtectedRoute>} />}

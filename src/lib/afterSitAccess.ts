@@ -17,6 +17,13 @@ export function captureAfterSitCredential() {
   });
 }
 
+/** Hand the thank-you page a seat's link made on this page (the sit link's "I was there"). */
+export function holdAfterSitCredential(credential: string) {
+  if (!/^[a-f0-9]{64}$/.test(credential)) return;
+  captured = { credential, revision: captured.revision + 1 };
+  listeners.forEach(listener => listener());
+}
+
 export function getAfterSitCredential() {
   return captured;
 }

@@ -13,6 +13,7 @@ import { ORDER_NOTICE_ACCOUNT_SQL, orderNoticeRecipient, recordMissingSellerAddr
 import { servePrivateSubjectPhotos } from './privateSubjectPhotos';
 import { createMemberPrivateSitsHandler } from './memberPrivateSits';
 import { afterSitRoutes, issueAfterSitLink } from './afterSitAccess';
+import { pourSitRoutes } from './pourSit';
 import { enteredTastingFlag, eventTastingId, eventTastingSessionId, holdsEventTastingSeat, joinEventTasting, memberFirstName } from './sessionTasting';
 import { boughtLineChestState, boughtLineQuantityUnit, keepBoughtLine, type BoughtOrder } from './chestKeep';
 import { firstTableOpen } from '../../src/lib/firstTable';
@@ -33864,6 +33865,19 @@ const routes: [string, string, Handler][] = [
     requireUser: requireAuthenticatedUser,
     limit: (_request, env, key) => enforceDurableLimit(env.AFTER_SIT_LIMITER, 'AFTER_SIT_LIMITER', 'after-sit:' + key),
     readPublic: sessionTeaReader,
+    optionalUser: async (request, env) => {
+      if (!isAuthed(request)) return null;
+      const actor = await requireAuthenticatedUser(request, env);
+      return 'error' in actor ? null : actor.userId;
+    },
+  }),
+  ...pourSitRoutes<Env>({
+    requireHost: (request, env) => requireBundle(request, env, 'gather'),
+    requireUser: requireAuthenticatedUser,
+    limit: (_request, env, key) => enforceDurableLimit(env.AFTER_SIT_LIMITER, 'AFTER_SIT_LIMITER', 'after-sit:' + key),
+    readPublic: sessionTeaReader,
+    ownPlacesAccount: async (env, userId) => (await personalInventoryAccount(env.DB, userId))?.id ?? null,
+    appOrigin,
     optionalUser: async (request, env) => {
       if (!isAuthed(request)) return null;
       const actor = await requireAuthenticatedUser(request, env);
