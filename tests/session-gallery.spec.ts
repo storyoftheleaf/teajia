@@ -2,6 +2,10 @@ import type { Page } from '@playwright/test';
 import { expect, test } from './fixtures';
 
 // Launch 3, J7: photographs from the table on the after-sit page, at phone width.
+// The gallery is Launch 3's (A3) and shows only while its switch is on, so the
+// walk serves the switch open and does not depend on how the site was started.
+// The last test leaves the switch as the site has it (off) and proves the page
+// shows no gallery and asks for none.
 test.use({ viewport: { width: 390, height: 844 } });
 
 const credential = '7'.repeat(64);
@@ -22,7 +26,15 @@ const ids = {
   ana: '5948d330-2336-4726-8540-0b49c913adb1',
 };
 
-async function openAfterSit(page: Page, state: State) {
+async function openLaunch3(page: Page) {
+  await page.route(/\/src\/lib\/anyoneHosts\.ts(?:\?|$)/, route => route.fulfill({
+    contentType: 'application/javascript',
+    body: 'export const ANYONE_HOSTS_OPEN = true; export const anyoneHostsOpen = () => true;',
+  }));
+}
+
+async function openAfterSit(page: Page, state: State, { launch3 = true } = {}) {
+  if (launch3) await openLaunch3(page);
   await page.addInitScript(jwt => localStorage.setItem('teajia_token', jwt), token);
   await page.route('**/api/**', async route => {
     const request = route.request();
@@ -148,4 +160,15 @@ test('adding a photograph is one tap to the device picker, then the shared edito
   expect(state.uploads).toBe(1);
   expect(state.offers[0]).toMatchObject({ photoId: expect.any(String), grantId: expect.any(String), showName: true });
   await noHorizontalOverflow(page);
+});
+
+test('with Launch 3 closed, the after-sit page shows no gallery and asks for none', async ({ page }) => {
+  test.skip(process.env.VITE_ANYONE_HOSTS_OPEN === 'true', 'Launch 3 is open on this site');
+  const asked: string[] = [];
+  page.on('request', request => { if (/\/api\/after-sit\/gallery/.test(request.url())) asked.push(request.url()); });
+  await openAfterSit(page, freshState(), { launch3: false });
+  await expect(page.getByText('Rain on the courtyard').first()).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Photographs from the table' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Add a photograph' })).toHaveCount(0);
+  expect(asked).toEqual([]);
 });

@@ -163,6 +163,14 @@ export const useShopFreightDefault = (): ShopFreightDefault => {
   return shopFreightDefaultFrom(account, lookup);
 };
 
+/**
+ * The freight a tea takes when it has no rate of its own, USD a kilo: what the
+ * server priced it at (its logistics service's shipments or quote, else the
+ * shop rate), or the shop rate before the server has said.
+ */
+export const teaFallbackFreightUsd = (product: { freightFallbackPerKgUsd?: number | null }, shopPerKgUsd: number | null): number | null =>
+  product.freightFallbackPerKgUsd !== undefined ? product.freightFallbackPerKgUsd : shopPerKgUsd;
+
 // Fetch Customers
 export const useCustomers = (options?: { enabled?: boolean }) => {
   const { accountScope, userScope } = useAccountQueryScope();

@@ -6,11 +6,13 @@
  *
  * The layer stack, most specific first: lot, maker, grade, place, age, type,
  * then brewing and what people often notice. A layer the tea lacks is left out,
- * never guessed, and nothing is read from the name.
+ * never guessed. The name supplies one thing only: a grade word that has a
+ * grade page (Palace Grade is Gong Ting), matched by teaMatching.ts.
  */
-import type { DraftReferencePage, PublicClaim } from '../reference/claims';
+import type { PublicClaim } from '../reference/claims';
 import { appliesTo } from '../reference/listingPassages';
 import { listingFacts } from '../reference/listingFacts';
+import { gradeIdFor, kitPagesFor, teaNames, type WisdomPageRef } from '../reference/teaMatching';
 import { reviewedLotProse } from '../reference/namedTeaLots';
 import { entrySegments, type ComposedEntry, type ComposedParagraph } from '../reference/composedEntry';
 
@@ -18,6 +20,7 @@ import { entrySegments, type ComposedEntry, type ComposedParagraph } from '../re
 export interface ComposeProduct {
   id: string;
   product_name: string;
+  given_name?: string | null;
   chinese_name?: string | null;
   type?: string | null;
   form?: string | null;
@@ -56,10 +59,6 @@ export interface ComposeInputs {
   allowNotice: boolean;
   missing: string[];
 }
-
-/** A page that can serve as a tea's kit: its family (Dark, Pu'er) or its type within one (Liu Bao, Shou). */
-type KitPage = Pick<DraftReferencePage, 'id' | 'kind' | 'label'>;
-const KIT_KINDS: readonly DraftReferencePage['kind'][] = ['tea_type', 'tea_family'];
 
 /** Kit sections that are not story: they fill the age, brewing and notice slots. */
 const AGE_KEYS = ['age-young', 'age-settling', 'age-aged'] as const;
@@ -102,18 +101,15 @@ const usable = (claim: PublicClaim) => claim.reviewState !== 'withdrawn' && clai
 export function composeInputs(
   product: ComposeProduct,
   claims: readonly PublicClaim[],
-  options: { thisYear: number; noNotice?: readonly string[]; pages: readonly KitPage[] },
+  options: { thisYear: number; noNotice?: readonly string[]; pages: readonly WisdomPageRef[] },
 ): ComposeInputs {
   const origin = [product.origin_region, product.origin_country].filter(Boolean).join(', ');
-  const facts = listingFacts({ id: product.id, type: product.type, form: product.form, originRegion: origin, name: product.product_name });
+  // A grade word in the name (Palace Grade, Gong Ting) that has a grade page fills the grade layer.
+  const gradeId = gradeIdFor(teaNames(product), options.pages);
+  const facts = listingFacts({ id: product.id, type: product.type, form: product.form, originRegion: origin, name: product.product_name, grade: gradeId });
   const live = claims.filter(usable);
-  // The tea's kit pages, most specific first: a type within a family (Liu Bao, Shou) before the family (Dark, Pu'er).
   const kinds = new Map(options.pages.map(page => [page.id, page]));
-  const kitPages = [...new Set(live
-    .filter(claim => KIT_KINDS.includes(kinds.get(claim.pageId)?.kind as DraftReferencePage['kind']) && appliesTo(claim.appliesWhen, facts))
-    .map(claim => claim.pageId))]
-    .map(id => kinds.get(id)!)
-    .sort((left, right) => KIT_KINDS.indexOf(left.kind) - KIT_KINDS.indexOf(right.kind));
+  const kitPages = kitPagesFor(facts, live, options.pages);
   const kitClaims = live.filter(claim => kitPages.some(page => page.id === claim.pageId) && appliesTo(claim.appliesWhen, facts));
   /** A slot's section from the most specific kit page that has it. */
   const onType = (key: string) => {

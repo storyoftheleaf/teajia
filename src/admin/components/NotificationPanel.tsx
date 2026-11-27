@@ -3,6 +3,7 @@ import { Bell, Copy, Check, Loader2, CheckCircle, AlertCircle, Clock, Mail } fro
 import { api } from '../../lib/api';
 import { useEventNotifications, useEventSeatNotices } from '../hooks/useEventData';
 import { SeatNoticeList } from '../../components/host/SeatNoticeList';
+import { anyoneHostsOpen } from '../../lib/anyoneHosts';
 import { useToast } from './Toast';
 import { TeaEvent, EventNotification } from '../../types/events';
 import { sessionMoment } from '../../../shared/sessionEnd';
@@ -107,10 +108,12 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({ eventId, e
 
   return (
     <div>
-      {/* What happened to the seats (J9): the shop's own notices. */}
-      <div className="mb-6">
-        <SeatNoticeList notices={seatNotices} by="shop" headingId="event-seat-notices" />
-      </div>
+      {/* What happened to the seats (J9): the shop's own notices, only while Launch 3 is open. */}
+      {anyoneHostsOpen() && (
+        <div className="mb-6">
+          <SeatNoticeList notices={seatNotices} by="shop" headingId="event-seat-notices" />
+        </div>
+      )}
 
       {/* ── Invite send block ── */}
       <InviteStatusBlock

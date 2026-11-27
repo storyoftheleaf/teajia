@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { BottomSheet } from '../../../../components/shared/BottomSheet';
 import { TYPOGRAPHY_CLASSES as T } from '../../../../designTokens';
-import { useRates, useShopFreightDefault } from '../../../hooks/useAdminData';
+import { useRates, useShopFreightDefault, teaFallbackFreightUsd } from '../../../hooks/useAdminData';
 import type { Product } from '../../../types';
 import { calculatePricing } from '../../../utils';
 import { isUnrecordedCurrency, rateToUsd } from '../../../../lib/currency';
@@ -19,8 +19,11 @@ const usd = (value: number | null) => value === null ? '—' : `$${value.toFixed
 export function FreightSheet({ product, onSave, onClose }: FreightSheetProps) {
   const { data: rates = [] } = useRates();
   const shop = useShopFreightDefault();
+  // What the tea follows with no rate of its own: its logistics service, else the shop rate.
+  const fallbackUsd = teaFallbackFreightUsd(product, shop.perKgUsd);
+  const methodWord = product.freightSource && product.freightSource !== 'shop' ? 'its logistics service' : null;
   const conversion = isUnrecordedCurrency(product.costCurrency) ? 1 : rateToUsd(rates, product.costCurrency);
-  const initialUsd = shippingRateUsdFor(product.shippingRatePerKg, conversion, shop.perKgUsd);
+  const initialUsd = shippingRateUsdFor(product.shippingRatePerKg, conversion, fallbackUsd);
   const [mode, setMode] = useState<'shop' | 'custom'>(product.shippingRatePerKg == null ? 'shop' : 'custom');
   const [input, setInput] = useState(() => initialUsd === null ? '' : String(initialUsd));
   const [saving, setSaving] = useState(false);
@@ -28,11 +31,11 @@ export function FreightSheet({ product, onSave, onClose }: FreightSheetProps) {
   const savingRef = useRef(false);
   const selection = freightSelection(mode, input, product.costCurrency, rates);
   const isTeaware = product.type === 'Teaware';
-  const proposedStored = selection.storedRate ?? shopRateInCurrency(shop.perKgUsd, conversion);
+  const proposedStored = selection.storedRate ?? shopRateInCurrency(fallbackUsd, conversion);
   const preview = product.costAmount != null && !selection.error && proposedStored !== null && conversion !== null && product.quantityPurchased > 0
     ? calculatePricing(product.costAmount, proposedStored, product.quantityPurchased, product.costCurrency, rates, isTeaware)
     : null;
-  const currentStored = product.shippingRatePerKg ?? shopRateInCurrency(shop.perKgUsd, conversion);
+  const currentStored = product.shippingRatePerKg ?? shopRateInCurrency(fallbackUsd, conversion);
   const current = product.costAmount != null && currentStored !== null && conversion !== null && product.quantityPurchased > 0
     ? calculatePricing(product.costAmount, currentStored, product.quantityPurchased, product.costCurrency, rates, isTeaware)
     : null;
@@ -53,7 +56,7 @@ export function FreightSheet({ product, onSave, onClose }: FreightSheetProps) {
           <legend className={`${T.label} mb-2 text-tea-text-dim`}>Rate for this tea</legend>
           <label className="flex min-h-14 cursor-pointer items-center gap-3 rounded-xl border border-tea-border bg-tea-surface px-3 py-3">
             <input type="radio" name="freight-rate" checked={mode === 'shop'} onChange={() => choose('shop')} className="h-4 w-4 accent-tea-gold" />
-            <span className="min-w-0 flex-1"><span className={`${T.bodyLight} block`}>Follow shop rate</span><span className={`${T.link} text-tea-text-sec`}>{shop.perKg} {shop.currency}/kg · {usd(shop.perKgUsd)}/kg</span></span>
+            <span className="min-w-0 flex-1"><span className={`${T.bodyLight} block`}>{methodWord ? `Follow ${methodWord}` : 'Follow shop rate'}</span><span className={`${T.link} text-tea-text-sec`}>{methodWord ? `${usd(fallbackUsd)}/kg` : `${shop.perKg} ${shop.currency}/kg · ${usd(shop.perKgUsd)}/kg`}</span></span>
           </label>
           <label className="flex min-h-14 cursor-pointer items-center gap-3 rounded-xl border border-tea-border bg-tea-surface px-3 py-3">
             <input type="radio" name="freight-rate" checked={mode === 'custom'} onChange={() => choose('custom')} className="h-4 w-4 accent-tea-gold" />

@@ -22,6 +22,9 @@
  * ANYONE_HOSTS_STATE = the workers' --persist-to directory): waiting for a table
  * to end, and the shop's publish of a People profile (step 9 only).
  *
+ * The walk is skipped unless ANYONE_HOSTS_STATE is set: CI starts no sandbox
+ * for it, and without one every step would only meet a closed door.
+ *
  * Each step also asserts no horizontal overflow and no console errors. Every
  * check is soft, so a step that fails does not stop the ones after it.
  * What the steps share is kept in a small file per size.
@@ -43,6 +46,7 @@ const STEP_LINE = 'The blue gate after the warung.';
 const REPORT_REASON = `The host asked for money at the door ${RUN}`;
 const PASSWORD = 'teatable9';
 
+test.skip(!process.env.ANYONE_HOSTS_STATE, 'Needs the offline fixture sandbox: set ANYONE_HOSTS_STATE and the rest (see the header).');
 // A control that is not there must fail its check in seconds, not at the end of the test.
 test.use({ actionTimeout: 10_000, navigationTimeout: 30_000 });
 // The steps share a table and run in order, and a failed step must not skip the next.

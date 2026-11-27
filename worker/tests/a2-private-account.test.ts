@@ -120,7 +120,8 @@ describe('F1: a step photograph is served only while its seat may see the way', 
     expect(await fetchPhoto(signed!)).toBe(200);
     // A changed holder or signature is refused.
     expect(await fetchPhoto(signed!.replace('for=mei', 'for=host'))).toBe(404);
-    expect(await fetchPhoto(signed!.replace(/sig=[0-9a-f]/, 'sig=0'))).toBe(404);
+    // Change the first hex digit to a different one, so the signature is always wrong.
+    expect(await fetchPhoto(signed!.replace(/sig=([0-9a-f])/, (_m, d: string) => `sig=${d === '0' ? '1' : '0'}`))).toBe(404);
 
     db.sqlite.prepare(`UPDATE event_attendees SET status = 'cancelled' WHERE id = 'mei'`).run();
     expect(await guestPhoto('token-mei')).toBeNull();

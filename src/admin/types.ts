@@ -1,3 +1,4 @@
+import type { FreightSourceKind } from '../lib/freightSource';
 import type { TeaType, TeaForm as WisdomTeaForm } from '../wisdom';
 
 // Non-tea categories (Teaware, Misc) plus the "type not yet set" sentinel are
@@ -100,6 +101,17 @@ export interface Product {
      apart here, because the gold dot in the inventory list is drawn from
      exactly this being null or not. */
   shippingRatePerKg?: number | null;
+  /* The logistics service the tea travels by (migration 0148). NULL keeps the
+     shop rate. The rate lives on the service, never here: src/lib/freightSource.ts. */
+  freightServiceId?: string | null;
+  /** What the server priced this tea's freight at when it has no rate of its own, USD a kilo. */
+  freightFallbackPerKgUsd?: number | null;
+  /** Where that figure came from: the shop rate, the service's quote, or its last shipment. */
+  freightSource?: FreightSourceKind;
+  /** Why a chosen service did not price it. */
+  freightFellBack?: 'fixed' | 'gone' | null;
+  /** The date of the shipment the figure came from. */
+  freightDated?: string | null;
   fixedRetailPriceUSD?: number | null; // Explicit override price
   isPersonal: boolean; // Personal collection flag
   canReorder: boolean; // Restockable flag

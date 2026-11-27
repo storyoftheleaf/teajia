@@ -106,7 +106,7 @@ import { COMPASS_COLUMNS, decodeCompassWrite as decodeCompassWriteCodec, type Co
 import { compassFieldPatch, readCompassFieldHints } from './compassFieldPatch';
 import { receiptHoldingTeaId } from './curateMergeLink';
 import { resolveShopFreightDefault } from './shippingRate';
-import { addPricingFields, lookupRateToUsd, shopFreightPerKgUsd } from './productPricing';
+import { addPricingFields, lookupRateToUsd, accountFreightDefaults, freightDefaultsByAccount } from './productPricing';
 import { INWARD_BALI_LOT, INWARD_ORDERS_PAUSED_SQL, inwardOrdersPaused } from '../../shared/catalog/inwardOrders';
 import { checkNewProductPublication, checkProductPublication, openingStockKnownAt, publicationPatchFromColumns, writeProductPublication } from './productPublication';
 import { deductStockForPaidInvoice } from './orderLifecycle';
@@ -2849,7 +2849,7 @@ const handleGetProducts: Handler = async (request, env, params) => {
   for (const r of ratesResult.results as any[]) {
     rates.set(r.currency as string, r.rate_to_usd as number);
   }
-  const shopDefaultPerKgUsd = await shopFreightPerKgUsd(env, accountId, rates);
+  const freightDefaults = await accountFreightDefaults(env, accountId, rates);
   const seesShopScores = await shopScoreGiver(env, ctx);
 
   const products = (result.results as any[]).map(p => {
@@ -2876,7 +2876,7 @@ const handleGetProducts: Handler = async (request, env, params) => {
     }
     // Keep a missing balance from looking like a recorded zero after price projection.
     if ((p.type === 'Teaware' ? p.quantity_units : p.stock_grams) == null) p.stock_known_at = null;
-    return addPricingFields(p, rates, shopDefaultPerKgUsd);
+    return addPricingFields(p, rates, freightDefaults);
   });
   return params?.id ? (products[0] ? json(products[0]) : restError(404, 'Product not found', 'product_not_found')) : json(products);
 };
@@ -3478,7 +3478,7 @@ const PRODUCT_STOCK_UPDATE_COLUMNS = new Set([
 ]);
 
 const PRODUCT_COMMERCIAL_UPDATE_COLUMNS = new Set([
-  'price', 'cost', 'cost_amount', 'cost_currency', 'shipping_rate_per_kg',
+  'price', 'cost', 'cost_amount', 'cost_currency', 'shipping_rate_per_kg', 'freight_service_id',
   'quantity_purchased', 'markup_multiplier', 'fixed_retail_price_usd',
   'price_per_gram_usd', 'wholesale_price', 'vendor', 'vendor_id', 'vendor_url',
   'can_reorder',
@@ -3659,6 +3659,17 @@ async function applyProductUpdate(
       .bind(params.id, accountId).first() as { cost_currency?: string | null } | null;
     const costRefusal = costMissingItsCurrency(body, existingCost?.cost_currency);
     if (costRefusal) return costRefusal;
+  }
+  // How the tea travels home: one of this shop's active logistics services, or
+  // nothing said (src/lib/freightSource.ts). The rate stays on the service.
+  if (body.freight_service_id !== undefined) {
+    if (body.freight_service_id === '') body.freight_service_id = null;
+    if (body.freight_service_id !== null) {
+      const service = typeof body.freight_service_id === 'string'
+        ? await env.DB.prepare('SELECT id FROM logistics_services WHERE id = ? AND account_id = ? AND active = 1').bind(body.freight_service_id, accountId).first()
+        : null;
+      if (!service) return json({ error: 'Choose one of this shop\'s logistics services, or none.', code: 'validation_failed' }, 400);
+    }
   }
   if (body.inventory_purpose !== undefined || body.is_sample !== undefined || body.is_personal !== undefined) {
     try { Object.assign(body, decodeInventoryPurposeWrite(body)); }
@@ -10827,7 +10838,7 @@ const handleGetVendorProducts: Handler = async (request, env, params) => {
   const result = await env.DB.prepare(`
     SELECT id, product_name, given_name, chinese_name, type, image_url,
       origin_country, origin_region, stock_grams, status, cost_amount, cost_currency,
-      cost_currency_source, quantity_purchased, quantity_units, shipping_rate_per_kg
+      cost_currency_source, quantity_purchased, quantity_units, shipping_rate_per_kg, freight_service_id, form
     FROM products
     WHERE vendor_id = ? AND account_id = ?
     ORDER BY product_name ASC
@@ -10835,12 +10846,12 @@ const handleGetVendorProducts: Handler = async (request, env, params) => {
 
   const ratesResult = await env.DB.prepare('SELECT currency, rate_to_usd FROM exchange_rates').all();
   const rates = new Map<string, number>((ratesResult.results as any[]).map(r => [r.currency, r.rate_to_usd]));
-  const shopDefaultPerKgUsd = await shopFreightPerKgUsd(env, accountId, rates);
+  const freightDefaults = await accountFreightDefaults(env, accountId, rates);
   // Keep the supplied-products contract's raw stock/currency values. Only add
   // the shared pricing result used by vendor economics, without a second
   // whole-account inventory read or its collection-publication joins.
   return json((result.results as any[]).map(row => ({
-    ...row, cost_per_gram_usd: addPricingFields(row, rates, shopDefaultPerKgUsd).cost_per_gram_usd,
+    ...row, cost_per_gram_usd: addPricingFields(row, rates, freightDefaults).cost_per_gram_usd,
   })));
 };
 
@@ -11181,6 +11192,7 @@ function makePublicXrefHandler(tableName: string, fkColumn: string, sourceTable?
     const accountPredicate = sourceTable ? 'p.account_id = source.account_id' : 'p.account_id = ?';
     const productStatement = env.DB.prepare(
       `SELECT p.id, p.type, p.given_name, p.chinese_name, p.product_name, p.year,
+              COALESCE(tp.form, p.form) AS form,
               public_account.slug AS account_slug,
               public_account.default_shipping_rate_per_kg AS account_freight_per_kg,
               public_account.default_shipping_rate_currency AS account_freight_currency,
@@ -11197,7 +11209,7 @@ function makePublicXrefHandler(tableName: string, fkColumn: string, sourceTable?
               COALESCE(tp.mood, p.mood) AS mood,
               COALESCE(tp.experience, p.experience) AS experience,
               p.cost_amount, p.cost_currency, p.quantity_purchased,
-              p.shipping_rate_per_kg, p.fixed_retail_price_usd,
+              p.shipping_rate_per_kg, p.freight_service_id, p.fixed_retail_price_usd,
               p.material, p.capacity_ml, p.teaware_category, p.quantity_units, p.piece_weight_g,
               p.tasting, p.tasting_source,
               (SELECT COUNT(*) > 0 FROM collection_items ci2
@@ -11228,6 +11240,9 @@ function makePublicXrefHandler(tableName: string, fkColumn: string, sourceTable?
     for (const r of ratesResult.results as any[]) {
       rates.set(r.currency as string, r.rate_to_usd as number);
     }
+    /* One response can carry teas from more than one shop, so freight is read
+       per owning account: its shop rate and its routes for teas with a method. */
+    const freightByAccount = await freightDefaultsByAccount(env, (result.results as any[]).map(p => p.account_id), rates);
     const products = (result.results as any[]).map(p => {
       if (typeof p.tasting_notes === 'string') {
         try { p.tasting_notes = JSON.parse(p.tasting_notes); } catch { p.tasting_notes = []; }
@@ -11238,14 +11253,15 @@ function makePublicXrefHandler(tableName: string, fkColumn: string, sourceTable?
       if (typeof p.tasting === 'string') {
         try { p.tasting = JSON.parse(p.tasting); } catch { p.tasting = {}; }
       }
-      /* One response can carry teas from more than one shop, so the freight
-         default is read per row from the owning account rather than once for
-         the request. Both aliases fall outside PUBLIC_FIELDS and so never
-         reach the response. */
-      const withPricing = addPricingFields(p, rates, resolveShopFreightDefault(
-        { default_shipping_rate_per_kg: p.account_freight_per_kg, default_shipping_rate_currency: p.account_freight_currency },
-        c => lookupRateToUsd(rates, c),
-      ).perKgUsd);
+      /* The account freight aliases fall outside PUBLIC_FIELDS and so never
+         reach the response; the shop rate itself is read with the routes above. */
+      const withPricing = addPricingFields(p, rates, freightByAccount.get(p.account_id) ?? {
+        shopPerKgUsd: resolveShopFreightDefault(
+          { default_shipping_rate_per_kg: p.account_freight_per_kg, default_shipping_rate_currency: p.account_freight_currency },
+          c => lookupRateToUsd(rates, c),
+        ).perKgUsd,
+        services: {}, shipments: {},
+      });
       const safe: Record<string, unknown> = {};
       for (const key of PUBLIC_FIELDS) {
         if (key in withPricing) safe[key] = (withPricing as Record<string, unknown>)[key];
@@ -13239,7 +13255,8 @@ const handleRSVP: Handler = async (request, env, params) => {
   // guest who asks goes on its waiting list, and goes back to asking when a
   // seat frees (worker/src/waitingList.ts returnWaitingToAsking).
   let answeredStatus: string = status;
-  if (doorRule === 'request' && status === 'requested') {
+  // Launch 3's: while it is closed the guest stays asking, as on main.
+  if (anyoneHostsOpen(env) && doorRule === 'request' && status === 'requested') {
     const taken = await seatsTaken(env.DB, { id: String(event.id), account_id: accountId });
     if (Number(event.total_capacity) - taken < seats.length) {
       const queued = await env.DB.prepare(
@@ -13510,13 +13527,18 @@ const handleUpdateRSVP: Handler = async (request, env, params) => {
   // Handle cancellation: the guest gives back every seat their party holds,
   // guarded on their status, and the freed seats are offered on (J9).
   if (update.action === 'cancel') {
+    // While Launch 3 is closed the guest's pending invitations are left as main left them.
     const result = await cancelGuestSeat(env.DB, {
       accountId: attendee.account_id as string, eventId: attendee.eid as string,
       attendeeId: attendee.id as string, cancellationNote: update.cancellationNote,
-      // Closed, no seat notice and main's cascade (queue cases 8, 12, 13).
+      // Closed, no seat notice, main's cascade and invitations kept (queue cases 8, 12, 13; PR 575).
       asMain: !anyoneHostsOpen(env),
+      keepInvitations: !anyoneHostsOpen(env),
     });
-    return result ? json(result) : restError(409, 'This seat can no longer be changed here.', 'state_conflict');
+    if (!result) return restError(409, 'This seat can no longer be changed here.', 'state_conflict');
+    // Main answered a repeated cancel the same way, note and all.
+    if (!anyoneHostsOpen(env) && update.cancellationNote !== undefined) return json({ ...result, cancellation_note: update.cancellationNote });
+    return json(result);
   }
 
   const plusOneUpdate = body.plus_one === undefined ? null : {
@@ -13668,8 +13690,15 @@ const handleClaimSpot: Handler = async (_request, env, params) => {
   }
 
   // The host is told on their table page and in Manage. Nothing is sent.
-  // Closed, main wrote no seat notice (queue case 12).
+  // Closed, main wrote no seat notice (queue case 12); the claim shows in the
+  // Notifications list through main's spot_claimed record instead (PR 575).
   if (open) await recordSeatNotice(env.DB, { ...scope, attendeeId: attendee.id as string, kind: 'claimed', seats: 1 });
+  if (!anyoneHostsOpen(env)) {
+    await env.DB.prepare(
+      `INSERT INTO event_notifications (id, account_id, event_id, attendee_id, type, message_template, status)
+       VALUES (?, ?, ?, ?, 'spot_claimed', 'You have claimed your spot!', 'sent')`
+    ).bind(crypto.randomUUID(), scope.accountId, scope.eventId, attendee.id).run();
+  }
 
   return json({ success: true, status: 'confirmed' });
 };
@@ -14635,6 +14664,7 @@ const handleUpdateAttendee: Handler = async (request, env, params) => {
       // A guest said no to can be marked cancelled too, as on main (A3).
       from: ['confirmed', 'requested', 'waitlist', 'denied'], kind: 'released',
       asMain: !anyoneHostsOpen(env),
+      keepInvitations: !anyoneHostsOpen(env),
     });
     if (!released) {
       // Closed, main answered yes when the guest had been cancelled in between (queue case 13).
@@ -15784,11 +15814,11 @@ async function pricedRequestLines(env: Env, accountId: string, items: Array<Reco
   ]);
   if ((productRows.results ?? []).length !== productIds.length) throw new Error('Store or items not found');
   const rates = new Map<string, number>((rateRows.results as any[]).map(row => [row.currency, row.rate_to_usd]));
-  const shopDefaultPerKgUsd = await shopFreightPerKgUsd(env, accountId, rates);
+  const freightDefaults = await accountFreightDefaults(env, accountId, rates);
   const products = new Map<string, Record<string, any>>();
   for (const row of (productRows.results ?? []) as Array<Record<string, any>>) {
     if (sellerUserId && row.owner_user_id && row.owner_user_id !== sellerUserId) throw new Error('Store or items not found');
-    const priced = addPricingFields(row, rates, shopDefaultPerKgUsd);
+    const priced = addPricingFields(row, rates, freightDefaults);
     const currency = String(row.cost_currency || '').trim();
     if (row.fixed_retail_price_usd == null && (row.cost_amount == null || (currency && currency.toUpperCase() !== 'UNK' && !lookupRateToUsd(rates, currency)))) {
       priced.retail_price_per_gram_usd = null;
@@ -16539,10 +16569,10 @@ const handleConvertInquiry: Handler = async (request, env, params) => {
     env.DB.prepare('SELECT currency, rate_to_usd FROM exchange_rates').all(),
   ]);
   const rates = new Map<string, number>((rateRows.results as any[]).map(row => [row.currency, row.rate_to_usd]));
-  const shopDefaultPerKgUsd = await shopFreightPerKgUsd(env, accountId, rates);
+  const freightDefaults = await accountFreightDefaults(env, accountId, rates);
   const products = new Map<string, Record<string, any>>();
   for (const row of (productRows.results ?? []) as Array<Record<string, any>>) {
-    const priced = addPricingFields(row, rates, shopDefaultPerKgUsd);
+    const priced = addPricingFields(row, rates, freightDefaults);
     const currency = String(row.cost_currency || '').trim();
     const missingRate = currency && currency.toUpperCase() !== 'UNK' && !lookupRateToUsd(rates, currency);
     // addPricingFields' browse fallback is zero; an invoice must not turn an
@@ -24919,7 +24949,7 @@ async function fetchPublicProductsForAccount(
               COALESCE(tp.mood, p.mood) AS mood,
               COALESCE(tp.experience, p.experience) AS experience,
               p.cost_amount, p.cost_currency, p.quantity_purchased,
-              p.shipping_rate_per_kg, p.fixed_retail_price_usd,
+              p.shipping_rate_per_kg, p.freight_service_id, p.fixed_retail_price_usd,
               p.material, p.capacity_ml, p.teaware_category, p.teaware_details, p.quantity_units, p.piece_weight_g, p.sold_in_whole_units,
               p.personal_offer_pack_price_usd AS exact_pack_price_usd,
               p.tasting, p.tasting_source,
@@ -24952,7 +24982,7 @@ async function fetchPublicProductsForAccount(
   for (const r of ratesResult.results as any[]) {
     rates.set(r.currency as string, r.rate_to_usd as number);
   }
-  const shopDefaultPerKgUsd = await shopFreightPerKgUsd(env, accountId, rates);
+  const freightDefaults = await accountFreightDefaults(env, accountId, rates);
   return (result.results as any[]).map(p => {
     if (typeof p.tasting_notes === 'string') {
       try { p.tasting_notes = JSON.parse(p.tasting_notes); } catch { p.tasting_notes = []; }
@@ -24963,7 +24993,7 @@ async function fetchPublicProductsForAccount(
     if (typeof p.tasting === 'string') {
       try { p.tasting = JSON.parse(p.tasting); } catch { p.tasting = {}; }
     }
-    const withPricing = addPricingFields(p, rates, shopDefaultPerKgUsd);
+    const withPricing = addPricingFields(p, rates, freightDefaults);
     const safe: Record<string, unknown> = {};
     for (const key of PUBLIC_FIELDS) {
       if (key in withPricing && (key !== 'exact_pack_price_usd' || withPricing[key] != null)) safe[key] = withPricing[key];
@@ -26288,9 +26318,13 @@ const handleGetSession: Handler = async (request, env, params) => {
   // see one another by first name only, never an account id, username or the
   // session's invitation, which stays with its host (A3).
   const guestView = Boolean(session.event_id) && session.created_by_user_id !== userId;
+  // While Launch 3 is closed a member keeps main's invitation to pass on, except
+  // at a table's own tasting, whose id anyone with the event's id can work out.
+  // Other members stay first names only either way: their ids are theirs.
+  const hideInvite = guestView && (anyoneHostsOpen(env) || session.id === eventTastingId(String(session.event_id)));
   const { invite_token: _invite, ...sessionWithoutInvite } = session;
   return json({
-    session: { ...(guestView ? sessionWithoutInvite : session), event_title: origin?.title ?? null },
+    session: { ...(hideInvite ? sessionWithoutInvite : session), event_title: origin?.title ?? null },
     teas: teas.results.map((t: any) => ({
       ...t,
       tea_metadata: t.tea_metadata ? JSON.parse(t.tea_metadata) : {},
@@ -26346,7 +26380,9 @@ const handleJoinSession: Handler = async (request, env, params) => {
   // /api/rsvp/:token/tasting) or by its host's join code, never by its id
   // alone: a table's tasting has an id anyone with the event's id can work
   // out (A3). Someone already in it may still open it.
-  if (session.event_id && session.created_by_user_id !== userId) {
+  // While Launch 3 is closed an older event session (a random id) is joined by its id, as on main.
+  if (session.event_id && session.created_by_user_id !== userId
+    && (anyoneHostsOpen(env) || session.id === eventTastingId(String(session.event_id)))) {
     const already = await env.DB.prepare(
       'SELECT 1 AS ok FROM tasting_session_members WHERE session_id = ? AND user_id = ?'
     ).bind(params.id, userId).first<{ ok: number }>();
@@ -27336,7 +27372,7 @@ const handleCreateArticle: Handler = async (request, env) => {
 const handleUpdateArticle: Handler = async (request, env, params) => {
   const ctx = await requireBundle(request, env, 'publish');
   if ('error' in ctx) return ctx.error;
-  if (isHostArticleId(params.id)) {
+  if (isHostArticleId(params.id, env)) {
     const denied = await requirePlatformOwner(request, env);
     if (denied) return denied;
   }
@@ -27362,7 +27398,7 @@ const handleUpdateArticle: Handler = async (request, env, params) => {
   if (Array.isArray(body.blocks)) body.blocks = JSON.stringify(body.blocks);
   const existing = await readArticleReview(env.DB, accountId, params.id);
   if (!existing) return json({ error: 'Article not found' }, 404);
-  if (isHostArticleId(params.id) && Object.hasOwn(body, 'author_id')
+  if (isHostArticleId(params.id, env) && Object.hasOwn(body, 'author_id')
     && (body.author_id || null) !== (existing.author_id || null)) {
     return restError(400, 'This article keeps the byline chosen by its writer.', 'host_article_byline');
   }
@@ -27414,7 +27450,7 @@ function handleArticlePublication(status: 'published' | 'draft' | 'archived'): H
   return async (request, env, params) => {
     const ctx = await requireBundle(request, env, 'publish');
     if ('error' in ctx) return ctx.error;
-    if (isHostArticleId(params.id)) {
+    if (isHostArticleId(params.id, env)) {
       const denied = await requirePlatformOwner(request, env);
       if (denied) return denied;
     }

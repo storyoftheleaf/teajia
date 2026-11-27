@@ -58,7 +58,9 @@
     "practice:seed": "npm --prefix worker run practice:seed",
     "tea-wisdom:compose": "node scripts/tea-wisdom-compose/compose.mjs",
     "tea-wisdom:entries:approve": "node scripts/tea-wisdom-compose/entries-cli.mjs approve",
-    "tea-wisdom:entries:unapprove": "node scripts/tea-wisdom-compose/entries-cli.mjs unapprove"
+    "tea-wisdom:entries:unapprove": "node scripts/tea-wisdom-compose/entries-cli.mjs unapprove",
+    "tea-wisdom:review": "node scripts/tea-wisdom-compose/review-page.mjs",
+    "tea-wisdom:apply": "node scripts/tea-wisdom-compose/apply-review.mjs"
   },
   "dependencies": {
     "@mediapipe/tasks-vision": "^0.10.21",
