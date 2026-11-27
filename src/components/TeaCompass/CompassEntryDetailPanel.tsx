@@ -33,6 +33,7 @@ import { useLibraryPurchases, purchaseStateLabel } from '../../lib/libraryPurcha
 import { LibraryReceiptActions } from './LibraryReceiptActions';
 import { teaPath } from '../curate/teaPath';
 import { TeaPathLine, type TeaPathActions } from '../curate/TeaPathLine';
+import { useWisdomWriteup, wisdomWriteupHint } from '../curate/useWisdomWriteup';
 import { TastingSession } from '../tasting/TastingSession';
 import { curateTastingUpdate } from '../../lib/curateTastingSave';
 import type { TastingData } from '../../types';
@@ -83,6 +84,12 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
   const [newNote, setNewNote] = useState('');
   const [noteMessage, setNoteMessage] = useState('');
   useEffect(() => { setConfirmDelete(false); setNewNote(''); setNoteMessage(''); setActiveSection('tea'); setMoreFieldsOpen(false); setQuoteOpen(false); }, [entryId, accountScopeRevision]);
+  // The write-up step reads the Wisdom Base check for this tea (wisdomNeeds).
+  const wisdom = useWisdomWriteup({
+    id: entry?.id, type: entry?.type ?? null, form: entry?.form ?? null, product_name: entry?.name ?? null,
+    given_name: entry?.givenName ?? null, chinese_name: entry?.chineseName ?? null,
+    origin_region: entry?.originRegion ?? null, origin_country: entry?.originCountry ?? null, year: entry?.year ?? null,
+  }, !!entry && entry.category === 'tea' && !previewEntry);
   if (!entry) return null;
   const stockProductId = sharedStockRecordId(entry, stockProducts.data || []);
   const stockProduct = stockProducts.data?.find(product => product.id === stockProductId);
@@ -127,7 +134,10 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
     stock: { label: '', hint: 'Add to Stock, below' },
     amount: stockProductId ? { label: 'Open in Stock', run: openStock } : undefined,
     cost: stockProductId ? { label: 'Open in Stock', run: openStock } : undefined,
-    writeup: storyHref ? { label: 'Write it up', to: storyHref } : undefined,
+    // Pages still missing: the Stock panel's Wisdom Base fold lists them.
+    writeup: !storyHref ? undefined : wisdom && wisdom.open > 0
+      ? { label: 'See what’s needed', run: openStock, hint: wisdomWriteupHint(wisdom) }
+      : { label: 'Write it up', to: storyHref, hint: wisdomWriteupHint(wisdom) },
   };
   const orderCheck = purchases.isError ? 'Couldn’t check orders' : purchases.isLoading ? 'Checking orders…' : '';
   const showPurchaseSummary = sampleReceipts.length > 0 || !!purchaseLabel || !previewEntry;
