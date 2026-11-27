@@ -106,7 +106,7 @@ test('poured with is absent when nobody poured beside the host', async ({ page }
   await expect(page.getByText(/Poured with/)).toHaveCount(0);
 });
 
-test('the people list says "Pours at tables" only for someone who pours, and no number beside anyone', async ({ page }) => {
+test('the people list says "Serves at tables" only for someone who pours, and no number beside anyone', async ({ page }) => {
   const person = (id: string, name: string, group: string, pours: boolean) => ({
     id, display_name: name, role: null, card_image_url: `https://media.teajia.co/${id}.jpg`, avatar_url: null,
     own_line: `${name} drinks oolong.`, is_host: true, article_count: 0, page_tier: group === 'family' ? 'family' : null,
@@ -123,10 +123,10 @@ test('the people list says "Pours at tables" only for someone who pours, and no 
   await page.goto('/people');
   const cards = page.getByTestId('people-card');
   await expect(cards).toHaveCount(2);
-  await expect(cards.nth(0).getByTestId('person-pours')).toHaveText('Pours at tables');
+  await expect(cards.nth(0).getByTestId('person-pours')).toHaveText('Serves at tables');
   await expect(cards.nth(1).getByTestId('person-pours')).toHaveCount(0);
   const rows = page.getByTestId('family-row');
-  await expect(rows.nth(0).getByTestId('person-pours')).toHaveText('Pours at tables');
+  await expect(rows.nth(0).getByTestId('person-pours')).toHaveText('Serves at tables');
   await expect(rows.nth(1).getByTestId('person-pours')).toHaveCount(0);
   await expect(page.getByTestId('person-pours')).toHaveCount(2);
   for (const item of [...await cards.all(), ...await rows.all()]) {

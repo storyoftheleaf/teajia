@@ -14,7 +14,7 @@ function subscribeToToken(listener: () => void): () => void {
 
 /** Whether this read says the person is a host with credit to show: any row of their own. */
 export function hasTeaCredit(data: MyTeaCredit | undefined | null): boolean {
-  return Boolean(data && (data.balances.length > 0 || data.lines.length > 0 || (data.requests?.length ?? 0) > 0));
+  return Boolean(data && ((data.balances?.length ?? 0) > 0 || (data.lines?.length ?? 0) > 0 || (data.requests?.length ?? 0) > 0));
 }
 
 /**

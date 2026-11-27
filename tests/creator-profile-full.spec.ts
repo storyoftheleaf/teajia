@@ -88,8 +88,8 @@ test.describe('creator profile, full (Kenji Tanaka)', () => {
 
     // The event he hosts next and his table: one line under the name, not two sections (2026-09-29).
     const where = page.getByTestId('profile-where');
-    await expect(where.getByRole('link', { name: /Hosting Gongfu evening/ })).toHaveAttribute('href', '/event/sbx-kyoto-tasting-fixture');
-    await expect(where).toContainText('Saturday 10 October');
+    // The next sit he hosts now leads the Sessions section, not this line.
+    await expect(where.getByRole('link', { name: /Hosting Gongfu evening/ })).toHaveCount(0);
     await expect(where.getByRole('link', { name: 'My table: Tanaka Tea House' })).toHaveAttribute('href', '/store/tanaka-tea-house');
     await expect(page.getByTestId('profile-hosting')).toHaveCount(0);
     await expect(page.getByTestId('profile-house')).toHaveCount(0);

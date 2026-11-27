@@ -23,14 +23,14 @@ import type { ContributorListItem } from '../types';
 // prints that order as it arrives. No counts, no dates, no ranking words, no
 // badge: where a person sits is all it says. Past the first
 // PEOPLE_LIST_FAMILY_SHOWN the rest of the family wait behind "See everyone".
-// One plain line may sit beneath a name: "Pours at tables", for someone who
+// One plain line may sit beneath a name: "Serves at tables", for someone who
 // has poured at a completed session (the worker's `pours`). Words only: no
 // count of sessions, no icon, nothing that grows with how often.
 
-/** "Pours at tables", or nothing. The same three words for everyone who pours. */
+/** "Serves at tables", or nothing. The same three words for everyone who pours. */
 function PoursLine({ person }: { person: ContributorListItem }) {
   if (person.pours !== true) return null;
-  return <span className="mt-1 block font-sans text-ui-12 text-tea-text-sec" data-testid="person-pours">Pours at tables</span>;
+  return <span className="mt-1 block font-sans text-ui-12 text-tea-text-sec" data-testid="person-pours">Serves at tables</span>;
 }
 
 /** The group a person sits in. The worker says; an answer without it falls back to the word on their page. */

@@ -64,7 +64,8 @@ describe('package 2, after the table (A9-13, W2-6, W2-7)', () => {
     const html = render(<RecapLine tableId="t" />);
     expect(html).toContain('href="/admin/events/t?tab=post-session"');
     expect(html).toContain('Write the recap');
-    expect(html).not.toContain('Tea Table');
+    // The Tea Table is open, so the line names it.
+    expect(html).toContain('Tea Table');
     expect(render(<HostTableAfter tableId="t" detail={detail([])} />)).toContain('/admin/events/t?tab=post-session');
   });
 });

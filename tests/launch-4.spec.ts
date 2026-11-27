@@ -476,7 +476,7 @@ for (const size of SIZES) {
         await expect(visitor.page.getByRole('region', { name: 'My top teas' })).toHaveCount(0);
         await visitor.page.goto('/people');
         await visitor.page.waitForLoadState('networkidle');
-        await expect(visitor.page.getByText('Pours at tables')).toHaveCount(0);
+        await expect(visitor.page.getByText('Serves at tables')).toHaveCount(0);
         const answers = visitor.seen.join('\n');
         for (const field of ['photograph_by', 'poured_with', '"pours"', 'next_session', 'cover_image_url']) {
           expect.soft(answers.includes(field), `no ${field} in a public answer`).toBe(false);
