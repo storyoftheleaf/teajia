@@ -18,7 +18,7 @@ import EditablePhoto from './read/EditablePhoto';
 import StoryEditorBar from './read/StoryEditorBar';
 import type { PublicProduct } from '../types';
 import { homeBarOpen } from '../lib/homeBar';
-import { ComeToATable, FromTheTeaTable, HOME_LINES_TODAY, TeaHousesStrip, consultPlatePath, homeLinesLaunchFour } from './home/HomeLaunchFour';
+import { ComeToATable, FromTheTeaTable, HOME_LINES_TODAY, HomeFourDoors, TeaHousesStrip, consultPlatePath } from './home/HomeLaunchFour';
 
 /**
  * The home page. Cover C from the 2026-09-20 round, built beside the old page
@@ -198,8 +198,9 @@ const HomeV2Page: React.FC = () => {
             Tea deepens with what<br className="hidden xl:inline" /> you bring to the table<br className="hidden xl:inline" /> and what you leave behind.
           </h1>
           {/* No tap-target here: it sets a 44px floor per line, which read as a blank line between each. The 26px line box clears the 24px AA target size on its own. */}
+          {launchFour ? <HomeFourDoors /> : (
           <nav aria-label="Homepage destinations" className="mt-8 flex flex-col items-start gap-0">
-            {(launchFour ? homeLinesLaunchFour() : HOME_LINES_TODAY).map(item => (
+            {HOME_LINES_TODAY.map(item => (
               <Link
                 key={item.to}
                 to={item.to}
@@ -210,6 +211,7 @@ const HomeV2Page: React.FC = () => {
               </Link>
             ))}
           </nav>
+          )}
           {/* The opener's way in: the Start Here page, six paths into the
               practice. Discover your tea lives in Craft now, not here. */}
           <p className={`${BODY} italic mt-5 text-tea-text-sec`}>

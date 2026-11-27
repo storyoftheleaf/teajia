@@ -1,3 +1,7 @@
+## 2026-11-27: Home's four doors (behind HOME_BAR_OPEN)
+
+Built on `build/home-four-doors`, approved by Adrian on 2026-11-27 ("4 yes"). With the new bar on, the four lines under Home's opener become four doors, each with a few plain words: Discover (stories, craft and tea wisdom), Deepen (sit at a table, taste, share what you found), Create (a tea house, or a table of your own) and Source (fine tea and teaware, found by hand). Each goes where its bar word goes (`tableDoor()` and `housesDoor()` in `src/components/navSections.ts`), so Create inherits open question 4.20: with `TEA_HOUSES_OPEN` off, `/tea-houses/visit` is not registered. "Come to a table" and "Host a table" follow, as before. Off, Home is exactly as it was. `HomeFourDoors` in `src/pages/home/HomeLaunchFour.tsx`; checks in its unit test and `tests/home-and-bar.spec.ts`.
+
 ## 2026-11-26: Launch 5 ready to ship (behind its flags)
 
 Finished on `build/l5-finish`, every part off until Adrian says "ship".
