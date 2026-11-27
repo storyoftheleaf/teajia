@@ -66,7 +66,7 @@ describe('TeaLedger year favorite control', () => {
   });
 
   it('shows the kind of tea in the tile when the tea has no date', () => {
-    const word = (type: string | null) => renderLedger(item({ type })).match(/tea-save-tile-word">([^<]*)</)?.[1];
+    const word = (type: string | null) => renderLedger(item({ type: type as string })).match(/tea-save-tile-word">([^<]*)</)?.[1];
     expect(word('Shou Puer')).toBe('Shou');
     expect(word('Dark Tea')).toBe('Dark');
     expect(word('Sheng Pu-erh')).toBe('Sheng');
