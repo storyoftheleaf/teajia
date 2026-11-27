@@ -1786,7 +1786,7 @@ function cors(response: Response, origin: string | null): Response {
   headers.delete('Access-Control-Allow-Origin');
   if (origin) headers.set('Access-Control-Allow-Origin', origin);
   headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Teajia-Account');
+  headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Teajia-Account, Idempotency-Key');
   const vary = headers.get('Vary');
   if (!vary?.split(',').some(value => value.trim().toLowerCase() === 'origin')) {
     headers.set('Vary', vary ? `${vary}, Origin` : 'Origin');
@@ -34095,7 +34095,7 @@ const requestHandler = {
     if (request.method === 'OPTIONS') {
       const headers: Record<string, string> = {
         'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Teajia-Account, X-Filename, X-Client-Evidence-Id',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Teajia-Account, X-Filename, X-Client-Evidence-Id, Idempotency-Key',
         'Access-Control-Max-Age': '86400',
         'Vary': 'Origin',
       };

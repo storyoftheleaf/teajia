@@ -117,7 +117,8 @@ export default function TeaCreditPage() {
   const [failedOrder, setFailedOrder] = useState<string | null>(null);
   // The worker works out the amount and holds it for the shop's approval.
   const use = useMutation({
-    mutationFn: (invoiceId: string) => hostCreditApi.useOnOrder(invoiceId),
+    // One key per press, so a retried press is answered with the same request.
+    mutationFn: (invoiceId: string) => hostCreditApi.useOnOrder(invoiceId, `page-${invoiceId}-${Date.now().toString(36)}`),
     onSuccess: () => { setFailedOrder(null); void queryClient.invalidateQueries({ queryKey: ['me', 'tea-credit'] }); },
     onError: (_error, invoiceId) => setFailedOrder(invoiceId),
   });
