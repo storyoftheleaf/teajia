@@ -442,7 +442,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
                   return next;
                 })}>
                 <span className="library-supplier-name">{group.label}</span>
-                <span className="library-supplier-count">{supplierId(group) && supplierCodes.get(supplierId(group)!) ? <span data-testid="library-supplier-code">{supplierCodes.get(supplierId(group)!)} · </span> : null}{group.entries.length} {group.entries.length === 1 ? 'tea' : 'teas'}</span>
+                <span className="library-supplier-count">{supplierId(group) && supplierCodes.get(supplierId(group)!) ? <span className="text-ui-10" data-testid="library-supplier-code">{supplierCodes.get(supplierId(group)!)} · </span> : null}{group.entries.length} {group.entries.length === 1 ? 'tea' : 'teas'}</span>
               </button>
               {group.key && <LibrarySupplierActions supplierId={supplierId(group)} supplierName={group.label} />}
               </div>

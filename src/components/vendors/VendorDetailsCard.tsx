@@ -119,7 +119,7 @@ export const VendorDetailsCard: React.FC<{ vendor: VendorRecord; vendorId: strin
         </div>
         <div className="flex-1 min-w-0 space-y-2">
           <h2 className="h3 break-words">{vendor.name}</h2>
-          {shownCode && <p className="text-ui-11 uppercase tracking-[0.08em] text-tea-text-sec" data-testid="vendor-code">Code {shownCode}{vendorCode && shortCode && vendorCode.toUpperCase() !== shortCode.toUpperCase() ? ` · ${shortCode}` : ''}</p>}
+          {shownCode && <p className="text-ui-10 text-tea-text-sec" data-testid="vendor-code">Code {shownCode}{vendorCode && shortCode && vendorCode.toUpperCase() !== shortCode.toUpperCase() ? ` · ${shortCode}` : ''}</p>}
           {vendorSubtitle(vendor) && (
             <p className="text-ui-13 text-tea-text-sec break-words">{vendorSubtitle(vendor)}</p>
           )}
