@@ -110,9 +110,9 @@ export const PART: readonly PublicClaim[] = [
     "listingEligible": false,
     "appliesWhen": {},
     "terms": [],
-    "rev": 1,
+    "rev": 2,
     "scope": "Menghai County",
-    "text": "Ripe pu’er was born in the early 1970s, when Yunnan’s state factories learned to speed up ageing by wet piling the leaf, and Menghai Tea Factory was one of the first to master it. Its 7572 cake became the benchmark ripe recipe, the cup other ripe teas are still judged against. The number reads as the recipe itself: 75 for the year it was first made, 7 for the main leaf grade in the blend, 2 for Menghai.",
+    "text": "Ripe pu’er was born in the early 1970s, when Yunnan’s state factories learned to speed up ageing by wet piling the leaf, and Menghai Tea Factory was one of the first to master it. Its 7572 cake became the benchmark ripe recipe, the cup other ripe teas are still judged against. The number reads as the recipe itself: 75 for the year the recipe began, 7 for the main leaf grade in the blend, 2 for the Menghai factory.",
     "sourceIds": [],
     "reviewState": "approved"
   },
@@ -150,9 +150,9 @@ export const PART: readonly PublicClaim[] = [
         "gloss": "Menghai"
       }
     ],
-    "rev": 1,
+    "rev": 2,
     "scope": "Menghai County",
-    "text": "For its trees, above all. Menghai’s old gardens grow in and beside living forest, in warm, wet hills, and many of the trees are centuries old. That old-tree leaf is what tea people mean by Menghai’s mountain character: a strong cup whose bitterness turns quickly into a sweet, lasting finish, the quality the trade calls huigan, most of all on Bulang, while Nannuo gives a softer, more floral tea. The factory history made the name famous, but the trees are why buyers seek out its mountains.",
+    "text": "For its trees, above all. Menghai’s old gardens grow in and beside living forest, in a warm, wet climate, and many of the trees are centuries old. That old-tree leaf is what gives its mountains their name among buyers. On Bulang it makes a strong cup whose bitterness turns quickly into a sweet, lasting finish, the quality the trade calls huigan. Nannuo gives a softer, more floral tea. The factory history made the name famous, but the trees are why buyers seek out its mountains.",
     "sourceIds": [],
     "reviewState": "approved"
   },

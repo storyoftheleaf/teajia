@@ -404,9 +404,9 @@ export const PART: readonly DraftClaim[] = [
       "sample": "Regional convention reported in specialist writing about Menghai County"
     },
     "terms": [],
-    "rev": 2,
+    "rev": 3,
     "scope": "Menghai County",
-    "text": "Menghai raw pu’er has a reputation for strength and bitterness, set against the gentler teas of eastern Xishuangbanna. Treat that as a regional convention rather than a rule: tree age, craft, blend, age and storage all make large differences within the county.",
+    "text": "Menghai’s forceful reputation belongs mostly to its Bulang side, where raw pu’er is strong and bitter at first, then turns sweet and stays. Nannuo is softer and more floral, so the county is not one taste, and a strong Menghai set against a gentler east is a trade convention more than a rule. Tree age, craft, blend and storage change the cup a great deal within every mountain.",
     "sourceIds": [
       "teadb-menghai-county"
     ],
@@ -430,6 +430,17 @@ export const PART: readonly DraftClaim[] = [
         "text": "Menghai raw pu’er has a reputation for strength and bitterness, set against the gentler teas of eastern Xishuangbanna. Treat that as a regional convention rather than a rule: tree age, craft, blend, age and storage all make large differences within the county.",
         "approvedAt": "2026-11-27",
         "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
+        "evidenceIds": [
+          "EVIDENCE-5F496A300F5E710FC8FA80B0"
+        ]
+      },
+      {
+        "rev": 3,
+        "origin": "approved",
+        "scope": "Menghai County",
+        "text": "Menghai’s forceful reputation belongs mostly to its Bulang side, where raw pu’er is strong and bitter at first, then turns sweet and stays. Nannuo is softer and more floral, so the county is not one taste, and a strong Menghai set against a gentler east is a trade convention more than a rule. Tree age, craft, blend and storage change the cup a great deal within every mountain.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by the Opus judge under Adrian's written rules, 2026-11-27: Every claim has support in the research note: Bulang is strong and bitter before turning sweet, Nannuo is softer and more floral, and the county-wide contrast is called only a trade convention, as the note asks. Tree age, craft, blend and storage changing the cup is also supported. It follows rule 3 (clear, with the substance kept) and is more precise and truer than the live text.",
         "evidenceIds": [
           "EVIDENCE-5F496A300F5E710FC8FA80B0"
         ]
@@ -669,9 +680,9 @@ export const PART: readonly DraftClaim[] = [
     "listingEligible": false,
     "appliesWhen": {},
     "terms": [],
-    "rev": 1,
+    "rev": 2,
     "scope": "Menghai County",
-    "text": "Ripe pu’er was born in the early 1970s, when Yunnan’s state factories learned to speed up ageing by wet piling the leaf, and Menghai Tea Factory was one of the first to master it. Its 7572 cake became the benchmark ripe recipe, the cup other ripe teas are still judged against. The number reads as the recipe itself: 75 for the year it was first made, 7 for the main leaf grade in the blend, 2 for Menghai.",
+    "text": "Ripe pu’er was born in the early 1970s, when Yunnan’s state factories learned to speed up ageing by wet piling the leaf, and Menghai Tea Factory was one of the first to master it. Its 7572 cake became the benchmark ripe recipe, the cup other ripe teas are still judged against. The number reads as the recipe itself: 75 for the year the recipe began, 7 for the main leaf grade in the blend, 2 for the Menghai factory.",
     "sourceIds": [],
     "reviewState": "approved",
     "previousRevisions": [
@@ -682,6 +693,15 @@ export const PART: readonly DraftClaim[] = [
         "text": "Ripe pu’er was born in the early 1970s, when Yunnan’s state factories learned to speed up ageing by wet piling the leaf, and Menghai Tea Factory was one of the first to master it. Its 7572 cake became the benchmark ripe recipe, the cup other ripe teas are still judged against. The number reads as the recipe itself: 75 for the year it was first made, 7 for the main leaf grade in the blend, 2 for Menghai.",
         "approvedAt": "2026-11-27",
         "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
+        "evidenceIds": []
+      },
+      {
+        "rev": 2,
+        "origin": "approved",
+        "scope": "Menghai County",
+        "text": "Ripe pu’er was born in the early 1970s, when Yunnan’s state factories learned to speed up ageing by wet piling the leaf, and Menghai Tea Factory was one of the first to master it. Its 7572 cake became the benchmark ripe recipe, the cup other ripe teas are still judged against. The number reads as the recipe itself: 75 for the year the recipe began, 7 for the main leaf grade in the blend, 2 for the Menghai factory.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by the Opus judge under Adrian's written rules, 2026-11-27: Every specific is in the research note's agreed list: ripe pu'er by wet piling in the early 1970s, Menghai Tea Factory among the first to make it, 7572 as the ripe cake others are compared with, and the 75/7/2 reading. It keeps the hedged forms the note asks for ('the year the recipe began', 'main leaf grade'), follows rules 1 to 3 and matches Adrian's own worked example.",
         "evidenceIds": []
       }
     ],
@@ -746,9 +766,9 @@ export const PART: readonly DraftClaim[] = [
         "gloss": "Menghai"
       }
     ],
-    "rev": 1,
+    "rev": 2,
     "scope": "Menghai County",
-    "text": "For its trees, above all. Menghai’s old gardens grow in and beside living forest, in warm, wet hills, and many of the trees are centuries old. That old-tree leaf is what tea people mean by Menghai’s mountain character: a strong cup whose bitterness turns quickly into a sweet, lasting finish, the quality the trade calls huigan, most of all on Bulang, while Nannuo gives a softer, more floral tea. The factory history made the name famous, but the trees are why buyers seek out its mountains.",
+    "text": "For its trees, above all. Menghai’s old gardens grow in and beside living forest, in a warm, wet climate, and many of the trees are centuries old. That old-tree leaf is what gives its mountains their name among buyers. On Bulang it makes a strong cup whose bitterness turns quickly into a sweet, lasting finish, the quality the trade calls huigan. Nannuo gives a softer, more floral tea. The factory history made the name famous, but the trees are why buyers seek out its mountains.",
     "sourceIds": [],
     "reviewState": "approved",
     "previousRevisions": [
@@ -759,6 +779,15 @@ export const PART: readonly DraftClaim[] = [
         "text": "For its trees, above all. Menghai’s old gardens grow in and beside living forest, in warm, wet hills, and many of the trees are centuries old. That old-tree leaf is what tea people mean by Menghai’s mountain character: a strong cup whose bitterness turns quickly into a sweet, lasting finish, the quality the trade calls huigan, most of all on Bulang, while Nannuo gives a softer, more floral tea. The factory history made the name famous, but the trees are why buyers seek out its mountains.",
         "approvedAt": "2026-11-27",
         "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
+        "evidenceIds": []
+      },
+      {
+        "rev": 2,
+        "origin": "approved",
+        "scope": "Menghai County",
+        "text": "For its trees, above all. Menghai’s old gardens grow in and beside living forest, in a warm, wet climate, and many of the trees are centuries old. That old-tree leaf is what gives its mountains their name among buyers. On Bulang it makes a strong cup whose bitterness turns quickly into a sweet, lasting finish, the quality the trade calls huigan. Nannuo gives a softer, more floral tea. The factory history made the name famous, but the trees are why buyers seek out its mountains.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by the Opus judge under Adrian's written rules, 2026-11-27: Every specific in the section is in the research note's agreed list: old gardens in and beside forest, a warm wet climate, centuries-old trees, Bulang's bitterness turning quickly sweet (huigan) and Nannuo being softer and more floral. It follows rule 1 by answering why people value Menghai, with history given as the reason the name is known. It has no stray numbers and keeps Bulang and Nannuo apart as places.",
         "evidenceIds": []
       }
     ],
@@ -934,44 +963,6 @@ export const PART: readonly DraftClaim[] = [
         "origin": "approved",
         "scope": "Traditional Muzha Tieguanyin as a style: charcoal-roasted ball-rolled oolong. Describes the style, never the taste of a given lot.",
         "text": "Muzha is known for Tieguanyin made in the traditional Taiwanese way: a ball-rolled oolong, oxidised part way and then roasted over charcoal. It is far darker and heavier than the green, lightly finished Tieguanyin many people know from Fujian. The trade describes roasted and ripe-fruit notes, nuts and honey, an amber cup with a full body, and a sweet, lingering return. The slow roasting, repeated over many days, is a large part of why the tea costs more.",
-        "approvedAt": "2026-11-27",
-        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "muzha:on-a-label",
-    "pageId": "muzha",
-    "sectionKey": "on-a-label",
-    "label": "Muzha on a label",
-    "axis": "place",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "origin_includes": [
-        "muzha"
-      ]
-    },
-    "terms": [
-      {
-        "original": "正欉鐵觀音",
-        "pinyin": "zhèngcóng Tiěguānyīn",
-        "gloss": "Tieguanyin from the true original cultivar"
-      }
-    ],
-    "rev": 1,
-    "scope": "What the words Muzha Tieguanyin do and do not prove about cultivar, place and roast.",
-    "text": "Muzha Tieguanyin on a label names a place and a style of making. It is not proof of the plant. True Tieguanyin trees, often called zhengcong, give little leaf and need careful hands, and some growers in Muzha now use other cultivars such as Qingxin oolong for the same style of tea. Tieguanyin is also a name used for a way of making, so leaf sold as Tieguanyin may come from other plants. Place, cultivar and roast are three separate facts, and a label rarely gives all three. How the name sits with the wider tea is on the [Tieguanyin](tieguanyin) page.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "What the words Muzha Tieguanyin do and do not prove about cultivar, place and roast.",
-        "text": "Muzha Tieguanyin on a label names a place and a style of making. It is not proof of the plant. True Tieguanyin trees, often called zhengcong, give little leaf and need careful hands, and some growers in Muzha now use other cultivars such as Qingxin oolong for the same style of tea. Tieguanyin is also a name used for a way of making, so leaf sold as Tieguanyin may come from other plants. Place, cultivar and roast are three separate facts, and a label rarely gives all three. How the name sits with the wider tea is on the [Tieguanyin](tieguanyin) page.",
         "approvedAt": "2026-11-27",
         "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
         "evidenceIds": []

@@ -5,6 +5,44 @@ import type { DraftClaim } from '../claims';
 
 export const PART: readonly DraftClaim[] = [
   {
+    "claimId": "muzha:on-a-label",
+    "pageId": "muzha",
+    "sectionKey": "on-a-label",
+    "label": "Muzha on a label",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "muzha"
+      ]
+    },
+    "terms": [
+      {
+        "original": "正欉鐵觀音",
+        "pinyin": "zhèngcóng Tiěguānyīn",
+        "gloss": "Tieguanyin from the true original cultivar"
+      }
+    ],
+    "rev": 1,
+    "scope": "What the words Muzha Tieguanyin do and do not prove about cultivar, place and roast.",
+    "text": "Muzha Tieguanyin on a label names a place and a style of making. It is not proof of the plant. True Tieguanyin trees, often called zhengcong, give little leaf and need careful hands, and some growers in Muzha now use other cultivars such as Qingxin oolong for the same style of tea. Tieguanyin is also a name used for a way of making, so leaf sold as Tieguanyin may come from other plants. Place, cultivar and roast are three separate facts, and a label rarely gives all three. How the name sits with the wider tea is on the [Tieguanyin](tieguanyin) page.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "What the words Muzha Tieguanyin do and do not prove about cultivar, place and roast.",
+        "text": "Muzha Tieguanyin on a label names a place and a style of making. It is not proof of the plant. True Tieguanyin trees, often called zhengcong, give little leaf and need careful hands, and some growers in Muzha now use other cultivars such as Qingxin oolong for the same style of tea. Tieguanyin is also a name used for a way of making, so leaf sold as Tieguanyin may come from other plants. Place, cultivar and roast are three separate facts, and a label rarely gives all three. How the name sits with the wider tea is on the [Tieguanyin](tieguanyin) page.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
     "claimId": "muzha:visiting",
     "pageId": "muzha",
     "sectionKey": "visiting",
@@ -925,49 +963,6 @@ export const PART: readonly DraftClaim[] = [
         "origin": "approved",
         "scope": "The climate of the tea gardens on Phoenix Mountain, and why the trade values it.",
         "text": "People value the mountain for the weather the tea grows in. Cloud and mist sit on the upper slopes for much of the year, the light is soft, and the nights are cool. The bushes grow slowly in these conditions, and the trade links that slow growth to the thick leaf and the lasting scent prized in this tea. The higher the garden, the cooler it is, and the more a tea is expected to show what the trade calls mountain rhyme.",
-        "approvedAt": "2026-11-27",
-        "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "phoenix-mountain:old-trees",
-    "pageId": "phoenix-mountain",
-    "sectionKey": "old-trees",
-    "label": "The old trees",
-    "axis": "place",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "origin_includes": [
-        "phoenix mountain"
-      ]
-    },
-    "terms": [
-      {
-        "original": "古茶树",
-        "pinyin": "gǔ cháshù",
-        "gloss": "old tea tree"
-      },
-      {
-        "original": "宋种",
-        "pinyin": "Sòngzhǒng",
-        "gloss": "Song variety"
-      }
-    ],
-    "rev": 1,
-    "scope": "The old tea trees of Phoenix Mountain; no tree age is established.",
-    "text": "The mountain is known for tea trees that stand where they have grown for hundreds of years, left unpruned so that they grow tall and send roots deep into the granite. A few are said to be 600 or 700 years old, and are tied by tradition to the Song dynasty, though no age is agreed or proven. Their leaf is made on its own and sold at very high prices, because each gives only a few kilograms a year. Most of what is sold today comes from bushes grown from these trees, not from the trees themselves.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "The old tea trees of Phoenix Mountain; no tree age is established.",
-        "text": "The mountain is known for tea trees that stand where they have grown for hundreds of years, left unpruned so that they grow tall and send roots deep into the granite. A few are said to be 600 or 700 years old, and are tied by tradition to the Song dynasty, though no age is agreed or proven. Their leaf is made on its own and sold at very high prices, because each gives only a few kilograms a year. Most of what is sold today comes from bushes grown from these trees, not from the trees themselves.",
         "approvedAt": "2026-11-27",
         "reason": "Approved by Claude on the Wisdom review page for Adrian, who asked Claude to decide (2026-11-27)",
         "evidenceIds": []
