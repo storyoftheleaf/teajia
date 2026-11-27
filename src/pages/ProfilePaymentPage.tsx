@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { PaymentChooser } from '../components/profile/PaymentChooser';
 import { PayInvoiceTeas } from '../components/profile/PayInvoiceTeas';
+import { PayInvoiceGift } from '../components/profile/PayInvoiceGift';
 import { PayInvoiceAfter, PayInvoiceGuide } from '../components/profile/PayInvoiceGuide';
 import type { PayLinkTeaLine } from '../components/profile/types';
 import type { InventoryItem } from '../types';
@@ -264,6 +265,7 @@ export default function ProfilePaymentPage({ onAddToCart }: {
           )}
           <h1 className="font-display text-ui-26 leading-[1.1] text-tea-text">{heading}</h1>
           {visibleCount > 0 && <p className="mt-1.5 font-body text-ui-14 italic leading-[1.5] text-tea-text-sec">{waysLine}</p>}
+          <PayInvoiceGift from={firstName(access.contributor.display_name)} discount={access.invoice?.discount} />
         </header>
         <PayInvoiceGuide
           slug={slug}
