@@ -31,7 +31,6 @@ Capture a new observation here with the affected tea, person or step and the evi
 
 ## New observations
 
-- [ ] Pre-render the homepage so simple crawlers read its words instead of "Loading Teajia…"; the edge already rewrites meta, so the body text is what is missing. _(band: agent-runnable)_ _(effort: moderate)_ [Homepage search text](docs/HOMEPAGE_SEARCH_TEXT.md)
 
 - [ ] Answer the twelve questions in the Curate and Waiting plan (one list of what needs you, Curate version 2 removed) before slices 4 to 12, including the deletion of version 2; slice 1 is live and slices 2, 3, 7 and 12 need no answer. _(band: you-required)_ _(effort: moderate)_ [Curate and Waiting plan](todo/plans/curate-waiting-consolidation.md)
 

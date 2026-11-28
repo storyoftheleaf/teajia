@@ -19,6 +19,9 @@ export const SITE_TITLE = 'Teajia · Tea Culture, Rare Tea and Tea House Design'
 export const SITE_DESCRIPTION =
   'Tea is a living art. Learn from lasting teachings, shop and source fine teas old and new, keep your tea chest and journal, and create your tea space.';
 
+/** Home's headline, which the edge also writes for crawlers that run no script. */
+export const HOME_HEADLINE = 'Tea deepens with what you bring to the table and what you leave behind.';
+
 /** A new file name, so chat apps that keep the old picture fetch this one. */
 export const SITE_PREVIEW_IMAGE_PATH = '/share/teajia.png';
 

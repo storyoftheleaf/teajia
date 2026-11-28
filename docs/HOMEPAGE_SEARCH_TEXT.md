@@ -33,7 +33,7 @@ Use the same description for: `meta description`, `og:description`, `twitter:des
 
 ## Homepage shifts
 
-Done 2026-11-28 except 8 (the tagline word, waiting on Adrian) and 10 (pre-render, in Direction's intake). Item 9: the Edit control is the owner's story editor and renders only for the owner (`StoryEditorBar`, `isOwner`).
+Done 2026-11-28 except 8 (the tagline word, waiting on Adrian). Item 10: for a crawler, the edge writes Home's headline, description and doors in place of the loading line (`homeShellBody` in `functions/_middleware.ts`); the app replaces it as it starts. Item 9: the Edit control is the owner's story editor and renders only for the owner (`StoryEditorBar`, `isOwner`).
 1. Keep the H1 ("Tea deepens with what you bring to the table and what you leave behind."). Add the description, word for word, as a subline under it.
 2. Door order: Discover, Source, Deepen, Create (follows the sentence).
 3. Door texts:
