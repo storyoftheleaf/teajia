@@ -146,15 +146,11 @@ export function emailConsentRoutes<E extends EmailConsentEnv>(deps: Deps<E>): [s
     if (consent === null) return privateJson({ error: 'Say consent: true or false.' }, 400);
     const source: EmailConsentSource = body?.by === 'code' ? 'signup-code' : 'signup-google';
     const at = new Date().toISOString();
-    // The log line rides in the same batch, and only when the answer was kept.
-    await env.DB.batch([
-      env.DB.prepare('UPDATE users SET email_updates_consent = ?, email_updates_consent_at = ? WHERE id = ? AND email_updates_consent_at IS NULL')
-        .bind(consent ? 1 : 0, at, user.userId),
-      env.DB.prepare(
-        `INSERT INTO email_consent_log (id, user_id, host_user_id, consent, source, wording_version, created_at)
-         SELECT ?, id, NULL, ?, ?, ?, ? FROM users WHERE id = ? AND email_updates_consent_at = ?`
-      ).bind(crypto.randomUUID(), consent ? 1 : 0, source, EMAIL_CONSENT_WORDING_VERSION, at, user.userId, at),
-    ]);
+    // The log line is written only when this answer was the one kept. Matching
+    // on the time alone also matched an answer saved in the same millisecond.
+    const kept = await env.DB.prepare('UPDATE users SET email_updates_consent = ?, email_updates_consent_at = ? WHERE id = ? AND email_updates_consent_at IS NULL')
+      .bind(consent ? 1 : 0, at, user.userId).run();
+    if ((kept.meta?.changes ?? 0) > 0) await logStatement(env.DB, user.userId, null, consent, source, at).run();
     return privateJson(await readEmailConsent(env.DB, user.userId));
   };
 
