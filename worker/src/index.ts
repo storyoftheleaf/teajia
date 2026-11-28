@@ -5234,6 +5234,7 @@ export function deriveOrderJourney(input: JourneyInput): OrderJourney {
 
 /** One order as the journey needs it. The money arrives from the payment map. */
 export interface JourneyInvoiceRow {
+  account_id?: string | null;
   shipping_quote_status?: string | null;
   id: string;
   status: string | null;
@@ -5280,7 +5281,7 @@ async function resolveOrderJourneys(
     }
   }
 
-  const kept = await invoicesKeptFromPayLink(env, ids);
+  const kept = await invoicesKeptFromPayLink(env, invoices);
   for (const invoice of invoices) {
     const request = requests.get(invoice.id);
     journeys.set(invoice.id, deriveOrderJourney({
@@ -5301,14 +5302,22 @@ async function resolveOrderJourneys(
 }
 
 /** Which of these invoices a customer saved from the invoice's own pay link. */
-async function invoicesKeptFromPayLink(env: Env, ids: string[]): Promise<Set<string>> {
+async function invoicesKeptFromPayLink(
+  env: Env,
+  invoices: Array<{ id: string; account_id?: string | null }>,
+): Promise<Set<string>> {
   const kept = new Set<string>();
+  const accountOf = new Map(invoices.map(invoice => [invoice.id, invoice.account_id ?? null]));
+  const ids = [...accountOf.keys()].filter(Boolean);
   for (let start = 0; start < ids.length; start += 90) {
     const chunk = ids.slice(start, start + 90);
     const result = await env.DB.prepare(
-      `SELECT invoice_id FROM invoice_keep_grants WHERE invoice_id IN (${chunk.map(() => '?').join(', ')})`
+      `SELECT invoice_id, account_id FROM invoice_keep_grants WHERE invoice_id IN (${chunk.map(() => '?').join(', ')})`
     ).bind(...chunk).all();
-    for (const row of (result.results ?? []) as Array<Record<string, any>>) kept.add(row.invoice_id as string);
+    for (const row of (result.results ?? []) as Array<Record<string, any>>) {
+      const account = accountOf.get(row.invoice_id as string);
+      if (account == null || account === row.account_id) kept.add(row.invoice_id as string);
+    }
   }
   return kept;
 }
@@ -16619,7 +16628,7 @@ const handleGetInquiryByRef: Handler = async (request, env, params, execution) =
         payment_date: (invoice.payment_date as string | null) ?? null,
         fulfilled_at: (invoice.fulfilled_at as string | null) ?? null,
         money: payment,
-        kept_from_pay_link: (await invoicesKeptFromPayLink(env, [invoice.id as string])).has(invoice.id as string),
+        kept_from_pay_link: (await invoicesKeptFromPayLink(env, [{ id: invoice.id as string, account_id: invoice.account_id as string }])).has(invoice.id as string),
       };
       const notification = await env.DB.prepare(
         'SELECT state FROM order_whatsapp_outbox WHERE invoice_id=? AND account_id=?'
@@ -25858,6 +25867,7 @@ async function listMyOrders(env: Env, userId: string, legacyAccountId: string) {
   // than read again: one more query for the whole page, not one per order.
   const journeys = await resolveOrderJourneys(env, rows.map(row => ({
     id: row.id as string,
+    account_id: row.account_id as string | null,
     status: row.status as string | null,
     created_at: row.created_at as string | null,
     payment_date: row.payment_date as string | null,
@@ -25939,6 +25949,7 @@ const handleGetMyOrderDetail: Handler = async (request, env, params) => {
 
   const journeys = await resolveOrderJourneys(env, [{
     id: invoice.id as string,
+    account_id: invoice.account_id as string | null,
     status: invoice.status as string | null,
     created_at: invoice.created_at as string | null,
     payment_date: (invoice.payment_date as string | null) ?? null,
