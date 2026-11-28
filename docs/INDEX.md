@@ -25,5 +25,5 @@ When an intake item becomes active, move it into Direction and remove the inbox 
 - **Work with roles, accounts and money.** [Members and access](MEMBERS_AND_ACCESS_GUIDE.md) · [Architecture](ARCHITECTURE.md) · [Money rules](claude/money.md) · [Agent permissions](claude/mcp.md)
 - **Operate a shop.** [Daily workflows](STORE_OPERATOR_DAILY_WORKFLOWS.md) · [Opening stock](OPENING_STOCK_CSV_GUIDE.md) · [Australia operator guide](AUSTRALIA_LAUNCH_PLAYBOOK.md)
 - **Edit or publish.** [Contributor editor](CONTRIBUTOR_EDITOR.md) · [AR Create handoff](AR_CREATE_TEA_LINK_CONTRACT.md) · [Tea Wisdom](TEA_WISDOM_BASE.md)
-- **Change a screen or ship a release.** [Shared components](COMPONENTS.md) · [Design system](DESIGN_SYSTEM.md) · [Colour rules](COLOR_RULES.md) · [Testing](claude/testing.md) · [Verified releases](VERIFIED_RELEASES.md)
+- **Change a screen or ship a release.** [Shared components](COMPONENTS.md) · [Homepage search text](HOMEPAGE_SEARCH_TEXT.md) · [Design system](DESIGN_SYSTEM.md) · [Colour rules](COLOR_RULES.md) · [Testing](claude/testing.md) · [Verified releases](VERIFIED_RELEASES.md)
 - **Recover an older decision.** [Historical plans and source material](plans/README.md)

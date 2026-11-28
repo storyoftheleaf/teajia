@@ -142,13 +142,13 @@ test('Home: today\'s lines, or the four doors and "Come to a table"', async ({ p
   if (barOn()) {
     const doors = lines.getByRole('link');
     await expect(doors).toHaveText([
-      'Discover stories, craft and tea wisdom',
-      'Deepen sit at a table, taste, share what you found',
-      'Create a tea house, or a table of your own',
-      'Source fine tea and teaware, found by hand',
+      'Discover teachings, conversations and tea wisdom',
+      'Source fine tea and teaware, old and new, found by hand',
+      'Deepen journal your tastings, sit at a table, share what you found',
+      'Create your tea space, designed with us or inspired to make your own',
     ]);
-    // Each door goes where its bar word goes.
-    const bar = [DOORS.Read, DOORS['Tea table'], DOORS['Tea spaces'], DOORS.Shop];
+    // Each door goes where its bar word goes, in the order the line under the headline names them.
+    const bar = [DOORS.Read, DOORS.Shop, DOORS['Tea table'], DOORS['Tea spaces']];
     for (const [index, href] of bar.entries()) await expect(doors.nth(index)).toHaveAttribute('href', href);
     for (let index = 0; index < 4; index++) {
       const box = await doors.nth(index).boundingBox();

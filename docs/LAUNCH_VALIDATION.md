@@ -84,6 +84,7 @@ If a check fails, leave it unchecked and link the observed failure to the affect
 PR 665 live on www.teajia.com, read with a WhatsApp user agent: the home shell carries "Teajia · A home for tea", Home's two lines and `share/teajia.png` (200, image/png); `/people/<slug>/pay` and `/sit/<code>` carry their own generic previews with `X-Robots-Tag: noindex, nofollow`; `/i/<code>` still redirects to the pay page. A collection fell back to the homepage because its public read took about 3 s against a 2.5 s limit; the follow-up raises the limit for collections and sessions.
 
 - [ ] Paste teajia.com, a collection link and a session link into WhatsApp after the cache clears and confirm each card. _(band: you-required)_
+- [ ] On or after 2026-01-09, read Search Console's queries and click rate for the homepage title and description set on 2026-11-28, and change one phrase at a time. [Homepage search text](HOMEPAGE_SEARCH_TEXT.md)
 
 ## US checkout and PayPal acceptance: 2026-11-19
 
