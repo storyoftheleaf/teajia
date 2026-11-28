@@ -140,6 +140,24 @@ export function showsPaymentActions(
 }
 
 /**
+ * Whether an order in the customer's account offers paying and "I've sent
+ * payment". A Draft is still being put together and offers neither, unless
+ * the worker says it is awaiting payment: a Draft the customer saved from its
+ * pay link, which already showed them the amount (found 2026-11-28, walking a
+ * newcomer's invoice: the account said "Order confirmed" and offered no way
+ * to pay what the link asked for).
+ */
+export function offersOrderPayment(
+  status: string | null | undefined,
+  journey: OrderJourney | null | undefined,
+  payment: InvoicePayment | null | undefined,
+): boolean {
+  if (status === 'Void') return false;
+  if (status === 'Draft' && journey?.stage !== 'awaiting_payment' && journey?.stage !== 'part_paid') return false;
+  return showsPaymentActions(journey, payment);
+}
+
+/**
  * Whether the journey block has anything to say.
  *
  * Used so a surface can drop the whole block, its border and its spacing,
