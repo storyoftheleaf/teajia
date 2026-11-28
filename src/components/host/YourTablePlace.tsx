@@ -16,7 +16,7 @@ import { PART_QUERY, partView } from '../../lib/closedPart';
 import { LoadFailed } from '../shared/LoadFailed';
 import type { YourTableAnswer, YourTablePlace } from '../../lib/hostingApi';
 import { hostSmallText, hostText } from './hostTableParts';
-import { PourLink } from './PourLink';
+import { SpacePourLink } from './PourLink';
 
 const AREA_MAX = 80;
 const fieldClass = 'btn-field block min-h-tap w-full min-w-0';
@@ -27,6 +27,8 @@ export function YourTablePlaceSection() {
   const key = ['your-table', user?.email] as const;
   const [step, setStep] = useStepParam('your-table');
   const answer = useQuery({ queryKey: key, queryFn: () => api.hosting.yourTable(), ...PART_QUERY });
+  // The host's tables, as their page already reads them: a tea space pours into the one that sits there today.
+  const tables = useQuery({ queryKey: ['host-tables-last', user?.email], queryFn: () => api.tables.list(), retry: false, staleTime: 0 });
   const view = partView(answer);
   const settle = (next: YourTableAnswer) => queryClient.setQueryData(key, next);
   const undo = useMutation({ mutationFn: (placeId: string) => api.hosting.undoYourTable(placeId), retry: false, onSuccess: settle });
@@ -67,7 +69,7 @@ export function YourTablePlaceSection() {
                     Show it on the tea spaces page, by its area only
                   </label>
                   <div className="flex flex-wrap items-center gap-2">
-                    <PourLink placeId={space.id} />
+                    <SpacePourLink placeId={space.id} tables={tables.data?.tables} />
                     <Button type="button" variant="quiet" className="tap-target" disabled={undo.isPending} onClick={() => undo.mutate(space.id)}>
                       {undo.isPending && undo.variables === space.id ? 'Undoing…' : 'Undo'}
                     </Button>

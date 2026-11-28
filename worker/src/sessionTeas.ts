@@ -12,6 +12,7 @@
 
 import type { PublicSessionTea, SessionTeaOffer } from '../../shared/sessionTea';
 import { crossShopTeaSql } from './hostTableTeas';
+import { namedTeaPath } from './mcpTools/wisdomRecords';
 
 /** One served tea: its id on the sit, and what it points at (a product, or a holding in someone's Tea Chest list). */
 export type SessionTeaRef = { menuId: string | null; productId: string | null; name: string; chestId?: string | null };
@@ -64,6 +65,7 @@ function place(row: Pick<TeaRow, 'origin_country' | 'origin_region'>) {
 export async function resolveSessionTeas(
   db: D1Database, readPublic: PublicProductReader,
   accountId: string | null, ownerUserIds: string[], refs: SessionTeaRef[],
+  wisdomPath: (names: readonly (string | null)[]) => Promise<string | null> = namedTeaPath,
 ): Promise<PublicSessionTea[]> {
   const ids = [...new Set(refs.map(ref => ref.productId).filter((id): id is string => Boolean(id)))];
   const rows = new Map<string, TeaRow>();
@@ -85,6 +87,28 @@ export async function resolveSessionTeas(
     for (const row of results) rows.set(row.id, row);
   }
 
+  // A tea of Teajia's own shop that is not for sale here still has someone to
+  // ask and, where it is a named tea, a Wisdom page. Nothing else about it
+  // leaves the shop: a tea not released keeps to the name the host recorded.
+  const shops = new Map<string, { names: (string | null)[]; whatsapp: string | null }>();
+  if (ids.length) {
+    const { results } = await db.prepare(
+      `SELECT p.id, p.product_name, p.given_name, a.whatsapp_number FROM products p JOIN accounts a ON a.id = p.account_id
+       WHERE p.id IN (${ids.map(() => '?').join(',')}) AND a.is_platform_owner = 1
+         AND COALESCE(p.type, '') NOT IN ('Teaware', 'Misc')`,
+    ).bind(...ids).all<{ id: string; product_name: string | null; given_name: string | null; whatsapp_number: string | null }>();
+    for (const shop of results) shops.set(shop.id, { names: [shop.given_name, shop.product_name], whatsapp: shop.whatsapp_number });
+  }
+  // Looked up only for a tea shown without an offer. A tea not released is
+  // matched on the host's own name for it, never on the shop's private names.
+  const askOf = async (ref: SessionTeaRef, released: boolean): Promise<{ wisdom?: string; ask?: string }> => {
+    const shop = ref.productId ? shops.get(ref.productId) : undefined;
+    if (!shop) return {};
+    const wisdom = await wisdomPath(released ? [ref.name, ...shop.names] : [ref.name]).catch(() => null);
+    const ask = (shop.whatsapp ?? '').replace(/\D/g, '');
+    return { ...(wisdom ? { wisdom } : {}), ...(ask.length >= 7 ? { ask } : {}) };
+  };
+
   // A Tea Chest list item belongs to one of the sit's credited people. It has
   // no public page and no price of its own; it shows what the tea is.
   const chestIds = [...new Set(refs.map(ref => ref.chestId).filter((id): id is string => Boolean(id)))];
@@ -104,7 +128,7 @@ export async function resolveSessionTeas(
       return { kind: 'tea', id: ref.menuId, name: ref.name, href: null,
         year: held.year == null ? null : String(held.year), type: text(held.type), place: place(held) };
     }
-    if (!row) return { kind: 'name', id: ref.menuId, name: ref.name };
+    if (!row) return { kind: 'name', id: ref.menuId, name: ref.name, ...await askOf(ref, false) };
     const storeOpen = row.account_public === 1 && row.account_status === 'active';
     const store = storeOpen ? row.account_slug : null;
     const tea = {
@@ -122,7 +146,7 @@ export async function resolveSessionTeas(
     }
     const listing = store ? await readPublic(row.account_id, row.id) : null;
     const href = listing ? teaPath(String(listing.slug || listing.id), store) : null;
-    if (!isForSale(listing)) return { ...tea, href };
+    if (!isForSale(listing)) return { ...tea, href, ...await askOf(ref, true) };
     const count = listing.exact_pack_price_usd != null ? 'pack' as const : 'weigh' as const;
     return { ...tea, href, offer: { store: store!, count, product: listing } };
   }));

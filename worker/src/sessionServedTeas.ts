@@ -2,6 +2,8 @@ import { crossShopTeaSql } from './hostTableTeas';
 
 // The caller supplies SQL expressions for an already scoped account/event pair.
 // Keep legacy menu roots visible only when the saved recap has no typed list.
+// `ask_product_id` is a tea of Teajia's own shop the host poured that the shop
+// has not released: it never becomes a page, it only finds who to ask (sessionTeas.ts).
 export function sessionServedTeas(accountId: string, eventId: string) {
   const validLedger = `CASE WHEN json_valid(s.tea_ledger) THEN s.tea_ledger ELSE '{}' END`;
   const menuName = "COALESCE(NULLIF(trim(m.custom_name), ''), NULLIF(trim(p.given_name), ''), NULLIF(trim(p.product_name), ''))";
@@ -17,7 +19,7 @@ export function sessionServedTeas(accountId: string, eventId: string) {
   ), teas AS (
     SELECT json_extract(st.tea, '$.id') AS id,
            trim(json_extract(st.tea, '$.name')) AS name,
-           linked.id AS product_id, st.position AS position
+           linked.id AS product_id, NULL AS ask_product_id, st.position AS position
     FROM stored_teas st
     LEFT JOIN products linked ON linked.account_id = ${accountId}
       AND linked.id = json_extract(st.tea, '$.product_id')
@@ -26,20 +28,22 @@ export function sessionServedTeas(accountId: string, eventId: string) {
       AND length(trim(json_extract(st.tea, '$.id'))) BETWEEN 1 AND 120
       AND length(trim(json_extract(st.tea, '$.name'))) BETWEEN 1 AND 240
     UNION ALL
-    SELECT m.id, ${menuName} AS name, p.id AS product_id, m.brew_order AS position
+    SELECT m.id, ${menuName} AS name, p.id AS product_id, held.id AS ask_product_id, m.brew_order AS position
     FROM event_tea_menu m
     LEFT JOIN products p ON p.id = m.product_id AND (p.account_id = m.account_id OR ${crossShopTeaSql('p')})
+    LEFT JOIN products held ON p.id IS NULL AND held.id = m.product_id
+      AND held.account_id IN (SELECT id FROM accounts WHERE is_platform_owner = 1)
     WHERE m.account_id = ${accountId} AND m.event_id = ${eventId}
       AND (m.reveal_date IS NULL OR datetime(m.reveal_date) <= datetime('now'))
       AND ${menuName} IS NOT NULL
       AND NOT EXISTS (SELECT 1 FROM recap_ledger)
   )
-  SELECT id, name, product_id FROM teas ORDER BY position ASC NULLS LAST, id ASC`;
+  SELECT id, name, product_id, ask_product_id FROM teas ORDER BY position ASC NULLS LAST, id ASC`;
 }
 
 export function readSessionServedTeas(db: D1Database, accountId: string, eventId: string) {
   return db.prepare(sessionServedTeas('?1', '?2')).bind(accountId, eventId)
-    .all<{ id: string; name: string; product_id: string | null }>();
+    .all<{ id: string; name: string; product_id: string | null; ask_product_id: string | null }>();
 }
 
 export function sessionServedTeaName(photoAlias = 'p') {

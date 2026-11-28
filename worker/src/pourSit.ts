@@ -223,7 +223,11 @@ async function makeSit(db: D1Database, accountId: string, day: string, timezone:
 }
 
 /** Take a pour's grams off the shelf: what was typed, or what is there when that is less. Returns what was taken. */
-async function takeStock(db: D1Database, host: Host, productId: string, grams: number, sitTitle: string): Promise<number> {
+export async function takeStock(
+  db: D1Database, host: { accountId: string; email?: string | null }, productId: string, grams: number, sitTitle: string,
+  options: { by?: string | null; sellsOut?: boolean } = {},
+): Promise<number> {
+  const note = `Poured at ${sitTitle}${options.by ? ` by ${options.by}` : ''}`.slice(0, 500);
   // The read is advisory; the guarded statement decides, so two pours at once
   // cannot take the same grams twice. A lost race reads again, once.
   for (let attempt = 0; attempt < 2; attempt += 1) {
@@ -243,9 +247,9 @@ async function takeStock(db: D1Database, host: Host, productId: string, grams: n
       db.prepare(
         `INSERT INTO stock_ledger (id, product_id, delta, balance_after, movement_unit, reason, movement_type, user_email, note, account_id)
          VALUES (?, ?, ?, ?, 'gram', 'SAMPLE', 'sample_use', ?, ?, ?)`,
-      ).bind(crypto.randomUUID(), productId, -amount, after, host.email ?? null, `Poured at ${sitTitle}`.slice(0, 500), host.accountId),
+      ).bind(crypto.randomUUID(), productId, -amount, after, host.email ?? null, note, host.accountId),
     ];
-    if (after === 0 && taken.status === 'Active') {
+    if (options.sellsOut !== false && after === 0 && taken.status === 'Active') {
       statements.push(db.prepare(`UPDATE products SET status = 'Sold Out', sold_out_at = datetime('now') WHERE id = ? AND account_id = ?`)
         .bind(productId, host.accountId));
     }
@@ -255,37 +259,69 @@ async function takeStock(db: D1Database, host: Host, productId: string, grams: n
   return 0;
 }
 
+/** Every tea on one account's shelf, newest first, as the pour page draws it. `priced` false leaves the price out. */
+export async function shelfTeas<E extends PourEnv>(
+  env: E, accountId: string, priced = true, more: (row: Record<string, unknown>) => Record<string, unknown> = () => ({}),
+) {
+  const [{ results }, rateRows] = await Promise.all([
+    env.DB.prepare(
+      `SELECT * FROM products
+       WHERE account_id = ? AND type NOT IN ('Teaware', 'Misc') AND COALESCE(status, 'Active') <> 'Archived'
+         AND personal_offer_source_id IS NULL
+       ORDER BY created_at DESC, id DESC LIMIT 800`,
+    ).bind(accountId).all<Record<string, unknown>>(),
+    env.DB.prepare('SELECT currency, rate_to_usd FROM exchange_rates').all<{ currency: string; rate_to_usd: number }>(),
+  ]);
+  // The shelf price of a gram, read now from cost and freight (worker/src/productPricing.ts); null prints a dash.
+  const rates = new Map(rateRows.results.map(row => [row.currency, row.rate_to_usd]));
+  const freight = priced ? await accountFreightDefaults(env, accountId, rates) : null;
+  const text = (value: unknown) => (typeof value === 'string' && value.trim() ? value.trim() : null);
+  return results.map(row => {
+    const price = freight ? addPricingFields(row, rates, freight).retail_price_per_gram_usd : null;
+    return {
+      ...more(row),
+      id: row.id as string, name: (text(row.given_name) ?? row.product_name) as string, product_name: row.product_name, chinese_name: row.chinese_name,
+      type: row.type, classification: row.classification, year: row.year,
+      image_url: text(row.image_url) ?? text(row.bag_photo_url), stock_grams: row.stock_grams, status: row.status,
+      created_at: row.created_at, sample: Number(row.is_sample) === 1 || row.inventory_purpose === 'sample' ? 1 : 0,
+      price_per_gram: typeof price === 'number' && Number.isFinite(price) && price > 0 ? price : null,
+    };
+  });
+}
+
+/** The grams a pour took go back on the shelf it came from, with the listing, the ledger and the tea back on sale. */
+export async function returnStock(
+  db: D1Database, host: { accountId: string; email?: string | null }, productId: string | null, back: number,
+): Promise<void> {
+  if (!productId || !(back > 0)) return;
+  const returned = await db.prepare(
+    `UPDATE products SET stock_grams = COALESCE(stock_grams, 0) + ? WHERE id = ? AND account_id = ? RETURNING stock_grams, status`,
+  ).bind(back, productId, host.accountId).first<{ stock_grams: number; status: string | null }>();
+  if (!returned) return;
+  const statements = [
+    db.prepare(`UPDATE product_listings SET stock_grams = stock_grams + ?, updated_at = datetime('now') WHERE id = ? AND account_id = ?`)
+      .bind(back, `list_${productId}`, host.accountId),
+    db.prepare(
+      `INSERT INTO stock_ledger (id, product_id, delta, balance_after, movement_unit, reason, movement_type, user_email, note, account_id)
+       VALUES (?, ?, ?, ?, 'gram', 'MANUAL_ADJUST', 'return', ?, 'A pour taken back', ?)`,
+    ).bind(crypto.randomUUID(), productId, back, Number(returned.stock_grams), host.email ?? null, host.accountId),
+  ];
+  // A tea the pour sold out is on sale again, as a count that finds stock does.
+  if (returned.status === 'Sold Out') {
+    statements.push(db.prepare(`UPDATE products SET status = 'Active', sold_out_at = NULL WHERE id = ? AND account_id = ? AND status = 'Sold Out'`)
+      .bind(productId, host.accountId));
+  }
+  await db.batch(statements);
+}
+
 export function pourSitRoutes<E extends PourEnv>(deps: Deps<E>): [string, string, Handler<E>][] {
   // GET /api/admin/pour/teas: every tea on the shelf, newest first, as buttons.
   const teas: Handler<E> = async (request, env) => {
     const host = await deps.requireHost(request, env);
     if ('error' in host) return host.error;
-    const [{ results }, rateRows, authority] = await Promise.all([
-      env.DB.prepare(
-        `SELECT * FROM products
-         WHERE account_id = ? AND type NOT IN ('Teaware', 'Misc') AND COALESCE(status, 'Active') <> 'Archived'
-           AND personal_offer_source_id IS NULL
-         ORDER BY created_at DESC, id DESC LIMIT 800`,
-      ).bind(host.accountId).all<Record<string, unknown>>(),
-      env.DB.prepare('SELECT currency, rate_to_usd FROM exchange_rates').all<{ currency: string; rate_to_usd: number }>(),
-      readStockAuthority(env.DB, host),
-    ]);
-    // The shelf price of a gram, read now from cost and freight (worker/src/productPricing.ts); null prints a dash.
-    const rates = new Map(rateRows.results.map(row => [row.currency, row.rate_to_usd]));
-    const freight = await accountFreightDefaults(env, host.accountId, rates);
-    const text = (value: unknown) => (typeof value === 'string' && value.trim() ? value.trim() : null);
-    return reply({
-      teas: results.map(row => {
-        const price = addPricingFields(row, rates, freight).retail_price_per_gram_usd;
-        return {
-          id: row.id, can_deduct: canMovePourStock(authority, text(row.owner_user_id)), name: text(row.given_name) ?? row.product_name, product_name: row.product_name, chinese_name: row.chinese_name,
-          type: row.type, classification: row.classification, year: row.year,
-          image_url: text(row.image_url) ?? text(row.bag_photo_url), stock_grams: row.stock_grams, status: row.status,
-          created_at: row.created_at, sample: Number(row.is_sample) === 1 || row.inventory_purpose === 'sample' ? 1 : 0,
-          price_per_gram: typeof price === 'number' && Number.isFinite(price) && price > 0 ? price : null,
-        };
-      }),
-    });
+    const authority = await readStockAuthority(env.DB, host);
+    const owner = (row: Record<string, unknown>) => (typeof row.owner_user_id === 'string' && row.owner_user_id.trim() ? row.owner_user_id.trim() : null);
+    return reply({ teas: await shelfTeas(env, host.accountId, true, row => ({ can_deduct: canMovePourStock(authority, owner(row)) })) });
   };
 
   // GET /api/admin/pour/sits?date=YYYY-MM-DD: the sits a pour could belong to.
@@ -476,27 +512,7 @@ export function pourSitRoutes<E extends PourEnv>(deps: Deps<E>): [string, string
       `DELETE FROM event_tea_menu WHERE id = ? AND account_id = ? AND product_id IS ? AND stock_taken_grams IS ?`,
     ).bind(menuId, host.accountId, row.product_id, row.stock_taken_grams).run();
     if (!deleted.meta?.changes) return gone();
-    if (row.stock_product_id && back > 0) {
-      const returned = await env.DB.prepare(
-        `UPDATE products SET stock_grams = COALESCE(stock_grams, 0) + ? WHERE id = ? AND account_id = ? RETURNING stock_grams, status`,
-      ).bind(back, row.stock_product_id, host.accountId).first<{ stock_grams: number; status: string | null }>();
-      if (returned) {
-        const statements = [
-          env.DB.prepare(`UPDATE product_listings SET stock_grams = stock_grams + ?, updated_at = datetime('now') WHERE id = ? AND account_id = ?`)
-            .bind(back, `list_${row.stock_product_id}`, host.accountId),
-          env.DB.prepare(
-            `INSERT INTO stock_ledger (id, product_id, delta, balance_after, movement_unit, reason, movement_type, user_email, note, account_id)
-             VALUES (?, ?, ?, ?, 'gram', 'MANUAL_ADJUST', 'return', ?, 'A pour taken back', ?)`,
-          ).bind(crypto.randomUUID(), row.stock_product_id, back, Number(returned.stock_grams), host.email ?? null, host.accountId),
-        ];
-        // A tea the pour sold out is on sale again, as a count that finds stock does.
-        if (returned.status === 'Sold Out') {
-          statements.push(env.DB.prepare(`UPDATE products SET status = 'Active', sold_out_at = NULL WHERE id = ? AND account_id = ? AND status = 'Sold Out'`)
-            .bind(row.stock_product_id, host.accountId));
-        }
-        await env.DB.batch(statements);
-      }
-    }
+    await returnStock(env.DB, host, row.stock_product_id, back);
     const sit = await readSit(env.DB, host.accountId, row.event_id);
     return reply({ sit: sit ? await hostSit(deps, env, sit, authority) : null });
   };

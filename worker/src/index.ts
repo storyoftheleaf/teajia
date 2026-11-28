@@ -16,6 +16,7 @@ import { servePrivateSubjectPhotos } from './privateSubjectPhotos';
 import { createMemberPrivateSitsHandler } from './memberPrivateSits';
 import { afterSitRoutes, issueAfterSitLink } from './afterSitAccess';
 import { pourSitRoutes } from './pourSit';
+import { isNamedPourer, tablePourRoutes } from './tablePour';
 import { enteredTastingFlag, eventTastingId, eventTastingSessionId, holdsEventTastingSeat, joinEventTasting, memberFirstName } from './sessionTasting';
 import { boughtLineChestState, boughtLineQuantityUnit, keepBoughtLine, type BoughtOrder } from './chestKeep';
 import { firstTableOpen } from '../../src/lib/firstTable';
@@ -18039,7 +18040,7 @@ const handleListHostedTables: Handler = async (request, env) => {
   const account = await personalInventoryAccount(env.DB, host.userId);
   if (!account) return json({ tables: [] });
   const { results } = await env.DB.prepare(`
-    SELECT e.id, e.slug, e.title, e.event_date, e.timezone, e.door, e.total_capacity AS seats, e.lifecycle_status, e.area_hint,
+    SELECT e.id, e.slug, e.title, e.event_date, e.timezone, e.door, e.total_capacity AS seats, e.lifecycle_status, e.area_hint, e.location_id AS space_id,
            (SELECT COUNT(*) FROM event_attendees ea WHERE ea.event_id = e.id AND ea.account_id = e.account_id AND ea.status = 'confirmed') AS confirmed,
            (SELECT COUNT(*) FROM event_attendees ea WHERE ea.event_id = e.id AND ea.account_id = e.account_id AND ea.status = 'requested') AS requested,
            (SELECT COUNT(*) FROM event_attendees ea WHERE ea.event_id = e.id AND ea.account_id = e.account_id AND ea.status = 'waitlist') AS waitlist
@@ -18099,6 +18100,30 @@ const handleGetHostedTable: Handler = async (request, env, params) => {
 // is an approved host, the session sits in their own personal account and
 // names them as its host. Anyone else, another host and the shop owner
 // included, gets the same 404.
+
+/**
+ * The shop whose shelf a host may pour from at their own table: Teajia's shop,
+ * for someone who runs its sessions (they see its prices) or a person its
+ * owner named as a pourer (they see names and weights only). Null for anyone else.
+ */
+async function tablePourShelf(env: Env, userId: string): Promise<{ accountId: string; priced: boolean; weighs: boolean } | null> {
+  const shop = await env.DB.prepare(
+    "SELECT id, kind FROM accounts WHERE is_platform_owner = 1 AND status = 'active' ORDER BY created_at ASC LIMIT 1",
+  ).first<{ id: string; kind: string | null }>();
+  if (!shop) return null;
+  const who = await env.DB.prepare(
+    `SELECT u.platform_role, m.role, m.permissions FROM users u
+       LEFT JOIN account_members m ON m.user_id = u.id AND m.account_id = ? AND m.status = 'active'
+      WHERE u.id = ?`,
+  ).bind(shop.id, userId).first<{ platform_role: string | null; role: string | null; permissions: string | null }>();
+  if (!who) return null;
+  const platform = who.platform_role === 'platform_owner' || who.platform_role === 'platform_admin';
+  const bundles = who.role !== null ? resolveBundles(who.role as never, (shop.kind ?? 'location') as never, who.permissions) : [];
+  // Running the shop's sessions opens its shelf; taking grams off it stays with those who may change its stock (pourSit.ts).
+  if (platform || bundles.includes('gather')) return { accountId: shop.id, priced: true, weighs: platform || who.role === 'owner' || bundles.includes('stock') };
+  // A person the owner named pours by weight: the naming is the owner's own word for exactly that.
+  return await isNamedPourer(env.DB, shop.id, userId) ? { accountId: shop.id, priced: false, weighs: true } : null;
+}
 
 async function requireOwnHostedTable(request: Request, env: Env, eventId: string) {
   const host = await requireFewHostsHost(request, env);
@@ -34209,6 +34234,22 @@ const routes: [string, string, Handler][] = [
       if (!isAuthed(request)) return null;
       const actor = await requireAuthenticatedUser(request, env);
       return 'error' in actor ? null : actor.userId;
+    },
+  }),
+  ...tablePourRoutes<Env>({
+    requireOwnTable: async (request, env, tableId) => {
+      const own = await requireOwnHostedTable(request, env, tableId);
+      if ('error' in own) return own;
+      const user = await env.DB.prepare('SELECT email FROM users WHERE id = ?').bind(own.host.userId).first<{ email: string | null }>();
+      return { host: { userId: own.host.userId, name: own.host.name, email: user?.email ?? null }, table: own.table };
+    },
+    shopShelf: tablePourShelf,
+    // Pourers are named on Teajia's own shop only (the shelf tablePourShelf reads), never on another account the caller happens to own.
+    requireShopOwner: async (request, env) => {
+      const owner = await requireOwnerTier(request, env);
+      if ('error' in owner) return owner;
+      const shop = await env.DB.prepare("SELECT 1 FROM accounts WHERE id = ? AND is_platform_owner = 1 AND status = 'active'").bind(owner.accountId).first();
+      return shop ? owner : { error: restError(403, 'Owner-tier access required for this action', 'owner_required') };
     },
   }),
   ...pourSitRoutes<Env>({

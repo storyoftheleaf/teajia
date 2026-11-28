@@ -137,7 +137,7 @@ async function teasOf(db: D1Database, readPublic: PublicProductReader, event: Ev
         chestId: row.source === 'chest' ? str(row.source_id) : null }];
     })
     : (await readSessionServedTeas(db, event.account_id, event.id)).results
-      .map(row => ({ menuId: row.id, productId: row.product_id, name: row.name }));
+      .map(row => ({ menuId: row.id, productId: row.product_id ?? row.ask_product_id, name: row.name }));
   return resolveSessionTeas(db, readPublic, event.account_id,
     (owners.results as { user_id: string }[]).map(row => row.user_id), refs);
 }

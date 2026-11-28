@@ -4,35 +4,56 @@
 // can be named, placed and sent afterwards. The worker side is
 // worker/src/pourSit.ts.
 //
+// Given a table (`tableId`, the page at /account/host/:id?pour=1), the same page
+// pours into that table: the table is the sit, its teas are the table's own
+// tea list, and the shelves are the ones that host may pour from
+// (worker/src/tablePour.ts). There is no day to choose and nothing to send:
+// the table has its own page for that.
+//
 // Steps live in the address (CLAUDE.md, "Back and forward"): `tea` is the
 // number pad open on one tea, `sit` is the sit's own sheet. Day, kind, search
 // and order refine in place.
 import React, { useEffect, useMemo, useState } from 'react';
 import { Delete, Share2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { API_URL, authedFetch } from '../../lib/api';
 import { mediaUrl } from '../../lib/mediaUrl';
-import { useAppStore } from '../../lib/store';
 import { TYPOGRAPHY_CLASSES, getTeaLedgerTones } from '../../designTokens';
 import { useTheme } from '../../context/ThemeContext';
 import { useStepParam } from '../../hooks/useStepParam';
 import { useAdminBack } from '../hooks/useAdminBack';
+import { selectIsOwnerTier, useAppStore } from '../../lib/store';
+import { PourersSheet } from '../components/PourersSheet';
+import { hostTableQueryKey } from '../../components/host/hostTableParts';
 import { BottomSheet } from '../../components/shared/BottomSheet';
 import { Button } from '../../components/shared/Button';
 import { addKey, byPrice, gramsOf, kindCounts, localDay, pricePerGram, matchesTea, namedKindsFrom, sitForDay, type NamedKind, type PourSit, type PourTea } from './pourPage';
 
 type Place = { id: string; name: string; space: boolean; sat: boolean };
 
-const api = (path: string, init?: RequestInit) => authedFetch(`${API_URL}/api/admin/pour${path}`, { reportIncident: false, ...init });
-const send = (method: string, path: string, body?: unknown) =>
-  api(path, { method, headers: { 'Content-Type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) });
+/** The pour doors of the shop, or of one table of the host's own. */
+function pourDoors(tableId?: string) {
+  const base = tableId ? `/api/me/tables/${encodeURIComponent(tableId)}/pour` : '/api/admin/pour';
+  const api = (path: string, init?: RequestInit) => authedFetch(`${API_URL}${base}${path}`, { reportIncident: false, ...init });
+  const send = (method: string, path: string, body?: unknown) =>
+    api(path, { method, headers: { 'Content-Type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) });
+  return { api, send };
+}
+type Doors = ReturnType<typeof pourDoors>;
 const grams = (value: number | null) => (value === null ? '' : `${value} g`);
 
-export default function PourView() {
+export default function PourView({ tableId }: { tableId?: string } = {}) {
   const accountId = useAppStore(state => state.activeAccountId);
-  return <PourShelf key={accountId} />;
+  return <PourShelf key={`${accountId}:${tableId ?? ''}`} tableId={tableId} />;
 }
 
-function PourShelf() {
+function PourShelf({ tableId }: { tableId?: string }) {
+  const { api, send } = useMemo(() => pourDoors(tableId), [tableId]);
+  const tablePath = tableId ? `/account/host/${encodeURIComponent(tableId)}` : null;
+  const ownsShop = useAppStore(selectIsOwnerTier);
+  const queryClient = useQueryClient();
+  const [pourersOpen, setPourersOpen] = useStepParam('pourers');
   const today = useMemo(() => localDay(new Date()), []);
   const timezone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC', []);
   const [day, setDay] = useStepParam('day', today);
@@ -44,7 +65,7 @@ function PourShelf() {
   const [sheet, setSheet] = useStepParam('sit');
   // Opened from a tea space: the sit made or poured into here is placed there, unless it already has a place.
   const [placeId] = useStepParam('place');
-  const back = useAdminBack('/admin/pour');
+  const back = useAdminBack(tablePath ? `${tablePath}?pour=1` : '/admin/pour');
 
   const [teas, setTeas] = useState<PourTea[] | null>(null);
   const [sits, setSits] = useState<PourSit[]>([]);
@@ -54,9 +75,14 @@ function PourShelf() {
 
   useEffect(() => {
     let live = true;
-    api('/teas').then(result => { if (live) setTeas(result.teas); }, () => { if (live) setFailed('The shelf could not be read.'); });
+    // A table answers with its shelves and itself in one read.
+    api(tableId ? '' : '/teas').then(result => {
+      if (!live) return;
+      setTeas(result.teas);
+      if (tableId && result.sit) setSits([result.sit]);
+    }, () => { if (live) setFailed('The shelf could not be read.'); });
     return () => { live = false; };
-  }, []);
+  }, [api, tableId]);
   // The kinds a family holds (Liu Bao inside Dark) come from the Wisdom Base, read after the shelf is showing.
   const [named, setNamed] = useState<NamedKind[]>([]);
   useEffect(() => {
@@ -67,15 +93,18 @@ function PourShelf() {
     return () => { live = false; };
   }, []);
   useEffect(() => {
+    if (tableId) return undefined;
     let live = true;
     setChosenSit(null);
     api(`/sits?date=${encodeURIComponent(day)}`).then(result => { if (live) setSits(result.sits); }, () => { if (live) setSits([]); });
     return () => { live = false; };
-  }, [day]);
+  }, [day, api, tableId]);
 
   const daySits = sits.filter(sit => sit.date.slice(0, 10) === day);
-  const sit = daySits.find(one => one.id === chosenSit) ?? sitForDay(sits, day);
+  const sit = tableId ? sits[0] ?? null : daySits.find(one => one.id === chosenSit) ?? sitForDay(sits, day);
   const keep = (next: PourSit | null) => {
+    // The table's own page lists these teas: it reads them again when it is next opened.
+    if (tableId) void queryClient.invalidateQueries({ queryKey: hostTableQueryKey(tableId) });
     if (!next) return;
     setSits(current => (current.some(one => one.id === next.id) ? current.map(one => (one.id === next.id ? next : one)) : [next, ...current]));
     setChosenSit(next.id);
@@ -105,7 +134,7 @@ function PourShelf() {
 
   const pour = (weight: number | null) => guard(async () => {
     const body = {
-      date: day, timezone, sit_id: sit?.id, grams: weight,
+      ...(tableId ? {} : { date: day, timezone, sit_id: sit?.id }), grams: weight,
       ...(tea ? { product_id: tea.id } : { name: typedName }),
     };
     const result = await send('POST', '', body);
@@ -119,7 +148,7 @@ function PourShelf() {
   const takeBack = (menuId: string) => guard(async () => {
     const result = await send('DELETE', `/${encodeURIComponent(menuId)}`);
     keep(result.sit);
-    setTeas((await api('/teas')).teas);
+    setTeas((await api(tableId ? '' : '/teas')).teas);
   });
   const openSit = () => guard(async () => {
     if (!sit) keep(await placed((await send('POST', '/sits', { date: day, timezone })).sit));
@@ -131,11 +160,20 @@ function PourShelf() {
       <div className="mx-auto flex w-full max-w-4xl flex-col gap-4 py-3">
         <header className="flex flex-wrap items-end justify-between gap-3">
           <h1 className={TYPOGRAPHY_CLASSES.h1}>Pour</h1>
-          <label className="flex items-center gap-2">
-            <span className={TYPOGRAPHY_CLASSES.label}>Day</span>
-            <input type="date" value={day} aria-label="Day of the sit" className="btn-field"
-              onChange={event => setDay(event.target.value || today, { refine: true })} />
-          </label>
+          {tablePath ? (
+            <Link to={tablePath} className="btn-secondary btn-sm tap-target">The table</Link>
+          ) : (
+            <div className="flex flex-wrap items-end gap-2">
+              {ownsShop && (
+                <Button type="button" variant="quiet" size="sm" className="tap-target" onClick={() => setPourersOpen('open')}>Who pours</Button>
+              )}
+              <label className="flex items-center gap-2">
+                <span className={TYPOGRAPHY_CLASSES.label}>Day</span>
+                <input type="date" value={day} aria-label="Day of the sit" className="btn-field"
+                  onChange={event => setDay(event.target.value || today, { refine: true })} />
+              </label>
+            </div>
+          )}
         </header>
 
         <section aria-label="This sit" className="rounded-md border border-tea-border bg-tea-surface p-3">
@@ -151,10 +189,12 @@ function PourShelf() {
                 </div>
               )}
             </div>
-            <Button type="button" variant={sit?.teas.length ? 'primary' : 'secondary'} className="tap-target" disabled={busy}
-              icon={<Share2 size={16} strokeWidth={1.75} aria-hidden />} onClick={openSit}>
-              Send this sit
-            </Button>
+            {!tableId && (
+              <Button type="button" variant={sit?.teas.length ? 'primary' : 'secondary'} className="tap-target" disabled={busy}
+                icon={<Share2 size={16} strokeWidth={1.75} aria-hidden />} onClick={openSit}>
+                Send this sit
+              </Button>
+            )}
           </div>
           {sit && sit.teas.length > 0 && (
             <details className="mt-2">
@@ -165,7 +205,7 @@ function PourShelf() {
               {sit.teas.map((poured, index) => (
                 <li key={poured.id} className="flex flex-wrap items-center gap-2 py-2">
                   <span className={`${TYPOGRAPHY_CLASSES.bodyLight} w-5 shrink-0 text-tea-text-sec`}>{index + 1}</span>
-                  <span className={`${TYPOGRAPHY_CLASSES.body} min-w-0 flex-1 break-words`}>{poured.name}</span>
+                  <span className={`${TYPOGRAPHY_CLASSES.body} min-w-32 flex-1 break-words`}>{poured.name}</span>
                   <span className={`${TYPOGRAPHY_CLASSES.mono} text-tea-text-sec`}>
                     {grams(poured.grams)}{poured.short ? ', more than the shelf held' : ''}
                   </span>
@@ -228,7 +268,7 @@ function PourShelf() {
                     <span className="flex min-w-0 flex-1 flex-col">
                       <span className="line-clamp-2 break-words font-display text-ui-20 leading-tight text-tea-text">{one.name}</span>
                       <span className="text-ui-11 text-tea-text-sec">
-                        {[one.year, one.sample ? 'sample' : null, `${one.stock_grams ?? 0} g`].filter(Boolean).join(' · ')}
+                        {[one.year, one.sample ? 'sample' : null, one.shelf === 'chest' ? 'your chest' : null, `${one.stock_grams ?? 0} g`].filter(Boolean).join(' · ')}
                       </span>
                     </span>
                     <span className={`${TYPOGRAPHY_CLASSES.mono} shrink-0 text-tea-text`}>{pricePerGram(one)}</span>
@@ -252,8 +292,9 @@ function PourShelf() {
         shelf={tea?.can_deduct ? `${tea.stock_grams ?? 0} g on the shelf` : undefined}
         canWeigh={!tea || tea.can_deduct === true}
         busy={busy} onClose={back} onPour={pour} />
-      {sit && (
-        <SitSheet open={sheet === 'open'} sit={sit} busy={busy} onClose={back}
+      {!tableId && ownsShop && <PourersSheet open={pourersOpen === 'open'} onClose={back} />}
+      {sit && !tableId && (
+        <SitSheet open={sheet === 'open'} sit={sit} busy={busy} onClose={back} api={api}
           onChange={change => guard(async () => keep((await send('PUT', `/sits/${encodeURIComponent(sit.id)}`, change)).sit))} />
       )}
     </div>
@@ -308,8 +349,8 @@ function NumberPad({ open, name, shelf, canWeigh, busy, onClose, onPour }: {
   );
 }
 
-function SitSheet({ open, sit, busy, onClose, onChange }: {
-  open: boolean; sit: PourSit; busy: boolean; onClose: () => void; onChange: (change: Record<string, unknown>) => void;
+function SitSheet({ open, sit, busy, onClose, onChange, api }: {
+  open: boolean; sit: PourSit; busy: boolean; onClose: () => void; onChange: (change: Record<string, unknown>) => void; api: Doors['api'];
 }) {
   const [title, setTitle] = useState(sit.title);
   const [note, setNote] = useState(sit.note ?? '');
@@ -321,7 +362,7 @@ function SitSheet({ open, sit, busy, onClose, onChange }: {
     let live = true;
     api('/places').then(result => { if (live && Array.isArray(result?.places)) setPlaces(result.places); }, () => undefined);
     return () => { live = false; };
-  }, [open]);
+  }, [open, api]);
   const spaces = places.filter(place => place.space);
   const others = places.filter(place => !place.space);
   const link = sit.link ?? '';
