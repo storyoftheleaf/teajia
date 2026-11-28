@@ -1,3 +1,7 @@
+## 2026-11-28: Library Waiting tells the truth and lives in the address
+
+Waiting in the Library said "Nothing is waiting on you" while Stock was still loading and when the Stock read failed. It now says "Reading Stock…" while loading, and when the read fails it says so with Try again (the shared `LoadFailed`). Its dot waits for a full read. The Library's tabs (All, To taste, Chosen, Waiting, Rejected) are now `?show=` in the address through `useStepParam`, so Waiting can be linked to and browser Back leaves it. Slice 1 of `todo/plans/curate-waiting-consolidation.md`. Checks: `BrowseView.scope.test.tsx`, `tests/compass-library.spec.ts`.
+
 ## 2026-11-27: Invoice links are short
 
 Adrian: "The invoice link is really big." Every place that hands out an invoice's pay link (the admin's copy and WhatsApp buttons, the order email, `get_invoice` and `draft_invoice`, and "Copy the link" on the shop's own view of the invoice) now gives `teajia.com/i/TJB-00007-c6c1e92016bf`: the invoice number and the first twelve characters of its share token. Opening it asks the worker (`GET /api/public/invoice-links/:code`) for the long link, worked out from the invoice at that moment, so the amount is what is owed now, and `functions/i/[code].ts` redirects there; the pay page is unchanged. Both halves must match one invoice, and the full token never appears in the short link. Old long links keep working. `pay_url` stays the long form the site's own pages read; the short one is `short_url`. Guard: `worker/tests/a-short-invoice-link-opens-the-pay-page.test.ts`.
