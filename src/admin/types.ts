@@ -167,6 +167,8 @@ export interface InvoicePayment {
   recipient_slug: string | null;
   recipient_name: string | null;
   pay_url: string | null;
+  /** The same link, short (teajia.com/i/TJB-00007-c6c1e92016bf): what is handed to a person. */
+  short_url?: string | null;
   has_methods: boolean;
   /** Line items plus shipping, in USD. */
   total_usd: number;

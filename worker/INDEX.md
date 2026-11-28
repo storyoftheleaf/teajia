@@ -1,6 +1,6 @@
 # Worker code index
 
-> Navigation aid only. Current authorization and tenancy contracts live in [`docs/ARCHITECTURE.md`](../docs/ARCHITECTURE.md); open engineering work lives in [`docs/tracks/08-platform-hardening.md`](../docs/tracks/08-platform-hardening.md).
+> Navigation aid only. Current authorization and tenancy contracts live in [`docs/ARCHITECTURE.md`](../docs/ARCHITECTURE.md); open engineering work lives in [`docs/CONSOLIDATED_DIRECTION.md`](../docs/CONSOLIDATED_DIRECTION.md).
 
 ## Entry points
 
@@ -33,4 +33,4 @@ Cross-account denial coverage is maintained in `tests/tenancy-isolation.test.ts`
 
 ## Current debt
 
-The concise actionable queue is [`docs/tracks/08-platform-hardening.md`](../docs/tracks/08-platform-hardening.md). It supersedes historical endpoint inventories and security-audit snapshots.
+The concise actionable queue is [`docs/CONSOLIDATED_DIRECTION.md`](../docs/CONSOLIDATED_DIRECTION.md). It supersedes historical endpoint inventories and security-audit snapshots.

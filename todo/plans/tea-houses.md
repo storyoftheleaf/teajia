@@ -1,5 +1,7 @@
 # Tea houses: building them as an offering, and the section that shows it
 
+> Source material for the offering, including facts and permissions Adrian supplies. The [current delivery plan](../../docs/CONSOLIDATED_DIRECTION.md) determines which work proceeds.
+
 Status: proposal, 2026-11-25. Nothing built. This is the first plan anywhere in the repo for building tea houses as an offering. Until now it was one service row on Advise, one line in the vision ("Designs tea spaces") and one persona. The section shape is in [docs/SECTIONS.md](../../docs/SECTIONS.md).
 
 > **Revised 2026-11-25, second pass.** Adrian: a tea house is "a physical space, somewhere that people can sit down and drink tea. The tea master can create it themselves and host people there." So a house is a place first and a shop is optional, and building one with Adrian is one of three ways a house comes to exist. On 2026-11-26 he added that a tea master's own place is a private table, never publicly listed, so only places that chose to be public are tea houses. See [guests-and-tea-masters.md](guests-and-tea-masters.md), "Tables and tea houses". Where this file says a house is an account, read: a house that also wants a shop gets an account.
@@ -159,6 +161,6 @@ No new backend is needed for stages 1 to 3. They are pages, copy, photographs an
 - The service copy and inquiry: `src/pages/advise/AdviseIndex.tsx`, `src/components/advise/serviceGuidance.ts`, `src/components/advise/InquiryForm.tsx`, `src/pages/advise/adviseLive.ts`.
 - The case study data: `src/data/adviseProjects.ts`.
 - The pages this section gathers: `src/pages/ForYourSpacePage.tsx`, `src/pages/SpacesPage.tsx`, `src/components/storefront/FindATable.tsx`, `src/pages/StoreLaunchPlaybookPage.tsx`.
-- The account model: [docs/MULTI_STORE_PLAN.md](../../docs/MULTI_STORE_PLAN.md), [docs/AUSTRALIA_LAUNCH_PLAYBOOK.md](../../docs/AUSTRALIA_LAUNCH_PLAYBOOK.md), [docs/MEMBERS_AND_ACCESS_GUIDE.md](../../docs/MEMBERS_AND_ACCESS_GUIDE.md), [docs/OPENING_STOCK_CSV_GUIDE.md](../../docs/OPENING_STOCK_CSV_GUIDE.md), [tea-master-onboarding.md](tea-master-onboarding.md).
+- The account model: [docs/MULTI_STORE_PLAN.md](../../docs/MULTI_STORE_PLAN.md), [docs/AUSTRALIA_LAUNCH_PLAYBOOK.md](../../docs/AUSTRALIA_LAUNCH_PLAYBOOK.md), [docs/MEMBERS_AND_ACCESS_GUIDE.md](../../docs/MEMBERS_AND_ACCESS_GUIDE.md), [docs/OPENING_STOCK_CSV_GUIDE.md](../../docs/OPENING_STOCK_CSV_GUIDE.md), [tea-master-onboarding.md](https://github.com/storyoftheleaf/teajia/blob/4eb502f99c40509176472e9fede440243d23e3ef/todo/plans/tea-master-onboarding.md).
 - The photographs still owed: [launch-photo-upload.md](launch-photo-upload.md) and [docs/OWNED_MEDIA_INVENTORY.md](../../docs/OWNED_MEDIA_INVENTORY.md).
 - The people it is for: [docs/brief/PERSONAS.md](../../docs/brief/PERSONAS.md), persona 3, and [docs/VISION.md](../../docs/VISION.md), "Tea House Operators" and "The Lineage, Not Franchise".

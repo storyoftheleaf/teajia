@@ -6,6 +6,8 @@ import { api, API_URL, ApiError } from '../lib/api';
 import { authPagePath, authReturnTo } from '../lib/authNavigation';
 import { TYPOGRAPHY_CLASSES } from '../designTokens';
 import { useHeldTitle } from '../hooks/useHeldTitle';
+import { keepTeaserFor } from '../lib/keepTeaser';
+import { KeepTeaserHead } from '../components/auth/KeepTeaserHead';
 
 const inputClass = "w-full bg-tea-surface border border-tea-border rounded-md min-h-tap px-3 py-2 text-ui-16 text-tea-text focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors placeholder-tea-text-dim";
 const labelClass = `${TYPOGRAPHY_CLASSES.label} block text-tea-text-sec mb-1`;
@@ -31,7 +33,11 @@ export default function SignInPage() {
   const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
   const [codeSent, setCodeSent] = useState(false);
-  const [passwordMode, setPasswordMode] = useState(true);
+  // Sent here by an invoice's "Log in to save": the page shows the teas, and
+  // starts on the emailed code, which signs in a returning person and makes
+  // the account for a new one, with one box and no password.
+  const [keeping] = useState(() => keepTeaserFor(destination));
+  const [passwordMode, setPasswordMode] = useState(!keeping);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [requestRetryable, setRequestRetryable] = useState(false);
@@ -141,11 +147,13 @@ export default function SignInPage() {
 
   return (
     <div className="w-full max-w-sm mx-auto px-5 pt-6 sm:pt-10 pb-nav-gap">
+      {keeping ? <KeepTeaserHead keeping={keeping} className="mb-5" /> : (
       <header className="mb-5">
         <h1 className={`${TYPOGRAPHY_CLASSES.h2} text-tea-text`}>Sign in</h1>
         <p className={`${TYPOGRAPHY_CLASSES.bodyLight} text-tea-text-sec mt-1`}>Welcome back.</p>
         {returnHint && <p className="text-ui-12 text-tea-text-sec mt-2">{returnHint}</p>}
       </header>
+      )}
 
       <a
         href={`${API_URL}/api/auth/google?return=${encodeURIComponent(authPagePath('signin', destination))}`}

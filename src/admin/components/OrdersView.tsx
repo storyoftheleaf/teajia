@@ -1113,7 +1113,7 @@ export const OrdersView = () => {
                           customerName: viewingInvoice.customer_name,
                           items,
                           total: `$${total} USD`,
-                          payUrl: viewingInvoice.payment?.pay_url ?? undefined,
+                          payUrl: viewingInvoice.payment?.short_url ?? viewingInvoice.payment?.pay_url ?? undefined,
                         });
                       }}
                       className="w-full py-3 border border-tea-border rounded-xl text-xs uppercase tracking-[0.2em] text-tea-text-sec hover:text-tea-text hover:bg-tea-surface flex items-center justify-center gap-2 transition-all"

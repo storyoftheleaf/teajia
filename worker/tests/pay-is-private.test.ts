@@ -302,14 +302,18 @@ describe('an invoice pay link is a share link', () => {
     expect([first.status, concurrent.status]).toEqual([200, 200]);
     expect(first.status).toBe(200);
     const body = await first.json() as any;
-    const url = new URL(body.url);
+    // What is handed out is the short link; the long one rides beside it.
+    expect(body.url).toMatch(/^https:\/\/teajia\.com\/i\/INV-0412-[0-9a-f]{12}$/);
+    const url = new URL(body.pay_url);
+    expect(body.url.endsWith(url.searchParams.get('t')!.slice(0, 12))).toBe(true);
     expect(url.searchParams.get('amount')).toBe('35.00');
     expect(url.searchParams.get('reference')).toBe('INV-0412');
     expect(url.searchParams.get('t')).toMatch(/^[0-9a-f]{32}$/);
     expect(body).toMatchObject({ invoice_number: 'INV-0412', customer_whatsapp: '+1 503 555 0100', recipient_name: 'Kenji Tanaka', outstanding_usd: 35 });
 
     const second = await (await as(db, 'kenji-user', '/api/invoices/inv-1/pay-link', { body: {}, accountId: 'acc-one' })).json() as any;
-    expect(new URL(second.url).searchParams.get('t')).toBe(url.searchParams.get('t'));
+    expect(new URL(second.pay_url).searchParams.get('t')).toBe(url.searchParams.get('t'));
+    expect(second.url).toBe(body.url);
     expect((await concurrent.json() as { url: string }).url).toBe(body.url);
     expect(db.sqlite.prepare(`SELECT COUNT(*) AS n FROM payment_share_links WHERE invoice_id = 'inv-1'`).get()).toEqual({ n: 1 });
 

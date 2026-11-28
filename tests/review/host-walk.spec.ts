@@ -1,6 +1,6 @@
 /**
  * W2: the host, start to finish, across all five launches (rig set `all`, slot 2).
- * Brief: todo/plans/review-prompts/sol-w2-host-walk.md. Findings: todo/review/findings/W2.md.
+ * Brief: https://github.com/storyoftheleaf/teajia/blob/4eb502f99c40509176472e9fede440243d23e3ef/todo/plans/review-prompts/sol-w2-host-walk.md. Findings: todo/review/findings/W2.md.
  *
  * Two walks: Ana (approved) and Jun (never hosted, so the first-timer path while anyone may host).
  * Every step is one task() so the tap ledger counts it. Every step saves a screenshot at 390 and 1280

@@ -5,11 +5,10 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { PaymentChooser } from '../components/profile/PaymentChooser';
 import { PayInvoiceTeas } from '../components/profile/PayInvoiceTeas';
 import { PayInvoiceGift } from '../components/profile/PayInvoiceGift';
-import { PayInvoiceAfter, PayInvoiceSend, invoiceJoinPath, useInvoiceKeep } from '../components/profile/PayInvoiceGuide';
+import { PayInvoiceAfter, PayInvoiceSend, invoiceJoinPath, invoiceKeepTeas, useInvoiceKeep } from '../components/profile/PayInvoiceGuide';
 import { PayInvoiceDiscount } from '../components/profile/PayInvoiceDiscount';
 import { Button } from '../components/shared/Button';
 import { useReturnPlace } from '../hooks/useReturnPlace';
-import type { PayLinkTeaLine } from '../components/profile/types';
 import type { InventoryItem } from '../types';
 import { CurrencySelect } from '../components/shop/CurrencySelect';
 import { authPagePath } from '../lib/authNavigation';
@@ -254,7 +253,7 @@ export default function ProfilePaymentPage({ onAddToCart }: {
   // so each keeps its line of description), and paying under them.
   const invoiceLines = access.invoice?.lines ?? [];
   if (invoiceLines.length > 0) {
-    const joinTeaser = { from: access.contributor.display_name, teas: keepTeaserTeas(invoiceLines) };
+    const joinTeaser = { from: access.contributor.display_name, teas: invoiceKeepTeas(invoiceLines) };
     // Who it is to and the day it was written (Adrian, 2026-11-27).
     const invoiceTo = firstName(access.invoice?.customer_name ?? '') || null;
     const invoiceDate = invoiceDay(access.invoice?.date);
@@ -288,7 +287,7 @@ export default function ProfilePaymentPage({ onAddToCart }: {
         </header>
         <div className="mt-2">
           <PayInvoiceTeas lines={invoiceLines} invoiceNumber={access.invoice?.invoice_number ?? null} onAddToCart={onAddToCart}
-            onSave={access.invoice?.yours_to_send ? undefined : access.viewer.signed_in ? keepInvoice : () => navigate(invoiceJoinPath(joinTeaser))}
+            onSave={access.invoice?.yours_to_send ? undefined : access.viewer.signed_in ? keepInvoice : () => navigate(invoiceJoinPath(joinTeaser, 'signin'))}
             signedIn={access.viewer.signed_in}
             onJoin={mode => navigate(invoiceJoinPath(joinTeaser, mode))}
             discountEditor={access.invoice?.yours_to_send && access.invoice.discount_editable && shareToken ? (
@@ -325,21 +324,6 @@ function invoiceDay(stamp: string | null | undefined): string | null {
   if (!stamp) return null;
   const day = new Date(/[zZ]|[+-]\d\d:?\d\d$/.test(stamp) ? stamp : `${stamp.replace(' ', 'T')}Z`);
   return Number.isNaN(day.getTime()) ? null : day.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
-}
-
-// The teas as the sign-up page shows them: one row a tea, two packs of one tea added up.
-function keepTeaserTeas(lines: readonly PayLinkTeaLine[]) {
-  const rows = new Map<string, { name: string; quantity: number; unit: 'g' | 'piece' }>();
-  for (const line of lines) {
-    const key = `${line.product_id ?? line.name}|${line.unit}`;
-    const row = rows.get(key);
-    if (row) row.quantity += line.quantity;
-    else rows.set(key, { name: line.name, quantity: line.quantity, unit: line.unit });
-  }
-  return [...rows.values()].map(row => ({
-    name: row.name,
-    amount: row.unit === 'g' ? `${row.quantity}g` : `${row.quantity} ${row.quantity === 1 ? 'piece' : 'pieces'}`,
-  }));
 }
 
 // Keep the share token on the account-switch links, or switching stores would
