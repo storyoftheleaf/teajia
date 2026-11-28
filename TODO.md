@@ -31,7 +31,6 @@ Capture a new observation here with the affected tea, person or step and the evi
 
 ### Walking an invoice as a newcomer (2026-11-28, sandbox, phone and desktop)
 
-- [ ] After joining from an invoice the person lands at the top, not at the row they tapped: `holdReturnPlace` stores the scroll but the page reads 0 by the time it settles. Matters for a long invoice. _(band: agent-runnable)_ _(effort: quick)_
 - [ ] A second person who joins from the same invoice link (a partner, a friend it was forwarded to) gets their tea saved but the invoice is silently not kept, because the first keeper wins and the refusal is swallowed. Decide whether they should see a line saying it is already with someone. _(band: you-required)_ _(effort: quick)_
 - [ ] Google's consent screen for sign-in returns to `teajia-api.lightcodes.workers.dev`; check what name and domain Google shows a newcomer there, and whether the consent screen names Teajia. _(band: you-required)_ _(effort: quick)_
 - [ ] A contributor whose page tier is `family` has no pay sheet (`familyPageAllowsPay` allows only none or `master`), so an invoice sent with their name on it opens to "Payment page unavailable". Confirm that is intended before any family member sends an invoice. _(band: you-required)_ _(effort: quick)_

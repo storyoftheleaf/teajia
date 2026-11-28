@@ -24,7 +24,34 @@ export function useReturnPlace(ready: boolean): void {
       if (!held || held.path !== window.location.pathname) return;
       window.sessionStorage.removeItem(KEY);
       const y = Number(held.y);
-      if (y > 0) window.requestAnimationFrame(() => window.scrollTo({ top: y }));
+      if (y > 0) return settleAt(y);
     } catch { /* stay at the top */ }
   }, [ready]);
+}
+
+/**
+ * The page is still filling in below the teas when they arrive (pictures, the
+ * pay sheet), so a single scroll stops short at the page's height of the
+ * moment. Scroll again as the page grows, for a few seconds at most, and stop
+ * the moment the person touches or scrolls themselves.
+ */
+function settleAt(y: number): () => void {
+  let done = false;
+  const stop = () => {
+    done = true;
+    observer?.disconnect();
+    window.clearTimeout(timer);
+    for (const type of ['wheel', 'touchstart', 'keydown'] as const) window.removeEventListener(type, stop);
+  };
+  const go = () => {
+    if (done) return;
+    window.scrollTo({ top: y });
+    if (Math.abs(window.scrollY - y) < 2) stop();
+  };
+  const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(go);
+  observer?.observe(document.body);
+  const timer = window.setTimeout(stop, 3000);
+  for (const type of ['wheel', 'touchstart', 'keydown'] as const) window.addEventListener(type, stop, { passive: true });
+  window.requestAnimationFrame(go);
+  return stop;
 }
