@@ -36,4 +36,11 @@ Capture a new observation here with the affected tea, person or step and the evi
 
 <!-- scripts/intake-findings.mjs inserts owner findings immediately beneath this heading. Preserve each finding marker when triaging so a later sync can recognize it. -->
 
+### Walking an invoice as a newcomer (2026-11-28, sandbox, phone and desktop)
+
+- [ ] A second person who joins from the same invoice link (a partner, a friend it was forwarded to) gets their tea saved but the invoice is silently not kept, because the first keeper wins and the refusal is swallowed. Decide whether they should see a line saying it is already with someone. _(band: you-required)_ _(effort: quick)_
+- [ ] Google's consent screen for sign-in returns to `teajia-api.lightcodes.workers.dev`; check what name and domain Google shows a newcomer there, and whether the consent screen names Teajia. _(band: you-required)_ _(effort: quick)_
+- [ ] A contributor whose page tier is `family` has no pay sheet (`familyPageAllowsPay` allows only none or `master`), so an invoice sent with their name on it opens to "Payment page unavailable". Confirm that is intended before any family member sends an invoice. _(band: you-required)_ _(effort: quick)_
+- [ ] On desktop the rail lights "tea table" while a person is on an invoice's pay page (`/people/...`). Nav words are Adrian's to change. _(band: you-required)_ _(effort: quick)_
+
 [The complete pre-consolidation intake](https://github.com/storyoftheleaf/teajia/blob/4eb502f99c40509176472e9fede440243d23e3ef/TODO.md) retains the earlier requests, named lots, source evidence, design proposals, acceptance notes and dated measurements. Reopen an old observation when it affects a chosen journey and current evidence reproduces it.
