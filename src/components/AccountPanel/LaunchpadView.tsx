@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { BowlSteam, CalendarBlank, Heart, ArrowsLeftRight, Wrench, Path, BookOpen, Books, Package, IdentificationCard, Receipt, Footprints, Warning, Leaf } from '@phosphor-icons/react';
 import { formatCredit } from '../../lib/hostCreditApi';
 import { TEA_CREDIT_PATH } from '../../hooks/useMyTeaCredit';
-import { daysWord } from './primitives';
+import { daysWord, NeedsAttention } from './primitives';
+import { formatUsd } from '../shared/paymentClaimDomain';
 import type { TeaMasterReadiness } from '../readiness/teaMasterReadiness';
 import type { AttentionItem } from '../../lib/api';
 import type { PayAccessTable } from '../profile/types';
@@ -12,6 +13,7 @@ import { ATLAS_ROOT } from '../../atlas/atlasPaths';
 import { favouritesPath } from '../../lib/favouritesOpen';
 import { HOST_TABLE_PATH, hostedTablesOpen, useMayHost } from '../../hooks/useMayHost';
 import { Button } from '../shared/Button';
+import { waitingInvoicePath, waitingNote, type WaitingInvoice } from './invoicesWaiting';
 
 interface LaunchpadTile {
   id: string;
@@ -60,6 +62,8 @@ interface LaunchpadViewProps {
 
   // Signals
   pendingInvoiceCount: number;
+  /** Invoices still owed money, for a seller; null for anyone who does not sell. */
+  waitingInvoices?: WaitingInvoice[] | null;
   todayEventCount: number;
   inboundUnreadCount: number;
   journalLastAt: string | null;
@@ -309,6 +313,7 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
   canReadAtlas = false,
   membershipsCount,
   pendingInvoiceCount,
+  waitingInvoices = null,
   todayEventCount,
   inboundUnreadCount,
   journalLastAt,
@@ -644,6 +649,35 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
               <span className="min-w-0"><span className="block font-display text-ui-24 leading-[1.08] text-tea-text">Share pay link</span><span className="mt-1 block font-body text-ui-13 italic text-tea-text-sec">From your table, or from an invoice.</span></span>
             </button>
           </div>
+        </section>
+      )}
+
+      {/* ── Invoices: what is still owed, each opening its invoice in Sales,
+          where Edit, Record payment and what was sent live. ─────────────── */}
+      {waitingInvoices && (
+        <section className="mb-10" aria-label="Invoices" data-testid="table-invoices">
+          <div className="font-sans text-ui-11 text-tea-text-dim uppercase tracking-[0.18em] mb-2">
+            Invoices
+          </div>
+          <NeedsAttention
+            className=""
+            items={[
+              ...waitingInvoices.slice(0, 6).map(invoice => ({
+                id: invoice.id,
+                label: [invoice.invoice_number, invoice.customer_name].filter(Boolean).join(' · '),
+                note: waitingNote(invoice),
+                meta: formatUsd(invoice.outstanding_usd),
+                urgent: invoice.claimed,
+                onClick: () => { onClose(); navigate(waitingInvoicePath(invoice.id)); },
+              })),
+              {
+                id: 'all-invoices',
+                label: waitingInvoices.length > 6 ? `All invoices, ${waitingInvoices.length} waiting` : 'All invoices',
+                note: waitingInvoices.length === 0 ? 'nothing owed' : undefined,
+                onClick: () => { onClose(); navigate('/admin/activity'); },
+              },
+            ]}
+          />
         </section>
       )}
 

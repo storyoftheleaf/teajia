@@ -1,4 +1,5 @@
 
+import { invoicesWaiting } from './invoicesWaiting';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Sun, Moon, Loader2 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -431,12 +432,16 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, initialView
   // taken an order at all. The second is a setup question and the first is a
   // daily one, but asking twice would be two calls for one list.
   const invoiceCountsQuery = useQuery({
-    queryKey: ['panel-invoice-counts'],
-    enabled: isStaff,
+    queryKey: ['panel-invoice-counts', activeAccountId],
+    enabled: isStaff || canSell,
     staleTime: 1000 * 60 * 2,
     queryFn: async () => {
       const invoices = await api.invoices.list(200) as any[];
-      return { total: invoices.length, pending: invoices.filter(i => i.status === 'Pending').length };
+      return {
+        total: invoices.length,
+        pending: invoices.filter(i => i.status === 'Pending').length,
+        waiting: invoicesWaiting(invoices),
+      };
     },
   });
   const pendingCount = invoiceCountsQuery.data?.pending ?? 0;
@@ -1005,6 +1010,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, initialView
                 canReadAtlas={canReadAtlas}
                 membershipsCount={memberships.length}
                 pendingInvoiceCount={pendingCount}
+                waitingInvoices={invoiceCountsQuery.data?.waiting ?? null}
                 todayEventCount={todayEventCount}
                 inboundUnreadCount={inboundUnreadCount}
                 journalLastAt={tastingJournal[0]?.createdAt ?? null}

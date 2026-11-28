@@ -7820,21 +7820,40 @@ const handleUpdateInvoiceDetails: Handler = async (request, env, params) => {
     return invalidInvoiceResponse(error);
   }
   const invoice = await env.DB.prepare(
-    'SELECT invoice_number, customer_name, notes, created_at, status FROM invoices WHERE id = ? AND account_id = ? AND deleted_at IS NULL'
+    'SELECT invoice_number, customer_name, customer_id, notes, created_at, status FROM invoices WHERE id = ? AND account_id = ? AND deleted_at IS NULL'
   ).bind(params.id, accountId).first<Record<string, any>>();
   if (!invoice) return restError(404, 'Invoice not found', 'invoice_not_found');
   const plan = planInvoiceDetailsEdit(invoice, body);
   if (!plan.ok) return restError(400, plan.message, plan.error);
   if (plan.sets.length === 0) return json({ success: true, changed: [] });
-  const results = await env.DB.batch([
+  // A name fixed on the invoice is fixed on the customer too (Adrian,
+  // 2026-11-28, "Her name is Tiya"), when the customer was called what the
+  // invoice was: a customer named differently on purpose is left alone.
+  const newName = typeof body.customer_name === 'string' ? body.customer_name.trim() : '';
+  const customer = newName && invoice.customer_id ? await env.DB.prepare(
+    'SELECT id, name FROM customers WHERE id = ? AND account_id = ?'
+  ).bind(invoice.customer_id, accountId).first<{ id: string; name: string | null }>() : null;
+  const renameCustomer = !!customer && sameName(customer.name, invoice.customer_name) && !sameName(customer.name, newName);
+  const changes = renameCustomer ? [...plan.changes, 'customer record renamed too'] : plan.changes;
+  const statements = [
     env.DB.prepare(`UPDATE invoices SET ${plan.sets.join(', ')} WHERE id = ? AND account_id = ? AND status = ?`)
       .bind(...plan.values, params.id, accountId, invoice.status),
-    buildActivityLog(env, 'INVOICE_EDITED', `Invoice ${invoice.invoice_number} edited: ${plan.changes.join('; ')}.`,
+    buildActivityLog(env, 'INVOICE_EDITED', `Invoice ${invoice.invoice_number} edited: ${changes.join('; ')}.`,
       getUserEmail(request), 'invoice', params.id, accountId),
-  ]);
+  ];
+  if (renameCustomer) {
+    statements.push(env.DB.prepare('UPDATE customers SET name = ? WHERE id = ? AND account_id = ?').bind(newName, customer!.id, accountId));
+    statements.push(buildActivityLog(env, 'CUSTOMER_UPDATED', `Customer "${customer!.name ?? ''}" renamed "${newName}" from invoice ${invoice.invoice_number}.`,
+      getUserEmail(request), 'customer', customer!.id, accountId));
+  }
+  const results = await env.DB.batch(statements);
   if (!Number(results[0]?.meta?.changes || 0)) return restError(409, 'Invoice changed before the edit could be applied', 'invoice_edit_conflict');
-  return json({ success: true, changed: plan.changes });
+  return json({ success: true, changed: changes, customer_renamed: renameCustomer });
 };
+
+function sameName(a: unknown, b: unknown): boolean {
+  return String(a ?? '').trim().toLowerCase() === String(b ?? '').trim().toLowerCase();
+}
 
 // ── RPC: Link Line Item to Product (with retroactive stock deduction if fulfilled) ──
 const handleLinkLineItem: Handler = async (request, env) => {

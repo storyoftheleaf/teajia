@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { OrderRefund } from './OrderRefund';
@@ -181,6 +181,10 @@ export const OrdersView = () => {
   const [splitInvoice, setSplitInvoice] = useState<DbOrder | null>(null);
   // The invoice being edited is a step in the address, so Back closes it.
   const [editId, setEditId] = useStepParam('edit');
+  // The open invoice is a step in the address too, so Your Table (and Back)
+  // can open and close it: /admin/activity?invoice=<id>.
+  const [invoiceParam, setInvoiceParam] = useStepParam('invoice');
+  const openingInvoice = useRef<string | null>(null);
 
   // Quick Invoice + link-later state
   const [showQuickInvoice, setShowQuickInvoice] = useState(false);
@@ -248,6 +252,12 @@ export const OrdersView = () => {
     ? orders.find(order => order.id === editId) ?? (viewingInvoice?.id === editId ? viewingInvoice : null)
     : null;
   const setEditInvoice = (order: DbOrder | null) => setEditId(order ? order.id : null);
+  const closeInvoice = () => {
+    setViewingInvoice(null);
+    setInvoiceTimeline([]);
+    openingInvoice.current = null;
+    if (invoiceParam) setInvoiceParam(null);
+  };
   const isLoading = !tokenScoped || ordersQuery.isPending;
   const refetch = ordersQuery.refetch;
 
@@ -288,6 +298,20 @@ export const OrdersView = () => {
   // three numbers live on the invoice rather than on the payments list. Pull the
   // list again and fold the fresh row into the open modal, keeping the line
   // items already loaded into it.
+  // Open the invoice the address names; leaving the step (Back) closes it.
+  useEffect(() => {
+    if (!invoiceParam) {
+      openingInvoice.current = null;
+      if (viewingInvoice) { setViewingInvoice(null); setInvoiceTimeline([]); }
+      return;
+    }
+    if (viewingInvoice?.id === invoiceParam || openingInvoice.current === invoiceParam) return;
+    const order = orders.find(candidate => candidate.id === invoiceParam);
+    if (!order) return;
+    openingInvoice.current = invoiceParam;
+    void handleView(order);
+  }, [invoiceParam, orders]);
+
   const refreshViewedInvoice = async (requireFresh = false) => {
     const result = await refetch();
     if (result.isError && requireFresh) throw new Error('Could not refresh order balance');
@@ -593,7 +617,7 @@ export const OrdersView = () => {
                         <span className="text-xs text-tea-text-sec">{new Date(order.created_at).toLocaleDateString()}</span>
                       </td>
                       <td className="px-4 align-middle overflow-hidden border-l border-tea-border">
-                        <span className="num text-xs text-tea-text group-hover:text-tea-gold cursor-pointer transition-colors" onClick={() => handleView(order)}>{order.invoice_number}</span>
+                        <span className="num text-xs text-tea-text group-hover:text-tea-gold cursor-pointer transition-colors" onClick={() => setInvoiceParam(order.id)}>{order.invoice_number}</span>
                       </td>
                       <td className="px-4 align-middle overflow-hidden border-l border-tea-border">
                         <button
@@ -675,7 +699,7 @@ export const OrdersView = () => {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleView(order)}
+                            onClick={() => setInvoiceParam(order.id)}
                             icon={<Eye size={14} />}
                             title="View Details"
                           />
@@ -747,7 +771,7 @@ export const OrdersView = () => {
                           <span>{new Date(order.created_at).toLocaleDateString()}</span>
                           <span className="text-tea-text-dim">·</span>
                           <button
-                            onClick={() => handleView(order)}
+                            onClick={() => setInvoiceParam(order.id)}
                             className="num hover:text-tea-text transition-colors"
                           >{order.invoice_number}</button>
                           {order.source_event_title && (
@@ -819,7 +843,7 @@ export const OrdersView = () => {
                         variant="ghost"
                         size="sm"
                         className="tap-target"
-                        onClick={() => handleView(order)}
+                        onClick={() => setInvoiceParam(order.id)}
                         icon={<Eye size={16} />}
                       />
                       <MobileActions
@@ -856,7 +880,7 @@ export const OrdersView = () => {
       {viewingInvoice && (
         <div className="fixed inset-0 z-modal flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
             <div role="dialog" aria-modal="true" aria-label="Order details" className="bg-tea-bg border border-tea-border rounded-xl w-full max-w-3xl p-4 md:p-6 pb-nav-gap shadow-2xl relative max-h-[90vh] overflow-y-auto custom-scrollbar">
-                <button onClick={() => { setViewingInvoice(null); setInvoiceTimeline([]); }} className="absolute top-4 right-4 tap-target text-tea-text-sec hover:text-tea-text transition-colors" aria-label="Close">
+                <button onClick={closeInvoice} className="absolute top-4 right-4 tap-target text-tea-text-sec hover:text-tea-text transition-colors" aria-label="Close">
                     <X size={24} />
                 </button>
 
@@ -1082,7 +1106,7 @@ export const OrdersView = () => {
                 {canShip(viewingInvoice) && (
                      <div className="mt-8 pt-6 border-t border-tea-border">
                         <button
-                            onClick={() => { setViewingInvoice(null); openShipConfirm(viewingInvoice); }}
+                            onClick={() => { closeInvoice(); openShipConfirm(viewingInvoice); }}
                             className="btn-primary btn-primary-lg w-full flex"
                         >
                             <PackageCheck size={18} /> Mark Shipped

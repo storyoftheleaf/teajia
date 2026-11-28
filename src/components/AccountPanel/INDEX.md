@@ -10,6 +10,7 @@
 - `AccountSwitcherChip.tsx`: which table the person is sitting at, and the switch between tables.
 - `TastingJournalView.tsx`, `MyCollection.tsx`, `CellarView.tsx`: personal tea surfaces.
 - `workflows.ts`: the signed-out explore links (`READER_EXPLORE_LINKS`).
+- `invoicesWaiting.ts`: the invoices still owed money that Your Table lists for a seller, each opening `/admin/activity?invoice=<id>`.
 - `primitives.tsx`: `NeedsAttention`, `ListShell` and `daysWord`, the pieces the views still share.
 - `types.ts`: panel-local view types.
 
