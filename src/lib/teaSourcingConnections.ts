@@ -1,5 +1,5 @@
 import type { InventoryReceipt } from '../admin/types';
-import type { ShopOrder } from '../components/CurateV2/shopOrders';
+import type { ShopOrder } from '../components/curate/shopOrders';
 import type { TeaCompassEntry } from '../components/TeaCompass/types';
 
 export type SourcingIdentity = Pick<TeaCompassEntry, 'id' | 'draftProductId'>;

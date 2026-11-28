@@ -4,12 +4,12 @@
 export type PourTea = {
   id: string; name: string; product_name: string | null; chinese_name: string | null; type: string | null; classification: string | null;
   year: number | null; image_url: string | null; stock_grams: number | null; status: string | null;
-  created_at: string | null; sample: number;
+  created_at: string | null; sample: number; can_deduct?: boolean;
   /** What a gram sells for on the shelf, in US dollars; null where it is not known. */
   price_per_gram?: number | null;
 };
 export type PouredTea = {
-  id: string; product_id: string | null; name: string; grams: number | null; short: boolean;
+  id: string; product_id: string | null; name: string; grams: number | null; short: boolean; can_take_back: boolean;
   image_url: string | null; stock_grams: number | null;
 };
 export type PourSit = {

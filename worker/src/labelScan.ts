@@ -26,7 +26,7 @@ export const LABEL_SCAN_CLAUDE_MODEL = 'claude-sonnet-5-5';
 export const LABEL_SCAN_GEMINI_MODEL = 'gemini-2.0-flash';
 
 // Field names are the contract with the browser (parseExtractResult in
-// src/components/CurateV2/PhotoCapture.tsx and its TeaCompass twin) and with
+// src/components/curate/PhotoCapture.tsx and its TeaCompass twin) and with
 // the intake desk (src/admin/lib/intakeMapping.ts, extractedToStaged). The
 // first block is the original contract; the second is what a Chinese package
 // usually also carries, which lands in the tea's notes.

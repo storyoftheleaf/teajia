@@ -3,7 +3,7 @@ import { ChevronRight, RotateCcw } from 'lucide-react';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { api } from '../../lib/api';
 import { TEA_TYPE_COLORS } from '../../designTokens';
-import type { TeaCompassEntry } from './types';
+import type { TeaCompassEntry } from '../curate/types';
 
 interface VendorHistoryProps {
   vendorId?: string;

@@ -2,9 +2,9 @@ import { useTeaCompassStore } from '../../../../lib/teaCompassStore';
 import { useLedgerStore } from '../../../../lib/ledgerStore';
 import { useAppStore } from '../../../../lib/store';
 import { hydrateCompassEntries } from '../../../../lib/teaCompassSync';
-import { addTeaToDraftOrder } from '../../../../components/CurateV2/orderBuy';
-import { orderLinePrice } from '../../../../components/CurateV2/curateV2Model';
-import { createEmptyEntry, type TeaCompassEntry } from '../../../../components/CurateV2/types';
+import { addTeaToDraftOrder } from '../../../../components/curate/orderBuy';
+import { orderLinePrice } from '../../../../components/curate/curateV2Model';
+import { createEmptyEntry, type TeaCompassEntry } from '../../../../components/curate/types';
 import type { Currency, Product } from '../../../types';
 
 // What a sample row can decide, written through Curate's own store so it syncs

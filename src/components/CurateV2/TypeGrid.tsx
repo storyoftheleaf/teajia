@@ -1,6 +1,6 @@
 import React from 'react';
 import { TEA_TYPES } from '../../wisdom';
-import type { TeaType } from './types';
+import type { TeaType } from '../curate/types';
 
 interface TypeGridProps {
   selected?: TeaType;

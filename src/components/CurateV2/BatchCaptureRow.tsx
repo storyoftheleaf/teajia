@@ -2,7 +2,7 @@ import React, { useRef, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { TEA_TYPES } from '../../wisdom';
-import type { TeaType } from './types';
+import type { TeaType } from '../curate/types';
 import { getTeaColor } from '../../designTokens';
 
 interface BatchCaptureRowProps {
@@ -30,7 +30,7 @@ export const BatchCaptureRow: React.FC<BatchCaptureRowProps> = ({ onAdded }) => 
 
     const prevId = activeEntryId;
     const id = startNewCapture('tea');
-    const updates: Partial<import('./types').TeaCompassEntry> = { name: name.trim() };
+    const updates: Partial<import('../curate/types').TeaCompassEntry> = { name: name.trim() };
     if (type) updates.type = type;
     updateEntry(id, updates);
     commitEntry(id); // immediately commit as a minimal entry

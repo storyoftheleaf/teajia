@@ -2,10 +2,10 @@ import React, { useMemo, useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { useRates, useShopFreightDefault } from '../../admin/hooks/useAdminData';
-import { curateShelfPreview } from './curatePricing';
-import { FAST_TASTING, pieceWeightGrams, quotedUnit, readFast, type FastQuestion, listName } from './curateV2Model';
-import { CURRENCY_LABELS } from './PricingRow';
-import type { TeaCompassEntry } from './types';
+import { curateShelfPreview } from '../curate/curatePricing';
+import { FAST_TASTING, pieceWeightGrams, quotedUnit, readFast, type FastQuestion, listName } from '../curate/curateV2Model';
+import { CURRENCY_LABELS } from '../curate/PricingRow';
+import type { TeaCompassEntry } from '../curate/types';
 import { isUnrecordedCurrency, rateToUsd } from '../../lib/currency';
 import { Section } from './TodayView';
 

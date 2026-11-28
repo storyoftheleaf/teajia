@@ -5,7 +5,7 @@ import { ImportInput } from './ImportInput';
 import { ImportBatchReview } from './ImportBatchReview';
 import type { ImportDraft, ImportPanelState } from './importTypes';
 import { TYPOGRAPHY_CLASSES } from '../../../designTokens';
-import type { CurateJourney } from '../types';
+import type { CurateJourney } from '../../curate/types';
 import type { ImportVendorOption } from './ImportVendorGroup';
 import { normalizeImportDetail } from './importReviewDomain';
 import { clearImportDraft, loadImportDraft, saveImportDraft } from './importDraftStorage';

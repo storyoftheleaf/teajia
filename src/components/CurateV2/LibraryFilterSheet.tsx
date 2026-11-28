@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { BottomSheet } from './CurateSheet';
-import type { LibraryFilters } from './types';
+import { BottomSheet } from '../curate/CurateSheet';
+import type { LibraryFilters } from '../curate/types';
 
 type FilterGroup = 'Encounter' | 'Tea' | 'State' | 'Samples & Inventory' | 'Completeness';
 const FILTER_GROUPS: FilterGroup[] = ['Encounter', 'Tea', 'State', 'Samples & Inventory', 'Completeness'];

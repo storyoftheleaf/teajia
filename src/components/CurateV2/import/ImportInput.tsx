@@ -2,7 +2,7 @@ import React, { useRef } from 'react';
 import { Camera, FileUp } from 'lucide-react';
 import { ImportEvidencePreview } from './ImportEvidencePreview';
 import type { ImportDraft, ImportEvidence } from './importTypes';
-import type { CurateJourney } from '../types';
+import type { CurateJourney } from '../../curate/types';
 import { ImportJourneyPicker } from './ImportJourneyPicker';
 import { IMPORT_BATCH_MAX_BYTES, IMPORT_SOURCE_MAX_COUNT, prepareImportEvidenceFile } from './importEvidenceSelection';
 import type { LookupState } from '../../../lib/api';

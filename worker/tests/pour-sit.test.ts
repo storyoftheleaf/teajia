@@ -4,7 +4,8 @@ import { hashAfterSitCredential } from '../src/afterSitCredential';
 import { pouredGrams, pourSitRoutes, sitTitleFor } from '../src/pourSit';
 import { wayMediaVerdict, WAY_MEDIA_ORIGIN } from '../src/wayMedia';
 import { sitWayOpen } from '../../shared/sessionEnd';
-import { seedIdentity, SqliteD1 } from './helpers/sqliteD1';
+import worker from '../src/index';
+import { seedIdentity, signedToken, SqliteD1 } from './helpers/sqliteD1';
 
 type Env = { DB: D1Database; JWT_SECRET?: string };
 let db: SqliteD1;
@@ -46,7 +47,7 @@ async function call(method: string, pattern: string, options: {
 
 const today = new Date().toISOString().slice(0, 10);
 const pour = (body: Record<string, unknown>, host = 'shop-a') =>
-  call('POST', '/api/admin/pour', { host, body: { date: today, timezone: 'UTC', ...body } });
+  call('POST', '/api/admin/pour', { host, hostUser: host === 'shop-a' ? 'host' : 'guest', body: { date: today, timezone: 'UTC', ...body } });
 const stock = (id: string) => (db.sqlite.prepare('SELECT stock_grams, status FROM products WHERE id = ?').get(id) as { stock_grams: number; status: string });
 const codeOf = (link: string) => link.split('/sit/')[1];
 
@@ -220,10 +221,10 @@ describe('the pour page', () => {
 
   it('takes a pour back, and its grams with it', async () => {
     const { body } = await pour({ product_id: 'scrap', grams: 8 });
-    const undone = await call('DELETE', '/api/admin/pour/:menuId', { host: 'shop-a', params: { menuId: body.poured } });
+    const undone = await call('DELETE', '/api/admin/pour/:menuId', { host: 'shop-a', hostUser: 'host', params: { menuId: body.poured } });
     expect(undone.body.sit.teas).toEqual([]);
     expect(stock('scrap')).toEqual({ stock_grams: 5, status: 'Active' });
-    const again = await call('DELETE', '/api/admin/pour/:menuId', { host: 'shop-a', params: { menuId: body.poured } });
+    const again = await call('DELETE', '/api/admin/pour/:menuId', { host: 'shop-a', hostUser: 'host', params: { menuId: body.poured } });
     expect(again.status).toBe(404);
     expect(stock('scrap').stock_grams).toBe(5);
   });
@@ -362,5 +363,91 @@ describe('the day the way in closes', () => {
     expect(sitWayOpen(timed, Date.parse('2026-11-27T15:59:00Z'))).toBe(true);
     expect(sitWayOpen(timed, Date.parse('2026-11-27T16:00:00Z'))).toBe(false);
     expect(sitWayOpen({ ...sit, lifecycle_status: 'cancelled' }, Date.parse('2026-11-27T10:00:00Z'))).toBe(false);
+  });
+});
+
+describe('stock authority through the worker', () => {
+  async function request(path: string, userId: string, accountId: string, method = 'GET', body?: unknown) {
+    const token = await signedToken(jwtSecret, {
+      sub: userId, name: userId, email: `${userId}@test.dev`, active_account_id: accountId, role: 'user',
+    });
+    const response = await worker.fetch(new Request(`https://teajia.test${path}`, {
+      method,
+      headers: { Authorization: `Bearer ${token}`, 'X-Teajia-Account': accountId, 'Content-Type': 'application/json' },
+      body: body === undefined ? undefined : JSON.stringify(body),
+    }), { DB: db, JWT_SECRET: jwtSecret, APP_URL: 'https://teajia.test' } as never, { waitUntil() {} } as never);
+    return { status: response.status, body: await response.json() as any };
+  }
+  const base = '/api/admin/pour';
+  const makePour = (userId: string, accountId: string, productId: string, grams?: number) =>
+    request(base, userId, accountId, 'POST', { product_id: productId, date: today, timezone: 'UTC', grams });
+
+  beforeEach(() => {
+    seedIdentity(db, { userId: 'gatherer', accountId: 'shop-a', role: 'staff', bundles: ['gather'] });
+    seedIdentity(db, { userId: 'stock-staff', accountId: 'shop-a', role: 'staff', bundles: ['gather', 'stock'] });
+    seedIdentity(db, { userId: 'platform', accountId: 'platform', platformRole: 'platform_owner' });
+    seedIdentity(db, { userId: 'guest', accountId: 'shop-a', role: 'staff', bundles: ['gather'] });
+    db.exec(`
+      UPDATE accounts SET owner_user_id = 'host' WHERE id = 'shop-a';
+      UPDATE accounts SET owner_user_id = 'guest', personal_inventory_user_id = 'guest' WHERE id = 'shop-b';
+      UPDATE products SET owner_user_id = 'host' WHERE id = 'liubao';
+      UPDATE products SET owner_user_id = 'guest' WHERE id IN ('draft', 'theirs');
+    `);
+  });
+
+  it('allows a Gather-only record and undo, and needs explicit Stock permission for shop deductions and reversals', async () => {
+    const shelf = async (userId: string) => (await request(base + '/teas', userId, 'shop-a')).body.teas;
+    expect((await shelf('gatherer')).find((tea: { id: string }) => tea.id === 'liubao').can_deduct).toBe(false);
+    expect((await shelf('stock-staff')).find((tea: { id: string }) => tea.id === 'liubao').can_deduct).toBe(true);
+    expect((await makePour('gatherer', 'shop-a', 'liubao', 7.5)).status).toBe(403);
+    expect((await makePour('platform', 'shop-a', 'liubao', 7.5)).status).toBe(403);
+    expect(stock('liubao').stock_grams).toBe(100);
+    expect(db.sqlite.prepare('SELECT id FROM events').all()).toEqual([]);
+    expect(db.sqlite.prepare('SELECT id FROM event_tea_menu').all()).toEqual([]);
+    expect(db.sqlite.prepare('SELECT id FROM stock_ledger').all()).toEqual([]);
+
+    const logged = await makePour('gatherer', 'shop-a', 'liubao');
+    expect(logged.status).toBe(201);
+    expect(logged.body.sit.teas[0]).toMatchObject({ grams: null, can_take_back: true, short: false });
+    expect((await request(base + '/' + logged.body.poured, 'gatherer', 'shop-a', 'DELETE')).status).toBe(200);
+    expect(stock('liubao').stock_grams).toBe(100);
+
+    const weighed = await makePour('stock-staff', 'shop-a', 'liubao', 7.5);
+    expect(weighed.status).toBe(201);
+    expect(stock('liubao').stock_grams).toBe(92.5);
+    const rowId = weighed.body.poured;
+    const menu = `/api/admin/events/${weighed.body.sit.id}/tea-menu`;
+    expect((await request(menu + '/' + rowId, 'gatherer', 'shop-a', 'DELETE')).status).toBe(409);
+    expect((await request(menu, 'gatherer', 'shop-a', 'POST', [{ id: rowId, product_id: 'draft' }])).status).toBe(200);
+    expect((await request(base + '/' + rowId, 'gatherer', 'shop-a', 'DELETE')).status).toBe(403);
+    expect(stock('liubao').stock_grams).toBe(92.5);
+    expect(db.sqlite.prepare('SELECT product_id, stock_taken_grams FROM event_tea_menu WHERE id = ?').get(rowId))
+      .toEqual({ product_id: 'liubao', stock_taken_grams: 7.5 });
+    expect((await request(base + '/' + rowId, 'stock-staff', 'shop-a', 'DELETE')).status).toBe(200);
+    expect(stock('liubao').stock_grams).toBe(100);
+    expect(db.sqlite.prepare('SELECT delta, balance_after FROM stock_ledger ORDER BY rowid').all())
+      .toEqual([{ delta: -7.5, balance_after: 92.5 }, { delta: 7.5, balance_after: 100 }]);
+  });
+
+  it('lets each actual owner use their holdings and isolates third-party stock in either account', async () => {
+    expect((await makePour('host', 'shop-a', 'draft', 1.25)).status).toBe(403);
+    expect((await makePour('stock-staff', 'shop-a', 'draft', 1.25)).status).toBe(403);
+    expect((await makePour('guest', 'shop-a', 'liubao', 1.25)).status).toBe(403);
+    expect((await makePour('guest', 'shop-a', 'draft', 1.5)).status).toBe(201);
+    expect(stock('draft').stock_grams).toBe(2.5);
+    expect((await makePour('host', 'shop-a', 'liubao', 2.5)).status).toBe(201);
+    expect(stock('liubao').stock_grams).toBe(97.5);
+
+    for (const actor of ['host', 'platform', 'stock-staff']) {
+      expect((await makePour(actor, 'shop-b', 'theirs', 3.5)).status).toBe(403);
+    }
+    expect((await makePour('guest', 'shop-a', 'theirs', 3.5)).status).toBe(404);
+    expect(stock('theirs').stock_grams).toBe(50);
+    const personal = await makePour('guest', 'shop-b', 'theirs', 3.5);
+    expect(personal.status).toBe(201);
+    expect(stock('theirs').stock_grams).toBe(46.5);
+    expect((await request(base + '/' + personal.body.poured, 'platform', 'shop-b', 'DELETE')).status).toBe(403);
+    expect((await request(base + '/' + personal.body.poured, 'guest', 'shop-b', 'DELETE')).status).toBe(200);
+    expect(stock('theirs').stock_grams).toBe(50);
   });
 });

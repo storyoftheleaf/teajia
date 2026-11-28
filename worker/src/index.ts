@@ -15394,8 +15394,8 @@ const handleUpsertTeaMenu: Handler = async (request, env, params) => {
     if (item.id) {
       stmts.push(
         env.DB.prepare(
-          `UPDATE event_tea_menu SET product_id = ?, custom_name = ?, custom_description = ?, reveal_date = ?, brew_order = ?
-           WHERE id = ? AND event_id = ?`
+          `UPDATE event_tea_menu SET product_id = CASE WHEN stock_taken_grams > 0 THEN product_id ELSE ? END, custom_name = ?, custom_description = ?, reveal_date = ?, brew_order = ?
+           WHERE id = ? AND event_id = ? AND account_id = ?`
         ).bind(
           item.product_id || null,
           item.custom_name || null,
@@ -15403,7 +15403,8 @@ const handleUpsertTeaMenu: Handler = async (request, env, params) => {
           item.reveal_date || null,
           item.brew_order ?? null,
           item.id,
-          params.id
+          params.id,
+          accountId
         )
       );
     } else {
@@ -15447,9 +15448,16 @@ const handleDeleteTeaMenuItem: Handler = async (request, env, params) => {
   const guard = await assertEventInAccount(env, params.id, accountId);
   if (guard) return guard;
 
-  await env.DB.prepare(
-    'DELETE FROM event_tea_menu WHERE id = ? AND event_id = ?'
-  ).bind(params.itemId, params.id).run();
+  const deleted = await env.DB.prepare(
+    `DELETE FROM event_tea_menu WHERE id = ? AND event_id = ? AND account_id = ?
+        AND COALESCE(stock_taken_grams, 0) = 0`,
+  ).bind(params.itemId, params.id, accountId).run();
+  if (!deleted.meta?.changes) {
+    const stocked = await env.DB.prepare(
+      `SELECT 1 FROM event_tea_menu WHERE id = ? AND event_id = ? AND account_id = ? AND stock_taken_grams > 0`,
+    ).bind(params.itemId, params.id, accountId).first();
+    if (stocked) return restError(409, 'Take this tea back from Pour to return its grams to stock.', 'pour_stock_take_back_required');
+  }
 
   return json({ success: true });
 };

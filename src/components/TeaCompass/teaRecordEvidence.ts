@@ -1,6 +1,6 @@
 import type { Note } from '../../lib/notesStore';
 import { knownCurrency, sameCurrency } from '../../lib/currency';
-import { applySaidParts, type SaidPart } from '../CurateV2/saidFiling';
+import { applySaidParts, type SaidPart } from '../curate/saidFiling';
 import type { TeaCompassEntry } from './types';
 import { TEA_FORMS, SEASONS } from '../../wisdom';
 

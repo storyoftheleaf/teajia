@@ -1,9 +1,9 @@
 import React, { useEffect, useRef } from 'react';
-import { BottomSheet } from './CurateSheet';
+import { BottomSheet } from '../curate/CurateSheet';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { SampleUseLine } from './SampleUseLine';
-import { useSampleUse } from './sampleUse';
-import { FAST_TASTING, applyFast, readFast, type FastQuestion, listName } from './curateV2Model';
+import { useSampleUse } from '../curate/sampleUse';
+import { FAST_TASTING, applyFast, readFast, type FastQuestion, listName } from '../curate/curateV2Model';
 
 interface FastTastingSheetProps {
   entryId: string | null;
