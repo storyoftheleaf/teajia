@@ -19,6 +19,7 @@ import { boughtLineChestState, boughtLineQuantityUnit, keepBoughtLine, type Boug
 import { firstTableOpen } from '../../src/lib/firstTable';
 import { createHostArticleHandlers, isHostArticleId } from './hostArticleOffers';
 import { favouritesRoutes } from './favourites';
+import { emailConsentErasureStatements, emailConsentRoutes, signupEmailConsentStatements } from './emailConsent';
 import { practiceColumnsRemoved, practiceLinesRoutes } from './practiceLines';
 import { servesAtRoutes } from './servesAt';
 import { setTeaSpaceShown, teaSpacesPageRoutes } from './teaSpacesPage';
@@ -1986,7 +1987,7 @@ const handleLogin: Handler = async (request, env) => {
 const USERNAME_PATTERN = /^[a-zA-Z0-9_.-]{3,32}$/;
 
 const handleSignup: Handler = async (request, env) => {
-  const body = await request.json() as { email?: string; password?: string; name?: string; username?: string };
+  const body = await request.json() as { email?: string; password?: string; name?: string; username?: string; email_updates?: unknown };
   const email = body.email?.trim();
   const password = body.password;
   const name = body.name;
@@ -2029,6 +2030,10 @@ const handleSignup: Handler = async (request, env) => {
   await env.DB.prepare(
     'INSERT INTO users (id, email, username, name, password_hash, role) VALUES (?, ?, ?, ?, ?, ?)'
   ).bind(id, email, username, name || '', passwordHash, 'user').run();
+  // The sign-up box: Teajia's answer, kept with when and which words were shown.
+  if (typeof body.email_updates === 'boolean') {
+    await env.DB.batch(signupEmailConsentStatements(env.DB, id, body.email_updates, 'signup'));
+  }
 
   const code = generateVerificationCode();
   const codeHash = await signVerificationCode(code, env.VERIFICATION_CODE_SECRET || env.JWT_SECRET);
@@ -2042,6 +2047,7 @@ const handleSignup: Handler = async (request, env) => {
   if (!delivery.delivered && env.DEV_RETURN_VERIFY_CODES !== 'true') {
     await env.DB.batch([
       env.DB.prepare('DELETE FROM identity_email_verifications WHERE user_id = ?').bind(id),
+      ...emailConsentErasureStatements(env.DB, id),
       env.DB.prepare('DELETE FROM users WHERE id = ?').bind(id),
     ]);
     return restError(503, 'We could not send the verification code', 'verification_delivery_failed', { retryable: delivery.retryable });
@@ -2375,6 +2381,7 @@ const handleDeleteAccount: Handler = async (request, env) => {
     env.DB.prepare('DELETE FROM refresh_tokens WHERE user_id = ?').bind(claims.sub),
     env.DB.prepare("UPDATE mcp_tokens SET revoked_at = datetime('now') WHERE user_id = ? AND revoked_at IS NULL").bind(claims.sub),
     env.DB.prepare('DELETE FROM account_members WHERE user_id = ?').bind(claims.sub),
+    ...emailConsentErasureStatements(env.DB, claims.sub),
     env.DB.prepare('DELETE FROM users WHERE id = ?').bind(claims.sub),
   ]); } catch (error) {
     // The batch is one transaction, so nothing was removed. Older records
@@ -34037,6 +34044,7 @@ const routes: [string, string, Handler][] = [
   ['DELETE', '/api/me/private-sits/:id/photos/:photoId', handleMemberPrivateSitPhotos],
   ['PUT', '/api/me/private-sits/:id/photos/:photoId/share', handleMemberPrivateSitPhotos],
   ...favouritesRoutes<Env>({ requireUser: requireAuthenticatedUser }),
+  ...emailConsentRoutes<Env>({ requireUser: requireAuthenticatedUser }),
   ...practiceLinesRoutes<Env>({ optionalUser: optionalAuthenticatedUser, requireUser: requireAuthenticatedUser }),
   ...servesAtRoutes<Env>(),
   ...teaSpacesPageRoutes<Env>(),

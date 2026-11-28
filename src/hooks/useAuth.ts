@@ -14,6 +14,7 @@ import {
   type PendingSignup,
 } from '../lib/api';
 import { useAppStore, type AuthUser } from '../lib/store';
+import { finishHeldSignupEmailConsent } from '../lib/emailConsentApi';
 
 export type { AuthUser };
 
@@ -95,7 +96,7 @@ interface UseAuthReturn {
    *  authenticated API calls before the server has validated the stored token. */
   isSessionReady: boolean;
   login: (identifier: string, password: string) => Promise<void>;
-  signup: (email: string, password: string, name: string, username?: string | null) => Promise<PendingSignup>;
+  signup: (email: string, password: string, name: string, username?: string | null, emailUpdates?: boolean) => Promise<PendingSignup>;
   verifySignup: (pending: PendingSignup, code: string) => Promise<void>;
   resendSignup: (pending: PendingSignup) => Promise<PendingSignup>;
   redeemJoinCode: (data: { code: string; first_name: string; email: string }) => Promise<{ session_id: string; session_title: string | null; is_new_user: boolean }>;
@@ -151,6 +152,8 @@ export function useAuth(): UseAuthReturn {
 
   const completeSignIn = useCallback((token: string) => {
     establishSession(token);
+    // Google sign-in ends here: the sign-up page's email box, if it was left.
+    finishHeldSignupEmailConsent();
     setIsSessionReady(false);
     void checkSession();
   }, [checkSession]);
@@ -225,8 +228,8 @@ export function useAuth(): UseAuthReturn {
     establishSession(result.token);
   }, []);
 
-  const signup = useCallback(async (email: string, password: string, name: string, username?: string | null) => {
-    return api.auth.signup(email, password, name, username);
+  const signup = useCallback(async (email: string, password: string, name: string, username?: string | null, emailUpdates?: boolean) => {
+    return api.auth.signup(email, password, name, username, emailUpdates);
   }, []);
 
   const verifySignup = useCallback(async (pending: PendingSignup, code: string) => {
