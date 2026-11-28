@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { wholesaleCurrenciesMatch } from '../../lib/wholesaleQuote';
 import { api } from '../../lib/api';
 import { useAppStore, selectHasBundle } from '../../lib/store';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
@@ -198,10 +199,11 @@ const Divider: React.FC<{ className?: string }> = ({ className = 'my-6' }) => (
 
 interface SupplierConfirmAreaProps {
   orderId: string;
+  currency: string;
   onTransitioned: () => void;
 }
 
-const SupplierConfirmArea: React.FC<SupplierConfirmAreaProps> = ({ orderId, onTransitioned }) => {
+const SupplierConfirmArea: React.FC<SupplierConfirmAreaProps> = ({ orderId, currency, onTransitioned }) => {
   const [mode, setMode] = useState<'idle' | 'confirm' | 'reply'>('idle');
   const [shippingAmount, setShippingAmount] = useState('');
   const [supplierNotes, setSupplierNotes] = useState('');
@@ -278,7 +280,7 @@ const SupplierConfirmArea: React.FC<SupplierConfirmAreaProps> = ({ orderId, onTr
           <div className="space-y-4">
             <div>
               <label className="text-tea-text-sec text-ui-12 block mb-1.5" htmlFor="shipping-amount">
-                Shipping amount
+                Shipping amount ({currency}, optional)
               </label>
               <input
                 id="shipping-amount"
@@ -287,7 +289,7 @@ const SupplierConfirmArea: React.FC<SupplierConfirmAreaProps> = ({ orderId, onTr
                 step="0.01"
                 value={shippingAmount}
                 onChange={e => setShippingAmount(e.target.value)}
-                placeholder="0.00"
+                placeholder="Pending quote"
                 className="bg-transparent border-b border-tea-border focus:border-tea-gold outline-none font-mono text-ui-14 text-tea-text py-1 w-40 transition-colors placeholder:text-tea-text-dim"
                 disabled={submitting}
               />
@@ -900,6 +902,7 @@ interface OrderSummaryProps {
 
 const OrderSummary: React.FC<OrderSummaryProps> = ({ items, order }) => {
   const { currency, subtotal_amount, shipping_amount, total_amount } = order;
+  const hasMixedCurrency = items.some(item => !wholesaleCurrenciesMatch(item.unit_price_currency, currency));
 
   return (
     <div>
@@ -925,7 +928,10 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({ items, order }) => {
       <Divider className="my-3" />
 
       <div className="space-y-1.5">
-        {subtotal_amount != null && (
+        {hasMixedCurrency && (
+          <p className="text-tea-text-sec text-ui-13">Line currencies differ from the order currency. Review the quote before proceeding.</p>
+        )}
+        {!hasMixedCurrency && subtotal_amount != null && (
           <div className="flex items-baseline justify-between gap-4">
             <span className="font-sans text-ui-11 uppercase tracking-[0.1em] text-tea-text-sec">Subtotal</span>
             <span className="font-mono text-ui-13 text-tea-text">{formatAmount(subtotal_amount, currency)}</span>
@@ -936,13 +942,13 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({ items, order }) => {
             {shipping_amount != null ? 'Shipping (added on confirm)' : 'Shipping'}
           </span>
           <span className="font-mono text-ui-13 text-tea-text">
-            {shipping_amount != null ? formatAmount(shipping_amount, currency) : 'Estimated by supplier on confirm'}
+            {shipping_amount != null ? formatAmount(shipping_amount, currency) : 'Quote pending'}
           </span>
         </div>
-        {total_amount != null && (
+        {!hasMixedCurrency && total_amount != null && (
           <div className="flex items-baseline justify-between gap-4 pt-1">
             <span className="font-sans text-ui-11 uppercase tracking-[0.1em] text-tea-text">Total</span>
-            <span className="font-mono text-ui-13 text-tea-text font-medium">{formatAmount(total_amount, currency)}</span>
+            <span className="font-mono text-ui-13 text-tea-text font-medium">{formatAmount(total_amount, currency)}{shipping_amount == null && ' + shipping'}</span>
           </div>
         )}
       </div>
@@ -1122,7 +1128,7 @@ export const WholesaleOrderTimeline: React.FC = () => {
 
       {/* Action areas */}
       {status === 'submitted' && role === 'supplier' && (
-        <SupplierConfirmArea orderId={orderId!} onTransitioned={load} />
+        <SupplierConfirmArea orderId={orderId!} currency={order.currency} onTransitioned={load} />
       )}
 
       {status === 'confirmed' && role === 'supplier' && (

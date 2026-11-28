@@ -181,21 +181,90 @@ describe('wholesale money lands where the payment ledger can see it', () => {
     return db;
   }
 
-  async function receive(db: SqliteD1) {
+  async function wholesaleRequest(db: SqliteD1, path: string, method: string, body?: unknown, accountId = BUYER) {
+    const userId = accountId === BUYER ? BUYER_USER : 'user-supplier';
     const token = await signedToken(SECRET, {
-      sub: BUYER_USER, email: `${BUYER_USER}@test.dev`, name: BUYER_USER,
-      active_account_id: BUYER, platform_role: null,
+      sub: userId, email: `${userId}@test.dev`, name: userId,
+      active_account_id: accountId, platform_role: null,
     });
-    return worker.fetch(new Request(`https://worker.test/api/wholesale/orders/${ORDER}/transition`, {
-      method: 'POST',
+    return worker.fetch(new Request(`https://worker.test/api/wholesale/orders${path}`, {
+      method,
       headers: {
         Authorization: `Bearer ${token}`,
-        'X-Teajia-Account': BUYER,
+        'X-Teajia-Account': accountId,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ to: 'received' }),
+      body: body === undefined ? undefined : JSON.stringify(body),
     }), env(db));
   }
+
+  function receive(db: SqliteD1) {
+    return wholesaleRequest(db, `/${ORDER}/transition`, 'POST', { to: 'received' });
+  }
+
+  it.each([
+    ['CNY', 'Yuan', 100, 1.8, undefined, 180, 7.1],
+    ['AUD', 'AUD', 1000, 0.27, 0, 270, 1.5],
+    ['CNY', 'CNY', 100.5, 1.8, 12, 180.9, 7.2],
+  ] as const)('carries %s from draft to supplier confirmation and bilateral invoices (%s, %sg)', async (
+    currency, unitCurrency, grams, price, shipping, subtotal, rate,
+  ) => {
+    const db = await seedShippedOrder();
+    db.sqlite.prepare('INSERT OR REPLACE INTO exchange_rates (currency, rate_to_usd) VALUES (?, ?)')
+      .run(currency === 'CNY' ? 'Yuan' : currency, rate);
+    db.sqlite.prepare("UPDATE product_listings SET stock_grams = 2000 WHERE id = 'listing-supplier'").run();
+    const item = { supplier_listing_id: 'listing-supplier', grams, unit_price_amount: price, unit_price_currency: unitCurrency };
+    const created = await wholesaleRequest(db, '', 'POST', {
+      supplier_account_id: SUPPLIER, currency, shipping_address: 'Sydney', items: [item],
+    });
+    expect(created.status).toBe(201);
+    const { order_id: id } = await created.json() as { order_id: string };
+    const draft = `/${id}`;
+    const transition = `${draft}/transition`;
+
+    // Legacy drafts kept an unrelated AUD header. A conflicting replacement
+    // cannot overwrite the priced line; a coherent replacement repairs it.
+    if (currency !== 'AUD') {
+      db.sqlite.prepare("UPDATE wholesale_orders SET currency = 'AUD' WHERE id = ?").run(id);
+      expect((await wholesaleRequest(db, transition, 'POST', { to: 'submitted' })).status).toBe(409);
+      expect((await wholesaleRequest(db, draft, 'PUT', { items: [item] })).status).toBe(400);
+      expect((await wholesaleRequest(db, draft, 'PUT', { currency, items: [item] })).status).toBe(200);
+    }
+
+    expect((await wholesaleRequest(db, transition, 'POST', { to: 'submitted' })).status).toBe(200);
+    expect((await wholesaleRequest(db, transition, 'POST', {
+      to: 'confirmed', shipping_amount: shipping,
+    }, SUPPLIER)).status).toBe(200);
+    const response = await wholesaleRequest(db, draft, 'GET');
+    expect(response.status).toBe(200);
+    const detail = await response.json() as any;
+    expect(detail.order.currency).toBe(currency);
+    expect(detail.order.status).toBe('confirmed');
+    expect(detail.order.shipping_amount).toBe(shipping ?? null);
+    expect(detail.order.subtotal_amount).toBeCloseTo(subtotal);
+    expect(detail.order.total_amount).toBeCloseTo(subtotal + (shipping ?? 0));
+    expect(detail.items).toHaveLength(1);
+    expect(detail.items[0]).toMatchObject({ grams, unit_price_amount: price, unit_price_currency: unitCurrency });
+    expect(detail.items[0].line_total).toBeCloseTo(subtotal);
+
+    expect((await wholesaleRequest(db, transition, 'POST', {
+      to: 'shipped', tracking_number: 'local', carrier: 'local',
+    }, SUPPLIER)).status).toBe(200);
+    expect((await wholesaleRequest(db, transition, 'POST', { to: 'received' })).status).toBe(200);
+    const lines = db.sqlite.prepare(
+      'SELECT quantity, quantity_unit, price_at_sale FROM invoice_line_items',
+    ).all() as any[];
+    expect(lines).toHaveLength(2);
+    for (const line of lines) {
+      expect(line.quantity).toBe(grams);
+      expect(line.quantity_unit).toBe('g');
+      expect(line.quantity * line.price_at_sale * rate).toBeCloseTo(subtotal);
+    }
+    for (const invoice of invoices(db)) {
+      if (shipping == null) expect(invoice.shipping_cost_usd).toBeNull();
+      else expect(invoice.shipping_cost_usd).toBeCloseTo(shipping / rate);
+    }
+  });
 
   const invoices = (db: SqliteD1) => db.sqlite.prepare(
     `SELECT account_id, status, payment_status, shipping_cost_usd, fulfilled_at

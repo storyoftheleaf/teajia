@@ -166,6 +166,7 @@ import {
   type LedgerInvoice,
   type LedgerRecompute,
 } from './invoiceDomain';
+import { wholesaleCurrenciesMatch, wholesaleLineTotal } from '../../src/lib/wholesaleQuote';
 import {
   authorizeInvoiceLines,
   buildInvoiceReservationStatements,
@@ -178,7 +179,7 @@ import {
   canonicalCurrency,
   type AuthorizedInvoiceLine,
 } from './teaMasterSales';
-import { isoCurrencyCode } from '../../src/lib/currency';
+import { isoCurrencyCode, isUnrecordedCurrency } from '../../src/lib/currency';
 import { buildEventArticleDraft } from './eventArticleDraft';
 import { minimumOrderGrams, sellUnitOf } from '../../src/lib/teaPricing';
 import { readSessionServedTeas } from './sessionServedTeas';
@@ -30888,8 +30889,9 @@ const handleNetworkCatalog: Handler = async (request, env) => {
   // Build exchange rate map: currency -> rate_to_usd (i.e. 1 unit = N USD)
   const rates = new Map<string, number>();
   for (const r of ratesResult.results as any[]) {
-    rates.set(r.currency as string, r.rate_to_usd as number);
+    rates.set(canonicalCurrency(r.currency as string) ?? '', r.rate_to_usd as number);
   }
+  rates.set('USD', 1);
 
   const tierDefaultMargin: number = (tierDefaultResult.results[0] as any)?.default_margin_pct ?? 50;
 
@@ -30943,9 +30945,9 @@ const handleNetworkCatalog: Handler = async (request, env) => {
     // Currency conversion helper: convert an amount from fromCurrency to toCurrency via USD.
     // Returns null when a required rate is missing.
     const convert = (amount: number, fromCurrency: string, toCurrency: string): number | null => {
-      if (fromCurrency === toCurrency) return amount;
-      const fromRate = rates.get(fromCurrency); // units per USD
-      const toRate   = rates.get(toCurrency);   // units per USD
+      if (wholesaleCurrenciesMatch(fromCurrency, toCurrency)) return amount;
+      const fromRate = rates.get(canonicalCurrency(fromCurrency) ?? '');
+      const toRate = rates.get(canonicalCurrency(toCurrency) ?? '');
       if (!fromRate || !toRate) return null;
       return (amount / fromRate) * toRate;
     };
@@ -30972,7 +30974,7 @@ const handleNetworkCatalog: Handler = async (request, env) => {
       // the markup is applied. A cake bought for 1,200 CNY as 2,000 g of leaf
       // costs 0.6 CNY a gram, not 1,200: skipping the division here once
       // quoted a network listing at 2,000 times its real price.
-      const costCurrency = (p.curator_cost_currency as string) || 'USD';
+      const costCurrency = isUnrecordedCurrency(p.curator_cost_currency) ? 'USD' : p.curator_cost_currency;
       const markup = (p.curator_markup_multiplier as number) ?? CURATOR_FALLBACK_MARKUP;
       const quantityPurchased = p.curator_quantity_purchased as number | null;
       // No recorded quantity means no honest per-gram cost to derive from;
@@ -30992,12 +30994,12 @@ const handleNetworkCatalog: Handler = async (request, env) => {
 
     // Compute the caller's effective wholesale once retail is known.
     //   wholesale = retail_in_curator_currency * (marginPct / 100)  → convert to caller currency
-    if (retailPricePerGramCurator !== null) {
+    if (retailPricePerGramCurator !== null && !fxUnavailable) {
       const wholesaleInCuratorCurrency = retailPricePerGramCurator * (marginPct / 100);
       const converted = convert(wholesaleInCuratorCurrency, curatorCurrency, callerCurrency);
       if (converted === null) {
         fxUnavailable = true;
-        wholesalePricePerGramCaller = wholesaleInCuratorCurrency;
+        wholesalePricePerGramCaller = null;
       } else {
         wholesalePricePerGramCaller = converted;
       }
@@ -31825,25 +31827,6 @@ async function loadWholesaleOrder(
   return { order };
 }
 
-// Helper: recompute subtotal_amount + total_amount from current line items.
-// Called after add/edit/remove items in a draft. Doesn't touch shipping_amount
-// (set by supplier on confirm).
-async function rebuildOrderTotals(env: Env, orderId: string, currency: string): Promise<{ subtotal: number; total: number }> {
-  const sumRow = await env.DB.prepare(
-    `SELECT COALESCE(SUM(line_total), 0) AS subtotal
-     FROM wholesale_order_items WHERE order_id = ?`
-  ).bind(orderId).first() as { subtotal: number };
-  const subtotal = Number(sumRow.subtotal || 0);
-  // total = subtotal + shipping_amount; we don't know shipping yet so keep
-  // total = subtotal until supplier confirms with a freight quote.
-  await env.DB.prepare(
-    `UPDATE wholesale_orders
-     SET subtotal_amount = ?, total_amount = ?, currency = ?, updated_at = datetime('now')
-     WHERE id = ?`
-  ).bind(subtotal, subtotal, currency, orderId).run();
-  return { subtotal, total: subtotal };
-}
-
 // POST /api/wholesale/orders
 // Body: {
 //   supplier_account_id: string,
@@ -31868,8 +31851,8 @@ const handleCreateWholesaleOrder: Handler = async (request, env) => {
     return json({ error: "You can't place a wholesale order with yourself." }, 400);
   }
 
-  const currency = typeof body.currency === 'string' ? body.currency.trim().toUpperCase() : '';
-  if (!currency) return json({ error: 'currency required' }, 400);
+  const currency = typeof body.currency === 'string' ? body.currency.trim() : '';
+  if (isUnrecordedCurrency(currency)) return json({ error: 'currency required' }, 400);
 
   // Verify supplier exists and isn't suspended
   const supplier = await env.DB.prepare(
@@ -31892,23 +31875,30 @@ const handleCreateWholesaleOrder: Handler = async (request, env) => {
   for (const it of items) {
     if (typeof it.supplier_listing_id !== 'string') return json({ error: 'item.supplier_listing_id required' }, 400);
     const grams = Number(it.grams);
-    const unitPrice = Number(it.unit_price_amount);
+    const unitPrice = it.unit_price_amount == null || String(it.unit_price_amount).trim() === ''
+      ? NaN : Number(it.unit_price_amount);
     if (!isFinite(grams) || grams <= 0) return json({ error: 'item.grams must be > 0' }, 400);
     if (!isFinite(unitPrice) || unitPrice < 0) return json({ error: 'item.unit_price_amount must be >= 0' }, 400);
-    const unitCur = typeof it.unit_price_currency === 'string' ? it.unit_price_currency.trim().toUpperCase() : '';
-    if (!unitCur) return json({ error: 'item.unit_price_currency required' }, 400);
+    const unitCur = typeof it.unit_price_currency === 'string' ? it.unit_price_currency.trim() : '';
+    if (!wholesaleCurrenciesMatch(unitCur, currency)) {
+      return json({ error: 'Every wholesale item must use the order currency.' }, 400);
+    }
+    const lineTotal = wholesaleLineTotal(grams, unitPrice);
+    if (!Number.isFinite(lineTotal)) return json({ error: 'Wholesale line amount is too large.' }, 400);
 
     const listing = await env.DB.prepare(
       `SELECT l.id, l.account_id, l.profile_id, l.status,
+              (SELECT type FROM tea_profiles WHERE id = l.profile_id) AS profile_type,
               EXISTS(SELECT 1 FROM products p
                 WHERE p.id = l.legacy_product_id AND p.account_id = l.account_id
                  AND ${INWARD_ORDERS_PAUSED_SQL}) AS orders_paused
        FROM product_listings l WHERE l.id = ?`
-    ).bind(it.supplier_listing_id).first() as { id: string; account_id: string; profile_id: string; status: string; orders_paused?: number } | null;
+    ).bind(it.supplier_listing_id).first() as { id: string; account_id: string; profile_id: string; status: string; profile_type: string | null; orders_paused?: number } | null;
     if (!listing) return json({ error: `item.supplier_listing_id '${it.supplier_listing_id}' not found` }, 404);
     if (listing.account_id !== supplierAccountId) {
       return json({ error: `item.supplier_listing_id '${it.supplier_listing_id}' does not belong to this supplier` }, 400);
     }
+    if (listing.profile_type === 'Teaware') return json({ error: 'Wholesale orders use tea by weight.' }, 400);
     if (listing.orders_paused) return json({ error: 'Ordering is paused while this tea is counted.' }, 409);
     if (listing.status !== 'active') {
       return json({ error: `Supplier listing '${it.supplier_listing_id}' is not active` }, 400);
@@ -31919,9 +31909,12 @@ const handleCreateWholesaleOrder: Handler = async (request, env) => {
       grams,
       unit_price_amount: unitPrice,
       unit_price_currency: unitCur,
-      line_total: grams * unitPrice,
+      line_total: lineTotal,
     });
   }
+
+  const subtotal = validatedItems.reduce((sum, item) => sum + item.line_total, 0);
+  if (!Number.isFinite(subtotal)) return json({ error: 'Wholesale subtotal is too large.' }, 400);
 
   // Insert order + items in one batch
   const orderId = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
@@ -31929,11 +31922,12 @@ const handleCreateWholesaleOrder: Handler = async (request, env) => {
     env.DB.prepare(
       `INSERT INTO wholesale_orders
          (id, supplier_account_id, buyer_account_id, status, currency,
-          shipping_address, buyer_notes)
-       VALUES (?, ?, ?, 'draft', ?, ?, ?)`
+          shipping_address, buyer_notes, subtotal_amount, total_amount)
+       VALUES (?, ?, ?, 'draft', ?, ?, ?, ?, ?)`
     ).bind(orderId, supplierAccountId, buyerAccountId, currency,
            typeof body.shipping_address === 'string' ? body.shipping_address : null,
-           typeof body.buyer_notes === 'string' ? body.buyer_notes : null),
+           typeof body.buyer_notes === 'string' ? body.buyer_notes : null,
+           validatedItems.length ? subtotal : null, validatedItems.length ? subtotal : null),
     ...validatedItems.map(it =>
       env.DB.prepare(
         `INSERT INTO wholesale_order_items
@@ -31946,10 +31940,6 @@ const handleCreateWholesaleOrder: Handler = async (request, env) => {
   ];
   await env.DB.batch(stmts);
 
-  if (validatedItems.length > 0) {
-    await rebuildOrderTotals(env, orderId, currency);
-  }
-
   await logPlatformAction(
     env, 'wholesale.created', userId, email, 'wholesale_order', orderId,
     { supplier_account_id: supplierAccountId, currency, item_count: validatedItems.length }
@@ -31959,7 +31949,7 @@ const handleCreateWholesaleOrder: Handler = async (request, env) => {
 };
 
 // PUT /api/wholesale/orders/:id
-// Body: { shipping_address?, buyer_notes?, items? }
+// Body: { shipping_address?, buyer_notes?, currency?, items? }
 // Buyer edits a draft (or replied) order. Supplier may also edit confirmed-state
 // fields (carrier, tracking) via the transition endpoint, not here.
 // If items[] is provided, it REPLACES all current items (cleaner than per-item
@@ -32016,6 +32006,9 @@ const handleUpdateWholesaleOrder: Handler = async (request, env, params) => {
       return json({ error: 'Order limited to 30 items.' }, 400);
     }
 
+    const currency = typeof body.currency === 'string' ? body.currency.trim() : order.currency;
+    if (isUnrecordedCurrency(currency)) return json({ error: 'currency required' }, 400);
+
     type ValidatedItem = {
       supplier_listing_id: string;
       profile_id: string;
@@ -32028,23 +32021,30 @@ const handleUpdateWholesaleOrder: Handler = async (request, env, params) => {
     for (const it of body.items) {
       if (typeof it.supplier_listing_id !== 'string') return json({ error: 'item.supplier_listing_id required' }, 400);
       const grams = Number(it.grams);
-      const unitPrice = Number(it.unit_price_amount);
+      const unitPrice = it.unit_price_amount == null || String(it.unit_price_amount).trim() === ''
+        ? NaN : Number(it.unit_price_amount);
       if (!isFinite(grams) || grams <= 0) return json({ error: 'item.grams must be > 0' }, 400);
       if (!isFinite(unitPrice) || unitPrice < 0) return json({ error: 'item.unit_price_amount must be >= 0' }, 400);
-      const unitCur = typeof it.unit_price_currency === 'string' ? it.unit_price_currency.trim().toUpperCase() : '';
-      if (!unitCur) return json({ error: 'item.unit_price_currency required' }, 400);
+      const unitCur = typeof it.unit_price_currency === 'string' ? it.unit_price_currency.trim() : '';
+      if (!wholesaleCurrenciesMatch(unitCur, currency)) {
+        return json({ error: 'Every wholesale item must use the order currency.' }, 400);
+      }
+      const lineTotal = wholesaleLineTotal(grams, unitPrice);
+      if (!Number.isFinite(lineTotal)) return json({ error: 'Wholesale line amount is too large.' }, 400);
 
       const listing = await env.DB.prepare(
         `SELECT l.id, l.account_id, l.profile_id, l.status,
+              (SELECT type FROM tea_profiles WHERE id = l.profile_id) AS profile_type,
               EXISTS(SELECT 1 FROM products p
                 WHERE p.id = l.legacy_product_id AND p.account_id = l.account_id
                  AND ${INWARD_ORDERS_PAUSED_SQL}) AS orders_paused
        FROM product_listings l WHERE l.id = ?`
-      ).bind(it.supplier_listing_id).first() as { id: string; account_id: string; profile_id: string; status: string; orders_paused?: number } | null;
+      ).bind(it.supplier_listing_id).first() as { id: string; account_id: string; profile_id: string; status: string; profile_type: string | null; orders_paused?: number } | null;
       if (!listing) return json({ error: `Listing '${it.supplier_listing_id}' not found` }, 404);
       if (listing.account_id !== order.supplier_account_id) {
         return json({ error: `Listing '${it.supplier_listing_id}' is not from this order's supplier` }, 400);
       }
+      if (listing.profile_type === 'Teaware') return json({ error: 'Wholesale orders use tea by weight.' }, 400);
       if (listing.orders_paused) return json({ error: 'Ordering is paused while this tea is counted.' }, 409);
       if (listing.status !== 'active') {
         return json({ error: `Listing '${it.supplier_listing_id}' is not active` }, 400);
@@ -32053,10 +32053,16 @@ const handleUpdateWholesaleOrder: Handler = async (request, env, params) => {
         supplier_listing_id: listing.id,
         profile_id: listing.profile_id,
         grams, unit_price_amount: unitPrice, unit_price_currency: unitCur,
-        line_total: grams * unitPrice,
+        line_total: lineTotal,
       });
     }
 
+    const subtotal = validated.reduce((sum, item) => sum + item.line_total, 0);
+    if (!Number.isFinite(subtotal)) return json({ error: 'Wholesale subtotal is too large.' }, 400);
+    stmts.push(env.DB.prepare(
+      `UPDATE wholesale_orders SET currency = ?, subtotal_amount = ?, total_amount = ?,
+              updated_at = datetime('now') WHERE id = ?`
+    ).bind(currency, subtotal, subtotal, orderId));
     stmts.push(env.DB.prepare('DELETE FROM wholesale_order_items WHERE order_id = ?').bind(orderId));
     for (const it of validated) {
       stmts.push(env.DB.prepare(
@@ -32072,10 +32078,6 @@ const handleUpdateWholesaleOrder: Handler = async (request, env, params) => {
   if (stmts.length === 0) return json({ ok: true });
 
   await env.DB.batch(stmts);
-
-  if (itemsReplaced) {
-    await rebuildOrderTotals(env, orderId, order.currency);
-  }
 
   await logPlatformAction(env, 'wholesale.updated', userId, email,
     'wholesale_order', orderId, { items_replaced: itemsReplaced });
@@ -32142,6 +32144,16 @@ async function transitionWholesaleOrder(
     if (pending) return json({ error: 'Ordering is paused while this tea is counted.' }, 409);
   }
 
+  if ((to === 'submitted' && isBuyer && (order.status === 'draft' || order.status === 'replied'))
+    || (to === 'confirmed' && isSupplier && order.status === 'submitted')) {
+    const currencies = await env.DB.prepare(
+      'SELECT DISTINCT unit_price_currency FROM wholesale_order_items WHERE order_id = ?'
+    ).bind(orderId).all<{ unit_price_currency: string }>();
+    if (currencies.results.some(line => !wholesaleCurrenciesMatch(line.unit_price_currency, order.currency))) {
+      return json({ error: 'The line currencies do not match the order. Ask the buyer to review and resubmit the draft.' }, 409);
+    }
+  }
+
   // Validate the transition is legal AND the caller is the right party.
   // Each branch builds the appropriate UPDATE statement.
   if (to === 'submitted') {
@@ -32178,12 +32190,15 @@ async function transitionWholesaleOrder(
     if (order.status !== 'submitted') {
       return json({ error: `Cannot confirm from ${order.status}.` }, 400);
     }
-    const shippingAmount = body.shipping_amount !== undefined ? Number(body.shipping_amount) : 0;
-    if (!isFinite(shippingAmount) || shippingAmount < 0) {
+    const shippingInput = body.shipping_amount;
+    const shippingAmount = shippingInput == null || (typeof shippingInput === 'string' && !shippingInput.trim())
+      ? null : Number(shippingInput);
+    if (shippingAmount !== null && (!Number.isFinite(shippingAmount) || shippingAmount < 0)) {
       return json({ error: 'shipping_amount must be a number >= 0' }, 400);
     }
     const supplierNotes = typeof body.supplier_notes === 'string' ? body.supplier_notes : null;
-    const newTotal = (order.subtotal_amount || 0) + shippingAmount;
+    const newTotal = (order.subtotal_amount ?? 0) + (shippingAmount ?? 0);
+    if (!Number.isFinite(newTotal)) return json({ error: 'Wholesale total is too large.' }, 400);
     stmts.push(env.DB.prepare(
       `UPDATE wholesale_orders
        SET status = 'confirmed', confirmed_at = ?,
@@ -32396,8 +32411,8 @@ async function processReceiveSideEffects(
   }
 
   const wholesaleLines = (items.results as any[]).map(item => {
-    const grams = Math.max(1, Math.round(Number(item.grams) || 0));
-    const perGram = amountToUsd(Number(item.unit_price_amount) || 0, item.unit_price_currency, usdRates);
+    const grams = Number(item.grams);
+    const perGram = amountToUsd(Number(item.unit_price_amount), item.unit_price_currency, usdRates, 'unit-price');
     return {
       name: profileNames.get(String(item.profile_id)) || 'Wholesale tea',
       currency: String(item.unit_price_currency || ''),
@@ -32406,7 +32421,8 @@ async function processReceiveSideEffects(
       rateFound: perGram.rateFound,
     };
   });
-  const shipping = amountToUsd(Number(order.shipping_amount) || 0, order.currency, usdRates);
+  const shipping = order.shipping_amount == null
+    ? null : amountToUsd(Number(order.shipping_amount), order.currency, usdRates);
 
   // A currency with no rate would be invoiced at par, which is how a price in
   // rupiah becomes a bill in dollars. There is no safe way to guess it and no
@@ -32415,7 +32431,7 @@ async function processReceiveSideEffects(
   // So the receive is refused while somebody is here to fix it.
   const missing = [...new Set([
     ...wholesaleLines.filter(line => !line.rateFound).map(line => line.currency),
-    ...(shipping.rateFound ? [] : [String(order.currency || '')]),
+    ...(shipping && !shipping.rateFound ? [String(order.currency || '')] : []),
   ].filter(Boolean))];
   if (missing.length > 0) {
     return {
@@ -32427,7 +32443,7 @@ async function processReceiveSideEffects(
       ),
     };
   }
-  const shippingUsd = shipping.usd;
+  const shippingUsd = shipping?.usd ?? null;
 
   for (const [invoiceId, accountId, counterparty, prefix] of [
     [supplierInvoiceId, order.supplier_account_id, buyerAccount?.name || 'Wholesale buyer', supplierPrefix],

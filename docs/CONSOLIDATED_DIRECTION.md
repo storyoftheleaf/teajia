@@ -17,16 +17,23 @@
 | What just came in | [TODO.md](../TODO.md) | Intake only |
 | Why Teajia exists | [VISION.md](VISION.md) | Philosophy stands, details are from April |
 
-## Current position
+## The next delivery · November 28
 
-Per the working plan of 2026-11-17 and the closeout plan of 2026-11-24, the priority has not changed with this overhaul:
+**Follow one tea through the flagship shop.** Start with the supplier’s actual quote, or reopen the existing holding if the tea is already here. Count what arrived, make the counted portion available, and follow one buyer through the agreed amount, payment, dispatch and their own receipt. Keeping the quote, quantity and buyer consistent across those handoffs is the first milestone. A sandbox order proves the software path. A physical count, confirmed transfer and buyer receipt establish the real sale. Record those separately in [Launch Validation](LAUNCH_VALIDATION.md).
 
-1. Finish one real shop loop for Adrian: a tea from a supplier's quote through purchase, partial arrival and stock, then a real sale through payment, shipment and the buyer's view (M1 to M4 in the working plan).
-2. Prove one editorial item end to end (K1).
-3. Qualify the connected sit, the Guest Book and the personal seller with one real sit and one real sale.
-4. Only then a second operator and the wider network (N1).
+**What the builder can settle.** Reuse the existing supplier Library, Stock receipt, Shop, Sales ledger and buyer order. Carry the unit and currency through every price calculation. For a 100 g order at CNY 1.80/g the draft, confirmation and both shops’ recorded line totals must all read CNY 180 before freight. A retry must leave one stock movement or credit request for one action. Return a worked example, the exact revision, and the release evidence for each affected surface. Retire an older build item when that same outcome has evidence.
 
-The section overhaul sits beside that work and does not jump the queue. Its first two stages are pages and forwards with no new backend. The bar words change late, after the evidence from a real sit, as the closeout plan asks.
+**Who owns the grams.** Adrian sets the boundary at the stock owner. A host may record what was served. A weighed deduction belongs to the selected owner’s holding. Its owner can use it, and staff with Stock authority for that shop can handle the shop’s stock. Adrian’s site role gives him no claim on somebody else’s personal tea. A guest’s tea can be named at another person’s table without moving either inventory. A reversal returns grams to the holding that supplied them. At a private scheduled sit the host controls admission, and the guest chooses what to share from their record. For an edition the author or rights holder approves the wording, byline and photographs.
+
+**Adrian’s delivery order.** All three journeys are required. Deliver them in this order and exercise the links between them in the same phone browser.
+
+| Build | Steps the builder owns | What Adrian and the participants can verify |
+|---|---|---|
+| 1 · One flagship sale | Reopen the supplier tea, receive a measured portion, publish its offer, place an order and open the buyer’s saved invoice. Follow any available tea link and return to the same order. Verify quantity, currency, payee, order access and a single stock movement on retry. | The counted tea, confirmed money, dispatch and buyer’s receipt agree. A second shop can later repeat the commercial handoff with its own records. |
+| 2 · One hosted table | Invite a guest, confirm the seat, record one tea and close the sit. Open its thank-you, follow the served tea into Shop, return to the sit and keep a private note. Check an unapproved guest and a withdrawn share too. | The host and guest can get back to the right table unaided. The guest chooses what anyone else sees. A personal seller’s proceeds reach that seller. |
+| 3 · One published edition | Start with an authorized keeper and its media. Preview, approve and publish a particular revision. Follow an existing tea or contributor link and return to the edition. Replace or withdraw it and revisit the old URL. | The author approves the wording, byline and rights. The reader sees the intended edition and any related destination is available to that reader. |
+
+For each crossing the builder records the starting identity, the actual click, where it landed, what Back restored and the result after sign-in or a withdrawn link where applicable. An unavailable destination needs a recoverable next action. Keep measured tests distinct from real-world acceptance in [Launch Validation](LAUNCH_VALIDATION.md).
 
 ## The direction, section by section
 

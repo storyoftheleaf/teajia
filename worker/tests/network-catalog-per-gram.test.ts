@@ -111,6 +111,33 @@ describe('the wholesale catalogue prices by the gram, not by the cake', () => {
     expect(profile.wholesale_price_per_gram_caller).toBeCloseTo(1.8, 6);
   });
 
+  it('converts Yuan to the AUD quote through the stored rates', async () => {
+    const db = await seed();
+    db.sqlite.prepare("UPDATE accounts SET currency_default = 'AUD' WHERE id = ?").run(CALLER);
+    db.sqlite.prepare("UPDATE product_listings SET cost_currency = 'Yuan' WHERE id = 'listing-cake'").run();
+    db.sqlite.exec(`
+      INSERT OR REPLACE INTO exchange_rates (currency, rate_to_usd)
+      VALUES ('Yuan', 7.2), ('AUD', 1.5)
+    `);
+
+    const profile = await fetchCatalog(db);
+    expect(profile.retail_price_per_gram_curator).toBeCloseTo(1.8);
+    expect(profile.wholesale_currency_caller).toBe('AUD');
+    expect(profile.wholesale_price_per_gram_caller).toBeCloseTo(0.375);
+    expect(profile.fx_unavailable).toBe(false);
+  });
+
+  it('withholds the wholesale quote when AUD has no rate', async () => {
+    const db = await seed();
+    db.sqlite.prepare("UPDATE accounts SET currency_default = 'AUD' WHERE id = ?").run(CALLER);
+    db.sqlite.prepare("DELETE FROM exchange_rates WHERE currency = 'AUD'").run();
+
+    const profile = await fetchCatalog(db);
+    expect(profile.wholesale_currency_caller).toBe('AUD');
+    expect(profile.wholesale_price_per_gram_caller).toBeNull();
+    expect(profile.fx_unavailable).toBe(true);
+  });
+
   it('quotes nothing for a listing with a cost but no recorded quantity', async () => {
     // Without a quantity there is no honest per-gram figure. The old code read
     // the total cost as if it were per gram; a future edit that restores that
