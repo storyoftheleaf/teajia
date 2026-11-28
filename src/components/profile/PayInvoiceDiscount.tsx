@@ -5,7 +5,8 @@ import { Button } from '../shared/Button';
 /**
  * A percent off, offered from the shop's own view of the sheet (Adrian,
  * 2026-11-27: "I should have a place where I can offer a discount on this
- * sheet"). The buyer sees it as its own line above the total.
+ * sheet"). It sits in the discount's own line above the total, where the
+ * buyer sees the percent (Adrian, 2026-11-27: one line, not two).
  */
 export function PayInvoiceDiscount({ slug, token, percent, onChanged }: {
   slug: string;
@@ -30,11 +31,11 @@ export function PayInvoiceDiscount({ slug, token, percent, onChanged }: {
   const valid = value.trim() !== '' && Number.isFinite(asked) && asked > 0 && asked < 100;
   return (
     <form
-      className="mt-3 flex flex-wrap items-center gap-2 border-t border-tea-border pt-3"
+      className="flex min-w-0 flex-wrap items-center gap-2"
       onSubmit={event => { event.preventDefault(); if (valid) void apply(asked); }}
       data-testid="pay-discount-offer"
     >
-      <label htmlFor="pay-discount" className="font-sans text-ui-13 text-tea-text-sec">Offer a discount</label>
+      <label htmlFor="pay-discount" className="font-sans text-ui-13 text-tea-text-sec">{percent ? 'Discount' : 'Offer a discount'}</label>
       <span className="inline-flex items-center gap-1">
         <input
           id="pay-discount"

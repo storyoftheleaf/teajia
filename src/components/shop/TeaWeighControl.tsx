@@ -4,6 +4,7 @@ import type { InventoryItem } from '../../types';
 import { teaPurchaseQuote } from '../../lib/shopPurchase';
 import { TEA_PRICING } from '../../lib/teaPricing';
 import { formatPersonalTeaMoney } from '../../lib/personalTeaMoney';
+import { TeaCup } from '../TeaCupIcon';
 
 export interface WeighOption {
   grams: number;
@@ -55,6 +56,8 @@ interface TeaWeighControlProps {
   count?: 'pack' | 'weigh';
   /** The amounts to step through, when they are not the shop's own (a collection's quoted price). */
   options?: WeighOption[];
+  /** A teacup under the price that opens the tasting from the list (Adrian, 2026-11-27). */
+  onTaste?: (item: InventoryItem) => void;
 }
 
 /**
@@ -62,7 +65,7 @@ interface TeaWeighControlProps {
  * the cart; minus and plus step through the amounts and the price follows.
  * Weigh itself opens the full amount list, for a size the steps do not reach.
  */
-export function TeaWeighControl({ item, preferredGrams, formatPrice, onAddToCart, onChooseAmount, href, count, options: given }: TeaWeighControlProps) {
+export function TeaWeighControl({ item, preferredGrams, formatPrice, onAddToCart, onChooseAmount, href, count, options: given, onTaste }: TeaWeighControlProps) {
   const options = useMemo(() => given ?? weighOptions(item), [given, item]);
   const [index, setIndex] = useState(() => startingIndex(options, preferredGrams));
   const [added, setAdded] = useState(false);
@@ -164,6 +167,14 @@ export function TeaWeighControl({ item, preferredGrams, formatPrice, onAddToCart
             +
           </button>
         </div>
+      )}
+      {onTaste && (
+        <button type="button" aria-label={`Taste ${item.name}`} data-testid="row-taste"
+          onClick={event => { event.stopPropagation(); onTaste(item); }} onKeyDown={stopKeys}
+          className="relative inline-flex h-6 items-center justify-center gap-1.5 rounded text-tea-text-sec transition-colors before:absolute before:-inset-y-2.5 before:inset-x-0 before:content-[''] hover:text-tea-gold-lt focus-visible:outline focus-visible:outline-tea-gold">
+          <TeaCup size={14} strokeWidth={1.5} aria-hidden="true" />
+          <span className="text-ui-9 uppercase tracking-[0.12em]">Taste</span>
+        </button>
       )}
     </div>
   );

@@ -19,6 +19,8 @@ import type { PaymentContext, PaymentLocalAmount, PaymentMethod, PaymentOrderSum
 // the same shape above the methods.
 
 interface PaymentChooserProps {
+  /** Sits with the amount and reference: the sending shop's link to copy. */
+  amountFoot?: ReactNode;
   contributorName: string;
   methods: PaymentMethod[];
   destination: string;
@@ -182,7 +184,7 @@ function CopyAll({ text }: { text: string }) {
   );
 }
 
-export function PaymentChooser({ contributorName, methods, context, local, summary }: PaymentChooserProps) {
+export function PaymentChooser({ contributorName, methods, context, local, summary, amountFoot }: PaymentChooserProps) {
   const visibleMethods = methods.filter(method => method.is_published).sort((a, b) => a.position - b.position);
   // Several accounts in different currencies (Wise USD and Wise IDR): show the
   // one for the currency the page is in, with a switch between them. The
@@ -225,6 +227,7 @@ export function PaymentChooser({ contributorName, methods, context, local, summa
               {localNote && <p data-testid="payment-local-note" className="mt-1 max-w-[46ch] text-ui-12 leading-relaxed text-tea-text-dim">{localNote}</p>}
             </>
           )}
+          {amountFoot}
         </Panel>
       )}
       {summary && <PaymentOrderSummary summary={summary} />}

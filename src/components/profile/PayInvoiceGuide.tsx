@@ -7,7 +7,6 @@ import { authPagePath } from '../../lib/authNavigation';
 import { holdKeepTeaser, type KeepTeaser } from '../../lib/keepTeaser';
 import { holdReturnPlace } from '../../hooks/useReturnPlace';
 import { keepPayInvoice } from '../../lib/payInvoiceKeepApi';
-import { PayInvoiceDiscount } from './PayInvoiceDiscount';
 
 const KEEP_PARAM = 'keep';
 
@@ -16,12 +15,12 @@ const KEEP_PARAM = 'keep';
  * teas they are keeping, and back to this same address (the open tea
  * included) with the marker that finishes the keep by itself.
  */
-export function invoiceJoinPath(teaser: Omit<KeepTeaser, 'path'>): string {
+export function invoiceJoinPath(teaser: Omit<KeepTeaser, 'path'>, mode: 'signup' | 'signin' = 'signup'): string {
   const back = new URLSearchParams(window.location.search);
   back.set(KEEP_PARAM, '1');
   holdKeepTeaser({ ...teaser, path: window.location.pathname });
   holdReturnPlace();
-  return authPagePath('signup', `${window.location.pathname}?${back.toString()}`);
+  return authPagePath(mode, `${window.location.pathname}?${back.toString()}`);
 }
 
 /**
@@ -69,19 +68,32 @@ export function useInvoiceKeep({ slug, token, signedIn, kept, yoursToSend = fals
 }
 
 /**
- * The one line under the invoice's total: where her teas live once kept, the
- * collection they came from, and for the shop that sent it, the link to copy.
+ * The one line under the invoice's total: where her teas live once kept and
+ * the collection they came from.
  */
-export function PayInvoiceAfter({ kept, yoursToSend = false, collection, slug, token, discount, onDiscountChanged }: {
+export function PayInvoiceAfter({ kept, collection }: {
   kept: boolean;
-  yoursToSend?: boolean;
   collection?: { title: string; path: string } | null;
-  slug: string;
-  token: string | null;
-  /** On the shop's own view: the discount it offers, and whether it can still change. */
-  discount?: { editable: boolean; percent: number | null };
-  onDiscountChanged?: () => void;
 }) {
+  if (!kept && !collection) return null;
+  const quiet = 'tap-target inline-flex items-center gap-1 font-sans text-ui-12 text-tea-text-sec hover:text-tea-text';
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-2 md:px-6" data-testid="pay-after">
+      {kept ? (
+        <Link to="/shop?bought=1" className={quiet} data-testid="pay-your-teas">Your teas <ArrowRight size={12} /></Link>
+      ) : <span />}
+      {collection && (
+        <Link to={collection.path} className={quiet} data-testid="pay-collection-link">See {collection.title} <ArrowRight size={12} /></Link>
+      )}
+    </div>
+  );
+}
+
+/**
+ * For the shop that sent it: the link to copy, sitting with the amount and
+ * the reference it asks for (Adrian, 2026-11-27).
+ */
+export function PayInvoiceSend() {
   const [copied, setCopied] = useState(false);
   const copy = async () => {
     try {
@@ -89,28 +101,12 @@ export function PayInvoiceAfter({ kept, yoursToSend = false, collection, slug, t
       setCopied(true);
     } catch { /* the address bar still has it */ }
   };
-  if (!kept && !yoursToSend && !collection) return null;
-  const quiet = 'tap-target inline-flex items-center gap-1 font-sans text-ui-12 text-tea-text-sec hover:text-tea-text';
   return (
-    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-2 md:px-6" data-testid="pay-after">
-      {yoursToSend ? (
-        <span className="flex flex-wrap items-center gap-3" data-testid="pay-yours-to-send">
-          <span className="font-body text-ui-14 text-tea-text">This is your invoice to send.</span>
-          <Button variant="plain" type="button" onClick={copy} className="btn-secondary tap-target shrink-0">
-            {copied ? <Check size={13} /> : <Copy size={13} />} {copied ? 'Link copied' : 'Copy the link'}
-          </Button>
-        </span>
-      ) : kept ? (
-        <Link to="/shop?bought=1" className={quiet} data-testid="pay-your-teas">Your teas <ArrowRight size={12} /></Link>
-      ) : <span />}
-      {collection && (
-        <Link to={collection.path} className={quiet} data-testid="pay-collection-link">See {collection.title} <ArrowRight size={12} /></Link>
-      )}
-      {yoursToSend && discount?.editable && token && (
-        <div className="basis-full">
-          <PayInvoiceDiscount slug={slug} token={token} percent={discount.percent} onChanged={onDiscountChanged} />
-        </div>
-      )}
+    <div className="mt-2 flex flex-wrap items-center justify-between gap-3 border-t border-tea-border pt-2" data-testid="pay-yours-to-send">
+      <span className="font-body text-ui-14 text-tea-text">This is your invoice to send.</span>
+      <Button variant="plain" type="button" onClick={copy} className="btn-secondary tap-target shrink-0">
+        {copied ? <Check size={13} /> : <Copy size={13} />} {copied ? 'Link copied' : 'Copy the link'}
+      </Button>
     </div>
   );
 }
