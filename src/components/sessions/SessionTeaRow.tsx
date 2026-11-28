@@ -26,7 +26,6 @@ export function sessionOfferItem(product: Record<string, unknown>): InventoryIte
 
 type RowIdentity = Pick<InventoryItem, 'name' | 'year' | 'type' | 'origin'>;
 
-/** A real tea in the shop's row; for sale when `sale` carries the product. */
 /** "Ask about this tea": WhatsApp to the shop, for a tea with no price on the row. */
 function AskAboutTea({ name, ask }: { name: string; ask: string }) {
   return (
@@ -38,6 +37,7 @@ function AskAboutTea({ name, ask }: { name: string; ask: string }) {
   );
 }
 
+/** A real tea in the shop's row; for sale when `sale` carries the product. */
 export function SaleTeaRow({ identity, sale, href, count, onOpen, ask }: {
   identity: RowIdentity;
   sale?: InventoryItem | null;

@@ -19,7 +19,12 @@ interface Holding { name: string; label?: string; record?: string; page?: string
 interface WisdomIndex { holdings: Holding[] }
 
 const INDEX_FRESH_FOR_MS = 10 * 60 * 1000;
+const INDEX_RETRY_AFTER_MS = 15 * 1000;
 let cached: { at: number; base: string; index: WisdomIndex } | null = null;
+// One fetch at a time, and a short rest after a failure, so a slow or down site
+// costs a guest's sit page one wait, not one per tea.
+let pending: { base: string; promise: Promise<WisdomIndex | null> } | null = null;
+let failedAt: { at: number; base: string } | null = null;
 
 export function wisdomBase(env: { APP_URL?: string }): string {
   const raw = (env.APP_URL || 'https://www.teajia.com').replace(/\/+$/, '');
@@ -29,20 +34,29 @@ export function wisdomBase(env: { APP_URL?: string }): string {
 async function loadIndex(env: { APP_URL?: string }, fetcher: typeof fetch = fetch): Promise<WisdomIndex | null> {
   const base = wisdomBase(env);
   if (cached && cached.base === base && Date.now() - cached.at < INDEX_FRESH_FOR_MS) return cached.index;
-  try {
-    const res = await fetcher(`${base}/wisdom/index.json`, { signal: AbortSignal.timeout(4000) });
-    if (!res.ok) return null;
-    const index = await res.json() as WisdomIndex;
-    if (!Array.isArray(index?.holdings)) return null;
-    cached = { at: Date.now(), base, index };
+  if (failedAt && failedAt.base === base && Date.now() - failedAt.at < INDEX_RETRY_AFTER_MS) return null;
+  if (pending && pending.base === base) return pending.promise;
+  const promise = (async () => {
+    try {
+      const res = await fetcher(`${base}/wisdom/index.json`, { signal: AbortSignal.timeout(4000) });
+      if (!res.ok) return null;
+      const index = await res.json() as WisdomIndex;
+      if (!Array.isArray(index?.holdings)) return null;
+      cached = { at: Date.now(), base, index };
+      return index;
+    } catch {
+      return null;
+    }
+  })().then(index => {
+    failedAt = index ? null : { at: Date.now(), base };
     return index;
-  } catch {
-    return null;
-  }
+  }).finally(() => { pending = null; });
+  pending = { base, promise };
+  return promise;
 }
 
 /** Tests only. */
-export function resetWisdomIndexForTests() { cached = null; }
+export function resetWisdomIndexForTests() { cached = null; pending = null; failedAt = null; }
 
 const slug = (s: string) => s.toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 const folderOf = (h: Holding) => (h.record ? new URL(h.record.replace('{id}', 'x')).pathname.split('/')[2] : null);
