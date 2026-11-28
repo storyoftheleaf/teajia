@@ -7,6 +7,9 @@ import { API_URL, clearPendingSignup, restorePendingSignup, type PendingSignup }
 import { useHeldTitle } from '../hooks/useHeldTitle';
 import { keepTeaserFor } from '../lib/keepTeaser';
 import { KeepTeaserHead } from '../components/auth/KeepTeaserHead';
+import { SIGNUP_EMAIL_CONSENT_LABEL } from '../lib/emailConsent';
+import { holdSignupEmailConsent, useSignupEmailConsent } from '../lib/emailConsentApi';
+import { EmailConsentBox } from '../components/shared/EmailConsentBox';
 
 const inputClass = "w-full bg-tea-surface border border-tea-border rounded-md px-3 py-2 text-ui-14 text-tea-text focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors placeholder-tea-text-dim";
 const labelClass = "block label-caps text-tea-text-sec mb-1.5";
@@ -31,6 +34,7 @@ export default function SignUpPage() {
   const [isEditingSignup, setIsEditingSignup] = useState(false);
   const [verificationExpired, setVerificationExpired] = useState(() => Boolean(pendingSignup && pendingSignup.expiresAt <= Date.now()));
   const [verificationFailures, setVerificationFailures] = useState(0);
+  const { checked: emailUpdates, choose: chooseEmailUpdates } = useSignupEmailConsent();
 
   useEffect(() => {
     if (!pendingSignup) return;
@@ -60,7 +64,7 @@ export default function SignUpPage() {
     if (password.length < 6) { setError('Password must be at least 6 characters.'); return; }
     setLoading(true);
     try {
-      const pending = await auth.signup(email, password, name, null);
+      const pending = await auth.signup(email, password, name, null, emailUpdates);
       setPendingSignup(pending);
       setVerificationCode('');
       setIsEditingSignup(false);
@@ -193,10 +197,15 @@ export default function SignUpPage() {
       </div>
       )}
 
+      <div className="mb-4" data-testid="signup-email-consent">
+        <EmailConsentBox id="signup-email-updates" checked={emailUpdates} onChange={chooseEmailUpdates} label={SIGNUP_EMAIL_CONSENT_LABEL} />
+      </div>
+
       {API_URL && (
         <div className="mb-6">
           <a
             href={`${API_URL}/api/auth/google?return=${encodeURIComponent(authPagePath('signin', destination))}`}
+            onClick={() => holdSignupEmailConsent(emailUpdates)}
             className="w-full flex items-center justify-center gap-3 py-3 bg-tea-surface rounded-md border border-tea-border text-tea-text text-ui-14 hover:bg-tea-elevated transition-colors"
           >
             <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">

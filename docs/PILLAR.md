@@ -35,7 +35,7 @@ A casual sit can travel by one link. A scheduled private sit keeps its approval 
 
 ## What a signed-in person gets
 
-A guest can follow the teas from their thank-you, keep one, write privately, or choose a contribution to the Guest Book. The Journal holds what a person tasted and thought. Tea Chest holds what they own. Journey remembers where they sat. Favourites gathers what they kept. Signing in from a shared link should return them to the tea, invitation or edition they opened.
+A guest can follow the teas from their thank-you, keep one, write privately, or choose a contribution to the Guest Book. The Journal holds what a person tasted and thought. Tea Chest holds what they own. Journey remembers where they sat. Favourites gathers what they kept. Signing in from a shared link should return them to the tea, invitation or edition they opened. Joining asks once whether Teajia and the hosts they choose may email them about teas and tables; the box opens empty for EU, EEA, UK and Swiss visitors. Order emails always come. The answer, with its time, lives in their account settings, host by host. [Email answers](../worker/src/emailConsent.ts)
 
 Private directions, guest contacts, tasting scores and unpublished words each have a limited audience. Publishing a recap, naming a contributor or placing a tasting excerpt on a tea page takes its own permission. A guest can withdraw a shared contribution and keep the private original. A host’s record remains theirs after they stop hosting. A thank-you, a byline or a photo credit acknowledges a person without ranking them or prompting more activity.
 
