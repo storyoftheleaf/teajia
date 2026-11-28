@@ -7,6 +7,7 @@ import { usePublicSitRecap } from '../lib/publicSitRecap';
 import { REVOCABLE_QUERY } from '../lib/revocableQuery';
 import { PlaylistSection } from '../components/events/PlaylistSection';
 import { SitRecap } from '../components/sessions/SitRecap';
+import { SITE_TITLE } from '../lib/siteMeta';
 
 // /event/:slug/recap. The recap is ordered by tea (components/sessions/SitRecap.tsx).
 // The older public recap payload still carries the playlist and the notes the
@@ -59,7 +60,7 @@ const EventRecapPage: React.FC = () => {
   useEffect(() => {
     if (!recap.data) return;
     document.title = `${recap.data.title}: Recap · Teajia`;
-    return () => { document.title = 'Teajia · A Home for Tea'; };
+    return () => { document.title = SITE_TITLE; };
   }, [recap.data]);
 
   if (recap.isPending) {

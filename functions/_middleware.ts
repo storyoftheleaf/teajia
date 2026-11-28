@@ -32,6 +32,7 @@
 // nothing else to the bundle.
 import { reviewedLotProse } from '../src/wisdom/reference/namedTeaLots';
 import { isCuratedReadPath, isReadPathPublic, type ReadPublishOverrides } from '../src/pages/read/articleLive';
+import { SITE_PREVIEW_IMAGE_PATH } from '../src/lib/siteMeta';
 
 interface Meta {
   title: string;
@@ -47,7 +48,7 @@ interface Meta {
 }
 
 const SITE = 'https://www.teajia.com';
-const DEFAULT_IMAGE = `${SITE}/og-image.png`;
+const DEFAULT_IMAGE = `${SITE}${SITE_PREVIEW_IMAGE_PATH}`;
 
 // Per-page meta for the hand-coded /read/* story pages. Titles/descriptions
 // taken verbatim from each story component. Add a line here when a new story
@@ -394,6 +395,62 @@ async function productMeta(id: string, workerOrigin: URL, path: string): Promise
   }
 }
 
+/**
+ * Links people send one another: an invoice, a tea sit. Until 2026-11-28 each
+ * previewed as the homepage. These say what the link is and nothing more: no
+ * names, amounts or teas, because the edge cannot tell who is looking, and an
+ * invoice may be any seller's, so none of them says Teajia sold it.
+ */
+export function sharedLinkMeta(path: string): Meta | null {
+  if (/^\/people\/[^/]+\/pay$/.test(path)) {
+    return { title: 'Your invoice', description: 'The teas, what they come to, and how to pay.' };
+  }
+  if (/^\/sit\/[^/]+$/.test(path) || /^\/sits\/casual\/[^/]+$/.test(path)) {
+    return { title: 'A tea sit · Teajia', description: 'The teas poured at this sit, shared by its host.' };
+  }
+  return null;
+}
+
+/** A collection sent to someone: its own title, note and picture. */
+export async function collectionMeta(slug: string, workerOrigin: URL): Promise<Meta | null> {
+  try {
+    const res = await fetch(new URL(`/api/public/c/${encodeURIComponent(slug)}`, workerOrigin), {
+      signal: AbortSignal.timeout(2500),
+    });
+    if (!res.ok) return null;
+    const body = (await res.json()) as {
+      collection?: { title?: string; note?: string | null; hero_image_url?: string | null; curator_display_name?: string | null };
+      items?: { image_url?: string | null }[];
+      account?: { name?: string } | null;
+    };
+    const c = body?.collection;
+    if (!c?.title) return null;
+    const from = c.curator_display_name || body.account?.name;
+    const count = body.items?.length ?? 0;
+    const fallback = `${count > 0 ? `${count} ${count === 1 ? 'tea' : 'teas'}` : 'Teas'} chosen${from ? ` by ${from}` : ''}.`;
+    const image = absoluteMediaUrl(c.hero_image_url || body.items?.find((item) => item.image_url)?.image_url || undefined);
+    return { title: c.title, description: (c.note?.trim() || fallback).slice(0, 300), image };
+  } catch {
+    return null;
+  }
+}
+
+/** A session's own page: its title, its first lines and its flyer. Never the place. */
+export async function eventMeta(slug: string, workerOrigin: URL): Promise<Meta | null> {
+  try {
+    const res = await fetch(new URL(`/api/events/${encodeURIComponent(slug)}/public`, workerOrigin), {
+      signal: AbortSignal.timeout(2500),
+    });
+    if (!res.ok) return null;
+    const e = (await res.json()) as { title?: string; subtitle?: string | null; description?: string | null; flyer_image_url?: string | null };
+    if (!e?.title) return null;
+    const description = (e.subtitle || e.description || 'A tea session on Teajia.').slice(0, 200);
+    return { title: `${e.title} · Teajia`, description, image: absoluteMediaUrl(e.flyer_image_url || undefined) };
+  } catch {
+    return null;
+  }
+}
+
 export async function resolveArticleMeta(slug: string, workerOrigin: URL): Promise<Meta | null> {
   try {
     const res = await fetch(new URL(`/api/articles/${encodeURIComponent(slug)}`, workerOrigin), {
@@ -547,6 +604,20 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       if (!workerOrigin) return Response.json({ error: 'API upstream is not configured.' }, { status: 503 });
       const id = decodeURIComponent(path.slice('/shop/product/'.length));
       meta = await productMeta(id, workerOrigin, path);
+    }
+  }
+
+  if (!meta) meta = sharedLinkMeta(path);
+
+  // A collection or a session, fetched for crawlers only, like products.
+  const collectionSlug = path.match(/^\/c\/([^/]+)$/)?.[1];
+  const eventSlug = path.match(/^\/event\/([^/]+)$/)?.[1];
+  if (!meta && (collectionSlug || eventSlug) && CRAWLER_RE.test(request.headers.get('user-agent') || '')) {
+    const workerOrigin = configuredWorkerOrigin(context.env.WORKER_ORIGIN);
+    if (workerOrigin) {
+      meta = collectionSlug
+        ? await collectionMeta(decodeURIComponent(collectionSlug), workerOrigin)
+        : await eventMeta(decodeURIComponent(eventSlug as string), workerOrigin);
     }
   }
 
