@@ -33951,7 +33951,13 @@ const routes: [string, string, Handler][] = [
       return { host: { userId: own.host.userId, name: own.host.name, email: user?.email ?? null }, table: own.table };
     },
     shopShelf: tablePourShelf,
-    requireShopOwner: requireOwnerTier,
+    // Pourers are named on Teajia's own shop only (the shelf tablePourShelf reads), never on another account the caller happens to own.
+    requireShopOwner: async (request, env) => {
+      const owner = await requireOwnerTier(request, env);
+      if ('error' in owner) return owner;
+      const shop = await env.DB.prepare("SELECT 1 FROM accounts WHERE id = ? AND is_platform_owner = 1 AND status = 'active'").bind(owner.accountId).first();
+      return shop ? owner : { error: restError(403, 'Owner-tier access required for this action', 'owner_required') };
+    },
   }),
   ...pourSitRoutes<Env>({
     requireHost: (request, env) => requireBundle(request, env, 'gather'),
