@@ -365,8 +365,8 @@ describe('links people send one another preview as themselves', () => {
   afterEach(() => vi.unstubAllGlobals());
   const origin = new URL('https://worker.example');
 
-  it('an invoice and a tea sit say what they are, and name nobody', () => {
-    expect(sharedLinkMeta('/people/tiya-abc/pay')?.title).toBe('Your invoice');
+  it('a pay link and a tea sit say what they are, and name nobody', () => {
+    expect(sharedLinkMeta('/people/tiya-abc/pay')?.title).toBe('Pay by link');
     expect(sharedLinkMeta('/sit/AB12')?.title).toBe('A tea sit · Teajia');
     expect(sharedLinkMeta('/sits/casual/a-sit')?.title).toBe('A tea sit · Teajia');
     for (const path of ['/people/tiya-abc', '/people/tiya-abc/favorites', '/sit', '/']) {

@@ -396,19 +396,24 @@ async function productMeta(id: string, workerOrigin: URL, path: string): Promise
 }
 
 /**
- * Links people send one another: an invoice, a tea sit. Until 2026-11-28 each
+ * Links people send one another: a pay link, a tea sit. Until 2026-11-28 each
  * previewed as the homepage. These say what the link is and nothing more: no
  * names, amounts or teas, because the edge cannot tell who is looking, and an
  * invoice may be any seller's, so none of them says Teajia sold it.
  */
 export function sharedLinkMeta(path: string): Meta | null {
   if (/^\/people\/[^/]+\/pay$/.test(path)) {
-    return { title: 'Your invoice', description: 'The teas, what they come to, and how to pay.' };
+    // The same address is an invoice's pay page and a contributor's "Pay" page.
+    return { title: 'Pay by link', description: 'What this is for, and how to pay.' };
   }
   if (/^\/sit\/[^/]+$/.test(path) || /^\/sits\/casual\/[^/]+$/.test(path)) {
     return { title: 'A tea sit · Teajia', description: 'The teas poured at this sit, shared by its host.' };
   }
   return null;
+}
+
+export function isLinkGatedPath(path: string): boolean {
+  return sharedLinkMeta(path) !== null || /^\/c\/[^/]+$/.test(path);
 }
 
 /** A collection sent to someone: its own title, note and picture. */
@@ -641,5 +646,14 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       },
     });
   }
-  return rewriter.transform(response);
+  const rewritten = rewriter.transform(response);
+  // Link-gated pages (an invoice, a sit, a collection sent to someone) are
+  // previewed for whoever holds the link and kept out of search indexes, as
+  // their own pages already say once the app loads.
+  if (isLinkGatedPath(path)) {
+    const headers = new Headers(rewritten.headers);
+    headers.set('X-Robots-Tag', 'noindex, nofollow');
+    return new Response(rewritten.body, { status: rewritten.status, headers });
+  }
+  return rewritten;
 };
