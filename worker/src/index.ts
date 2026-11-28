@@ -1,6 +1,6 @@
 import { casualSitPublicationRoutes } from './casualSitPublications';
 import { EXPLICIT_INVOICE_ACCESS_SQL, invoiceKeptBy, keepInvoiceForUser, sendsInvoice } from './payInvoiceKeep';
-import { discountPercent, isDiscountLine, readInvoiceDiscount, writeInvoiceDiscount } from './invoiceDiscount';
+import { discountLinePercent, discountPercent, isDiscountLine, readInvoiceDiscount, writeInvoiceDiscount } from './invoiceDiscount';
 import { describeLineChange, planInvoiceDetailsEdit } from './invoiceEdit';
 import { listMyBoughtTeas } from './myBoughtTeas';
 import { freightRateWriteRefusal } from './freightRateDoor';
@@ -7622,7 +7622,7 @@ const handleUpdateInvoiceItems: Handler = async (request, env, params) => {
     return restError(400, 'Give a discount from 0 to 99.9 percent', 'discount_invalid');
   }
   const keptDiscount = existingLines.find(line => isDiscountLine(line));
-  const discountBefore = keptDiscount ? Number(String(keptDiscount.custom_name).match(/[\d.]+/)?.[0]) || 0 : 0;
+  const discountBefore = keptDiscount ? discountLinePercent(keptDiscount) ?? 0 : 0;
   const discountTarget = hasDiscountUpdate ? askedDiscount : hasReplacementLines && keptDiscount ? discountBefore : null;
   let lines: unknown = hasReplacementLines && Array.isArray(body.lineItems)
     ? (body.lineItems as Array<Record<string, unknown>>).filter(line => !isDiscountLine(line ?? {}))

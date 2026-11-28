@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { X, Pencil, Loader2, Plus, Trash2, Search } from 'lucide-react';
+import { Pencil, Loader2, Plus, Trash2, Search } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useProducts } from '../hooks/useAdminData';
 import Fuse from 'fuse.js';
 import { OrderPayLink } from './OrderPayLink';
 import { enteredNumber } from '../productUpdatePayload';
+import { discountLinePercent } from '../../../shared/invoiceDiscountLine';
+import { Modal } from '../../components/shared/Modal';
 import { updateInvoiceDetails } from '../../lib/invoiceEditApi';
 
 /**
@@ -36,14 +38,6 @@ interface LineItem {
   // erases the name of every custom line on it.
   custom_name?: string | null;
 }
-
-/** The one discount line the shop's discount writes (worker/src/invoiceDiscount.ts). */
-const DISCOUNT_NAME = /^Discount (\d+(?:\.\d+)?)%$/;
-const discountLinePercent = (item: { product_id?: string | null; custom_name?: string | null; price_at_sale?: unknown }): number | null => {
-  if (item.product_id || typeof item.custom_name !== 'string' || !(Number(item.price_at_sale) < 0)) return null;
-  const match = item.custom_name.match(DISCOUNT_NAME);
-  return match ? Number(match[1]) : null;
-};
 
 const money = (value: number) => `$${value.toFixed(2)}`;
 const dayOf = (stamp: unknown) => (typeof stamp === 'string' ? stamp.slice(0, 10) : '');
@@ -207,38 +201,19 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-modal flex items-end sm:items-center justify-center sm:p-4 animate-in fade-in duration-200">
-      <button
-        type="button"
-        aria-hidden
-        onClick={onClose}
-        className="absolute inset-0 bg-tea-bg/70 backdrop-blur-[2px]"
-      />
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label="Edit invoice"
-        className="relative bg-tea-surface border border-tea-border rounded-t-xl sm:rounded-xl shadow-2xl w-full max-w-2xl max-h-[92vh] sm:max-h-[90vh] flex flex-col"
-      >
-        <button
-          onClick={onClose}
-          className="absolute top-3 right-3 text-tea-text-sec hover:text-tea-text transition-colors rounded-md p-1.5 tap-target"
-          aria-label="Close"
-        >
-          <X size={16} />
-        </button>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      variant="sheet"
+      title={<>Edit invoice {invoice?.invoice_number}</>}
+      className="sm:!max-w-2xl"
+    >
+      <>
+        {itemsLocked && (
+          <p className="text-ui-12 text-tea-text-sec px-4 sm:px-6 pt-3">Money has been received or the tea has gone, so the lines stay as they are. The name, date, notes and delivery can still be fixed.</p>
+        )}
 
-        <div className="px-4 sm:px-6 pt-5 pb-3 flex-shrink-0 pr-14">
-          <div className="flex items-center gap-2">
-            <Pencil size={14} className="text-tea-gold" />
-            <h3 className="h3 text-tea-text">Edit invoice {invoice?.invoice_number}</h3>
-          </div>
-          {itemsLocked && (
-            <p className="text-ui-12 text-tea-text-sec mt-1">Money has been received or the tea has gone, so the lines stay as they are. The name, date, notes and delivery can still be fixed.</p>
-          )}
-        </div>
-
-        <div className="px-4 sm:px-6 pb-4 flex-1 overflow-y-auto custom-scrollbar">
+        <div className="px-4 sm:px-6 py-4">
           {fetching || (!loadError && loadedInvoiceId !== invoice?.id) ? (
             <div className="py-8 text-center text-tea-text-sec"><Loader2 className="animate-spin inline" size={20} /></div>
           ) : loadError ? (
@@ -409,7 +384,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
           )}
         </div>
 
-        <div className="flex justify-between items-center gap-2 px-4 sm:px-6 py-3 border-t border-tea-border flex-shrink-0">
+        <div className="sticky bottom-0 bg-tea-surface flex justify-between items-center gap-2 px-4 sm:px-6 py-3 border-t border-tea-border">
           <button
             type="button"
             onClick={onClose}
@@ -426,7 +401,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
             {loading ? <Loader2 size={13} className="animate-spin" /> : <Pencil size={13} />} Save changes
           </button>
         </div>
-      </div>
-    </div>
+      </>
+    </Modal>
   );
 };
