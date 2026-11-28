@@ -80,6 +80,7 @@ export const SHOP_TOOL_GROUPS: readonly ToolGroup[] = [
     copy: 'Make the Stock tea, count it, give its cost in its own currency, and price it.',
     tools: [
       'curate_promote_tea', 'curate_stock', 'add_stock', 'remove_stock', 'count_stock',
+      'list_stock_places', 'move_stock_between_places', 'save_stock_place',
       'transfer_stock', 'list_transferable_accounts', 'update_tea_pricing', 'list_freight_rates', 'set_tea_freight_service', 'update_tea_catalog',
       'list_unstated_costs', 'set_cost_currency', 'set_low_stock_threshold', 'set_archive_status',
     ],

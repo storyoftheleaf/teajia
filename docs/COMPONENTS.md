@@ -81,6 +81,8 @@ there, so the shop page keeps being the one place the tea is drawn.
 | Currency names and aliases (CNY is `Yuan`, TWD is `NT`) | `canonicalCurrency`, `knownCurrency`, `rateToUsd` | `src/lib/currency.ts` |
 | Freight, markup, cost guard (server) | `shippingRate.ts`, `markup.ts`, `costCurrency.ts` | `worker/src/`; read `docs/claude/money.md` |
 | An admin number field | `enteredNumber()`, `enteredCostCell()` | `src/admin/productUpdatePayload.ts` |
+| Changing a tea's stock in Manage (receive, use, gift, waste, recount, transfer), at a storage place or not | `StockMovementPanel` (one door, through `POST /api/products/:id/movements`) | `src/admin/components/inventory/StockMovementPanel.tsx` |
+| Where a tea's stock is kept: the one total split privately by the shop's own places | `StockPlacesSection` (in the stock panel); the arithmetic `shared/stockSplit.ts`; server rules and every write `worker/src/stockPlaces.ts` | `src/admin/components/inventory/StockPlacesSection.tsx` |
 | Choosing grams or packs and adding to the cart | `TeaQuantityPicker`, `TeaWeighControl` | `src/components/shop/` |
 | The cart's contents and actions | the cart in the store | `src/lib/store.ts` |
 | An invoice's pay link to hand to someone (short, `teajia.com/i/<number>-<12 of the token>`) | `short_url` on the invoice's `payment`; built by `invoiceShortPath()` | `shared/invoiceShortLink.ts` |

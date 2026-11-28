@@ -21,6 +21,7 @@
  * a shelf that had already gone to 0.
  */
 import { decodeStockMovement } from '../inventoryDomain';
+import { cleanPlaceName, countAtPlace, createStockPlace, describeSplit, findPlace, isRefusal, listStockPlaces, readStockSplit, type StockSplit } from '../stockPlaces';
 import type { ToolAuth, ToolDefinition, ToolEnv, ToolModule } from './registry';
 import { consumeTicket, INVALID_TICKET, issueTicket, previewEnvelope, type TicketPayload } from './tickets';
 
@@ -32,6 +33,16 @@ interface CountStockTicket extends TicketPayload {
   counted: number;
   note: string;
   idempotencyKey: string;
+  /** A count at one place (worker/src/stockPlaces.ts): the place, and what the split was when previewed. */
+  place?: { id: string | null; name: string; before: number; notPlacedBefore: number } | null;
+}
+
+const NEW_PLACE = 'new-place';
+
+/** The split with a place that does not exist yet added at the end, holding nothing. */
+function withPlace(split: StockSplit, id: string | null, name: string): { split: StockSplit; id: string } {
+  if (id) return { split, id };
+  return { split: { ...split, places: [...split.places, { place_id: NEW_PLACE, name, amount: 0 }] }, id: NEW_PLACE };
 }
 
 type ProductRow = {
@@ -65,9 +76,24 @@ async function toolCountStock(env: ToolEnv, auth: ToolAuth, args: any): Promise<
     // caller has lost track of which preview this is, so nothing is written.
     if (!t || (productId && t.productId !== productId)) return INVALID_TICKET;
     if (!env.stockMovements) return { error: 'stock_counting_unavailable', message: 'The shop could not reach its stock ledger. Nothing was changed.' };
+    let balance = t.counted; let placeId: string | null = null;
+    if (t.place) {
+      // The place is made on confirm, never on preview, so a "no" leaves no trace.
+      const place = t.place.id ? findPlace(await listStockPlaces(env.DB, auth.accountId), t.place.id) : await createStockPlace(env.DB, auth.accountId, t.place.name);
+      if (!place || isRefusal(place)) return { error: 'place_gone', message: `${t.place.name} is no longer one of the shop's places. Nothing was changed; preview the count again.` };
+      const split = await readStockSplit(env.DB, auth.accountId, t.productId, t.before);
+      const at = split.places.find(row => row.place_id === place.id);
+      if (!at || at.amount !== t.place.before || split.not_placed !== t.place.notPlacedBefore) {
+        return { error: 'stock_changed_since_preview', message: `Where this tea is kept changed after the preview. Nothing was changed; preview the count again.` };
+      }
+      const counted = countAtPlace(split, place.id, t.counted, t.unit);
+      if (isRefusal(counted)) return { error: 'count_refused', message: counted.message };
+      balance = counted.total; placeId = place.id;
+    }
     const input = decodeStockMovement({
-      movement_type: 'recount', unit: t.unit, balance: t.counted, expected_balance: t.before,
+      movement_type: 'recount', unit: t.unit, balance, expected_balance: t.before,
       idempotency_key: t.idempotencyKey, note: t.note,
+      ...(placeId ? { place_id: placeId, place_balance: t.counted } : {}),
     });
     const result = await env.stockMovements.apply({ accountId: auth.accountId, userId: auth.userId, email: auth.userEmail }, t.productId, input);
     const value = (result.value ?? {}) as Record<string, any>;
@@ -89,6 +115,7 @@ async function toolCountStock(env: ToolEnv, auth: ToolAuth, args: any): Promise<
       difference: (value.after_balance ?? t.counted) - (value.before_balance ?? t.before),
       ledger_id: value.id ?? null,
       already_recorded: value.already_applied === true,
+      ...(value.stock_places ? { stock_places: value.stock_places } : {}),
     };
   }
 
@@ -116,27 +143,50 @@ async function toolCountStock(env: ToolEnv, auth: ToolAuth, args: any): Promise<
   const before = Number(stored ?? 0);
   const known = stored != null && product.stock_known_at != null;
   const extra = text(args?.note, 300);
-  const note = `Counted by ${text(args?.agent, 60) ?? 'an agent'}: ${before}→${counted}${extra ? `. ${extra}` : ''}`;
+  const name = label(product);
+
+  // A count at one place: that place now holds `counted`; the total follows.
+  let place: CountStockTicket['place'] = null; let after = counted; let placeLine = ''; let split: StockSplit | null = null;
+  const placeName = cleanPlaceName(args?.place);
+  if (placeName) {
+    const places = await listStockPlaces(env.DB, auth.accountId);
+    const found = findPlace(places, placeName);
+    const current = await readStockSplit(env.DB, auth.accountId, productId, before, places);
+    const fitted = withPlace(current, found?.id ?? null, found?.name ?? placeName);
+    const at = fitted.split.places.find(row => row.place_id === fitted.id)!;
+    const counting = countAtPlace(fitted.split, fitted.id, counted, unit);
+    if (isRefusal(counting)) throw new Error(counting.message);
+    place = { id: found?.id ?? null, name: at.name, before: at.amount, notPlacedBefore: current.not_placed };
+    after = counting.total; split = counting;
+    const drawn = Math.max(0, Math.min(counted - at.amount, current.not_placed));
+    placeLine = `${at.name}${found ? '' : ' (a new place)'} goes from ${at.amount} to ${counted} ${unitWord(unit)}`
+      + (drawn > 0 ? `, ${drawn} ${unitWord(unit)} of it from stock not placed yet` : '') + '.';
+  }
+  const note = place
+    ? `Counted at ${place.name} by ${text(args?.agent, 60) ?? 'an agent'}: ${place.before}→${counted}${extra ? `. ${extra}` : ''}`
+    : `Counted by ${text(args?.agent, 60) ?? 'an agent'}: ${before}→${counted}${extra ? `. ${extra}` : ''}`;
 
   const token = await issueTicket<CountStockTicket>(env, {
     kind: 'count_stock', accountId: auth.accountId, productId, unit, before, counted, note,
-    idempotencyKey: crypto.randomUUID(),
+    idempotencyKey: crypto.randomUUID(), place,
   }, auth.tokenId);
 
-  const name = label(product);
   return previewEnvelope({
     action: 'count_stock',
-    read_back: known
-      ? `Set ${name} to ${counted} ${unitWord(unit)} on hand (the shop has ${before} ${unitWord(unit)}).`
-      : `Set ${name} to ${counted} ${unitWord(unit)} on hand. The shop had no counted stock for it before.`,
+    read_back: place
+      ? `${placeLine} ${name} then has ${after} ${unitWord(unit)} in all (it has ${before} ${unitWord(unit)} now).`
+      : known
+        ? `Set ${name} to ${counted} ${unitWord(unit)} on hand (the shop has ${before} ${unitWord(unit)}).`
+        : `Set ${name} to ${counted} ${unitWord(unit)} on hand. The shop had no counted stock for it before.`,
     product: { id: product.id, name, chinese_name: product.chinese_name ?? null, status: product.status ?? null },
     unit: unitWord(unit),
     balance_before: before,
     balance_before_was_known: known,
-    balance_after: counted,
-    difference: counted - before,
+    balance_after: after,
+    difference: after - before,
+    ...(place && split ? { place: { name: place.name, is_new: !place.id, before: place.before, after: counted }, stock_places: describeSplit({ ...split, places: split.places.map(row => (row.place_id === NEW_PLACE ? { ...row, place_id: 'new' } : row)) }, unit) } : {}),
     last_counted_at: product.stock_verified_at ?? null,
-    ...(counted > 0 && product.status === 'Sold Out' ? { goes_back_on_sale: true } : {}),
+    ...(after > 0 && product.status === 'Sold Out' ? { goes_back_on_sale: true } : {}),
     note,
   }, token);
 }
@@ -145,12 +195,13 @@ const defs: ToolDefinition[] = [
   {
     name: 'count_stock',
     scope: 'stock:write',
-    description: 'Set a shelf tea\'s stock to what is actually there now, e.g. Adrian weighed it and has 118 g. Records a stock count, the same as changing the stock number in Manage: the ledger keeps the difference, the tea is marked counted, and a sold-out tea with stock again goes back on sale. Grams for tea, whole pieces for teaware. Use add_stock for a delivery and remove_stock for tea used, given away or wasted, so the ledger says why. Two steps: read the preview back, and send confirm only after Adrian said yes. If the stock moves in between, nothing is written and you preview again.',
+    description: 'Set a shelf tea\'s stock to what is actually there now, e.g. Adrian weighed it and has 118 g. Records a stock count, the same as changing the stock number in Manage: the ledger keeps the difference, the tea is marked counted, and a sold-out tea with stock again goes back on sale. Grams for tea, whole pieces for teaware. With place, it counts one storage place (the shop keeps one total, split privately by place; see list_stock_places). Use add_stock for a delivery and remove_stock for tea used, given away or wasted, so the ledger says why. Two steps: read the preview back, and send confirm only after Adrian said yes. If the stock moves in between, nothing is written and you preview again.',
     inputSchema: {
       type: 'object',
       properties: {
         product_id: { type: 'string', description: 'Product id from search_tea or get_tea.' },
         counted: { type: 'number', minimum: 0, description: 'What is on hand now: grams for tea, pieces for teaware. 0 is a real count.' },
+        place: { type: 'string', description: 'Optional: where this count was made, e.g. "Art studio". Then counted is what that place holds, and the total follows: more than the place had comes first out of stock not placed yet. A name the shop does not have yet becomes a new place on confirm. Leave out to count the whole tea.' },
         note: { type: 'string', description: 'Optional, e.g. "weighed after the Ubud session".' },
         agent: { type: 'string', description: 'Who is counting, e.g. Claude, so the ledger says where the number came from.' },
         confirm: { type: 'string', description: 'The confirmation_token from the preview, sent only after Adrian said yes.' },

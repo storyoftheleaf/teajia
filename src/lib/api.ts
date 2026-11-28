@@ -1704,6 +1704,9 @@ export interface SampleTastingApiRow {
   created_at: string;
 }
 
+/** One tea's stock split by place, as the worker reads it: the total, each place, and what is not placed yet. */
+export interface StockPlacesSplit { total: number; unit: 'g' | 'pieces'; places: Array<{ id: string; name: string; amount: number }>; not_placed: number }
+
 export const api = {
   libraryPreview: {
     createGrant: (input: { origin: string; challenge: string }): Promise<{ code: string; expiresAt: number; grantId: string }> => authedFetch(`${API_URL}/api/dev/library-preview/grants`, { method: 'POST', body: JSON.stringify(input) }),
@@ -1815,7 +1818,20 @@ export const api = {
       unit: 'g' | 'unit'; expected_balance: number; idempotency_key: string;
       quantity?: number; balance?: number; destination_product_id?: string;
       note?: string; batch_id?: string; source_invoice_id?: string; source_invoice_number?: string; source_compass_entry_id?: string;
+      place_id?: string; place_balance?: number;
     }, options: Pick<ApiRequestInit, 'callerRefreshesCommerce'> = {}) => authedFetch(`${API_URL}/api/products/${productId}/movements`, { method: 'POST', body: JSON.stringify(body), retryTimeouts: true, ...options }),
+  },
+  /** Where each tea's stock is kept: the shop's own places and one tea's split (worker/src/stockPlaces.ts). */
+  stockPlaces: {
+    list: async (): Promise<{ places: Array<{ id: string; name: string; position: number }> }> => authedFetch(`${API_URL}/api/stock-places`),
+    create: async (name: string): Promise<{ place: { id: string; name: string; position: number } }> =>
+      authedFetch(`${API_URL}/api/stock-places`, { method: 'POST', body: JSON.stringify({ name }) }),
+    update: async (id: string, patch: { name?: string; position?: number; archived?: boolean }) =>
+      authedFetch(`${API_URL}/api/stock-places/${id}`, { method: 'PUT', body: JSON.stringify(patch) }),
+    forProduct: async (productId: string): Promise<{ product_id: string; stock_places: StockPlacesSplit }> =>
+      authedFetch(`${API_URL}/api/products/${productId}/stock-places`),
+    setForProduct: async (productId: string, body: { amounts: Array<{ place_id: string; amount: number }>; expected_total: number; note?: string }): Promise<{ product_id: string; stock_places: StockPlacesSplit }> =>
+      authedFetch(`${API_URL}/api/products/${productId}/stock-places`, { method: 'PUT', body: JSON.stringify(body) }),
   },
   // Working Feature Guide, admin-only internal build tracker.
   featureStatus: {

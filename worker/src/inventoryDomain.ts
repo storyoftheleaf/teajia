@@ -105,6 +105,10 @@ export interface StockMovementInput {
   source_invoice_id: string | null;
   source_invoice_number: string | null;
   source_compass_entry_id: string | null;
+  /** Where the movement happened (worker/src/stockPlaces.ts). That place moves by the same amount as the total. */
+  place_id?: string | null;
+  /** A recount at a place: what that place holds now (`countAtPlace`). `balance` is then the tea's new total. */
+  place_balance?: number | null;
 }
 
 const MOVEMENT_TYPES = new Set<StockMovementType>(['receipt', 'sale', 'sample_use', 'gift', 'waste', 'return', 'recount', 'transfer']);
@@ -128,6 +132,11 @@ export function decodeStockMovement(body: Record<string, unknown>): StockMovemen
     if (!Number.isFinite(quantity) || quantity! <= 0) throw new Error('quantity must be a finite number greater than zero');
     if (body.unit === 'unit' && !Number.isInteger(quantity)) throw new Error('unit quantity must be a whole number');
   }
+  const placeBalance = body.place_balance === undefined || body.place_balance === null ? null : Number(body.place_balance);
+  if (placeBalance !== null) {
+    if (movement_type !== 'recount' || !optionalText(body.place_id)) throw new Error('place_balance goes with a recount at a place_id');
+    if (!Number.isFinite(placeBalance) || placeBalance < 0 || (body.unit === 'unit' && !Number.isInteger(placeBalance))) throw new Error('place_balance must be a non-negative number');
+  }
   const destination_product_id = optionalText(body.destination_product_id);
   if (movement_type === 'transfer' && !destination_product_id) throw new Error('destination_product_id is required for transfer');
   return {
@@ -135,6 +144,8 @@ export function decodeStockMovement(body: Record<string, unknown>): StockMovemen
     destination_product_id, note: optionalText(body.note), batch_id: optionalText(body.batch_id),
     source_invoice_id: optionalText(body.source_invoice_id), source_invoice_number: optionalText(body.source_invoice_number),
     source_compass_entry_id: optionalText(body.source_compass_entry_id),
+    place_id: optionalText(body.place_id),
+    place_balance: placeBalance,
   };
 }
 
@@ -149,6 +160,8 @@ export function stockMovementFingerprint(input: StockMovementInput): string {
     expected_balance: input.expected_balance, destination_product_id: input.destination_product_id,
     note: input.note, batch_id: input.batch_id, source_invoice_id: input.source_invoice_id,
     source_invoice_number: input.source_invoice_number, source_compass_entry_id: input.source_compass_entry_id,
+    ...(input.place_id ? { place_id: input.place_id } : {}),
+    ...(input.place_balance != null ? { place_balance: input.place_balance } : {}),
   });
 }
 

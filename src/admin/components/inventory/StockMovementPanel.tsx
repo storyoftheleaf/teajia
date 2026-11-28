@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ChevronDown, ChevronUp, History, Loader2, X } from 'lucide-react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAppStore } from '../../../lib/store';
 import { refreshCommerceQueries } from '../../../lib/refreshCommerce';
 import { movementStorageKey, readPendingMovement, type PendingMovement } from './movementRecovery';
@@ -8,6 +8,8 @@ import { ApiError, api } from '../../../lib/api';
 import { TYPOGRAPHY_CLASSES } from '../../../designTokens';
 import type { Product } from '../../types';
 import { StockLedgerPanel } from '../StockLedgerPanel';
+import { StockPlacesSection, stockPlacesKey } from './StockPlacesSection';
+import { countAtPlace, isRefusal } from '../../../../shared/stockSplit';
 
 type MovementType = 'receipt' | 'sample_use' | 'gift' | 'waste' | 'return' | 'recount' | 'transfer';
 
@@ -66,16 +68,26 @@ export const StockMovementPanel: React.FC<StockMovementPanelProps> = ({
   const [error, setError] = useState('');
   const [showDetails, setShowDetails] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [placeId, setPlaceId] = useState('');
+  const placesQuery = useQuery({ queryKey: stockPlacesKey(product.id), queryFn: () => api.stockPlaces.forProduct(product.id) });
+  const split = placesQuery.data?.stock_places;
+  const places = split?.places ?? [];
+  const place = places.find(candidate => candidate.id === placeId) ?? null;
   const current = currentBalance;
   const amount = Number(quantity);
+  // A recount at a place counts that place; the tea's one total follows (shared/stockSplit.ts).
+  const placeCount = movementType === 'recount' && place && split && split.total === current && balance.trim() !== ''
+    ? countAtPlace({ total: split.total, not_placed: split.not_placed, places: places.map(row => ({ place_id: row.id, name: row.name, amount: row.amount })) }, place.id, Number(balance), movementUnit)
+    : null;
   const next = movementType === 'recount'
-    ? Number(balance)
+    ? (place ? (placeCount && !isRefusal(placeCount) ? placeCount.total : NaN) : Number(balance))
     : current + (OUTWARD.has(movementType) ? -amount : amount);
+  const placeShort = !!place && OUTWARD.has(movementType) && Number.isFinite(amount) && amount > place.amount;
   const invalidQuantity = movementType !== 'recount' && (!Number.isFinite(amount) || amount <= 0 || (movementUnit === 'unit' && !Number.isInteger(amount)));
   const invalidBalance = movementType === 'recount' && (balance.trim() === '' || !Number.isFinite(next) || next < 0 || (movementUnit === 'unit' && !Number.isInteger(next)));
   const insufficient = OUTWARD.has(movementType) && Number.isFinite(amount) && amount > current;
   const transferUnavailable = movementType === 'transfer' && !destinationId;
-  const canSubmit = !saving && (Boolean(pending) || (!invalidQuantity && !invalidBalance && !insufficient && !transferUnavailable));
+  const canSubmit = !saving && (Boolean(pending) || (!invalidQuantity && !invalidBalance && !insufficient && !placeShort && !transferUnavailable));
 
   useEffect(() => {
     const restored = readStoredMovement(storageKey);
@@ -116,7 +128,13 @@ export const StockMovementPanel: React.FC<StockMovementPanelProps> = ({
   const selectAction = (value: MovementType) => {
     setMovementType(value);
     setError('');
-    if (value === 'recount') setBalance(String(current));
+    if (value === 'recount') setBalance(String(place ? place.amount : current));
+  };
+
+  const selectPlace = (value: string) => {
+    setPlaceId(value);
+    const chosen = places.find(candidate => candidate.id === value);
+    if (movementType === 'recount') setBalance(String(chosen ? chosen.amount : current));
   };
 
   const submit = async (event: React.FormEvent) => {
@@ -136,6 +154,7 @@ export const StockMovementPanel: React.FC<StockMovementPanelProps> = ({
         ...(movementType === 'transfer' ? { destination_product_id: destinationId } : {}),
         ...(note.trim() ? { note: note.trim() } : {}),
         ...(reference.trim() ? { source_invoice_number: reference.trim() } : {}),
+        ...(place ? { place_id: place.id, ...(movementType === 'recount' ? { place_balance: Number(balance) } : {}) } : {}),
       }};
       sessionStorage.setItem(requestScope, JSON.stringify(intent));
       setPending(intent);
@@ -150,6 +169,7 @@ export const StockMovementPanel: React.FC<StockMovementPanelProps> = ({
       // onRecorded has just reconciled this tea (and a transfer's destination) into
       // the shelf, so the full shelf is not read again; its dependents still are.
       await refreshCommerceQueries(queryClient, accountId, { shelfRowsReconciled: true });
+      await queryClient.invalidateQueries({ queryKey: stockPlacesKey(product.id) });
       setQuantity('');
       setNote('');
       setReference('');
@@ -220,10 +240,18 @@ export const StockMovementPanel: React.FC<StockMovementPanelProps> = ({
               </div>
             </div>
 
+            {places.length > 0 && movementType !== 'transfer' && <label className="block text-ui-12 text-tea-text-sec">
+              Where
+              <select aria-label="Where" value={placeId} onChange={event => selectPlace(event.target.value)} className="admin-input mt-1 w-full">
+                <option value="">{movementType === 'recount' ? 'The whole tea' : 'Not placed yet'}</option>
+                {places.map(candidate => <option key={candidate.id} value={candidate.id}>{candidate.name} · {candidate.amount}{movementUnit === 'unit' ? ' units' : 'g'}</option>)}
+              </select>
+            </label>}
+
             <label className="block text-ui-12 text-tea-text-sec">
-              {movementType === 'recount' ? 'New balance' : 'Quantity'}
+              {movementType === 'recount' ? (place ? `Now at ${place.name}` : 'New balance') : 'Quantity'}
               <input
-                aria-label={movementType === 'recount' ? 'New balance' : 'Quantity'}
+                aria-label={movementType === 'recount' ? (place ? `Now at ${place.name}` : 'New balance') : 'Quantity'}
                 type="number"
                 min="0"
                 step={movementUnit === 'unit' ? 1 : 'any'}
@@ -250,6 +278,7 @@ export const StockMovementPanel: React.FC<StockMovementPanelProps> = ({
               </span>
             </div>
             {insufficient && <p className="text-ui-12 text-tea-error">Only {current}{unit} available</p>}
+            {!insufficient && placeShort && place && <p className="text-ui-12 text-tea-error">Only {place.amount}{unit} at {place.name}</p>}
 
             <div>
               <button
@@ -296,6 +325,10 @@ export const StockMovementPanel: React.FC<StockMovementPanelProps> = ({
               </button>
             </div>
           </form>
+
+          <div className="mt-3">
+            <StockPlacesSection productId={product.id} total={current} unit={movementUnit} />
+          </div>
 
           {showHistory && (
             <div className="mt-3">

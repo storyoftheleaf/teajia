@@ -4569,3 +4569,41 @@ CREATE TABLE IF NOT EXISTS link_signals (
 CREATE INDEX IF NOT EXISTS idx_link_signals_invoice ON link_signals(invoice_id, created_at) WHERE invoice_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_link_signals_publication ON link_signals(publication_id, created_at) WHERE publication_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_link_signals_account ON link_signals(account_id, created_at);
+
+-- 0163_stock_places.sql
+CREATE TABLE IF NOT EXISTS stock_places (
+  id          TEXT PRIMARY KEY,
+  account_id  TEXT NOT NULL,
+  name        TEXT NOT NULL,
+  position    INTEGER NOT NULL DEFAULT 0,
+  archived_at TEXT,
+  created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at  TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_stock_places_account ON stock_places(account_id, position);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_stock_places_account_name
+  ON stock_places(account_id, lower(name)) WHERE archived_at IS NULL;
+
+CREATE TABLE IF NOT EXISTS product_stock_places (
+  account_id TEXT NOT NULL,
+  product_id TEXT NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+  place_id   TEXT NOT NULL REFERENCES stock_places(id) ON DELETE CASCADE,
+  amount     REAL NOT NULL CHECK (amount >= 0),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (product_id, place_id)
+);
+CREATE INDEX IF NOT EXISTS idx_product_stock_places_account ON product_stock_places(account_id, product_id);
+
+CREATE TABLE IF NOT EXISTS stock_place_moves (
+  id            TEXT PRIMARY KEY,
+  account_id    TEXT NOT NULL,
+  product_id    TEXT NOT NULL,
+  from_place_id TEXT,
+  to_place_id   TEXT,
+  amount        REAL NOT NULL,
+  ledger_id     TEXT,
+  note          TEXT,
+  user_email    TEXT,
+  created_at    TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_stock_place_moves_product ON stock_place_moves(account_id, product_id, created_at);
