@@ -273,7 +273,7 @@ function NumberPad({ open, name, shelf, canWeigh, busy, onClose, onPour }: {
     return (
       <BottomSheet open={open} onOpenChange={next => { if (!next) onClose(); }} title={name}
         description="Stock access is needed to deduct grams.">
-        <Button type="button" disabled={busy} onClick={() => onPour(null)}>Record without weight</Button>
+        <Button type="button" className="tap-target" disabled={busy} onClick={() => onPour(null)}>Record without weight</Button>
       </BottomSheet>
     );
   }
