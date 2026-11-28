@@ -31,7 +31,8 @@ function recipientOf(payment: InvoicePayment): string | null {
 function usePayLinkCopy(payment: InvoicePayment | null | undefined, invoiceNumber?: string) {
   const { showToast } = useToast();
   const [copied, setCopied] = React.useState(false);
-  const payUrl = payment?.pay_url ?? null;
+  // The short link is what a person is handed; the long one is its fallback.
+  const payUrl = payment?.short_url ?? payment?.pay_url ?? null;
 
   React.useEffect(() => {
     if (!copied) return;

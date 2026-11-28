@@ -8,6 +8,7 @@ import { holdKeepTeaser, type KeepTeaser } from '../../lib/keepTeaser';
 import { holdReturnPlace } from '../../hooks/useReturnPlace';
 import { keepPayInvoice } from '../../lib/payInvoiceKeepApi';
 import type { PayLinkTeaLine } from './types';
+import { invoiceShortPath, shortLinkOrigin } from '../../../shared/invoiceShortLink';
 
 const KEEP_PARAM = 'keep';
 
@@ -105,6 +106,13 @@ export function PayInvoiceAfter({ kept, collection }: {
   );
 }
 
+/** The short form of this invoice's address when it has one, else the address itself. */
+export function invoiceLinkToSend(location: Pick<Location, 'href' | 'origin' | 'search'>): string {
+  const search = new URLSearchParams(location.search);
+  const path = invoiceShortPath(search.get('reference'), search.get('t'));
+  return path ? `${shortLinkOrigin(location.origin)}${path}` : location.href;
+}
+
 /**
  * For the shop that sent it: the link to copy, sitting with the amount and
  * the reference it asks for (Adrian, 2026-11-27).
@@ -113,7 +121,7 @@ export function PayInvoiceSend() {
   const [copied, setCopied] = useState(false);
   const copy = async () => {
     try {
-      await navigator.clipboard.writeText(window.location.href);
+      await navigator.clipboard.writeText(invoiceLinkToSend(window.location));
       setCopied(true);
     } catch { /* the address bar still has it */ }
   };
