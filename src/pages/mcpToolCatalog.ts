@@ -107,7 +107,7 @@ export const SHOP_TOOL_GROUPS: readonly ToolGroup[] = [
     title: 'Paid and sent',
     copy: 'Write the invoice, take the payment, send the parcel and say where it is.',
     tools: [
-      'record_sale', 'draft_invoice', 'list_invoices', 'get_invoice', 'update_invoice', 'split_invoice_line', 'release_invoice_keep', 'set_invoice_discount', 'void_invoice', 'fulfill_invoice',
+      'record_sale', 'draft_invoice', 'list_invoices', 'get_invoice', 'list_sends', 'get_send', 'update_invoice', 'split_invoice_line', 'release_invoice_keep', 'set_invoice_discount', 'void_invoice', 'fulfill_invoice',
       'mark_invoice_paid', 'record_payment', 'confirm_payment', 'list_payment_claims',
       'list_orders_in_process', 'set_order_tracking', 'sales_summary',
     ],

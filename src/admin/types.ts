@@ -383,3 +383,66 @@ export type {
   ArticleBlock,
   DbArticle,
 } from '../types';
+
+/** One invoice or collection link sent, in a list: worker/src/sendRecords.ts. */
+export interface SendSummary {
+  kind: 'invoice' | 'collection';
+  id: string;
+  title: string;
+  to: string | null;
+  sent_at: string | null;
+  live: boolean;
+  teas: number;
+  total_usd: number | null;
+  payment_status: string | null;
+  opened_times: number;
+  first_opened_at: string | null;
+  last_opened_at: string | null;
+  teas_opened: number;
+  counted_before: number;
+  orders: number;
+}
+
+/** One send in full: who, when, what, and what the person did with it. */
+export interface SendRecord {
+  kind: 'invoice' | 'collection';
+  id: string;
+  title: string;
+  to: string | null;
+  sent_at: string | null;
+  link: string | null;
+  live: boolean;
+  teas: Array<{
+    product_id: string | null;
+    name: string;
+    amount: string | null;
+    price_usd: number | null;
+    times_opened: number;
+    saved_by: string[];
+    tasted_by: Array<{ name: string; at: string | null }>;
+    ordered: boolean;
+  }>;
+  opens: {
+    times: number;
+    visitors: number;
+    first_at: string | null;
+    last_at: string | null;
+    signed_in: string[];
+    by_you: number;
+    counted_before: { times: number; last_at: string | null } | null;
+  };
+  kept_by: Array<{ name: string; at: string | null }>;
+  money: {
+    subtotal_usd: number;
+    discount_percent: number | null;
+    discount_usd: number;
+    shipping_usd: number;
+    total_usd: number;
+    paid_usd: number;
+    claimed_usd: number;
+    payment_status: string | null;
+    payments: Array<{ amount_usd: number; status: string; by: string; method: string | null; claimed_at: string | null; confirmed_at: string | null }>;
+  } | null;
+  orders: Array<{ id: string; invoice_number: string | null; created_at: string | null; status: string | null; payment_status: string | null; total_usd: number }>;
+  status: string | null;
+}

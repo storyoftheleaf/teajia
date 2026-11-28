@@ -4252,8 +4252,8 @@ export const api = {
       const res = await fetchWithTimeout(`${API_URL}/api/public/c/${slug}`, {});
       return handleResponse(res);
     },
-    trackPublicView: async (slug: string): Promise<void> => {
-      await fetchWithTimeout(`${API_URL}/api/public/c/${slug}/view`, { method: 'POST' });
+    trackPublicView: async (slug: string): Promise<void> => { // signed in, it says who opened it (sendRecords.ts)
+      await (getToken() ? authedFetch(`${API_URL}/api/public/c/${slug}/view`, { method: 'POST', body: '{}', background: true }) : fetchWithTimeout(`${API_URL}/api/public/c/${slug}/view`, { method: 'POST' }));
     },
     /** Public, no auth. Recipient confirms their picks; creates a Draft invoice for the curator to review. */
     confirmPicks: async (

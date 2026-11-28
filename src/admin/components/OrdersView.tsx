@@ -21,6 +21,7 @@ import { OrderClaimsFlag, OrderPaymentsPanel } from './OrderPayments';
 import { useAppStore } from '../../lib/store';
 import { SettlementLedger } from './SettlementLedger';
 import { OrderShipping } from './OrderShipping';
+import { SendRecordPanel } from './SendRecordPanel';
 import { TYPOGRAPHY_CLASSES as T } from '../../designTokens';
 
 const ROW_HEIGHT = 36;
@@ -882,6 +883,8 @@ export const OrdersView = () => {
                   layout="block"
                   className="mb-6"
                 />}
+
+                {viewingInvoice.status !== 'Void' && <SendRecordPanel kind="invoice" id={viewingInvoice.id} className="mb-6" />}
 
                 {notificationLabel(viewingInvoice) && <p role="status" className="mb-6 rounded-md border border-tea-border bg-tea-surface p-3 text-ui-13 text-tea-text-sec">{notificationLabel(viewingInvoice)}</p>}
 
