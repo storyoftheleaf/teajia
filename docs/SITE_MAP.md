@@ -1,14 +1,6 @@
-# Site Map: Routes & Actions by Tier
+# November 2026 route inventory
 
-> **Marked 2026-11-25: partly stale.** The Manage column (now seven rooms), the navigation description and several routes no longer match the code. For the site today read [PILLAR.md](PILLAR.md); for the proposed sections and route map read [SECTIONS.md](SECTIONS.md).
-
-> Every route, organized by tier visibility. For end-to-end flows see FLOWS.md; for current priorities see CONSOLIDATED_DIRECTION.md.
-
-**Launch 4 routes updated:** 2026-11-26, from the build branch. See [SECTIONS.md](SECTIONS.md) for the separate navigation proposal.
-
-**The new bar (K7, K10), built behind `HOME_BAR_OPEN`, off.** `VITE_HOME_BAR_OPEN=true` changes the four words on the phone bar and the desktop rail to the ones in `src/components/navSections.ts` (`BAR_WORDS`), keys 1 to 5 to follow them, the phone menu and the rail foot to their short form, Home's opening lines, its "Come to a table" door and its two strips, (Read's row of three shelf names, Stories, Lessons and Wisdom on `/read`, `/read/lessons` and `/wisdom`, now shows with the bar off too, since Craft left the bar on 2026-11-27). No route is added or removed. "Tea table" opens `/tea-table` when `TEA_TABLE_OPEN` is on and `/events` otherwise; "Tea house" opens `/tea-houses` when `TEA_HOUSES_OPEN` is on and `/tea-houses/visit` otherwise.
-
----
+This dated inventory preserves the route and role comparisons used during the section overhaul. For the current section names and destinations, read [the section map](SECTIONS.md). For exact routes and authorization, consult [public routes](../src/App.tsx), [Manage routes](../src/admin/AdminApp.tsx) and [the access guide](MEMBERS_AND_ACCESS_GUIDE.md).
 
 ## The Manage column
 

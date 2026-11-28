@@ -1,5 +1,7 @@
 # The holdings read, measured: 87,057 rows to 1,600
 
+> Dated measurement of D1 reads for the holdings query. The [current delivery plan](../../docs/CONSOLIDATED_DIRECTION.md) determines which work proceeds.
+
 2026-10-25. Branch `fix/curate-holdings-d1-reads`.
 
 On 2026-10-24 D1's free-tier allowance of 5,000,000 row reads a day was exhausted at

@@ -1,201 +1,41 @@
-# Teajia: consolidated direction
+# What Teajia is building next
 
-> The single directional list: every plan, filed under the section it belongs to, with its status and next step. Rewritten 2026-11-25 around the section overhaul proposed in [SECTIONS.md](SECTIONS.md). The sections named here are the proposed ones. The site as it runs today is in [PILLAR.md](PILLAR.md).
+**One sale, one hosted table, one edition.** Adrian sets ownership and visibility, chooses the real lot and edition, and approves consequential money changes. The builder owns the software through verification. Each person supplies their own consent or confirmation. The [Pillar](PILLAR.md) describes the product. This page owns the sequence. Put dated real-world results in [Launch Validation](LAUNCH_VALIDATION.md).
 
-**Updated:** 2026-11-25. Statuses come from each file's own text and a read of the code on that day. Where a status could not be checked it says so.
+## 1. One flagship sale
 
-## Which document owns what
+Choose one physically counted lot and one buyer. Start at its supplier's Library record or its existing holding. Carry the quote, purchase, counted amount and outstanding quantity into Stock. Follow the same offer through Shop, invoice, payment, dispatch and the buyer's receipt.
 
-| Question | The answer lives in | Note |
-|---|---|---|
-| What is the site and how does it work today | [PILLAR.md](PILLAR.md) | Kept true in the same commit that changes the site |
-| What shape should the sections take | [SECTIONS.md](SECTIONS.md) | A proposal until Adrian says yes |
-| Where is every plan and what is next for it | This file | An index, not a second roadmap |
-| What is the priority and what gates a release | `WORKING_PLAN.md`, dated 2026-11-17 | On Adrian's Mac, not yet in the repo. See the last section |
-| What has been proven in real use | [LAUNCH_VALIDATION.md](LAUNCH_VALIDATION.md) | The only launch checklist |
-| What shipped | [CHANGELOG.md](CHANGELOG.md) | |
-| What just came in | [TODO.md](../TODO.md) | Intake only |
-| Why Teajia exists | [VISION.md](VISION.md) | Philosophy stands, details are from April |
+- **Before using the affected path:** verify that saving an invoice grants only that invoice and releasing it preserves other legitimate access. Check buyer-field visibility for staff. Use the approved terms for the chosen sale. A wholesale quote must agree from picker through confirmation and both shops' invoices (100 g at CNY 1.80/g gives CNY 180). Preserve unknown freight, explicit free freight, currency and separate customer postage. The retail sale can proceed on its verified path while wholesale is qualified.
+- **At the joins:** the physical count belongs to the receiving shop. A carrier update or invoice alone adds no stock. For a sourced lot, reopen its supplier and last quote from Stock. A paid guest should be able to return from the receipt to the same tea. On retry, preserve one order, one stock movement and any chosen credit request. Check account switching and catalog permissions before using shared-device Curate capture.
+- **Done when:** the operator reconciles the counted lot, amount actually received, dispatch and remaining stock. The buyer confirms delivery and can find their own receipt. Record actual channel delivery if a notice was part of the order. Attach the evidence to the [flagship sale entry](LAUNCH_VALIDATION.md#flagship-journeys).
 
-## Current position
+## 2. One hosted table
 
-Per the working plan of 2026-11-17 and the closeout plan of 2026-11-24, the priority has not changed with this overhaul:
+Adrian can host the first sit. Use a real consenting guest and one tea. Keep casual sharing simple. For a scheduled private sit, opening Send preserves the audience, and directions require approval. Keep participation possible with the phone put away.
 
-1. Finish one real shop loop for Adrian: a tea from a supplier's quote through purchase, partial arrival and stock, then a real sale through payment, shipment and the buyer's view (M1 to M4 in the working plan).
-2. Prove one editorial item end to end (K1).
-3. Qualify the connected sit, the Guest Book and the personal seller with one real sit and one real sale.
-4. Only then a second operator and the wider network (N1).
+- **Before a weighed pour:** confirm the owner or their Stock-authorized staff control the holding. Gather can record what was served. Repeat and interrupt a 5 g pour and its reversal on a 100 g fixture. The shelf, serving and listing must settle at 95 g and return once to 100 g. Until verified, use an unweighted sit record for this trial.
+- **At the joins:** test the guest's phone from invitation through sign-in, tea and Back to the same sit. Verify the actual touch targets at 320 and 390 px. Confirm a shared tea opens where it was saved, a guest can withdraw their contribution and private tasting authorship stays intact. Check that a former host can reach their own export.
+- **Done when:** the guest can return unassisted, keep the tea and leave a private note or an optional Guest Book entry. A public recap requires deliberate sharing. Record the result in [Launch Validation](LAUNCH_VALIDATION.md#flagship-journeys).
 
-The section overhaul sits beside that work and does not jump the queue. Its first two stages are pages and forwards with no new backend. The bar words change late, after the evidence from a real sit, as the closeout plan asks.
+## 3. One published edition
 
-## The direction, section by section
+Select one keeper and confirm its byline, subjects, words, image rights and intended Read placement. Use the existing AR Create / WordForge handoff and exact-revision approval. Prepare material while the first two journeys proceed.
 
-### The whole site
+- **At the joins:** the editor opens the right private revision on a cold load. Publish A, ingest B privately and keep A readable until B is approved. Follow an attached tea and a byline in both reader layouts, then return to the same edition. Withdrawal must clear public readers and metadata while preserving the private source.
+- **Done when:** one real reader can complete that journey on the released edition. Record the editorial and reader evidence in [Launch Validation](LAUNCH_VALIDATION.md#flagship-journeys). Retain exact-lot attribution, separate original media rights and approved Wisdom wording. Check legacy saved-reading recovery before retiring its storage.
 
-| Plan or document | Status | Next step |
-|---|---|---|
-| [SECTIONS.md](SECTIONS.md) | Proposed 2026-11-25, revised the same day around guests and tea masters | Adrian answers the open decisions |
-| [todo/plans/guests-and-tea-masters.md](../todo/plans/guests-and-tea-masters.md) | Proposed 2026-11-25. The two roles, the loop, twelve gaps found in the code, and the build stages | Stage 0 repairs need nothing from Adrian. Then his five decisions |
-| [todo/plans/guests-and-tea-masters-build.md](../todo/plans/guests-and-tea-masters-build.md) | Written 2026-11-26. The build of the plan above in five launches (the first table, a few hosts, anyone can host, the Tea Table, the wider service), cut into work packages with tiers and gates | Launch 1 starts on Adrian's yes to its scope; package L1-02 (the invite repair) needs nothing |
-| [PILLAR.md](PILLAR.md) | Live | Reword in the commit that ships each stage |
-| [SITE_MAP.md](SITE_MAP.md) | Partly stale, marked | Regenerate the Manage and navigation parts from code |
-| [VISION.md](VISION.md), [brief/PERSONAS.md](brief/PERSONAS.md) | Live as philosophy, April detail, marked | No rewrite needed for the overhaul |
-| [TEAJIA_WORKING_BRIEF.md](TEAJIA_WORKING_BRIEF.md) | Live (August) | Add the Tea Table exception by name once confirmed |
-| [STATE_OF_THE_SITE.md](STATE_OF_THE_SITE.md), [FLOWS.md](FLOWS.md) | Stale, marked | Leave as history |
-| [LAUNCH_VALIDATION.md](LAUNCH_VALIDATION.md) | Live, launch incomplete | Record the real sale and real sit there |
-| [todo/plans/launch-photo-upload.md](../todo/plans/launch-photo-upload.md), [OWNED_MEDIA_INVENTORY.md](OWNED_MEDIA_INVENTORY.md) | Live | Adrian's photographs. Tea Houses needs its share first |
-| [AUDIT-2026-09.md](AUDIT-2026-09.md), [audits/](audits/), [todo/plans/prime-time-audit.md](../todo/plans/prime-time-audit.md), [prime-time-fixes.md](../todo/plans/prime-time-fixes.md) | Done | History |
+## Which gaps warrant work?
 
-### Read (Stories, Lessons, Wisdom; Craft became Lessons on 2026-11-27)
+| When it matters | Decision |
+|---|---|
+| A reachable defect threatens private information, ownership, money or physical stock | Repair the affected operation before relying on it. Prioritize by actual affected role and data. Recheck older findings against current code and release evidence before commissioning a fix. |
+| The next person cannot finish the sale, sit or edition | Attach the smallest repair to that journey above. Keep its observable finish. A test, a deployment and a person's receipt each prove different things. |
+| A personal seller is ready to trade | Exercise a partial private holding, the seller's own payee and the return of unsold quantity. Keep separate sellers' invoices distinct. |
+| A host will use credit or contribute tea to another person's sit | Verify later-order attribution and retry-safe credit holds before credit use. A cross-owner linked pour needs the holder's authorization and a reversal to the original holding. Naming a tea already serves the ordinary sit. |
+| A second shop is ready after the flagship sale | Validate Jesse's account, opening stock, staff receipt permission, agreed storefront visibility and a two-account order. Check installed agent access, OTP, handset/provider recovery, private-data restore and database incident recovery before claiming the corresponding operating capability. |
+| A licensed edition, additional Wisdom entry or lesson is selected | Confirm rights, source and lot, approved language and corrections. Keep thin claims private. Test licensed asset access and revocation on the selected material. Expand vocabulary or templates when a real piece requires them. |
+| A route change, host distribution network, map, box trial, automatic shipping rate, broader editorial program or historical data repair is proposed | Hold until a real operator, content choice, price, or approved preview supplies the missing decision. Navigation changes require Adrian's explicit approval. Opening an old checklist never promotes an idea. |
+| A proposal duplicates an existing route, rebuilds Curate or Sales in parallel, repeats a closed launch switch, or converts old private sits wholesale | Retire the work order. Reopen only a specific demonstrated gap, keeping existing data, access and return paths intact. |
 
-| Plan or document | Status | Next step |
-|---|---|---|
-| [tracks/01-launch-integrity.md](tracks/01-launch-integrity.md) | Live | Close the saved-story question and the owner controls on cold load (K2) |
-| Magazine lines in [TODO.md](../TODO.md) | Live, need Adrian | Names, photographs, the feedback message to each subject, the shared conversation template |
-| [audits/2026-11-05-editorial-confidentiality.md](audits/2026-11-05-editorial-confidentiality.md) | Candidate, not deployed | Owner acceptance |
-| [todo/plans/brewing-guides.md](../todo/plans/brewing-guides.md) | Live, not started | Choose the first guide (K4). Adrian writes the words |
-| Craft lines in [TODO.md](../TODO.md) | Live, need Adrian | Which draft essays go live; playlists |
-| [TEA_WISDOM_BASE.md](TEA_WISDOM_BASE.md), [tracks/09-tea-wisdom-base.md](tracks/09-tea-wisdom-base.md) | Live. The track was listed as retired in July and its file still carries open items | Confirm whether track 9 is open. The four plans below are the working queue |
-| [todo/plans/tea-wisdom-publishing.md](../todo/plans/tea-wisdom-publishing.md), [tea-wisdom-composed-entry.md](../todo/plans/tea-wisdom-composed-entry.md), [tea-wisdom-all-teas.md](../todo/plans/tea-wisdom-all-teas.md) | Live. Eight teas live since 2026-11-24 | Settle the five held ripe teas, then corrections and intake |
-| [todo/plans/tea-wisdom-pilot-action-plan.md](../todo/plans/tea-wisdom-pilot-action-plan.md) | Mostly superseded, marked | Read composed-entry first |
-| [todo/plans/mood-flavor-taxonomy.md](../todo/plans/mood-flavor-taxonomy.md) | Live, not started | Waits on Wisdom |
-| [TEA_ATLAS.md](TEA_ATLAS.md), [tea-atlas-plan.md](../tea-atlas-plan.md) | Shipped and private. The plan's header is stale, marked | The Atlas lines in TODO |
-| [_notes/](_notes/) Wisdom notes | Mostly history. `tea-wisdom-claims.md` and `tea-wisdom-research-prompt.md` are live | None |
-| **Overhaul work:** the shelf row across Stories, Lessons and Wisdom (built 2026-11-27); move Tea Spaces and Playlists to Tea house and Shared Wisdom (renamed) to Tea table | Shelf row built; moves wait for those pages | Stage 6 of SECTIONS |
-
-### Tea Table (the stream, Sessions, People)
-
-| Plan or document | Status | Next step |
-|---|---|---|
-| [todo/plans/tea-table.md](../todo/plans/tea-table.md) | Proposed 2026-11-25 | Adrian's yes on the name, the address and the rule exception |
-| [todo/plans/teajia-family.md](../todo/plans/teajia-family.md) | Built and merged to main (pull request 452, 2026-11-21). The file's own header still says "Not live" | One status line. Then the storage reading, the lawyer's read, Adrian's ship and live proof |
-| [superpowers/specs/2026-08-10-events-platform-rebuild-design.md](superpowers/specs/2026-08-10-events-platform-rebuild-design.md) | Approved. Release 1 built | Host close-out and billing policy (E2) |
-| [plan/event-system-v2.md](plan/event-system-v2.md) | Partly superseded by the spec above, marked | History and design tone |
-| [todo/plans/tasting-tighten.md](../todo/plans/tasting-tighten.md), [manage-rebuild-decisions.md](../todo/plans/manage-rebuild-decisions.md) | Live | Tasting decisions of 2026-11-16 stand |
-| [tasting-v2/](tasting-v2/) | A separate preview, on purpose not connected | Do not connect without new instruction |
-| [todo/plans/creator-profiles.md](../todo/plans/creator-profiles.md) | Public page shipped 2026-09-21, tail open | Real portraits |
-| [todo/plans/tea-master-onboarding.md](../todo/plans/tea-master-onboarding.md), [tea-master-editing-boards.md](../todo/plans/tea-master-editing-boards.md) | Invite built; boards parked ("too styled") | Decide the person-first invite (N1) |
-| [CONTRIBUTOR_EDITOR.md](CONTRIBUTOR_EDITOR.md) | Live | None |
-| creator-profiles design brief, fixtures, migration preview in `todo/plans/` | Done | History |
-| Connected sit, Guest Book, sit recap | Released per the closeout plan; a real sit still owed | Choose one real sit, host and guest group |
-
-### Tea Houses (build, work, visit, work with Adrian)
-
-| Plan or document | Status | Next step |
-|---|---|---|
-| [todo/plans/tea-houses.md](../todo/plans/tea-houses.md) | Proposed 2026-11-25. The first plan for the offering | Adrian's facts about the offering, in one sitting |
-| [superpowers/specs/2026-08-10-advise-service-ledger-design.md](superpowers/specs/2026-08-10-advise-service-ledger-design.md) | Built | Advise stays as "work with Adrian" |
-| Advise lines in [TODO.md](../TODO.md) | Live, need Adrian | Photographs; the portfolio moves to Tea Houses, Work |
-| [MULTI_STORE_PLAN.md](MULTI_STORE_PLAN.md) | Shipped. Reference | An account is a tea house. No change |
-| [AUSTRALIA_LAUNCH_PLAYBOOK.md](AUSTRALIA_LAUNCH_PLAYBOOK.md), [OPENING_STOCK_CSV_GUIDE.md](OPENING_STOCK_CSV_GUIDE.md), [STORE_OPERATOR_DAILY_WORKFLOWS.md](STORE_OPERATOR_DAILY_WORKFLOWS.md), [MEMBERS_AND_ACCESS_GUIDE.md](MEMBERS_AND_ACCESS_GUIDE.md) | Live guides | The first real second house (N1) |
-| [NETWORK_UI_BRIEF.md](NETWORK_UI_BRIEF.md), [PLAYBOOK_SURFACE_PATTERN.md](PLAYBOOK_SURFACE_PATTERN.md) | Built | Reference |
-| [todo/plans/connections-page.md](../todo/plans/connections-page.md) | Superseded by SECTIONS if Adrian agrees, marked | People go under the Tea Table, places under Tea Houses |
-
-### Shop
-
-| Plan or document | Status | Next step |
-|---|---|---|
-| Shop lines in [TODO.md](../TODO.md) | Live, need Adrian | Placeholder stock counts, US shipping rate, Teaware and Sets tabs, sets that cannot be bought |
-| [design/catalog-listing-hierarchy.md](design/catalog-listing-hierarchy.md), [catalog-listing-field-guide.md](design/catalog-listing-field-guide.md), [PRODUCT_DESCRIPTION_STYLE.md](PRODUCT_DESCRIPTION_STYLE.md) | Live, approved | None |
-| [superpowers/specs/2026-08-10-shop-refinement-design.md](superpowers/specs/2026-08-10-shop-refinement-design.md) | Partly built | Check what is left against the live shop |
-| [PAYPAL_LIVE.md](PAYPAL_LIVE.md), [US_SHIPPING.md](US_SHIPPING.md), [SHIPPING_PAYMENT_NOTIFICATIONS.md](SHIPPING_PAYMENT_NOTIFICATIONS.md), [WHATSAPP_ORDER_SETUP.md](WHATSAPP_ORDER_SETUP.md) | Live | The first real paid order (M3) |
-| [todo/plans/collection-flow-refinement.md](../todo/plans/collection-flow-refinement.md) | Probably stale (June). Not checked | Compare with the live collections before reuse |
-| **Overhaul work:** "ask Adrian to find a tea" in Shop; links to the Tea Table and Tea Houses | Proposed | Small, after stage 3 |
-
-### Your Table
-
-| Plan or document | Status | Next step |
-|---|---|---|
-| [todo/plans/your-table.md](../todo/plans/your-table.md) | Proposed 2026-11-25 | Adrian's yes on the page |
-| [tracks/05-curate-tea-memory.md](tracks/05-curate-tea-memory.md) | Live | Member tea memory, share claims (P1) |
-| [TEA_DISCOVERY.md](TEA_DISCOVERY.md) | Phases 1 and 2 shipped | None now |
-| [superpowers/specs/2026-07-13-your-table-account-context-design.md](superpowers/specs/2026-07-13-your-table-account-context-design.md) | Done | History |
-| Tea Chest and personal seller | Built per the closeout plan, in review | One real seller trial. Route stays until Adrian decides |
-
-### Manage
-
-| Room | Plans | Status | Next step |
-|---|---|---|---|
-| All rooms | [todo/plans/manage-rebuild.md](../todo/plans/manage-rebuild.md), [manage-rebuild-decisions.md](../todo/plans/manage-rebuild-decisions.md) | Live, wave 1 landed | The phone walk from quote to stock (M1) |
-| Curate | [todo/plans/curate-next.md](../todo/plans/curate-next.md), [curate-one-home.md](../todo/plans/curate-one-home.md), [curate-v2-journeys.md](../todo/plans/curate-v2-journeys.md), [curate-fix-now.md](../todo/plans/curate-fix-now.md), [CURATE_WORKSPACE.md](CURATE_WORKSPACE.md), [CURATE_CONSUMER_CONTRACT.md](CURATE_CONSUMER_CONTRACT.md), [TEA_RECORD_CONNECTIONS.md](TEA_RECORD_CONNECTIONS.md), [agents/CURATE-AGENTS.md](agents/CURATE-AGENTS.md) | Live. Note: the working plan says current Curate is the working room and v2 is a reference, while curate-one-home plans the switch to v2 | Adrian settles which is the home |
-| Curate, older | [todo/plans/curate-capture-restyle.md](../todo/plans/curate-capture-restyle.md), [curate-capture-amazing.md](../todo/plans/curate-capture-amazing.md) | Superseded, marked | History |
-| Curate, purchases | [PURCHASE_LOGISTICS.md](PURCHASE_LOGISTICS.md), [LOGISTICS_TRACKING_UPDATES.md](LOGISTICS_TRACKING_UPDATES.md), [build-plan.md](build-plan.md), [invoice-intake-flow.md](invoice-intake-flow.md) | Live reference | Older unmatched purchases (M2) |
-| Stock | [todo/plans/stock-phone-by-supplier.md](../todo/plans/stock-phone-by-supplier.md) | Live, five stages | Supplier grouping and scroll return (M5) |
-| Stock, older | [todo/plans/stock-spine.md](../todo/plans/stock-spine.md) (done), [stock-discoverability.md](../todo/plans/stock-discoverability.md) and [intake-batches.md](../todo/plans/intake-batches.md) (June, not checked) | Done or old | History unless a gap shows |
-| Sales | [todo/plans/sales-rebuild-salvage.md](../todo/plans/sales-rebuild-salvage.md) | Partly done | Reference for a shown gap only |
-| People | [plan/customer-contact-taxonomy.md](plan/customer-contact-taxonomy.md) | Old (May) | None |
-| Sessions | See Tea Table above | | |
-| Publish | See Read above. **Overhaul work:** hide and restore for Tea Table items in Guest notes | Proposed | Tea Table stage 4 |
-| Settings | [MEMBERS_AND_ACCESS_GUIDE.md](MEMBERS_AND_ACCESS_GUIDE.md), [todo/plans/mobile-oauth.md](../todo/plans/mobile-oauth.md) | Live; the second is blocked on one phone screenshot | The screenshot |
-
-The seven rooms do not change in this overhaul.
-
-### Platform (under every section)
-
-| Plan or document | Status | Next step |
-|---|---|---|
-| [tracks/08-platform-hardening.md](tracks/08-platform-hardening.md) | Live, one item waits on Adrian | The Sources and Personal navigation approval |
-| [ARCHITECTURE.md](ARCHITECTURE.md), [OPERATIONAL_NOTES.md](OPERATIONAL_NOTES.md), [VERIFIED_RELEASES.md](VERIFIED_RELEASES.md), [claude/](claude/) | Live reference | None |
-| Money and schema lines in [TODO.md](../TODO.md) | Live | Cost currency per vendor first |
-| [incidents/](incidents/), [todo/plans/curate-holdings-d1-reads-measurement.md](../todo/plans/curate-holdings-d1-reads-measurement.md), [todo/plans/deploy-db-migrations.md](../todo/plans/deploy-db-migrations.md) | Done | History |
-| [superpowers/plans/](superpowers/plans/) and [superpowers/specs/](superpowers/specs/) not named above | Done, July and August | History |
-| [plan/product-architecture-phase-0-inventory.md](plan/product-architecture-phase-0-inventory.md), [plan/product-architecture-route-auth-inventory.md](plan/product-architecture-route-auth-inventory.md), [INTAKE_BUILD_RESUME.md](INTAKE_BUILD_RESUME.md), [fable-brief.md](fable-brief.md), [fable-brief-addendum.md](fable-brief-addendum.md), [NETWORK_ERROR_REMOVAL_PLAN.md](NETWORK_ERROR_REMOVAL_PLAN.md) | Old or done | History |
-
-## Engineering tracks
-
-The July list named three active tracks and they still stand as files: [01 Launch Integrity](tracks/01-launch-integrity.md) under Read, [05 Product and Curate Integrity](tracks/05-curate-tea-memory.md) under Your Table and Manage, [08 Platform Hardening](tracks/08-platform-hardening.md) under Platform. Track 9 is filed under Read with its question open. The working plan's M, K, E, P, R and N items are the current delivery queue and take precedence over the tracks where they differ.
-
-## Stale and superseded documents, marked on 2026-11-25
-
-Each carries a one-line banner under its title. None was deleted.
-
-| Document | Marked as | Read instead |
-|---|---|---|
-| [SITE_MAP.md](SITE_MAP.md) | Partly stale: Manage rooms, navigation, several routes | [PILLAR.md](PILLAR.md), [SECTIONS.md](SECTIONS.md) |
-| [FLOWS.md](FLOWS.md) | Stale: the "Tea Practice OS" framing and its personal timeline | [PILLAR.md](PILLAR.md), [SECTIONS.md](SECTIONS.md) |
-| [STATE_OF_THE_SITE.md](STATE_OF_THE_SITE.md) | Stale: verified 2026-08-10 | [PILLAR.md](PILLAR.md), this file |
-| [VISION.md](VISION.md) | Philosophy stands; "what exists" lists are from April | [PILLAR.md](PILLAR.md) |
-| [brief/PERSONAS.md](brief/PERSONAS.md) | April; persona 3 now has a plan | [tea-houses.md](../todo/plans/tea-houses.md) |
-| [MULTI_STORE_PLAN.md](MULTI_STORE_PLAN.md) | Pointed at a track file that does not exist | [tea-houses.md](../todo/plans/tea-houses.md), this file |
-| [plan/event-system-v2.md](plan/event-system-v2.md) | Partly superseded | The 2026-08-10 events spec |
-| [tea-atlas-plan.md](../tea-atlas-plan.md) | Header said "nothing built"; the Atlas shipped | [TEA_ATLAS.md](TEA_ATLAS.md) |
-| [HANDOFF-FRESH-CHAT.md](../HANDOFF-FRESH-CHAT.md) | Done; the slice shipped | [SECTIONS.md](SECTIONS.md) |
-| [todo/plans/connections-page.md](../todo/plans/connections-page.md) | Superseded if Adrian agrees | [SECTIONS.md](SECTIONS.md) |
-| [todo/plans/curate-capture-restyle.md](../todo/plans/curate-capture-restyle.md), [curate-capture-amazing.md](../todo/plans/curate-capture-amazing.md) | Superseded | [curate-next.md](../todo/plans/curate-next.md), [curate-one-home.md](../todo/plans/curate-one-home.md) |
-| [todo/plans/tea-wisdom-pilot-action-plan.md](../todo/plans/tea-wisdom-pilot-action-plan.md) | Mostly superseded | [tea-wisdom-composed-entry.md](../todo/plans/tea-wisdom-composed-entry.md) |
-
-Not marked, but known to lag: `README.md` (older route names), `docs/CAPABILITIES.md` (generated in September, regenerate), `src/components/AccountPanel/INDEX.md` (points at the stale site map).
-
-## On Adrian's Mac, not yet in the repo
-
-These were read for this rewrite from copies. None was copied into the repo. The standing rule is that a handoff is plain files on GitHub, so the recommendation for nearly all of them is to commit.
-
-| File | What it is | Recommendation |
-|---|---|---|
-| `WORKING_PLAN.md` (2026-11-17) | Owns priorities and release gates: the system map, the journey table, the delivery queue M1 to N1 | **Commit.** Several repo documents defer to it and cannot link to it. Keep it at the root, outside the docs the app bundles |
-| `planning/blueprint/README.md`, `public.md`, `manage.md`, `editorial.md`, `review.md` | The screen and content blueprint: every journey traced from code, with gaps | **Commit**, together, with their generator scripts and data files so they can be rebuilt |
-| `planning/blueprint/route-crosswalk.md` | Generated map of every route to its screen | **Commit with the generator**, or not at all. A generated file with no generator goes stale silently |
-| `planning/blueprint/consolidation.md` | What is canonical, what can be archived, cleanup order | **Commit.** It is the file-level partner of this document. Its claim that four overview docs "now route to the working plan" is not true in the repo yet |
-| `planning/blueprint/CONTROLLER.md`, `BUILD_LIST.md`, `CHECKLIST.md` | Coordination between sessions: who owns what, what is next | **Commit after a read.** They hold links to one machine (localhost, a private network host, local chat threads) that mean nothing on GitHub; trim those or accept them as dead links |
-| `planning/blueprint/DELIVERY.md`, `flowchart.html`, `wireframes.html`, `source-register.md`, `tea-to-shop.md`, `tea-description.md` | Referenced by the files above; copies were not supplied | **Commit with the rest of the pack**, after checking the source register holds nothing private about people in the magazine |
-| `todo/plans/teajia-closeout-2026-11-24.md` | The current coordination record. Holds Adrian's "Let's not call it a T-Feed" and the note to decide on a Tea Table destination and on Craft | **Commit.** [tea-table.md](../todo/plans/tea-table.md) and SECTIONS rest on it |
-| `todo/plans/teaware-photo-handoff.md` | Photo sorting and teaware intake results, 2026-11-23 | **Commit.** Files under Shop and Stock. It links to results kept in a local folder; say where those live |
-| `outputs/sidebar-directions-2026-11-25/index.html` | The eleven rail directions; Adrian picked "Narrow B" | **Commit** as the record of the decision, and write the decision itself into [claude/layout.md](claude/layout.md) in one sentence |
-| `todo/plans/tea-chest-tea-table/gaps-plan.md` and `buildout.md` | Linked from the closeout plan on two branches that are not on GitHub today | **Find and commit.** The Tea Table and Your Table plans should be reconciled with them before building |
-
-## Guardrails
-
-- Preserve inquiry-led commerce. No conventional automated checkout beyond what is live.
-- Preserve human curation. No rankings, averaged reviews or recommendation engines.
-- Journal, Favourites, Tea Chest and Curate stay separate records.
-- The Tea Table is the one exception to the rule against social feeds. One public page may show, newest first, what people have chosen to put there: shared tastings with their words and photographs, and published session recaps. It shows what has happened. A host may hold their own recap at the top for a while by hand, and Adrian may hold any piece. Nothing rises by itself. A person may keep a piece in their own favourites. Only Adrian can see the number of keeps, in Manage. There are no likes, comments, follows, follower or view counts, scores, streaks, rankings, recommendations or notifications on the Tea Table. The site calls it the Tea Table. A person can take off their own item, and the owner can hide any item. The feature is off by default behind `TEA_TABLE_OPEN`. See [SECTIONS.md](SECTIONS.md).
-- Quiet acknowledgement comes from one person to another: a host’s thank-you, being quoted by name, “Photograph by”, “Poured with”, or a word Adrian grants by hand on a person’s page. No numbers, levels, titles for volume or nudges. Adrian may decide a host’s reach by hand and that standing stays private.
-- Tea scores and score-like verdicts are personal. Public and ordinary shared views omit them. Words can be shared by choice, and a tea-page excerpt requires the writer’s permission and manual placement. The structured tasting host’s authenticated live screen still receives guest ratings, verdicts and purchase intent.
-- During a tea session the app stays quiet. A host may choose a tasting where writing is part of the session.
-- The people list keeps its one exception, order only (Adrian, 2026-11-21).
-- No change to navigation words, tab labels or routes in the nav components without Adrian's explicit yes. SECTIONS is a proposal for exactly that reason.
-- Local fixtures are not proof of real delivery, real data safety, mainland reach, operator ease, or a contributor's true voice.
-
-## What counts as progress
-
-One of four things: behaviour verified working; a real-world validation item completed; approved editorial material published through the real workflow; or a dead or contradictory surface retired. New roadmap prose does not count. This rewrite is filing, not progress, and the three new plans count only when Adrian has answered them.
+New observations go in [intake](../TODO.md). Promote one by naming the affected journey, the person who cannot complete it, and the result that closes it. The [document guide](INDEX.md) explains where rules, procedures and proof belong.
