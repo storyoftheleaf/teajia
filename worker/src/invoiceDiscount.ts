@@ -13,12 +13,14 @@
  * on which no money has been received, the same invoices the line editor
  * accepts.
  */
+import { discountLineName, discountLinePercent } from '../../shared/invoiceDiscountLine';
+
+export { discountLinePercent };
+
 type Db = { DB: D1Database };
 
-const DISCOUNT_NAME = /^Discount \d+(?:\.\d+)?%$/;
-
 export function isDiscountLine(row: { product_id?: unknown; custom_name?: unknown; price_at_sale?: unknown }): boolean {
-  return !row.product_id && typeof row.custom_name === 'string' && DISCOUNT_NAME.test(row.custom_name) && Number(row.price_at_sale) < 0;
+  return discountLinePercent(row) !== null;
 }
 
 /** The percent asked for: a number above 0 and below 100, at most one decimal; 0 takes it off. */
@@ -58,7 +60,7 @@ export async function readInvoiceDiscount(env: Db, accountId: string, invoiceId:
     if (isDiscountLine(line)) discount = line;
     else subtotal += Number(line.quantity) * Number(line.price_at_sale);
   }
-  const percent = discount ? Number(String(discount.custom_name).match(/[\d.]+/)?.[0]) : null;
+  const percent = discount ? discountLinePercent(discount) : null;
   return {
     editable: ['Draft', 'Pending'].includes(String(invoice.status)) && !Number(invoice.inventory_deducted)
       && invoice.payment_status !== 'paid' && !invoice.fulfillment_claim_token && !(Number(paid?.paid) > 0),
@@ -98,7 +100,7 @@ export async function writeInvoiceDiscount(
     statements.push(env.DB.prepare(
       `INSERT INTO invoice_line_items (id, account_id, invoice_id, product_id, custom_name, quantity, price_at_sale)
        SELECT ?, ?, ?, NULL, ?, 1, ? WHERE ${guard}`
-    ).bind(crypto.randomUUID(), accountId, invoiceId, `Discount ${percent}%`, -amount, ...guardValues));
+    ).bind(crypto.randomUUID(), accountId, invoiceId, discountLineName(percent), -amount, ...guardValues));
   }
   const results = await env.DB.batch(statements);
   if (amount > 0 && !Number(results[results.length - 1]?.meta?.changes || 0)) return { ok: false, error: 'invoice_changed' };
