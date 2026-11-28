@@ -10,7 +10,7 @@ import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { syncCompassEntries } from '../../lib/teaCompassSync';
 import { TEA_TYPES } from '../../wisdom';
 import { BottomSheet } from '../shared/BottomSheet';
-import { TeaCupIcon } from '../shared/TeaCupIcon';
+import { TeaCup } from '../TeaCupIcon';
 import { TeaCard, TeaCardMetric } from '../tea/TeaCard';
 import { PhotoCapture } from './PhotoCapture';
 import { layoutFromAddress } from '../curate/captureFormLayout';
@@ -168,7 +168,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, stockProductId, r
                 </span>
               ) : <Camera size={17} />}
             </button>
-          {entry.category !== 'teaware' && <Button variant="plain" type="button" onClick={() => onOpenTasting ? onOpenTasting(entry.id) : readOnly ? openDetail() : setTastingOpen(true)} className={`tap-target library-tea-primary text-ui-12 ${tasted ? 'is-tasted' : ''}`} aria-label={`Taste ${title}`} title={readOnly && !onOpenTasting ? 'View tasting status (read-only)' : tasted ? 'Edit tasting' : 'Begin tasting'}><TeaCupIcon /><span className="sr-only">Taste</span></Button>}
+          {entry.category !== 'teaware' && <Button variant="plain" type="button" onClick={() => onOpenTasting ? onOpenTasting(entry.id) : readOnly ? openDetail() : setTastingOpen(true)} className={`tap-target library-tea-primary text-ui-12 ${tasted ? 'is-tasted' : ''}`} aria-label={`Taste ${title}`} title={readOnly && !onOpenTasting ? 'View tasting status (read-only)' : tasted ? 'Edit tasting' : 'Begin tasting'}><TeaCup size={19} strokeWidth={1.5} aria-hidden="true" /><span className="sr-only">Taste</span></Button>}
           </div>
         }
         metricsLabel={`Prices in ${amounts.currency}`}

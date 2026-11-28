@@ -1,6 +1,7 @@
 import { createAfterSitCredential, hashAfterSitCredential } from './afterSitCredential';
 import { GUEST_BOOK_NOTE_LIMIT, guestBookEntryKeys, guestBookPlacement, guestSignature, prepareGuestBookNote, type GuestBookPlacement } from './sessionGuestBook';
 import { namedSetupTeas } from './privateKeptSetups';
+import { approvedSeatSourceSql } from './seatRequest';
 
 const LINK_LIFETIME_SECONDS = 14 * 24 * 60 * 60;
 const MAX_LINKS_PER_BOOKING = 12;
@@ -11,6 +12,7 @@ const unavailable = () => reply({ error: 'This after-sit link is unavailable.' }
 
 const guestSeat = `
   a.status = 'confirmed' AND a.attended = 1
+  AND ${approvedSeatSourceSql('e', 'a')}
   AND e.lifecycle_status IN ('completed', 'archived') AND shop.status = 'active'`;
 const eventJoins = `
   JOIN events e ON e.id = a.event_id AND e.account_id = a.account_id

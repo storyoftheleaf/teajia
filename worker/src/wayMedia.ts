@@ -18,12 +18,14 @@
 // public by Adrian's decision (2026-11-26) and are not decided here.
 
 import { sessionHasEnded, sitWayOpen } from '../../shared/sessionEnd';
+import { approvedSeatSourceSql } from './seatRequest';
 
 export const WAY_MEDIA_ORIGIN = 'https://media.teajia.co/';
 export const WAY_SIGNED_SECONDS = 60 * 60;
 export const WAY_HOST = 'host';
-/** A photograph signed for whoever holds one sit's link: `sit:<event id>`. */
 export const SIT_HOLDER = 'sit:';
+/** Bind a guide to the live share code and, for a scheduled sit, the confirmed seat. */
+export const sitWayHolder = (code: string, seatId?: string | null) => `${SIT_HOLDER}${code}${seatId ? `:${seatId}` : ''}`;
 
 const STEP_KEY = /^accounts\/[^/]+\/venue-guide\//;
 const FLYER_KEY = /^accounts\/([^/]+)\/flyers\/[^/]+$/;
@@ -165,14 +167,23 @@ export async function wayMediaVerdict(
   if (!holder) return 'refused';
   if (holder === WAY_HOST) return 'signed';
   if (!db) return 'refused';
-  // A sit sent by its own link (pourSit.ts): the photograph is served while
-  // that sit still names it, still has its link, and its day is not over.
+  // A shared guide stops when its code is revoked or the guest loses their seat.
   if (holder.startsWith(SIT_HOLDER)) {
+    const [, code, attendeeId] = /^sit:([a-f0-9]{24})(?::([^:]+))?$/.exec(holder) ?? [];
+    if (!code) return 'refused';
     const sit = await db.prepare(
-      `SELECT e.event_date, e.event_end_date, e.timezone, e.lifecycle_status, e.status FROM events e
-        WHERE e.id = ? AND e.sit_link_code IS NOT NULL AND e.venue_guide IS NOT NULL AND instr(e.venue_guide, ?) > 0`,
-    ).bind(holder.slice(SIT_HOLDER.length), `${WAY_MEDIA_ORIGIN}${key}`).first<Record<string, unknown>>();
-    return sit && sitWayOpen(sit, now) ? 'signed' : 'refused';
+      `SELECT e.event_date, e.event_end_date, e.timezone, e.lifecycle_status, e.status, e.casual_sit,
+              ${doorSql} AS door_open
+       FROM events e JOIN accounts a ON a.id = e.account_id AND a.status = 'active'
+       WHERE e.sit_link_code = ?1 AND instr(e.venue_guide, ?2) > 0
+         AND ((e.casual_sit = 1 AND ?3 IS NULL) OR (e.casual_sit = 0 AND EXISTS (
+           SELECT 1 FROM event_attendees ea WHERE ea.event_id = e.id AND ea.account_id = e.account_id
+             AND ea.id = ?3 AND ea.status = 'confirmed' AND ${approvedSeatSourceSql('e', 'ea')}
+         )))`,
+    ).bind(code, `${WAY_MEDIA_ORIGIN}${key}`, attendeeId ?? null).first<Record<string, unknown>>();
+    if (!sit) return 'refused';
+    const open = sit.casual_sit === 1 ? sitWayOpen(sit, now) : Number(sit.door_open) === 1 && !sessionHasEnded(sit, now);
+    return open ? 'signed' : 'refused';
   }
   const seat = await db.prepare(
     `SELECT ea.status, e.event_date, e.event_end_date, e.timezone, e.lifecycle_status, e.status AS event_status,
@@ -180,7 +191,8 @@ export async function wayMediaVerdict(
        FROM event_attendees ea
        JOIN events e ON e.id = ea.event_id
        JOIN accounts a ON a.id = e.account_id
-      WHERE ea.id = ? AND e.venue_guide IS NOT NULL AND instr(e.venue_guide, ?) > 0`,
+      WHERE ea.id = ? AND ea.account_id = e.account_id AND ${approvedSeatSourceSql('e', 'ea')}
+        AND e.venue_guide IS NOT NULL AND instr(e.venue_guide, ?) > 0`,
   ).bind(holder, `${WAY_MEDIA_ORIGIN}${key}`).first<Record<string, unknown>>();
   if (!seat || seat.status !== 'confirmed' || Number(seat.door_open) !== 1) return 'refused';
   if (sessionHasEnded({

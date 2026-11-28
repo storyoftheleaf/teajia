@@ -84,7 +84,6 @@ const SURFACES = [
   '../tasting/TastingProfileStrip.tsx',
   '../shared/PublicCart.tsx',
   '../shared/CartItem.tsx',
-  '../shared/PopupModal.tsx',
 ];
 
 describe('shop surfaces call every hook before they can return early', () => {

@@ -4594,6 +4594,10 @@ body.cart-panel-open .commerce-dock {
 /* A tea opened from a link sits beside the desktop sidebar, never over it. */
 @media (min-width: 1024px) {
   .link-tea-page { left: var(--teajia-sidebar-w, 0px); }
+  /* The tea page's paper is laid over the whole window; here it stops at the
+     sidebar too, or it greys the sidebar out. */
+  .link-tea-page .paper-ground::before,
+  .link-tea-page .paper-ground::after { left: var(--teajia-sidebar-w, 0px); }
 }
 
 /* Date and saving share an uninterrupted tea-coloured ground. */

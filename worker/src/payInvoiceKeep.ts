@@ -1,29 +1,16 @@
 import { claimInvoiceLinkLease, releaseInvoiceLinkLease } from './invoiceDomain';
 
-/**
- * An invoice sent by its pay link becomes the buyer's (Adrian, 2026-11-27).
- *
- * The person holding the link presses "Save to my account" while signed in, and
- * the invoice joins their orders, which /account/orders reads through
- * `customers.user_id`.
- *
- * Who may keep it (Adrian, 2026-11-27: "anyone with the link can save it and
- * then they can't save it. That doesn't seem right"):
- * - never the shop that sent it: its owner or staff, the seller, or the person
- *   the money goes to. They see the invoice as theirs to send;
- * - when the invoice names a customer with an email, only someone signed in
- *   with that email;
- * - otherwise the first signed-in person, and the shop can give it back with
- *   `releaseInvoiceKeep` (the `release_invoice_keep` tool) so the right person
- *   can save it.
- *
- * When the invoice already names a customer with no account yet, that customer
- * record is the one linked, so the shop's own record of the buyer stays whole.
- * Otherwise the person's customer record in this shop is used, or made.
- */
-export type KeepLinked = 'customer' | 'invoice';
-export type KeepInvoiceResult =
-  | { ok: true; customerId: string; already: boolean; linked: KeepLinked }
+/** A pay-link save and an existing ownership relationship are independent. */
+export const LINKED_BUYER_SQL = `EXISTS (
+  SELECT 1 FROM invoice_buyer_identity b WHERE b.account_id = i.account_id AND b.invoice_id = i.id AND b.user_id = ?
+)`;
+export const SAVED_INVOICE_SQL = `EXISTS (
+  SELECT 1 FROM invoice_keep_grants k WHERE k.account_id = i.account_id AND k.invoice_id = i.id AND k.user_id = ?
+)`;
+export const EXPLICIT_INVOICE_ACCESS_SQL = `(${LINKED_BUYER_SQL} OR ${SAVED_INVOICE_SQL})`;
+
+type KeepInvoiceResult =
+  | { ok: true; already: boolean }
   | { ok: false; status: 403 | 404 | 409; error: string; code?: 'own_invoice' | 'not_your_invoice' };
 
 type Db = { DB: D1Database };
@@ -42,60 +29,63 @@ export async function sendsInvoice(
   return Boolean(row);
 }
 
-const sameEmail = (a: string | null | undefined, b: string | null | undefined) =>
-  Boolean(a?.trim() && b?.trim() && a.trim().toLowerCase() === b.trim().toLowerCase());
+export async function savedInvoiceHolder(env: Db, accountId: string, invoiceId: string): Promise<string | null> {
+  const keep = await env.DB.prepare('SELECT user_id FROM invoice_keep_grants WHERE account_id = ? AND invoice_id = ?')
+    .bind(accountId, invoiceId).first<{ user_id: string }>();
+  return keep?.user_id ?? null;
+}
 
 export async function keepInvoiceForUser(
   env: Db,
   accountId: string,
   invoiceId: string,
-  user: { userId: string; email: string; name: string },
+  user: { userId: string; email: string },
+  linkId: string,
   contributorUserId?: string | null,
 ): Promise<KeepInvoiceResult> {
-  const invoice = await env.DB.prepare(
-    'SELECT customer_id, customer_name FROM invoices WHERE id = ? AND account_id = ?'
-  ).bind(invoiceId, accountId).first<{ customer_id: string | null; customer_name: string | null }>();
-  if (!invoice) return { ok: false, status: 404, error: 'Invoice not found' };
-  if (await sendsInvoice(env, accountId, invoiceId, user.userId, contributorUserId)) {
-    return { ok: false, status: 403, code: 'own_invoice', error: 'This is your own invoice to send.' };
-  }
-
-  const named = invoice.customer_id
-    ? await env.DB.prepare('SELECT id, user_id, email FROM customers WHERE id = ? AND account_id = ?')
-      .bind(invoice.customer_id, accountId).first<{ id: string; user_id: string | null; email: string | null }>()
-    : null;
-  if (named?.user_id === user.userId) return { ok: true, customerId: named.id, already: true, linked: 'customer' };
-  if (named?.user_id) return { ok: false, status: 409, error: 'This invoice is already kept by someone else' };
-  if (named?.email?.trim() && !sameEmail(named.email, user.email)) {
-    return { ok: false, status: 403, code: 'not_your_invoice', error: 'This invoice is for another email. Sign in with the email the shop has for you.' };
-  }
-
   const lease = await claimInvoiceLinkLease(env, accountId, invoiceId);
-  if (!lease) return { ok: false, status: 409, error: 'This invoice is being updated. Try again in a moment.' };
+  if (!lease) {
+    const invoice = await env.DB.prepare('SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND deleted_at IS NULL')
+      .bind(invoiceId, accountId).first();
+    return invoice ? { ok: false, status: 409, error: 'This invoice is being updated. Try again in a moment.' }
+      : { ok: false, status: 404, error: 'Invoice not found' };
+  }
   try {
-    if ((lease.invoice.customer_id ?? null) !== (invoice.customer_id ?? null)) {
-      return { ok: false, status: 409, error: 'This invoice just changed. Reload and try again.' };
+    if (lease.invoice.deleted_at) return { ok: false, status: 404, error: 'Invoice not found' };
+    if (await sendsInvoice(env, accountId, invoiceId, user.userId, contributorUserId)) {
+      return { ok: false, status: 403, code: 'own_invoice', error: 'This is your own invoice to send.' };
     }
-    if (named) {
-      const linked = await env.DB.prepare(
-        'UPDATE customers SET user_id = ? WHERE id = ? AND account_id = ? AND user_id IS NULL'
-      ).bind(user.userId, named.id, accountId).run();
-      if (!Number(linked.meta?.changes || 0)) return { ok: false, status: 409, error: 'This invoice is already kept by someone else' };
-      return { ok: true, customerId: named.id, already: false, linked: 'customer' };
+    const buyer = await env.DB.prepare(
+      `SELECT user_id, email FROM invoice_buyer_identity WHERE invoice_id = ? AND account_id = ?`
+    ).bind(invoiceId, accountId).first<{ user_id: string | null; email: string | null }>();
+    if (buyer?.user_id === user.userId) return { ok: true, already: true };
+    const holder = await savedInvoiceHolder(env, accountId, invoiceId);
+    if (holder === user.userId) return { ok: true, already: true };
+    if (buyer?.user_id || holder) return { ok: false, status: 409, error: 'This invoice is already kept by someone else' };
+    const buyerEmail = buyer?.email?.trim().toLowerCase();
+    if (buyerEmail && buyerEmail !== user.email?.trim().toLowerCase()) {
+      return { ok: false, status: 403, code: 'not_your_invoice', error: 'This invoice is for another email. Sign in with the email the shop has for you.' };
     }
-    const known = await env.DB.prepare(
-      'SELECT id FROM customers WHERE user_id = ? AND account_id = ? ORDER BY created_at LIMIT 1'
-    ).bind(user.userId, accountId).first<{ id: string }>();
-    const customerId = known?.id ?? `web_${accountId}_${user.userId}`;
-    await env.DB.batch([
+
+    const keepId = crypto.randomUUID();
+    const [written] = await env.DB.batch([
       env.DB.prepare(
-        "INSERT OR IGNORE INTO customers (id, account_id, user_id, name, email, source) VALUES (?, ?, ?, ?, ?, 'claimed_order')"
-      ).bind(customerId, accountId, user.userId, invoice.customer_name || user.name || 'Customer', user.email),
+        `INSERT INTO pay_invoice_keeps (id, account_id, invoice_id, user_id)
+         SELECT ?, i.account_id, i.id, ? FROM invoices i
+         LEFT JOIN invoice_buyer_identity b ON b.invoice_id = i.id AND b.account_id = i.account_id
+         WHERE i.id = ? AND i.account_id = ? AND i.fulfillment_claim_token = ? AND i.deleted_at IS NULL
+           AND b.user_id IS NULL AND b.email IS ?
+           AND NOT EXISTS (SELECT 1 FROM invoice_keep_grants k WHERE k.account_id = i.account_id AND k.invoice_id = i.id)
+         ON CONFLICT (account_id, invoice_id) DO NOTHING`
+      ).bind(keepId, user.userId, invoiceId, accountId, lease.claimToken, buyer?.email ?? null),
       env.DB.prepare(
-        'UPDATE invoices SET customer_id = ? WHERE id = ? AND account_id = ? AND customer_id IS NULL AND fulfillment_claim_token = ?'
-      ).bind(customerId, invoiceId, accountId, lease.claimToken),
+        `INSERT INTO platform_audit_log (action, actor_id, actor_email, target_type, target_id, details, account_id, actor_account_id)
+         SELECT 'pay_invoice.kept', user_id, ?, 'invoice', invoice_id, ?, account_id, account_id
+         FROM pay_invoice_keeps WHERE id = ?`
+      ).bind(user.email, JSON.stringify({ link_id: linkId, keep_id: keepId }), keepId),
     ]);
-    return { ok: true, customerId, already: false, linked: 'invoice' };
+    return written.meta.changes === 1 ? { ok: true, already: false }
+      : { ok: false, status: 409, error: 'This invoice just changed. Reload and try again.' };
   } finally {
     await releaseInvoiceLinkLease(env, accountId, invoiceId, lease.claimToken);
   }
@@ -104,61 +94,39 @@ export async function keepInvoiceForUser(
 /** Whether this invoice is already in the signed-in person's orders. */
 export async function invoiceKeptBy(env: Db, accountId: string, invoiceId: string, userId: string): Promise<boolean> {
   const row = await env.DB.prepare(
-    `SELECT 1 FROM invoices i JOIN customers c ON c.id = i.customer_id AND c.account_id = i.account_id
-      WHERE i.id = ? AND i.account_id = ? AND c.user_id = ?`
-  ).bind(invoiceId, accountId, userId).first();
+    `SELECT 1 FROM invoices i WHERE i.id = ? AND i.account_id = ? AND i.deleted_at IS NULL
+       AND ${EXPLICIT_INVOICE_ACCESS_SQL}`
+  ).bind(invoiceId, accountId, userId, userId).first();
   return Boolean(row);
 }
 
 export type InvoiceKeep = {
+  id: string;
   invoiceId: string;
-  invoiceNumber: string | null;
-  customerId: string;
   keptBy: { userId: string; name: string | null; email: string | null };
-  linked: KeepLinked;
 };
 
-/**
- * Who saved this invoice through its link, read from the save's own log row so
- * a release undoes exactly that save: a named customer loses the account it was
- * joined to, or the invoice goes back to naming no customer. Null when the
- * invoice was not saved through its link, or has changed hands since.
- */
 export async function findInvoiceKeep(env: Db, accountId: string, invoiceId: string): Promise<InvoiceKeep | null> {
   const row = await env.DB.prepare(
-    `SELECT i.id, i.invoice_number, i.customer_id, c.user_id, u.name, u.email
-       FROM invoices i
-       JOIN customers c ON c.id = i.customer_id AND c.account_id = i.account_id
-       LEFT JOIN users u ON u.id = c.user_id
-      WHERE i.id = ? AND i.account_id = ? AND c.user_id IS NOT NULL`
-  ).bind(invoiceId, accountId).first<{ id: string; invoice_number: string | null; customer_id: string; user_id: string; name: string | null; email: string | null }>();
-  if (!row) return null;
-  const log = await env.DB.prepare(
-    `SELECT details FROM platform_audit_log
-      WHERE action = 'pay_invoice.kept' AND target_type = 'invoice' AND target_id = ? AND account_id = ? AND actor_id = ?
-      ORDER BY created_at DESC, rowid DESC LIMIT 1`
-  ).bind(invoiceId, accountId, row.user_id).first<{ details: string | null }>();
-  if (!log) return null;
-  let details: { customer_id?: string; linked?: KeepLinked } = {};
-  try { details = JSON.parse(log.details || '{}'); } catch { /* an unreadable row is no keep */ }
-  if (details.customer_id !== row.customer_id) return null;
-  return {
-    invoiceId: row.id,
-    invoiceNumber: row.invoice_number,
-    customerId: row.customer_id,
-    keptBy: { userId: row.user_id, name: row.name, email: row.email },
-    linked: details.linked === 'customer' ? 'customer' : 'invoice',
-  };
+    `SELECT k.id, k.invoice_id, k.user_id, u.name, u.email FROM invoice_keep_grants k
+     JOIN users u ON u.id = k.user_id
+     WHERE k.account_id = ? AND k.invoice_id = ?`
+  ).bind(accountId, invoiceId).first<{ id: string; invoice_id: string; user_id: string; name: string | null; email: string | null }>();
+  return row ? { id: row.id, invoiceId: row.invoice_id, keptBy: { userId: row.user_id, name: row.name, email: row.email } } : null;
 }
 
-/** Undo a save, so the person the invoice is for can save it. */
-export async function releaseInvoiceKeep(env: Db, accountId: string, keep: InvoiceKeep): Promise<boolean> {
-  const result = keep.linked === 'customer'
-    ? await env.DB.prepare(
-      'UPDATE customers SET user_id = NULL WHERE id = ? AND account_id = ? AND user_id = ?'
-    ).bind(keep.customerId, accountId, keep.keptBy.userId).run()
-    : await env.DB.prepare(
-      'UPDATE invoices SET customer_id = NULL WHERE id = ? AND account_id = ? AND customer_id = ? AND fulfillment_claim_token IS NULL'
-    ).bind(keep.invoiceId, accountId, keep.customerId).run();
-  return Number(result.meta?.changes || 0) === 1;
+/** Revoke the exact save that was previewed, so the invoice can be saved again. */
+export async function releaseInvoiceKeep(
+  env: Db, accountId: string, keep: InvoiceKeep, actorId: string, agent: string,
+): Promise<boolean> {
+  const [released] = await env.DB.batch([
+    env.DB.prepare(
+      `INSERT INTO platform_audit_log (action, actor_id, target_type, target_id, details, account_id, actor_account_id)
+       SELECT 'pay_invoice.released', ?, 'invoice', invoice_id, ?, account_id, account_id
+       FROM invoice_keep_grants WHERE account_id = ? AND invoice_id = ? AND id = ?`
+    ).bind(actorId, JSON.stringify({ keep_id: keep.id, released_user_id: keep.keptBy.userId, agent }), accountId, keep.invoiceId, keep.id),
+    env.DB.prepare('DELETE FROM pay_invoice_keeps WHERE account_id = ? AND invoice_id = ? AND id = ?')
+      .bind(accountId, keep.invoiceId, keep.id),
+  ]);
+  return released.meta.changes === 1;
 }

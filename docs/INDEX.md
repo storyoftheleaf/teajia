@@ -53,6 +53,7 @@ Only three engineering queues remain active. Human, operator, editorial, and dep
 | [SITE_MAP.md](SITE_MAP.md) | Route and action map (marked partly stale 2026-11-25) |
 | [TEA_DISCOVERY.md](TEA_DISCOVERY.md) | Discovery-profile behavior and integration |
 | [COLOR_RULES.md](COLOR_RULES.md) | Mandatory color and styling rules |
+| [COMPONENTS.md](COMPONENTS.md) | The shared parts: look here before building anything |
 | [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md) | Canonical visual system |
 | [Shop listing hierarchy](design/catalog-listing-hierarchy.md) and [field guide](design/catalog-listing-field-guide.md) | Approved tea and teaware reading order, sources and empty states |
 | [UI_CONSISTENCY.md](UI_CONSISTENCY.md) | Lint-enforced UI consistency contract |

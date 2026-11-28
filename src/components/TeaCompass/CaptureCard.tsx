@@ -1,5 +1,5 @@
 import { useCaptureSave } from '../curate/useCaptureSave';
-import { TeaCupIcon } from '../shared/TeaCupIcon';
+import { TeaCup } from '../TeaCupIcon';
 import { TeawareSheets } from '../curate/TeawareSheets';
 import { CaptureFlowLayout } from '../curate/CaptureFlowLayout';
 import { BUY_GRAM_CHIPS } from '../curate/samplePreset';
@@ -1813,7 +1813,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSaveStateCh
               data-curate-action
             >
               {flow
-                ? <span className="curate-compact-chrome w-full border border-tea-border bg-tea-surface text-tea-text-sec hover:text-tea-text" data-curate-compact-chrome><TeaCupIcon />{hasTasting ? <><span className="lg:hidden">Edit tasting</span><span className="hidden lg:inline">{tastingSummaryText}</span></> : 'Taste'}</span>
+                ? <span className="curate-compact-chrome w-full border border-tea-border bg-tea-surface text-tea-text-sec hover:text-tea-text" data-curate-compact-chrome><TeaCup size={19} strokeWidth={1.5} aria-hidden="true" />{hasTasting ? <><span className="lg:hidden">Edit tasting</span><span className="hidden lg:inline">{tastingSummaryText}</span></> : 'Taste'}</span>
                 : <span className="curate-support">{hasTasting ? 'Edit tasting profile' : 'Add tasting profile'}</span>}
             </button>
   );
