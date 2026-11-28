@@ -23,7 +23,10 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env, params, n
     if (workerOrigin.protocol !== 'https:') return next();
   } catch { return next(); }
   try {
-    const upstream = await fetch(new URL(`/api/public/invoice-links/${encodeURIComponent(code)}`, workerOrigin), {
+    // The visitor's own headers travel with the lookup, as the /api proxy
+    // sends them, so the worker's per-address limit counts this visitor.
+    const lookup = new URL(`/api/public/invoice-links/${encodeURIComponent(code)}`, workerOrigin);
+    const upstream = await fetch(new Request(lookup.toString(), { headers: request.headers }), {
       signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
     });
     if (!upstream.ok) return next();

@@ -28566,7 +28566,10 @@ async function resolveLocalPaymentAmount(
 // the same page an old long link opens. The lookup needs both halves: the
 // invoice number and the token's first twelve characters (48 bits). Anything
 // that does not match exactly one live invoice is a 404, never a near miss.
-const handleResolveInvoiceShortLink: Handler = async (_request, env, params) => {
+const handleResolveInvoiceShortLink: Handler = async (request, env, params) => {
+  // The answer carries the full token, so guessing is slowed per address.
+  const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+  if (!checkRateLimit(`invoice-link:${ip}`, 30, 60000)) return json({ error: 'Too many requests' }, 429);
   const parsed = parseInvoiceShortCode(params.code);
   if (!parsed) return json({ error: 'Link not found' }, 404);
   const matches = await env.DB.prepare(
