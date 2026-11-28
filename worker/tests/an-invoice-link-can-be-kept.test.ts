@@ -112,6 +112,23 @@ describe('Save to my account keeps the invoice', () => {
     expect((await as(db, 'tia-user', '/api/me/orders/inv-1')).status).toBe(200);
   });
 
+  it('a Draft kept from its pay link reads as awaiting payment in the account, not as being put together', async () => {
+    const db = seed(null, null, 'migrations');
+    db.sqlite.exec(`INSERT INTO products (id, account_id, type, product_name, status, cost_currency, cost_amount, fixed_retail_price_usd)
+        VALUES ('p-1', 'acc-one', 'Oolong', 'Dong Ding', 'Active', 'Yuan', 10, 0.5);
+      INSERT INTO invoice_line_items (id, account_id, invoice_id, product_id, quantity, price_at_sale, quantity_unit)
+        VALUES ('l-1', 'acc-one', 'inv-1', 'p-1', 100, 0.5, 'g');
+      INSERT INTO customers (id, account_id, name, user_id) VALUES ('owned-customer', 'acc-one', 'Tia', 'tia-user');
+      INSERT INTO invoices (id, account_id, invoice_number, customer_id, status)
+        VALUES ('being-made', 'acc-one', 'TJB-00009', 'owned-customer', 'Draft');
+      INSERT INTO invoice_line_items (id, account_id, invoice_id, product_id, quantity, price_at_sale, quantity_unit)
+        VALUES ('l-2', 'acc-one', 'being-made', 'p-1', 50, 0.5, 'g');`);
+    expect((await as(db, 'tia-user', KEEP, { token: TOKEN })).status).toBe(200);
+    const list = await (await as(db, 'tia-user', '/api/me/orders')).json() as { orders: { id: string; journey: { stage: string; label: string } }[] };
+    const stage = Object.fromEntries(list.orders.map(order => [order.id, order.journey?.label]));
+    expect(stage).toEqual({ 'inv-1': 'Awaiting payment', 'being-made': 'Order confirmed' });
+  });
+
   it('recognizes independent ownership without creating a releasable save', async () => {
     const db = seed('cust-tia');
     db.sqlite.exec("UPDATE customers SET user_id = 'tia-user' WHERE id = 'cust-tia'");

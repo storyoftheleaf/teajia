@@ -5083,6 +5083,11 @@ export interface JourneyInvoice {
   payment_date: string | null;
   fulfilled_at: string | null;
   money: JourneyMoney;
+  /**
+   * The customer saved it from its pay link, which showed them the amount to
+   * send. A Draft so kept is an invoice to pay, not an order being put together.
+   */
+  kept_from_pay_link?: boolean;
 }
 
 export interface JourneyInput {
@@ -5194,7 +5199,7 @@ function derivedStage(invoice: JourneyInvoice | null): OrderJourneyStage {
   if (!invoice) return 'received';
   if (String(invoice.status || '') === 'Void') return 'closed';
   if (invoice.fulfilled_at) return 'sent';
-  if (String(invoice.status || '') === 'Draft') return 'confirmed';
+  if (String(invoice.status || '') === 'Draft' && !invoice.kept_from_pay_link) return 'confirmed';
   const { total_usd: total, paid_usd: paid, outstanding_usd: outstanding } = invoice.money;
   // An order with no lines and no shipping has not been priced yet, whatever
   // the arithmetic says about its balance. Zero outstanding on zero total is
@@ -5275,6 +5280,7 @@ async function resolveOrderJourneys(
     }
   }
 
+  const kept = await invoicesKeptFromPayLink(env, ids);
   for (const invoice of invoices) {
     const request = requests.get(invoice.id);
     journeys.set(invoice.id, deriveOrderJourney({
@@ -5287,10 +5293,24 @@ async function resolveOrderJourneys(
         payment_date: invoice.payment_date,
         fulfilled_at: invoice.fulfilled_at,
         money: payments.get(invoice.id) ?? NO_JOURNEY_MONEY,
+        kept_from_pay_link: kept.has(invoice.id),
       },
     }));
   }
   return journeys;
+}
+
+/** Which of these invoices a customer saved from the invoice's own pay link. */
+async function invoicesKeptFromPayLink(env: Env, ids: string[]): Promise<Set<string>> {
+  const kept = new Set<string>();
+  for (let start = 0; start < ids.length; start += 90) {
+    const chunk = ids.slice(start, start + 90);
+    const result = await env.DB.prepare(
+      `SELECT invoice_id FROM invoice_keep_grants WHERE invoice_id IN (${chunk.map(() => '?').join(', ')})`
+    ).bind(...chunk).all();
+    for (const row of (result.results ?? []) as Array<Record<string, any>>) kept.add(row.invoice_id as string);
+  }
+  return kept;
 }
 
 // ── Payment ledger ───────────────────────────────────────────────────────────
@@ -16599,6 +16619,7 @@ const handleGetInquiryByRef: Handler = async (request, env, params, execution) =
         payment_date: (invoice.payment_date as string | null) ?? null,
         fulfilled_at: (invoice.fulfilled_at as string | null) ?? null,
         money: payment,
+        kept_from_pay_link: (await invoicesKeptFromPayLink(env, [invoice.id as string])).has(invoice.id as string),
       };
       const notification = await env.DB.prepare(
         'SELECT state FROM order_whatsapp_outbox WHERE invoice_id=? AND account_id=?'
