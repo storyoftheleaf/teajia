@@ -7,6 +7,7 @@ import { authPagePath } from '../../lib/authNavigation';
 import { holdKeepTeaser, type KeepTeaser } from '../../lib/keepTeaser';
 import { holdReturnPlace } from '../../hooks/useReturnPlace';
 import { keepPayInvoice } from '../../lib/payInvoiceKeepApi';
+import type { PayLinkTeaLine } from './types';
 
 const KEEP_PARAM = 'keep';
 
@@ -21,6 +22,21 @@ export function invoiceJoinPath(teaser: Omit<KeepTeaser, 'path'>, mode: 'signup'
   holdKeepTeaser({ ...teaser, path: window.location.pathname });
   holdReturnPlace();
   return authPagePath(mode, `${window.location.pathname}?${back.toString()}`);
+}
+
+// The teas as sign-up, sign-in and the tasting's join card show them: one row a tea, two packs of one tea added up.
+export function invoiceKeepTeas(lines: readonly PayLinkTeaLine[]) {
+  const rows = new Map<string, { name: string; quantity: number; unit: 'g' | 'piece' }>();
+  for (const line of lines) {
+    const key = `${line.product_id ?? line.name}|${line.unit}`;
+    const row = rows.get(key);
+    if (row) row.quantity += line.quantity;
+    else rows.set(key, { name: line.name, quantity: line.quantity, unit: line.unit });
+  }
+  return [...rows.values()].map(row => ({
+    name: row.name,
+    amount: row.unit === 'g' ? `${row.quantity}g` : `${row.quantity} ${row.quantity === 1 ? 'piece' : 'pieces'}`,
+  }));
 }
 
 /**
