@@ -13,9 +13,10 @@ vi.mock('./BrowseCard', () => ({ BrowseCard: ({ entry }: { entry: { name: string
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { createEmptyEntry } from './types';
 import { BrowseView } from './BrowseView';
-const render = () => renderToStaticMarkup(<MemoryRouter><BrowseView onEditEntry={() => {}} onNewCapture={() => {}} onOpenDetail={() => {}} /></MemoryRouter>);
+let show = '';
+const render = () => renderToStaticMarkup(<MemoryRouter initialEntries={[show ? `/admin/compass?tab=library&show=${show}` : '/admin/compass?tab=library']}><BrowseView onEditEntry={() => {}} onNewCapture={() => {}} onOpenDetail={() => {}} /></MemoryRouter>);
 
-beforeEach(() => { fixture.state = { ...useTeaCompassStore.getState(), entries: [], browseFilter: 'all', browseLayout: 'list', hydrationStatus: 'ready' }; });
+beforeEach(() => { show = ''; fixture.state = { ...useTeaCompassStore.getState(), entries: [], browseLayout: 'list', hydrationStatus: 'ready' }; });
 describe('Library active record scope', () => {
   it('keeps transferred acquisitions discoverable in All alongside unlinked encounters', () => {
     fixture.state.entries = [
@@ -29,7 +30,7 @@ describe('Library active record scope', () => {
     expect(markup).toContain('aria-label="All 2"');
   });
   it('keeps untasted received samples in the queue even after product linking', () => {
-    fixture.state.browseFilter = 'to_taste';
+    show = 'to_taste';
     fixture.state.entries = [
       { ...createEmptyEntry(), id: 'sample', name: 'Sample ready to taste', sampleState: 'received' },
       { ...createEmptyEntry(), id: 'moved', name: 'Transferred sample', sampleState: 'received', draftProductId: 'product-2' },
@@ -43,7 +44,7 @@ describe('Library active record scope', () => {
 
 describe('Library supplier organization', () => {
   it.each(['all', 'to_taste', 'selected'])('groups %s by supplier, merges spelling whitespace/case, and keeps unknown suppliers last', (filter) => {
-    fixture.state.browseFilter = filter;
+    show = filter;
     fixture.state.browseSort = 'name';
     fixture.state.entries = [
       { ...createEmptyEntry(), id: '1', name: 'Zebra tea', vendorName: ' Huang   Wei ', decision: 'selected', sampleState: 'received' },
@@ -76,7 +77,7 @@ describe('Library supplier organization', () => {
 
 describe('Library workflow decisions', () => {
   it('keeps rejected records separate even when ordered, and counts chat orders as chosen', () => {
-    fixture.state.browseFilter = 'selected';
+    show = 'selected';
     fixture.state.entries = [
       { ...createEmptyEntry(), id: 'chat-order', name: 'Chat order', status: 'incoming' },
       { ...createEmptyEntry(), id: 'rejected', name: 'Rejected order', status: 'incoming', decision: 'passed_on' },
@@ -93,5 +94,16 @@ describe('Library workflow decisions', () => {
     fixture.state.entries = [{ ...createEmptyEntry(), id: '1', name: 'Linked tea', linkedCustomerId: 'supplier-1', vendorName: 'Old name' }];
     expect(render()).toContain('aria-label="Renamed shared supplier"');
     expect(render()).not.toContain('Old name');
+  });
+});
+
+describe('Library Waiting tells the truth', () => {
+  it('opens from the address and never says nothing is waiting while Stock is still being read', () => {
+    show = 'waiting';
+    fixture.state.entries = [{ ...createEmptyEntry(), id: 'sample', name: 'Sample to taste', sampleState: 'received' }];
+    const markup = render();
+    expect(markup).toContain('aria-pressed="true" aria-label="Waiting');
+    expect(markup).toContain('Reading Stock');
+    expect(markup).not.toContain('Nothing is waiting on you.');
   });
 });
