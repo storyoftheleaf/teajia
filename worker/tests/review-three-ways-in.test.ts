@@ -1,4 +1,4 @@
-// A11 review (todo/plans/review-prompts/astra-a11-three-ways-in.md): one
+// A11 review (https://github.com/storyoftheleaf/teajia/blob/4eb502f99c40509176472e9fede440243d23e3ef/todo/plans/review-prompts/astra-a11-three-ways-in.md): one
 // action, three ways in. The host's page route, the same tool called with a
 // scoped token on the host's own personal account (the "owner tool" way a
 // shop token takes), and the host's own key (`host:self`). Each block sends

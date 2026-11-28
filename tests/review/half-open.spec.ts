@@ -1,5 +1,5 @@
 /**
- * A10: the site and the worker disagree about a switch (todo/plans/review-prompts/astra-a10-open-then-close.md).
+ * A10: the site and the worker disagree about a switch (https://github.com/storyoftheleaf/teajia/blob/4eb502f99c40509176472e9fede440243d23e3ef/todo/plans/review-prompts/astra-a10-open-then-close.md).
  *
  * Opening a switch is one commit, but Pages and the worker deploy separately,
  * so for some minutes one is open and the other closed. Start the rig with the

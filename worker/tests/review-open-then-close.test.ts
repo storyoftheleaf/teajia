@@ -1,4 +1,4 @@
-// A10 review (todo/plans/review-prompts/astra-a10-open-then-close.md): data
+// A10 review (https://github.com/storyoftheleaf/teajia/blob/4eb502f99c40509176472e9fede440243d23e3ef/todo/plans/review-prompts/astra-a10-open-then-close.md): data
 // made while a switch is open, after the switch closes, and when it opens
 // again. For each switch: make the data open, close it, call the routes it
 // gates and the public readers that could still show the data, open it again

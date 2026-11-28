@@ -1,5 +1,7 @@
 # Creator profile fixtures
 
+> Fixture reference for reproducing creator states. The [current delivery plan](../../docs/CONSOLIDATED_DIRECTION.md) determines which work proceeds.
+
 Companion to `creator-profiles.md`. Three placeholder creators at three fill
 levels, so `/design` and Playwright see real pages instead of empty states.
 All content here is explicitly placeholder — swap before anything ships

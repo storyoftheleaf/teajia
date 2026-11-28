@@ -1,5 +1,7 @@
 # Tea spaces
 
+> Reference for the distinction between a tea house, space, session and host. The [current delivery plan](../../docs/CONSOLIDATED_DIRECTION.md) determines which work proceeds.
+
 Adrian, 2026-11-27, in the planning thread:
 
 > "Technically a tea space is a tea house. A tea space is a place inside of a tea house. A tea house could have multiple tea spaces inside of it. Let's focus on the spaces, not the houses. Because anyone can own a space."
