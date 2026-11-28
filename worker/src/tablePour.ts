@@ -30,8 +30,11 @@ type Pourer = { userId: string; email?: string | null; name?: string | null };
 type Deps<E> = {
   /** The caller's own table, or the refusal. */
   requireOwnTable: (request: Request, env: E, tableId: string) => Promise<{ host: Pourer; table: Table } | { error: Response }>;
-  /** The shop whose shelf this person may pour from, and whether they see its prices; null when none. */
-  shopShelf: (env: E, userId: string) => Promise<{ accountId: string; priced: boolean } | null>;
+  /**
+   * The shop whose shelf this person may pour from; null when none. `priced` shows its prices, and `weighs`
+   * lets a pour take grams off it (the shop's stock rule, pourSit.ts, or the owner's naming).
+   */
+  shopShelf: (env: E, userId: string) => Promise<{ accountId: string; priced: boolean; weighs: boolean } | null>;
   /** The shop's owner, for naming pourers. */
   requireShopOwner: (request: Request, env: E) => Promise<{ accountId: string; userId?: string | null } | { error: Response }>;
 };
@@ -42,24 +45,26 @@ function reply(value: unknown, status = 200) {
   return response;
 }
 const refuse = (error: string, code: string, status = 400) => reply({ error, code }, status);
+const stockRefusal = () => refuse('Only the stock owner, staff with Stock permission or a named pourer can change these grams.', 'pour_stock_permission', 403);
 
 /** Whether this person is one the shop's owner named to pour its tea. */
 export async function isNamedPourer(db: D1Database, accountId: string, userId: string): Promise<boolean> {
   return Boolean(await db.prepare('SELECT 1 FROM shop_pourers WHERE account_id = ? AND user_id = ?').bind(accountId, userId).first());
 }
 
-async function tableSit(db: D1Database, table: Table, shopId: string | null) {
+async function tableSit(db: D1Database, table: Table, shop: { accountId: string; weighs: boolean } | null) {
+  const shopId = shop?.accountId ?? null;
   const { results } = await db.prepare(
     `SELECT m.id, m.product_id,
             COALESCE(NULLIF(trim(m.custom_name), ''), NULLIF(trim(p.given_name), ''), NULLIF(trim(p.product_name), '')) AS name,
-            m.poured_grams, m.stock_taken_grams, p.image_url, p.stock_grams
+            m.poured_grams, m.stock_taken_grams, p.image_url, p.stock_grams, p.account_id AS shelf
        FROM event_tea_menu m
        LEFT JOIN products p ON p.id = m.product_id AND p.account_id IN (m.account_id, ?3)
       WHERE m.account_id = ?1 AND m.event_id = ?2 AND m.poured_at IS NOT NULL
       ORDER BY m.poured_at ASC, m.brew_order ASC, m.id ASC`,
   ).bind(table.account_id, table.id, shopId ?? table.account_id).all<{
     id: string; product_id: string | null; name: string | null; poured_grams: number | null;
-    stock_taken_grams: number | null; image_url: string | null; stock_grams: number | null;
+    stock_taken_grams: number | null; image_url: string | null; stock_grams: number | null; shelf: string | null;
   }>();
   const start = sessionInstant(table.event_date, table.timezone);
   return {
@@ -69,6 +74,8 @@ async function tableSit(db: D1Database, table: Table, shopId: string | null) {
     teas: results.map(row => ({
       id: row.id, product_id: row.product_id, name: row.name ?? '', grams: row.poured_grams,
       short: row.poured_grams !== null && row.product_id !== null && Number(row.stock_taken_grams ?? 0) < row.poured_grams,
+      // Grams taken off the shop's shelf go back only by someone who may still move them.
+      can_take_back: !(Number(row.stock_taken_grams ?? 0) > 0 && row.shelf !== null && row.shelf !== table.account_id) || shop?.weighs === true,
       image_url: row.image_url, stock_grams: row.stock_grams,
     })),
   };
@@ -85,8 +92,11 @@ export function tablePourRoutes<E extends Env>(deps: Deps<E>): [string, string, 
       shelfTeas(env, own.table.account_id, false),
     ]);
     return reply({
-      teas: [...shopTeas.map(tea => ({ ...tea, shelf: 'shop' })), ...chestTeas.map(tea => ({ ...tea, shelf: 'chest' }))],
-      sit: await tableSit(env.DB, own.table, shop?.accountId ?? null),
+      teas: [
+        ...shopTeas.map(tea => ({ ...tea, shelf: 'shop', can_deduct: shop?.weighs === true })),
+        ...chestTeas.map(tea => ({ ...tea, shelf: 'chest', can_deduct: true })),
+      ],
+      sit: await tableSit(env.DB, own.table, shop),
     });
   };
 
@@ -117,6 +127,7 @@ export function tablePourRoutes<E extends Env>(deps: Deps<E>): [string, string, 
       teaName = product.name;
     }
     if (!teaName || teaName.length > POUR_NAME_MAX) return refuse('Choose a tea, or type its name.', 'pour_tea');
+    if (grams !== null && shelf !== null && shelf === shopId && !shop?.weighs) return stockRefusal();
 
     // A tea the host planned for this table and has not poured yet is the one poured; otherwise it joins the end.
     const planned = productId ? await env.DB.prepare(
@@ -144,7 +155,7 @@ export function tablePourRoutes<E extends Env>(deps: Deps<E>): [string, string, 
       await env.DB.prepare('UPDATE event_tea_menu SET stock_taken_grams = ? WHERE id = ? AND account_id = ?')
         .bind(taken, menuId, table.account_id).run();
     }
-    return reply({ poured: menuId, sit: await tableSit(env.DB, table, shopId) }, 201);
+    return reply({ poured: menuId, sit: await tableSit(env.DB, table, shop) }, 201);
   };
 
   // DELETE /api/me/tables/:id/pour/:menuId: the wrong tea was tapped. The grams
@@ -163,6 +174,9 @@ export function tablePourRoutes<E extends Env>(deps: Deps<E>): [string, string, 
       product_id: string | null; stock_taken_grams: number | null; added: number; shelf: string | null; written: number;
     }>();
     if (!row) return refuse('That pour could not be found.', 'pour_not_found', 404);
+    const shop = await deps.shopShelf(env, host.userId);
+    const back = Number(row.stock_taken_grams ?? 0);
+    if (back > 0 && row.shelf !== null && row.shelf !== table.account_id && !shop?.weighs) return stockRefusal();
     // A tea a guest has written about stays on the table, so their words keep the tea they were about.
     if (Number(row.added) === 1 && Number(row.written) === 0) {
       await env.DB.prepare('DELETE FROM event_tea_menu WHERE id = ? AND event_id = ? AND account_id = ?')
@@ -172,9 +186,8 @@ export function tablePourRoutes<E extends Env>(deps: Deps<E>): [string, string, 
         'UPDATE event_tea_menu SET poured_at = NULL, poured_grams = NULL, stock_taken_grams = NULL WHERE id = ? AND event_id = ? AND account_id = ?',
       ).bind(menuId, table.id, table.account_id).run();
     }
-    if (row.shelf) await returnStock(env.DB, { accountId: row.shelf, email: host.email }, row.product_id, Number(row.stock_taken_grams ?? 0));
-    const shop = await deps.shopShelf(env, host.userId);
-    return reply({ sit: await tableSit(env.DB, table, shop?.accountId ?? null) });
+    if (row.shelf) await returnStock(env.DB, { accountId: row.shelf, email: host.email }, row.product_id, back);
+    return reply({ sit: await tableSit(env.DB, table, shop) });
   };
 
   // GET /api/admin/pour/pourers: the people this shop's owner has named to pour its tea.

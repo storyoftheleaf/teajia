@@ -1,5 +1,5 @@
 // The pour page (Adrian, 2026-11-27): pull a tea out, tap it, type the weight
-// or skip it. The tea joins that day's sit and the grams come out of stock.
+// or skip it. The tea joins that day's sit and the grams come out of stock when you have permission.
 // Nothing is started first: the day's sit is made by its first pour, and it
 // can be named, placed and sent afterwards. The worker side is
 // worker/src/pourSit.ts.
@@ -44,6 +44,11 @@ type Doors = ReturnType<typeof pourDoors>;
 const grams = (value: number | null) => (value === null ? '' : `${value} g`);
 
 export default function PourView({ tableId }: { tableId?: string } = {}) {
+  const accountId = useAppStore(state => state.activeAccountId);
+  return <PourShelf key={`${accountId}:${tableId ?? ''}`} tableId={tableId} />;
+}
+
+function PourShelf({ tableId }: { tableId?: string }) {
   const { api, send } = useMemo(() => pourDoors(tableId), [tableId]);
   const tablePath = tableId ? `/account/host/${encodeURIComponent(tableId)}` : null;
   const ownsShop = useAppStore(selectIsOwnerTier);
@@ -204,8 +209,11 @@ export default function PourView({ tableId }: { tableId?: string } = {}) {
                   <span className={`${TYPOGRAPHY_CLASSES.mono} text-tea-text-sec`}>
                     {grams(poured.grams)}{poured.short ? ', more than the shelf held' : ''}
                   </span>
-                  <Button type="button" variant="quiet" size="sm" className="tap-target" disabled={busy}
+                  <Button type="button" variant="quiet" size="sm" className="tap-target" disabled={busy || !poured.can_take_back}
                     aria-label={`Take back ${poured.name}`} onClick={() => takeBack(poured.id)}>Take back</Button>
+                  {!poured.can_take_back && (
+                    <span className={`${TYPOGRAPHY_CLASSES.bodyLight} text-tea-text-sec`}>Stock access needed to take back</span>
+                  )}
                 </li>
               ))}
             </ol>
@@ -280,7 +288,9 @@ export default function PourView({ tableId }: { tableId?: string } = {}) {
       </div>
 
       <NumberPad open={Boolean(teaId) && (Boolean(tea) || (teaId === 'name' && Boolean(typedName)))}
-        name={tea ? tea.name : typedName} shelf={tea ? `${tea.stock_grams ?? 0} g on the shelf` : undefined}
+        name={tea ? tea.name : typedName}
+        shelf={tea?.can_deduct ? `${tea.stock_grams ?? 0} g on the shelf` : undefined}
+        canWeigh={!tea || tea.can_deduct === true}
         busy={busy} onClose={back} onPour={pour} />
       {!tableId && ownsShop && <PourersSheet open={pourersOpen === 'open'} onClose={back} />}
       {sit && !tableId && (
@@ -293,12 +303,21 @@ export default function PourView({ tableId }: { tableId?: string } = {}) {
 
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', 'back'] as const;
 
-function NumberPad({ open, name, shelf, busy, onClose, onPour }: {
-  open: boolean; name: string; shelf?: string; busy: boolean; onClose: () => void; onPour: (grams: number | null) => void;
+function NumberPad({ open, name, shelf, canWeigh, busy, onClose, onPour }: {
+  open: boolean; name: string; shelf?: string; canWeigh: boolean; busy: boolean; onClose: () => void; onPour: (grams: number | null) => void;
 }) {
   const [typed, setTyped] = useState('');
   useEffect(() => { if (open) setTyped(''); }, [open, name]);
   const weight = gramsOf(typed);
+
+  if (!canWeigh) {
+    return (
+      <BottomSheet open={open} onOpenChange={next => { if (!next) onClose(); }} title={name}
+        description="Stock access is needed to deduct grams.">
+        <Button type="button" className="tap-target" disabled={busy} onClick={() => onPour(null)}>Record without weight</Button>
+      </BottomSheet>
+    );
+  }
 
   return (
     <BottomSheet open={open} onOpenChange={next => { if (!next) onClose(); }} title={name} description={shelf}>

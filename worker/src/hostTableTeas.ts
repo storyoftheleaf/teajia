@@ -225,8 +225,8 @@ export async function saveTableTeas(db: D1Database, table: Table, teas: TableTea
     for (const row of results) named.set(`chest:${row.id}`, row.name ?? '');
   }
 
-  const { results: existing } = await db.prepare('SELECT id FROM event_tea_menu WHERE event_id = ? AND account_id = ?')
-    .bind(table.id, table.account_id).all<{ id: string }>();
+  const { results: existing } = await db.prepare('SELECT id, stock_taken_grams FROM event_tea_menu WHERE event_id = ? AND account_id = ?')
+    .bind(table.id, table.account_id).all<{ id: string; stock_taken_grams: number | null }>();
   const kept = new Set(existing.map(row => row.id));
 
   const statements: D1PreparedStatement[] = [];
@@ -251,6 +251,9 @@ export async function saveTableTeas(db: D1Database, table: Table, teas: TableTea
     }
   });
   const removed = [...kept].filter(id => !keptIds.has(id));
+  if (existing.some(row => Number(row.stock_taken_grams) > 0 && !keptIds.has(row.id))) {
+    return refuse('Take this tea back from Pour to return its grams to stock.', 'pour_stock_take_back_required', 409);
+  }
   if (removed.length) {
     // A tea a guest has already written about stays on the table, so their
     // words keep the tea they were about.
@@ -260,16 +263,8 @@ export async function saveTableTeas(db: D1Database, table: Table, teas: TableTea
       return refuse('A guest has written about a tea you took off, so it stays on the table.', 'table_tea_written', 409);
     }
   }
-  if (removed.length) {
-    // A pour that took grams off a shelf is taken back on the pour page, where the grams go back with it.
-    const taken = await db.prepare(`SELECT COUNT(*) AS n FROM event_tea_menu WHERE id IN (${marks(removed)}) AND COALESCE(stock_taken_grams, 0) > 0`)
-      .bind(...removed).first<{ n: number }>();
-    if (Number(taken?.n ?? 0) > 0) {
-      return refuse('A tea you took off was poured by weight. Take it back on the pour page, so its grams go back on the shelf.', 'table_tea_poured', 409);
-    }
-  }
   for (const id of removed) {
-    statements.push(db.prepare('DELETE FROM event_tea_menu WHERE id = ? AND event_id = ? AND account_id = ?').bind(id, table.id, table.account_id));
+    statements.push(db.prepare('DELETE FROM event_tea_menu WHERE id = ? AND event_id = ? AND account_id = ? AND COALESCE(stock_taken_grams, 0) = 0').bind(id, table.id, table.account_id));
   }
   if (statements.length) await db.batch(statements);
   return { teas: await hostTableTeas(db, table) };

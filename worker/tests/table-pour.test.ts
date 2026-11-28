@@ -5,6 +5,8 @@ import { seedIdentity, SqliteD1 } from './helpers/sqliteD1';
 
 type Env = { DB: D1Database };
 let db: SqliteD1;
+/** The host runs the shop's sessions without its Stock permission. */
+let gatherOnly = false;
 const TABLE = { id: 'table-1', account_id: 'own-host', title: 'Friday at mine', event_date: '2026-11-27T10:00:00Z', timezone: 'UTC', lifecycle_status: 'published' };
 
 const routes = tablePourRoutes<Env>({
@@ -14,7 +16,10 @@ const routes = tablePourRoutes<Env>({
       ? { host: { userId, name: 'Hana', email: 'hana@test.dev' }, table: TABLE }
       : { error: new Response(null, { status: 404 }) };
   },
-  shopShelf: async (env, userId) => (await isNamedPourer(env.DB, 'shop', userId) ? { accountId: 'shop', priced: false } : null),
+  shopShelf: async (env, userId) => {
+    if (gatherOnly) return { accountId: 'shop', priced: true, weighs: false };
+    return await isNamedPourer(env.DB, 'shop', userId) ? { accountId: 'shop', priced: false, weighs: true } : null;
+  },
   requireShopOwner: async request => (request.headers.get('Test-Owner') ? { accountId: 'shop', userId: 'adrian' } : { error: new Response(null, { status: 403 }) }),
 });
 
@@ -36,6 +41,7 @@ const menu = () => db.sqlite.prepare('SELECT id, account_id, product_id, custom_
 const name = () => call('POST', '/api/admin/pour/pourers', { owner: true, body: { email: 'host@test.dev' } });
 
 beforeEach(() => {
+  gatherOnly = false;
   db = new SqliteD1('migrations');
   seedIdentity(db, { userId: 'adrian', accountId: 'shop' });
   seedIdentity(db, { userId: 'host', accountId: 'own-host' });
@@ -113,6 +119,17 @@ describe('pouring at a host\'s own table', () => {
     expect((await call('POST', '/api/admin/pour/pourers', { owner: true, body: { email: 'nobody@test.dev' } })).status).toBe(404);
   });
 
+  it('lets someone who runs sessions without Stock permission pour the shop\'s tea, but not by weight', async () => {
+    gatherOnly = true;
+    const shelf = await call('GET', '/api/me/tables/:id/pour', { user: 'host', params: { id: TABLE.id } });
+    expect(shelf.body.teas.find((tea: any) => tea.id === 'liubao').can_deduct).toBe(false);
+    expect(shelf.body.teas.find((tea: any) => tea.id === 'mine').can_deduct).toBe(true);
+    expect((await pour({ product_id: 'liubao', grams: 7 })).status).toBe(403);
+    expect((await pour({ product_id: 'liubao' })).status).toBe(201);
+    expect(stock('liubao').stock_grams).toBe(100);
+    expect(menu()).toHaveLength(1);
+  });
+
   it('answers nobody but the table\'s own host', async () => {
     expect((await call('GET', '/api/me/tables/:id/pour', { user: 'adrian', params: { id: TABLE.id } })).status).toBe(404);
     expect((await call('POST', '/api/me/tables/:id/pour', { user: 'adrian', body: { name: 'x' }, params: { id: TABLE.id } })).status).toBe(404);
@@ -126,7 +143,7 @@ describe('pouring at a host\'s own table', () => {
     await saveTableTeas(db as unknown as D1Database, TABLE, again as never);
     expect(menu()).toMatchObject([{ id: poured.body.poured, product_id: 'liubao', custom_name: 'Old Basket', stock_taken_grams: 7 }]);
     const dropped = await saveTableTeas(db as unknown as D1Database, TABLE, []);
-    expect(dropped).toMatchObject({ refused: { code: 'table_tea_poured' } });
+    expect(dropped).toMatchObject({ refused: { code: 'pour_stock_take_back_required' } });
     expect(menu()).toHaveLength(1);
   });
 });

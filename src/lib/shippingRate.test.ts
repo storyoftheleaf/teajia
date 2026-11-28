@@ -1,7 +1,7 @@
 import {describe,expect,it} from 'vitest';
 import {fallbackShopFreightDefault,shopFreightDefaultFrom,shippingRateUsdFor,shopRateInCurrency} from './shippingRate';
 import {rateToUsd} from './currency';
-import {curateShelfPreview,orderLanded} from '../components/CurateV2/curatePricing';
+import {curateShelfPreview,orderLanded} from '../components/curate/curatePricing';
 import {formPricingPreview} from '../admin/components/inventory/stock/formPricingModel';
 const account={default_shipping_rate_per_kg:85,default_shipping_rate_currency:'Yuan'};
 describe('unknown freight conversion stays unknown',()=>{

@@ -2,7 +2,7 @@ import React from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { X, Printer } from 'lucide-react';
 import type { LedgerTransaction, LedgerLineItem } from '../../lib/ledgerStore';
-import type { TeaCompassEntry } from './types';
+import type { TeaCompassEntry } from '../curate/types';
 
 // A tag can come from either a ledger line item (bought) or a compass entry (sample/logged)
 interface TagItem {

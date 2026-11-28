@@ -1,6 +1,6 @@
 import React from 'react';
 import { X } from 'lucide-react';
-import type { LibraryFilters } from './types';
+import type { LibraryFilters } from '../curate/types';
 import { LIBRARY_FILTER_FIELDS } from './LibraryFilterSheet';
 
 export const activeLibraryFilterCount = (filters: LibraryFilters) =>

@@ -16,7 +16,7 @@ const CROPPER_HOME = 'src/components/shared/SquareCropModal.tsx';
 
 const KEEPS_THE_WHOLE_PHOTO: Record<string, string> = {
   'src/components/curate/CurateRecordTools.tsx': 'private attachments (receipts, business cards, PDFs)',
-  'src/components/CurateV2/RecordTools.tsx': 'private attachments (receipts, business cards, PDFs)',
+  'src/components/curate/RecordTools.tsx': 'private attachments (receipts, business cards, PDFs)',
   'src/components/CurateV2/import/ImportInput.tsx': 'import: the analysis reads the whole photo',
   'src/components/CurateV2/import/ImportEvidencePreview.tsx': 'import evidence',
   'src/components/CurateV2/LedgerView.tsx': 'a receipt on a ledger line',
