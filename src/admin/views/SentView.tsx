@@ -5,6 +5,7 @@ import { parseLedgerTime, relativeTime } from '../../lib/incidentWords';
 import { useStepParam } from '../../hooks/useStepParam';
 import { TYPOGRAPHY_CLASSES as T } from '../../designTokens';
 import { SendRecordPanel } from '../components/SendRecordPanel';
+import { Button } from '../../components/shared/Button';
 import type { SendSummary } from '../types';
 
 /**
@@ -56,14 +57,15 @@ const SentView: React.FC = () => {
       <h1 className={T.h1}>Everything sent</h1>
       <div className="flex flex-wrap items-center gap-2">
         {KINDS.map(k => (
-          <button
+          <Button
+            variant="plain"
             key={k.id}
             type="button"
             onClick={() => setKind(k.id || null, { refine: true })}
             className={`min-h-tap px-3 rounded-xl border text-ui-13 transition-colors ${kind === k.id ? 'border-tea-gold text-tea-text' : 'border-tea-border text-tea-text-sec hover:text-tea-text'}`}
           >
             {k.label}
-          </button>
+          </Button>
         ))}
         <input
           type="search"
@@ -83,7 +85,8 @@ const SentView: React.FC = () => {
           const isOpen = open === key;
           return (
             <li key={key} className={send.live ? '' : 'opacity-60'}>
-              <button
+              <Button
+                variant="plain"
                 type="button"
                 onClick={() => setOpen(isOpen ? null : key)}
                 aria-expanded={isOpen}
@@ -97,7 +100,7 @@ const SentView: React.FC = () => {
                   <span className="text-ui-12 text-tea-text-sec">{send.kind === 'invoice' ? 'Invoice' : 'Collection link'}, {day(send.sent_at)}</span>
                 </span>
                 <span className="block text-ui-12 text-tea-text-sec mt-1">{sentLine(send)}</span>
-              </button>
+              </Button>
               {isOpen && <SendRecordPanel kind={send.kind} id={send.id} className="mx-4 mb-3" />}
             </li>
           );
