@@ -5,18 +5,22 @@
  * index.html carries the same words for scrapers that read the bare shell;
  * src/lib/siteMeta.test.ts fails when the two drift.
  *
- * The words are Home's own two lines, the core line and the house line, which
- * Adrian kept on 2026-11-27 ("4 yes"), so the preview says what the page
- * says. A placeholder until he picks (2026-11-28, thread "Update the site's
- * link preview"). The picture is drawn by
+ * The words are Adrian's, from teajia-homepage-seo-and-meta.md (2026-11-28),
+ * pasted exactly: they are counted letter by letter, so never reword them.
+ * Locked for six weeks after they go live, then reviewed in Search Console
+ * one phrase at a time. Home shows the description as the line under its
+ * headline. The picture is drawn by
  * `npm run share:site` (scripts/share-site-cards.mjs).
  */
 import type { Section } from '../types';
 
-export const SITE_TITLE = 'Teajia · A home for tea';
+export const SITE_TITLE = 'Teajia · Tea Culture, Rare Tea and Tea House Design';
 
 export const SITE_DESCRIPTION =
-  'Tea deepens with what you bring to the table and what you leave behind. Source, study and share with those who gather around the leaf.';
+  'Tea is a living art. Learn from lasting teachings, shop and source fine teas old and new, keep your tea chest and journal, and create your tea space.';
+
+/** Home's headline, which the edge also writes for crawlers that run no script. */
+export const HOME_HEADLINE = 'Tea deepens with what you bring to the table and what you leave behind.';
 
 /** A new file name, so chat apps that keep the old picture fetch this one. */
 export const SITE_PREVIEW_IMAGE_PATH = '/share/teajia.png';

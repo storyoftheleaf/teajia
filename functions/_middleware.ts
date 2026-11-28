@@ -32,7 +32,8 @@
 // nothing else to the bundle.
 import { reviewedLotProse } from '../src/wisdom/reference/namedTeaLots';
 import { isCuratedReadPath, isReadPathPublic, type ReadPublishOverrides } from '../src/pages/read/articleLive';
-import { SITE_PREVIEW_IMAGE_PATH } from '../src/lib/siteMeta';
+import { HOME_HEADLINE, SITE_DESCRIPTION, SITE_PREVIEW_IMAGE_PATH } from '../src/lib/siteMeta';
+import { homeDoorsLaunchFour } from '../src/pages/home/homeDoors';
 
 interface Meta {
   title: string;
@@ -416,6 +417,21 @@ export function isLinkGatedPath(path: string): boolean {
   return sharedLinkMeta(path) !== null || /^\/c\/[^/]+$/.test(path);
 }
 
+const escapeHtml = (text: string) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+/**
+ * Home's own words for a crawler that runs no script, which otherwise reads
+ * only "Loading Teajia…" (Adrian's homepage brief, item 10). The headline, the
+ * line under it and the four doors, from the same parts the page draws them
+ * from; the app replaces it as it starts.
+ */
+export function homeShellBody(): string {
+  const doors = homeDoorsLaunchFour()
+    .map(door => `<li><a href="${escapeHtml(door.to)}">${escapeHtml(door.accent)}</a> ${escapeHtml(door.words)}</li>`)
+    .join('');
+  return `<main><h1>${escapeHtml(HOME_HEADLINE)}</h1><p>${escapeHtml(SITE_DESCRIPTION)}</p><nav aria-label="Homepage destinations"><ul>${doors}</ul></nav></main>`;
+}
+
 /** A collection sent to someone: its own title, note and picture. */
 /**
  * A collection's public read takes about three seconds (2026-11-28, measured
@@ -570,6 +586,15 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
   // Only consider GET navigations to HTML; let assets/api pass straight through.
   if (request.method !== 'GET') return next();
+
+  // Home for a crawler: its words in place of the loading line.
+  if (path === '/') {
+    if (!CRAWLER_RE.test(request.headers.get('user-agent') || '')) return next();
+    const shell = await next();
+    if (!(shell.headers.get('content-type') || '').includes('text/html')) return shell;
+    const body = homeShellBody();
+    return new HTMLRewriter().on('#app-loading', { element(el) { el.setInnerContent(body, { html: true }); } }).transform(shell);
+  }
 
   // Tea Atlas (docs/TEA_ATLAS.md): a private library the edge cannot tell
   // readers apart for, since the session lives in the browser. So every

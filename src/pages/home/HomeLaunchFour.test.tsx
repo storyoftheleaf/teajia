@@ -45,24 +45,24 @@ it('shows the houses only while the portfolio is open and has some', () => {
 });
 
 it('the four doors lead where the bar words lead, and the consult plate leads to Tea Houses once open', () => {
-  expect(homeDoorsLaunchFour().map(door => door.to)).toEqual(['/read', tableDoor(), housesDoor(), '/shop']);
-  expect(homeDoorsLaunchFour().map(door => door.to)).toEqual(['/read', '/events', '/advise', '/shop']);
+  expect(homeDoorsLaunchFour().map(door => door.to)).toEqual(['/read', '/shop', tableDoor(), housesDoor()]);
+  expect(homeDoorsLaunchFour().map(door => door.to)).toEqual(['/read', '/shop', '/events', '/advise']);
   expect(consultPlatePath()).toBe('/advise');
   flags.table = true;
   flags.houses = true;
-  expect(homeDoorsLaunchFour().map(door => door.to)).toEqual(['/read', '/tea-table', '/tea-houses', '/shop']);
+  expect(homeDoorsLaunchFour().map(door => door.to)).toEqual(['/read', '/shop', '/tea-table', '/tea-houses']);
   expect(consultPlatePath()).toBe('/tea-houses');
 });
 
-it('the four doors carry their words, in bar order, with no em dash', () => {
+it('the four doors carry their words, in the order the line under the headline names them, with no em dash', () => {
   const html = render(<HomeFourDoors />);
   const doors = homeDoorsLaunchFour();
-  expect(doors.map(door => door.accent)).toEqual(['Discover', 'Deepen', 'Create', 'Source']);
+  expect(doors.map(door => door.accent)).toEqual(['Discover', 'Source', 'Deepen', 'Create']);
   expect(doors.map(door => door.words)).toEqual([
-    'stories, craft and tea wisdom',
-    'sit at a table, taste, share what you found',
-    'a tea house, or a table of your own',
-    'fine tea and teaware, found by hand',
+    'teachings, conversations and tea wisdom',
+    'fine tea and teaware, old and new, found by hand',
+    'journal your tastings, sit at a table, share what you found',
+    'your tea space, designed with us or inspired to make your own',
   ]);
   for (const door of doors) expect(html).toContain(door.words);
   expect(html).toContain('aria-label="Homepage destinations"');

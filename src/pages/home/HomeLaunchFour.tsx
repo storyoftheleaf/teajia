@@ -10,7 +10,8 @@ import { teaTableKey, type TeaTableItem } from '../../lib/teaTableContract';
 import { teaHousesOpen } from '../../lib/teaHouses';
 import { useTeaHouseWork } from '../../lib/teaHousesApi';
 import { teaHousePagePath } from '../../lib/teaHousesContract';
-import { housesDoor, tableDoor } from '../../components/navSections';
+import { housesDoor } from '../../components/navSections';
+import { homeDoorsLaunchFour } from './homeDoors';
 
 /**
  * Home's Launch 4 parts (slice K7 of
@@ -30,20 +31,7 @@ export const HOME_LINES_TODAY = [
   { accent: 'Create', rest: ' the spaces to share.', to: '/advise' },
 ] as const;
 
-/**
- * The four doors with the new bar (Adrian, 2026-11-27): today's four words,
- * each with a few plain words beside it, in bar order. Each goes where its
- * bar word goes (navSections.ts), so Deepen follows tableDoor() and Create
- * follows housesDoor(), which is Advise until Tea Houses opens (4.20).
- */
-export function homeDoorsLaunchFour() {
-  return [
-    { accent: 'Discover', words: 'stories, craft and tea wisdom', to: '/read' },
-    { accent: 'Deepen', words: 'sit at a table, taste, share what you found', to: tableDoor() },
-    { accent: 'Create', words: 'a tea house, or a table of your own', to: housesDoor() },
-    { accent: 'Source', words: 'fine tea and teaware, found by hand', to: '/shop' },
-  ];
-}
+export { homeDoorsLaunchFour } from './homeDoors';
 
 /**
  * The four doors under the opener, in place of today's four lines, with the

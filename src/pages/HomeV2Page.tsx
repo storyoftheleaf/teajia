@@ -55,7 +55,6 @@ import { INSTAGRAM_URL, SITE_DESCRIPTION, SITE_TITLE } from '../lib/siteMeta';
 const PIECE = {
   slug: 'porcelain-and-tea',
   to: '/read/porcelain-and-tea',
-  meta: 'The Lead',
   dek: 'When we repair objects, we are also repairing ourselves.',
 };
 
@@ -200,6 +199,7 @@ const HomeV2Page: React.FC = () => {
           >
             Tea deepens with what<br className="hidden xl:inline" /> you bring to the table<br className="hidden xl:inline" /> and what you leave behind.
           </h1>
+          <p className={`${BODY} mt-5 max-w-[52ch] text-tea-text-sec`}>{SITE_DESCRIPTION}</p>
           {/* No tap-target here: it sets a 44px floor per line, which read as a blank line between each. The 26px line box clears the 24px AA target size on its own. */}
           {launchFour ? <HomeFourDoors /> : (
           <nav aria-label="Homepage destinations" className="mt-8 flex flex-col items-start gap-0">
@@ -232,40 +232,47 @@ const HomeV2Page: React.FC = () => {
         </div>
       </section>
 
-      {launchFour && <ComeToATable edge={EDGE} />}
-      <HostTablePlate />
-      {launchFour && <FromTheTeaTable edge={EDGE} />}
-      {launchFour && <TeaHousesStrip edge={EDGE} />}
-
-      {/* The table: three plates of equal width. */}
+      {/* The table: three plates of equal width, in the order the line under
+          the headline names them: the magazine, the shelf, tea house design. */}
       <section
         aria-label="On the table"
         className={`mt-8 sm:mt-10 lg:mt-12 ${EDGE} grid grid-cols-1 md:grid-cols-3 gap-y-8 md:gap-y-0 md:gap-x-[2px] ${PHOTO}`}
       >
         <Plate
+          label="From the magazine"
           to={PIECE.to}
           title={<>Porcelain <span className="italic text-tea-gold">and Tea</span></>}
           body={PIECE.dek}
-          meta={PIECE.meta}
           src={portrait.url}
           crop={portrait.crop}
         />
         <Plate
+          label="On the shelf"
           to={tea ? `/shop/product/${tea.slug ?? tea.id}` : '/shop'}
-          title={tea ? (tea.givenName || tea.productName) : 'On the shelf'}
+          title={tea ? (tea.givenName || tea.productName) : 'Fine tea, old and new'}
           body={tea ? teaLine(tea) : 'Twenty teas, chosen one lot at a time.'}
-          meta={teaQuote ? <>{teaQuote.grams} g · <span className="text-tea-gold">{shopPrice.total(teaQuote.totalUsd)}</span></> : 'On the shelf'}
+          meta={teaQuote ? <>{teaQuote.grams} g · <span className="text-tea-gold">{shopPrice.total(teaQuote.totalUsd)}</span></> : null}
           src={tea?.imageUrl || TEMPLATE.tea}
         />
         <Plate
+          label="Tea house design"
           to={launchFour ? consultPlatePath() : '/advise'}
           title="Twenty years in tea culture."
           body="Taiwan, China, Japan, Bali, and beyond. Tea for your practice, your collection, your space."
-          meta="The consult"
+          links={[
+            { to: launchFour ? consultPlatePath() : '/advise', label: 'Work with us' },
+            { to: '/spaces', label: 'Ideas for your own space' },
+          ]}
           src={CONSULT_PHOTO}
           crop={{ scale: 1, x: 0.62, y: 0.45 }}
         />
       </section>
+
+      {/* Below the table: the houses Adrian has worked on, then the tables. */}
+      {launchFour && <TeaHousesStrip edge={EDGE} />}
+      {launchFour && <ComeToATable edge={EDGE} />}
+      <HostTablePlate />
+      {launchFour && <FromTheTeaTable edge={EDGE} />}
 
       {excerpts.length > 0 && (
         <section id="featured-tasting-excerpts" aria-labelledby="featured-tasting-heading" className={`${EDGE} mt-[var(--space-8)] px-[var(--space-6)]`}>
@@ -358,6 +365,7 @@ function HostTablePlate() {
       >
         <h2 className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text group-hover:text-tea-gold`}>Host a table</h2>
         <p className={`${BODY} mt-1 italic text-tea-text-sec`}>Free to host, and your record is yours.</p>
+        <p className={`${BODY} italic text-tea-text-sec`}>Keep your tasting journal and tea chest here too.</p>
       </Link>
     </div>
   );
@@ -404,10 +412,14 @@ const teaLine = (tea: PublicProduct): string => {
 };
 
 interface PlateProps {
+  /** The small word above the title that says which part of the site this is. */
+  label: string;
   to: string;
   title: React.ReactNode;
   body: React.ReactNode;
-  meta: React.ReactNode;
+  meta?: React.ReactNode;
+  /** Two or more ways on, side by side, in place of the whole plate being one link. */
+  links?: { to: string; label: string }[];
   src: string;
   /** The focal point and zoom saved with a story photograph, when it is one. */
   crop?: { scale: number; x: number; y: number };
@@ -418,32 +430,60 @@ interface PlateProps {
  * from its neighbour, never a card. Nothing here animates on entry: the
  * page's one authored entrance is the characters in the house.
  */
-const Plate: React.FC<PlateProps> = ({ to, title, body, meta, src, crop }) => {
+const Plate: React.FC<PlateProps> = ({ label, to, title, body, meta, links, src, crop }) => {
   const [hover, setHover] = useState(false);
   const focal = crop ? `${crop.x * 100}% ${crop.y * 100}%` : undefined;
+  const photo = (
+    <div className="relative shrink-0 basis-[45%] min-h-[220px] md:basis-auto md:min-h-0 md:aspect-[4/3] overflow-hidden bg-tea-surface">
+      <img
+        src={src}
+        alt=""
+        loading="lazy"
+        decoding="async"
+        className="absolute inset-0 w-full h-full object-cover transition-transform duration-[600ms] ease-out group-hover:scale-[1.02] motion-reduce:transform-none"
+        style={crop ? { objectPosition: focal, transform: `scale(${crop.scale})`, transformOrigin: focal } : undefined}
+      />
+    </div>
+  );
+  const words = (
+    <>
+      <p className={`${META} mb-2 uppercase tracking-[0.14em] text-tea-gold`}>{label}</p>
+      <h2 className={`${TITLE} transition-colors duration-300 ${hover ? 'text-tea-gold' : 'text-tea-text'}`} style={{ textWrap: 'balance' }}>
+        {title}
+      </h2>
+      <p className={`${BODY} mt-3 max-w-[44ch] text-tea-text-sec`}>{body}</p>
+    </>
+  );
+  const shell = 'group flex flex-row md:flex-col min-h-[220px] md:min-h-0 text-tea-text-sec';
+  const column = 'flex-1 flex flex-col pl-5 py-6 sm:pl-6 sm:py-8 md:pl-0 md:pr-8 md:py-8';
+  if (links?.length) {
+    return (
+      <div className={shell}>
+        <Link to={to} tabIndex={-1} aria-hidden="true" className="contents">{photo}</Link>
+        <div className={column}>
+          {words}
+          <nav aria-label={label} className={`${BODY} mt-auto pt-4 flex flex-wrap gap-x-6 gap-y-1`}>
+            {links.map(link => (
+              <Link key={link.to} to={link.to} className="tap-target !justify-start text-tea-gold hover:text-tea-text transition-colors duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/40">
+                {link.label}
+              </Link>
+            ))}
+          </nav>
+        </div>
+      </div>
+    );
+  }
   return (
     <Link
       to={to}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
-      className="group flex flex-row md:flex-col min-h-[220px] md:min-h-0 text-tea-text-sec focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/40"
+      className={`${shell} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/40`}
     >
-      <div className="relative shrink-0 basis-[45%] min-h-[220px] md:basis-auto md:min-h-0 md:aspect-[4/3] overflow-hidden bg-tea-surface">
-        <img
-          src={src}
-          alt=""
-          loading="lazy"
-          decoding="async"
-          className="absolute inset-0 w-full h-full object-cover transition-transform duration-[600ms] ease-out group-hover:scale-[1.02] motion-reduce:transform-none"
-          style={crop ? { objectPosition: focal, transform: `scale(${crop.scale})`, transformOrigin: focal } : undefined}
-        />
-      </div>
-      <div className="flex-1 flex flex-col pl-5 py-6 sm:pl-6 sm:py-8 md:pl-0 md:pr-8 md:py-8">
-        <h2 className={`${TITLE} transition-colors duration-300 ${hover ? 'text-tea-gold' : 'text-tea-text'}`} style={{ textWrap: 'balance' }}>
-          {title}
-        </h2>
-        <p className={`${BODY} mt-3 max-w-[44ch] text-tea-text-sec`}>{body}</p>
-        <p className={`${META} mt-auto pt-4 text-tea-text-sec`}>{meta}</p>
+      {photo}
+      <div className={column}>
+        {words}
+        {meta && <p className={`${META} mt-auto pt-4 text-tea-text-sec`}>{meta}</p>}
       </div>
     </Link>
   );

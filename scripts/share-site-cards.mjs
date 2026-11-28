@@ -25,10 +25,10 @@ const wordmark = fs.readFileSync(path.join(pub, 'logos', 'wordmark.svg'), 'utf8'
 const CARDS = [
   {
     // The mark in the middle, so a chat app that crops the picture square
-    // still shows the whole of it. The line is Home's core line.
+    // still shows the whole of it. The line opens SITE_DESCRIPTION.
     file: 'teajia.png',
     mark: true,
-    line: 'Tea deepens with what you bring to the table<br>and what you leave behind.',
+    line: 'Tea is a living art.',
   },
   {
     file: 'mcp.png',
@@ -77,7 +77,7 @@ p { font-size: 27px; line-height: 1.5; color: #ddd2bd; margin-top: 30px; max-wid
 .mark .emblem { width: 210px; height: 210px; color: #bfa06a; }
 .mark .emblem svg, .mark .wordmark svg { width: 100%; height: 100%; display: block; }
 .mark .wordmark { width: 300px; height: 119px; margin-top: 26px; color: #ede4d4; }
-.mark .motto { font-family: 'Cormorant Garamond', serif; font-style: italic; font-weight: 500; font-size: 31px; line-height: 1.3; text-align: center; color: #ddd2bd; margin-top: 16px; letter-spacing: 0.01em; }
+.mark .motto { font-family: 'Cormorant Garamond', serif; font-style: italic; font-weight: 500; font-size: 40px; line-height: 1.3; text-align: center; color: #ddd2bd; margin-top: 16px; letter-spacing: 0.01em; }
 </style></head><body>
 ${card.mark ? markBody(card) : cardBody(card)}
 </body></html>`;

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { canonicalUrlFor, collectionMeta, eventMeta, sharedLinkMeta, isTeaAtlasPath, isMcpPageRequest, isWorkerProxyPath, MCP_PAGE_META, onRequest, readPublishStatesAtEdge, resetReadStatesCacheForTests, resolveStaticReadMeta, STATIC_META } from './_middleware';
+import { canonicalUrlFor, collectionMeta, homeShellBody, eventMeta, sharedLinkMeta, isTeaAtlasPath, isMcpPageRequest, isWorkerProxyPath, MCP_PAGE_META, onRequest, readPublishStatesAtEdge, resetReadStatesCacheForTests, resolveStaticReadMeta, STATIC_META } from './_middleware';
 import { ARTICLE_LIVE, isReadPathPublic, isUngatedReadPath } from '../src/pages/read/articleLive';
 
 describe('Pages protocol proxy', () => {
@@ -400,5 +400,15 @@ describe('links people send one another preview as themselves', () => {
     vi.stubGlobal('fetch', vi.fn(async () => Response.json({ error: 'Event not found' }, { status: 404 })));
     expect(await eventMeta('gone', origin)).toBeNull();
     expect(await collectionMeta('gone', origin)).toBeNull();
+  });
+});
+
+describe('Home for a crawler that runs no script', () => {
+  it('carries the headline, the line under it and the four doors, not "Loading"', () => {
+    const html = homeShellBody();
+    expect(html).toContain('<h1>Tea deepens with what you bring to the table and what you leave behind.</h1>');
+    expect(html).toContain('Tea is a living art.');
+    expect([...html.matchAll(/<a href="[^"]+">(\w+)<\/a>/g)].map(m => m[1])).toEqual(['Discover', 'Source', 'Deepen', 'Create']);
+    expect(html).not.toContain('Loading');
   });
 });
