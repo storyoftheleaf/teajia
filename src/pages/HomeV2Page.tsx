@@ -320,7 +320,7 @@ const HomeV2Page: React.FC = () => {
               ))}
             </div>
             <p className={`${TYPOGRAPHY_CLASSES.subtitle} mt-12 sm:mt-16 tracking-[0.04em] text-tea-text-sec`}>
-              Honor the past. Live in the present. Build for the future.
+              Honor the past. Live in the present. Create for the future.
             </p>
           </div>
           {!signedIn && <div className="mt-16 sm:mt-20 w-full max-w-[360px]">

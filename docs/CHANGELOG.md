@@ -1,12 +1,14 @@
-<<<<<<< HEAD
+## 2026-11-28: The house line says Create
+
+Home's house line now reads "Honor the past. Live in the present. Create for the future.", Adrian's choice over Build.
+
 ## 2026-11-28: Invoices waiting for payment sit in Your Table
 
 Adrian: "When I receive the payment, where do I mark it as received? Inside of your table should be all of this." Your Table now lists, for anyone who sells, every invoice still owed money: number, name and amount, a buyer who pressed "I've sent payment" first. A row opens that invoice in Sales, now kept in the address as `/admin/activity?invoice=<id>`, where Edit, Record payment and what was sent sit together; "All invoices" opens Sales. A name corrected on an invoice now renames the customer record too, when the customer carried the old name. The section's word "Invoices" is a placeholder for Adrian to name. Files: `src/components/AccountPanel/invoicesWaiting.ts`, `LaunchpadView.tsx`, `OrdersView.tsx`, the details route in `worker/src/index.ts`.
-=======
+
 ## 2026-11-28: Every invoice and collection link keeps a record of what happened to it
 
 Adrian: "Make sure all these invoices and sample sending things are getting saved, monitored and recorded, they're great sources for data." The send itself was already kept (invoices with their lines, discount and pay link; collection links with their teas and quoted prices). What was missing is what the person did with it. `link_signals` (migration `0162_link_signals.sql`, schema only) now records each opening of a pay link or collection link and of each tea on it, with the signed-in person when there is one, a per-link hash to tell visitors apart otherwise, and the shop's own looks marked apart. `worker/src/sendRecords.ts` reads it back with saves (`user_favorites`, `saved_collections`, the invoice kept to an account), tastings (`customer_tasting_journal`), orders from the link (`source_publication_id`, or a cart whose lines carry the link's `collectionSlug`) and payments (`invoice_payments`), so nothing is copied. Past sends such as TJB-00007 and Daniel's samples are in it from their own rows, with their older open counter kept. Manage shows it on the order panel, under each link a collection was sent by (`SendRecordPanel.tsx`), and in one list of everything the account has sent, newest first (Orders › Sent, `/admin/sent`, `SentView.tsx`; each seller sees their own); the connector has `list_sends` and `get_send`; `GET /api/admin/sends`.
->>>>>>> origin/main
 
 ## 2026-11-28: Invoices are easy to fix
 
@@ -115,7 +117,6 @@ Adrian removed Craft as a section and kept everything in it, choosing "Read: Sto
 
 `set_my_payment_details` (`worker/src/mcpTools/paymentDetails.ts`, `sales:write`) saves pasted bank or Wise details on the caller's OWN profile, the same row the profile's paste box writes, so their invoices get a pay link. The preview hides all but the last four digits of each number, the ticket keeps only a hash of the paste (the confirm sends it again), and the audit row records fields, never values. Pasting again under the same label replaces that row. Guard: `worker/tests/payment-details-tool.test.ts`.
 
-
 ## 2026-11-27: Bringing a tea in, step 1: where each tea is, and what is waiting for you
 
 The first of five steps agreed with Adrian on the board "Bringing a tea in" (one Bring in door, one tea card, one waiting list). It only reads what is already stored and writes nothing.
@@ -125,7 +126,6 @@ The first of five steps agreed with Adrian on the board "Bringing a tea in" (one
 - **The write-up step reads the Wisdom Base.** It shows "Wisdom pages needed: N" or "Entry ready to write" from `wisdomNeeds()`, the same check as the Wisdom Base fold in Stock (`src/components/curate/useWisdomWriteup.ts`, pages loaded only when needed). With pages missing, its button opens the tea in Stock where the fold lists them.
 - **Past the write-up** (the tea system map's gap 1, Adrian's yes 2026-11-27): the path carries on with Priced, Main photo, On the site (public, shown in the shop and Active) and Tea Wisdom entry (an approved entry in `GENERATED_ENTRIES`, loaded late by `src/components/curate/useWisdomEntryIds.ts`; the step is left out until it has loaded, and teaware has none). Price, photo and going public stay Adrian's choice per tea, so only one of them reaches Waiting: "Public, no Tea Wisdom entry yet".
 - The rules are one function, `teaPath` / `libraryWaiting` in `src/components/curate/teaPath.ts`, tested in `teaPath.test.ts`.
-
 
 ## 2026-11-27: Price links for agents
 
@@ -268,11 +268,9 @@ The people editor (portrait, gallery, QR) and the photographs on the Read storie
 
 New shipping quotes can queue the customer’s existing private payment link through consented WhatsApp, otherwise email. Duplicate saves do not resend. A revised quote creates a new request; stale quotes, free shipping, settled balances and closed orders are suppressed. Encrypted link targets and a durable outbox keep delivery failures visible and retry safe. The shipping panel shows send status separately from the saved quote. Activation requires the dedicated shipping switch and approved WhatsApp template.
 
-
 ## 2026-11-19: US checkout with tea paid first
 
 The flagship checkout collects a full US address or an explicitly arranged Bali pickup. Confirmed stock can proceed to PayPal immediately, with verified server receipts and payment notifications confirming the ledger automatically. Orders needing review retain the 24-hour window after acceptance. Shipping is quoted and charged separately later on the same private order page; dispatch requires a confirmed quote and paid balance. Sandbox receipts remain isolated from live payments. No outbound shipping rate or carrier label is assumed.
-
 
 The form the owner uses standing in a shop is reorganised into small cards in the Library's language and ordered as a sitting goes: where, the tea, its cost, capture, then the decision. With a price typed, everything through Buy, Sample, Done fits one phone screen. Photos stay visible on the form and on the tea's Library card. Sample now opens the Buy panel set to a sample; tasting has its own Taste button. Buy's panel opens under the button it was tapped from. The header rows and the microphone stay in place while scrolling. The earlier form is kept at `/admin/compass?form=classic`.
 
@@ -301,7 +299,6 @@ Removed the returning-sweetness control, Taste count and Taste recap entry. Earl
 ## 2026-10-28: Record broad flavor families in the existing tasting flow
 
 Exploring the existing wheel no longer leaves beginners needing a flower or a sensory channel: Record Floral saves the family alone. Specific notes remain optional and do not automatically record their parent. Saved families appear in the impression recap and reopen for editing. Taste qualities explain resemblance versus sip sweetness, display Savory (umami), and keep Salty directly available. Returning sweetness distinguishes unrecorded, explicit Not noticed and legacy unspecified strength. Incense is offered as an unwanted Storage note rather than a flavor suggestion; existing records remain intact. No database migration or separate flavor-wheel screen is involved.
-
 
 The full-transcript model now selects indexed original passages instead of retyping quotations. Each chosen ID resolves to its exact source text and UTF-16 offsets, including repeated identical remarks; unknown IDs fail the review. Lossless passage spans preserve every character/newline and bound long lines without splitting surrogate pairs. Working-material inference allows up to 40 seconds per call within the existing full-review deadline; other AI calls keep their 20-second limit. 44 focused tests and Worker typecheck pass. Source/account/hash guards and explicit acceptance remain unchanged.
 
@@ -540,11 +537,9 @@ Pre-audit history not fully reconstructed. Refer to git history for work before 
 
 **Maintenance:** Append new entries at the top of the relevant month. Check completed work off in its track and record the shipped outcome here.
 
-
 ### Connected tea review workspace
 
 Build this tea now brings source passage review, AI details and an editable description into one responsive workspace. AR passages can be used for previews before linking. One explicit Save accepted changes action retains the selected source links and accepted fields in the same tea; discarding performs no tea or link writes. Preview verifies AR read ownership and exact excerpt provenance.
-
 
 ### Installed AI connection for tea previews
 

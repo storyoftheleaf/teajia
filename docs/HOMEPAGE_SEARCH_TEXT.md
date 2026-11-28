@@ -45,7 +45,7 @@ Done 2026-11-28 except 8 (the tagline word, waiting on Adrian). Item 10: for a c
 5. Tea house design section: two links side by side, `Work with us` and `Ideas for your own space`.
 6. Host a table: add `Keep your tasting journal and tea chest here too.`
 7. Section order below the doors: magazine, shelf, tea house design, tables.
-8. Tagline: decide "Build for the future" or "Create for the future" and use it everywhere (site currently says Build).
+8. Tagline: "Create for the future" (Adrian, 2026-11-28), used everywhere.
 9. Check the footer "EDIT" link only shows when signed in.
 10. Pre-render the homepage. Simple crawlers currently see only "Loading Teajia…".
 
