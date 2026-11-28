@@ -4551,7 +4551,7 @@ CREATE TABLE IF NOT EXISTS email_consent_log (
   created_at      TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_email_consent_log_user ON email_consent_log (user_id, created_at);
--- 0161_link_signals.sql
+-- 0162_link_signals.sql
 CREATE TABLE IF NOT EXISTS link_signals (
   id             TEXT PRIMARY KEY,
   account_id     TEXT NOT NULL,
