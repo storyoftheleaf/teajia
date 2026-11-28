@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { splitNameYear } from './teaNameYear';
+import { shortYear, splitNameYear } from './teaNameYear';
 import { normalizeProduct } from './storefrontApi';
 
 describe('splitNameYear', () => {
@@ -47,5 +47,19 @@ describe('normalizeProduct', () => {
     const p = normalizeProduct({ id: 'b', product_name: 'Y562', given_name: '1993 Y562', year: null });
     expect(p.givenName).toBe('Y562');
     expect(String(p.year)).toBe('1993');
+  });
+});
+
+describe('shortYear', () => {
+  it('drops the century from a 2000s year and keeps every other year whole', () => {
+    expect(shortYear('2026')).toBe('26');
+    expect(shortYear(2005)).toBe('05');
+    expect(shortYear('2000')).toBe('00');
+    expect(shortYear('1997')).toBe('1997');
+    expect(shortYear('1926')).toBe('1926');
+    expect(shortYear('1980s')).toBe('1980s');
+    expect(shortYear('2000s')).toBe('2000s');
+    expect(shortYear(null)).toBe('');
+    expect(shortYear(' 2018 ')).toBe('18');
   });
 });
