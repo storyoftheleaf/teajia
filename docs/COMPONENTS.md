@@ -81,6 +81,7 @@ there, so the shop page keeps being the one place the tea is drawn.
 | The cart pill and the "added" moment | `CartIndicator`, `CartToast`, `CartFlyAnimation` | `src/components/shared/` |
 | Send saved teas as a collection | `SendAsCollection` | `src/components/shop/SendAsCollection.tsx` |
 | Collection cart prices (server) | `collectionCart.ts` | `worker/src/collectionCart.ts` |
+| Fixing an invoice: name, date, notes, lines, prices, discount, shipping (any account that sells; opens from Sales as `?edit=<id>`) | `EditOrderModal` | `src/admin/components/EditOrderModal.tsx`; server `PUT /api/invoices/:id/details` and `/items`, edit words in `worker/src/invoiceEdit.ts` |
 
 There is one cart. A collection's or invoice's Add goes into it.
 

@@ -1,6 +1,7 @@
 import { casualSitPublicationRoutes } from './casualSitPublications';
 import { EXPLICIT_INVOICE_ACCESS_SQL, invoiceKeptBy, keepInvoiceForUser, sendsInvoice } from './payInvoiceKeep';
 import { discountPercent, isDiscountLine, readInvoiceDiscount, writeInvoiceDiscount } from './invoiceDiscount';
+import { describeLineChange, planInvoiceDetailsEdit } from './invoiceEdit';
 import { listMyBoughtTeas } from './myBoughtTeas';
 import { freightRateWriteRefusal } from './freightRateDoor';
 import { publicSitRoutes, publishedSitRecap } from './publicSitConnections';
@@ -7589,7 +7590,7 @@ const handleUpdateInvoiceItems: Handler = async (request, env, params) => {
   }
   const ALLOWED_ITEM_UPDATE_FIELDS = new Set([
     'lineItems', 'shipping_cost_usd', 'customer_name', 'customer_id', 'customer_whatsapp',
-    'display_currency', 'notes', 'source_event_id', 'customer_phone', 'customer_email',
+    'display_currency', 'notes', 'source_event_id', 'customer_phone', 'customer_email', 'discount_percent',
   ]);
   const updateKeys = Object.keys(body).filter(key => ALLOWED_ITEM_UPDATE_FIELDS.has(key));
   if (updateKeys.length === 0) return restError(400, 'No invoice changes provided', 'validation_failed');
@@ -7609,13 +7610,24 @@ const handleUpdateInvoiceItems: Handler = async (request, env, params) => {
     }
   }
   const hasCustomerIdUpdate = Object.prototype.hasOwnProperty.call(body, 'customer_id');
-  let lines: unknown = body.lineItems;
-  if (!hasReplacementLines) {
-    const existing = await env.DB.prepare(
-      'SELECT product_id, custom_name, quantity, price_at_sale FROM invoice_line_items WHERE invoice_id = ? AND account_id = ?'
-    ).bind(params.id, accountId).all();
-    lines = existing.results;
+  const existingLines = ((await env.DB.prepare(
+    'SELECT product_id, custom_name, quantity, price_at_sale FROM invoice_line_items WHERE invoice_id = ? AND account_id = ?'
+  ).bind(params.id, accountId).all()).results ?? []) as Array<Record<string, any>>;
+  // The discount is worked out from the teas' lines (invoiceDiscount.ts), so a
+  // line edit never carries the old discount amount over: it is written again
+  // afterwards at the percent asked for, or the percent the invoice had.
+  const hasDiscountUpdate = Object.prototype.hasOwnProperty.call(body, 'discount_percent');
+  const askedDiscount = hasDiscountUpdate ? discountPercent(body.discount_percent) : null;
+  if (hasDiscountUpdate && askedDiscount === null) {
+    return restError(400, 'Give a discount from 0 to 99.9 percent', 'discount_invalid');
   }
+  const keptDiscount = existingLines.find(line => isDiscountLine(line));
+  const discountBefore = keptDiscount ? Number(String(keptDiscount.custom_name).match(/[\d.]+/)?.[0]) || 0 : 0;
+  const discountTarget = hasDiscountUpdate ? askedDiscount : hasReplacementLines && keptDiscount ? discountBefore : null;
+  let lines: unknown = hasReplacementLines && Array.isArray(body.lineItems)
+    ? (body.lineItems as Array<Record<string, unknown>>).filter(line => !isDiscountLine(line ?? {}))
+    : body.lineItems;
+  if (!hasReplacementLines) lines = existingLines.filter(line => !isDiscountLine(line));
 
   let input: RetailInvoiceInput;
   try {
@@ -7691,7 +7703,7 @@ const handleUpdateInvoiceItems: Handler = async (request, env, params) => {
   const updates: string[] = [];
   const vals: unknown[] = [];
   for (const key of updateKeys) {
-    if (key === 'lineItems') continue;
+    if (key === 'lineItems' || key === 'discount_percent') continue;
     updates.push(`${key} = ?`);
     vals.push(normalizedValues[key] ?? body[key] ?? null);
   }
@@ -7707,8 +7719,18 @@ const handleUpdateInvoiceItems: Handler = async (request, env, params) => {
     ).bind(...vals, params.id, accountId, invoice.status, editClaim));
   }
 
+  const lineChange = hasReplacementLines
+    ? describeLineChange(existingLines.filter(line => !isDiscountLine(line)), input.lineItems, await productNamesFor(env, accountId, [...existingLines, ...input.lineItems]))
+    : '';
+  const editWords = [
+    lineChange,
+    hasDiscountUpdate && askedDiscount !== discountBefore ? `discount ${discountBefore}% to ${askedDiscount}%` : '',
+    updateKeys.includes('shipping_cost_usd') && Number(input.shipping_cost_usd) !== Number(invoice.shipping_cost_usd ?? 0)
+      ? `shipping $${Number(invoice.shipping_cost_usd ?? 0).toFixed(2)} to $${Number(input.shipping_cost_usd).toFixed(2)}` : '',
+    updateKeys.includes('customer_name') && input.customer_name !== invoice.customer_name ? `name "${invoice.customer_name ?? ''}" to "${input.customer_name ?? ''}"` : '',
+  ].filter(Boolean);
   stmts.push(buildActivityLog(env, 'INVOICE_EDITED',
-    `Invoice ${invoice.invoice_number} edited.${hasReplacementLines ? ` ${input.lineItems.length} line items.` : ''}`,
+    `Invoice ${invoice.invoice_number} edited${editWords.length ? `: ${editWords.join('; ')}.` : '.'}`,
     userEmail, 'invoice', params.id, accountId));
 
   const releaseIndex = stmts.length;
@@ -7730,8 +7752,50 @@ const handleUpdateInvoiceItems: Handler = async (request, env, params) => {
     }
     return salesError(error);
   }
+  if (discountTarget !== null) {
+    const written = await writeInvoiceDiscount(env, accountId, params.id, discountTarget, String(invoice.status));
+    if (!written.ok) return restError(409, 'The lines were saved but the discount could not be written again. Open the invoice and save the discount.', 'discount_not_written');
+  }
   await ensureContactRelationship(env, accountId, hasCustomerIdUpdate ? input.customer_id : null, 'buyer', 'workflow', 'invoice', params.id);
   return json({ success: true });
+};
+
+/** Product names for the timeline's before-and-after words. */
+async function productNamesFor(env: Env, accountId: string, lines: Array<{ product_id?: string | null }>): Promise<Map<string, string>> {
+  const ids = [...new Set(lines.map(line => line.product_id).filter((id): id is string => !!id))].slice(0, 90);
+  if (ids.length === 0) return new Map();
+  const rows = await env.DB.prepare(
+    `SELECT id, COALESCE(NULLIF(given_name, ''), product_name) AS name FROM products WHERE account_id = ? AND id IN (${ids.map(() => '?').join(',')})`
+  ).bind(accountId, ...ids).all<{ id: string; name: string }>();
+  return new Map((rows.results ?? []).map(row => [row.id, row.name]));
+}
+
+// Correct an invoice's name, date or notes, on any invoice that is not void.
+const handleUpdateInvoiceDetails: Handler = async (request, env, params) => {
+  const ctx = await requireBundle(request, env, 'sell');
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+  let body: Record<string, unknown>;
+  try {
+    body = await request.json() as Record<string, unknown>;
+  } catch (error) {
+    return invalidInvoiceResponse(error);
+  }
+  const invoice = await env.DB.prepare(
+    'SELECT invoice_number, customer_name, notes, created_at, status FROM invoices WHERE id = ? AND account_id = ? AND deleted_at IS NULL'
+  ).bind(params.id, accountId).first<Record<string, any>>();
+  if (!invoice) return restError(404, 'Invoice not found', 'invoice_not_found');
+  const plan = planInvoiceDetailsEdit(invoice, body);
+  if (!plan.ok) return restError(400, plan.message, plan.error);
+  if (plan.sets.length === 0) return json({ success: true, changed: [] });
+  const results = await env.DB.batch([
+    env.DB.prepare(`UPDATE invoices SET ${plan.sets.join(', ')} WHERE id = ? AND account_id = ? AND status = ?`)
+      .bind(...plan.values, params.id, accountId, invoice.status),
+    buildActivityLog(env, 'INVOICE_EDITED', `Invoice ${invoice.invoice_number} edited: ${plan.changes.join('; ')}.`,
+      getUserEmail(request), 'invoice', params.id, accountId),
+  ]);
+  if (!Number(results[0]?.meta?.changes || 0)) return restError(409, 'Invoice changed before the edit could be applied', 'invoice_edit_conflict');
+  return json({ success: true, changed: plan.changes });
 };
 
 // ── RPC: Link Line Item to Product (with retroactive stock deduction if fulfilled) ──
@@ -33818,6 +33882,7 @@ const routes: [string, string, Handler][] = [
 
   // Invoices — edit items
   ['PUT', '/api/invoices/:id/items', handleUpdateInvoiceItems],
+  ['PUT', '/api/invoices/:id/details', handleUpdateInvoiceDetails],
 
   // RPC
   ['POST', '/api/rpc/fulfill-invoice', handleFulfillInvoice],
