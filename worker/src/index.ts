@@ -2582,6 +2582,7 @@ const handleDeleteUser: Handler = async (request, env, params) => {
     env.DB.prepare('UPDATE event_attendees SET user_id = NULL WHERE user_id = ?').bind(userId),
     env.DB.prepare('DELETE FROM customer_tasting_journal WHERE user_id = ?').bind(personJournalOwner(userId)),
     env.DB.prepare("UPDATE mcp_tokens SET revoked_at = datetime('now') WHERE user_id = ? AND revoked_at IS NULL").bind(userId),
+    ...emailConsentErasureStatements(env.DB, userId),
     env.DB.prepare('DELETE FROM users WHERE id = ?').bind(userId),
   ]);
   await eraseFamilyPhotoFiles(env.MEDIA_BUCKET, familyPhotoKeys);
