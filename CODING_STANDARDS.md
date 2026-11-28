@@ -39,15 +39,22 @@ A green run is only worth something if the tests could have failed.
    appears in two places, move it to the place that already owns it (for
    example money arithmetic lives in `worker/src/shippingRate.ts` and
    `worker/src/markup.ts`).
-7. **No dead code left behind.** Removed features take their imports,
+7. **No second copy of a shared part.** Anything [docs/COMPONENTS.md](docs/COMPONENTS.md)
+   lists (the photo editor, the shop's tea page, the cart, tasting, sign-in
+   and return, buttons, dialogs) is used, not rebuilt. A new component that
+   does most of what a listed one does is a finding: move it onto the shared
+   part, extending that part if it needs a new option. A page showing a tea
+   uses the shop's own page with an add-on on top. A new shared part is
+   added to the catalog in the same PR. (Adrian, 2026-11-27.)
+8. **No dead code left behind.** Removed features take their imports,
    routes, tests and docs with them in the same PR.
 
 ## The pull request itself
 
-8. **Every PR says how risky it is** in a "Merge danger" section (the
+9. **Every PR says how risky it is** in a "Merge danger" section (the
    template in `.github/pull_request_template.md`). CI refuses a PR without
    one (`.github/workflows/merge-danger.yml`).
-9. **One-way doors wait for Adrian.** A change that can't simply be
+10. **One-way doors wait for Adrian.** A change that can't simply be
    reverted (a D1 migration that rewrites or deletes rows, anything that
    emails or messages customers, money or payment flow, deleting stored
    files) is a one-way door. CI holds it until he adds the

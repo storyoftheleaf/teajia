@@ -3,6 +3,7 @@ import { Button } from '../../../components/shared/Button';
 import { TYPOGRAPHY_CLASSES } from '../../../designTokens';
 import { API_URL, authedFetch } from '../../../lib/api';
 import { compressImage } from '../../../lib/imageCompressor';
+import { usePhotoEditor } from '../../../components/shared/usePhotoEditor';
 import type { Auth } from './data';
 import { SHAPE_FEATURES, SHAPE_SILHOUETTES, type ShapeForm } from './shapeData';
 
@@ -69,8 +70,11 @@ export default function AddShapeReference({ auth, forms, onSaved, onCancel }: Pr
   const chooseButton = useRef<HTMLButtonElement>(null);
   const photoSelection = useRef(0);
   const submitting = useRef(false);
+  const { editPhoto, photoEditor } = usePhotoEditor({ title: 'Reference photo', freeShape: true });
 
-  async function choosePhoto(file?: File) {
+  async function choosePhoto(picked?: File) {
+    // A teaware photo opens in the site's one photo editor on its own shape.
+    const file = await editPhoto(picked);
     if (!file) return;
     const selection = ++photoSelection.current;
     setPhoto('');
@@ -142,6 +146,7 @@ export default function AddShapeReference({ auth, forms, onSaved, onCancel }: Pr
 
   return (
     <>
+      {photoEditor}
       <h1 className={TYPOGRAPHY_CLASSES.h1}>Add shape reference</h1>
       <form className="mt-3" onSubmit={submit} onChange={() => setError('')} aria-busy={saving}>
         <fieldset disabled={saving} className="min-w-0 space-y-3">
