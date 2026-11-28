@@ -54,3 +54,14 @@ export function splitNameYear(
   if (stored && stored !== found) return { name: trimmed, year: stored };
   return { name: rest.trim(), year: stored || found };
 }
+
+/**
+ * A year as a narrow column shows it (Adrian, 2026-11-28): a year in the 2000s
+ * drops its century ("2026" reads "26", "2005" reads "05"), and every other year
+ * stays whole ("1997", "1926"), so an old tea never reads as a new one. A decade
+ * ("1980s", "2000s") and anything that is not a plain year are left as stored.
+ */
+export function shortYear(year: string | number | null | undefined): string {
+  const stored = year == null ? '' : String(year).trim();
+  return /^20\d{2}$/.test(stored) ? stored.slice(2) : stored;
+}

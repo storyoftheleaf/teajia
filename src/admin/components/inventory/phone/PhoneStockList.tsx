@@ -1,13 +1,14 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '../../../../components/shared/Button';
-import { Check, ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import type { Product } from '../../../types';
 import type { IncomingInventorySummary } from '../domain';
 import { fmtNum } from '../../../../utils/formatNumber';
 import { PhoneTeaSheet } from './PhoneTeaSheet';
-import { getThemeColor, getThemeTextColor } from '../../../themeUtils';
+import { shortYear } from '../../../../lib/teaNameYear';
+import { getThemeTextColor } from '../../../themeUtils';
 import {
-  PHONE_GROUP_LABELS, groupStock, isLow, isTeaware, isUnchecked, onHand, sellingPricePerGram,
+  PHONE_GROUP_LABELS, groupStock, isLow, isTeaware, onHand, sellingPricePerGram,
   type PhoneGroupBy,
 } from './groupStock';
 
@@ -164,7 +165,7 @@ export const PhoneStockList: React.FC<PhoneStockListProps> = ({
   // The three number columns are fenced by hairlines: a grid you can read down,
   // drawn in the quiet border tone so it separates without adding noise.
   // In Samples the columns are the sample row's (SampleDecide.tsx SAMPLE_COLS): the quote replaces year and stock.
-  const COLS = samples ? 'grid grid-cols-[minmax(0,1fr)_64px_44px] gap-x-2.5 items-stretch' : 'grid grid-cols-[minmax(0,1fr)_34px_40px_36px] gap-x-2.5 items-stretch';
+  const COLS = samples ? 'grid grid-cols-[minmax(0,1fr)_64px_44px] gap-x-2.5 items-stretch' : 'grid grid-cols-[minmax(0,1fr)_34px_40px_36px] gap-x-2 items-stretch';
   const NUM = 'flex items-center justify-end';
   const heads: Array<[PhoneSortKey, string, string]> = samples ? [
     ['productName', 'Tea', 'text-left'],
@@ -187,7 +188,7 @@ export const PhoneStockList: React.FC<PhoneStockListProps> = ({
         </Button>)}
       </nav>}
       <div className="stock-phone-room">
-      <div role="row" className={`sticky top-0 z-sticky flex items-center bg-tea-bg ${selectMode ? 'pl-9' : 'pl-4'} pr-3 border-b border-tea-border`}>
+      <div role="row" className={`sticky top-0 z-sticky flex items-center bg-tea-bg pl-4 pr-3 border-b border-tea-border`}>
         <div className={`${COLS} flex-1 relative`}>
           {heads.map(([key, label, align]) => {
             const on = sortKey === key;
@@ -263,24 +264,9 @@ export const PhoneStockList: React.FC<PhoneStockListProps> = ({
               const qtyTone = qty <= 0 ? 'text-tea-text-dim' : isLow(p) ? 'text-tea-error' : 'text-tea-text';
               return (
                 <div key={p.id} className={`relative flex items-center ${isSel || isFocused ? 'bg-tea-surface' : ''} after:absolute after:left-0 after:right-0 after:bottom-0 after:h-px after:bg-tea-border`}>
-                  {/* In select mode, one dot, three jobs: its colour is the kind, filled means
-                      counted, hollow means it needs a recount, and tapping it ticks the tea. */}
-                  {selectMode && <button
-                    type="button"
-                    onClick={() => onToggleSelect(p.id)}
-                    aria-pressed={isSel}
-                    aria-label={`${isSel ? 'Untick' : 'Tick'} ${p.productName}${isUnchecked(p) ? ', needs a recount' : ''}`}
-                    className="relative w-3.5 ml-3 shrink-0 flex items-center justify-center self-stretch before:absolute before:-inset-x-3 before:inset-y-0"
-                  >
-                    {isSel
-                      ? <span className="w-4 h-4 rounded-full cta-solid flex items-center justify-center"><Check size={9} strokeWidth={3.5} aria-hidden="true" /></span>
-                      : <span
-                          className="w-3.5 h-3.5 rounded-full border-2"
-                          style={isTeaware(p)
-                            ? undefined
-                            : { borderColor: getThemeColor(p.type), background: isUnchecked(p) ? 'transparent' : getThemeColor(p.type) }}
-                        />}{/* color-data: the tea kind's own colour, from themeUtils */}
-                  </button>}
+                  {/* No tick circle (Adrian, 2026-11-28): in select mode a tap ticks the
+                      row, a ticked row is lit with its name in gold, and the name keeps
+                      the room. The supplier line still counts the teas never counted. */}
                   <button
                     type="button"
                     onPointerDown={() => startHold(p.id)}
@@ -292,28 +278,29 @@ export const PhoneStockList: React.FC<PhoneStockListProps> = ({
                       if (heldId.current === p.id) { heldId.current = null; return; }
                       if (selectMode) onToggleSelect(p.id); else setFocusedId(isFocused ? null : p.id);
                     }}
-                    aria-expanded={isFocused}
-                    className={`${COLS} flex-1 min-w-0 ${selectMode ? 'pl-2.5' : 'pl-4'} pr-3 text-left min-h-[46px] select-none [-webkit-touch-callout:none]`}
+                    aria-expanded={selectMode ? undefined : isFocused}
+                    aria-pressed={selectMode ? isSel : undefined}
+                    className={`${COLS} flex-1 min-w-0 pl-4 pr-3 text-left min-h-[46px] select-none [-webkit-touch-callout:none]`}
                   >
                     <span className="min-w-0 py-1.5 pr-2">
                       <span className={`block truncate font-display text-ui-17 font-semibold leading-tight ${isFocused || isSel ? 'text-tea-gold' : 'text-tea-text'}`}>{p.productName}</span>
                       <span className="flex items-center gap-1.5 text-ui-11 leading-tight text-tea-text-sec min-w-0">
                         {(() => {
-                          // The second line is the kind in its own colour, then the name
-                          // Adrian gives the tea when it has one.
+                          // The second line is the name Adrian gives the tea, then its kind
+                          // in the kind's own colour (Adrian, 2026-11-28). No given name, just the kind.
                           const given = (p.givenName || '').trim();
                           const own = given && given.toLowerCase() !== 'unnamed' && given !== p.productName ? given : '';
                           if (groupBy === 'type') return <span className="truncate">{own || p.vendor || p.type}</span>;
                           if (isTeaware(p)) return <span className="truncate">{own || p.teawareCategory || 'Teaware'}</span>;
                           return <>
+                            {own && <span className="truncate">{own} ·</span>}
                             <span className="shrink-0" style={{ color: getThemeTextColor(p.type) }}>{p.type}</span>
-                            {own && <span className="truncate">· {own}</span>}
                           </>;
                         })()}
                         {comingQty > 0 && <span className="shrink-0 text-tea-gold-lt">· +{fmtNum(comingQty)}</span>}
                       </span>
                     </span>
-                    <span className={`${NUM} font-mono text-ui-13 tracking-tight text-tea-text tabular-nums`}>{p.year || '—'}</span>
+                    <span className={`${NUM} font-mono text-ui-13 tracking-tight text-tea-text tabular-nums`}>{shortYear(p.year) || '—'}</span>
                     <span className={`${NUM} font-mono text-ui-13 tracking-tight tabular-nums ${qtyTone}`}>{isTeaware(p) ? (p.quantityUnits == null ? '—' : qty) : qty.toLocaleString('en-US')}</span>
                     <span className={`${NUM} font-mono text-ui-13 tracking-tight text-tea-text tabular-nums`}>{price != null ? fmtNum(price) : '—'}</span>
                   </button>
