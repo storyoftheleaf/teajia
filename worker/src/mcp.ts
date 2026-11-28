@@ -57,6 +57,7 @@ import { curateArrivalTools } from './mcpTools/curateArrivals';
 import { orderTrackingTools } from './mcpTools/orderTracking';
 import { invoiceLineTools } from './mcpTools/invoiceLines';
 import { invoiceKeepTools } from './mcpTools/invoiceKeep';
+import { sendRecordTools } from './mcpTools/sendRecords';
 import { invoiceDiscountTools } from './mcpTools/invoiceDiscountTool';
 import { priceLinkTools } from './mcpTools/priceLinks';
 import { paymentDetailsTools } from './mcpTools/paymentDetails';
@@ -7326,6 +7327,7 @@ const TOOL_MODULES: ToolModule[] = [
   orderTrackingTools,
   invoiceLineTools,
   invoiceKeepTools,
+  sendRecordTools,
   invoiceDiscountTools,
   priceLinkTools,
   paymentDetailsTools,

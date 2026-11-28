@@ -15,6 +15,7 @@ Capture a new observation here with the affected tea, person or step and the evi
 - [ ] For a tea selected for an edition, resolve any held Wisdom claim against its source and keep disputed wording private until reviewed. _(band: you-required)_ _(effort: moderate)_ [Held teas and requested corrections](https://github.com/storyoftheleaf/teajia/blob/4eb502f99c40509176472e9fede440243d23e3ef/TODO.md#L9-L11)
 - [ ] Reconcile the Family photograph-storage reading and the requested legal review of “How we use photographs” before expanding that collection. _(band: you-required)_ _(effort: moderate)_ [Original acceptance request](https://github.com/storyoftheleaf/teajia/blob/4eb502f99c40509176472e9fede440243d23e3ef/TODO.md#L12)
 
+- [ ] Name the list of everything sent (Orders › Sent, `/admin/sent`, a working name) and say whether it should become its own tab in Activity. _(band: you-required)_ _(effort: quick)_
 - [ ] Confirm the three placeholder lines for the email box: on joining "Teajia and the hosts I choose may email me about teas and tables.", in settings "Teajia may email me about new teas and tables." and "Hosts who may email me" (the order line is Adrian's). _(band: you-required)_ _(effort: quick)_ [The words](src/lib/emailConsent.ts)
 
 ## Requests with a trigger
