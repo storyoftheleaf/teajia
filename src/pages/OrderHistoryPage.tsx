@@ -10,7 +10,7 @@ import { formatOrderAmount } from '../lib/orderMoney';
 import { PayOrderAction } from '../components/shared/PayOrderAction';
 import { ReportPaymentAction } from '../components/shared/ReportPaymentAction';
 import { OrderJourneyStatus } from '../components/shared/OrderJourneyStatus';
-import { normalizeJourney, showsPaymentActions } from '../components/shared/orderJourneyDomain';
+import { normalizeJourney, offersOrderPayment } from '../components/shared/orderJourneyDomain';
 import { SampleHistorySection } from './SampleHistoryPage';
 
 function formatDate(iso: string): string {
@@ -88,7 +88,7 @@ export default function OrderHistoryPage() {
             // Same derived stage the detail page reads, so a customer moving
             // between the two never sees the order described two ways.
             const journey = normalizeJourney(order.journey);
-            const offersPayment = order.status !== 'Draft' && order.status !== 'Void' && showsPaymentActions(journey, order.payment);
+            const offersPayment = offersOrderPayment(order.status, journey, order.payment);
             return (
             <li key={order.id}>
               <button
