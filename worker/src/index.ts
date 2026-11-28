@@ -1,5 +1,5 @@
 import { casualSitPublicationRoutes } from './casualSitPublications';
-import { invoiceKeptBy, keepInvoiceForUser, sendsInvoice } from './payInvoiceKeep';
+import { EXPLICIT_INVOICE_ACCESS_SQL, invoiceKeptBy, keepInvoiceForUser, sendsInvoice } from './payInvoiceKeep';
 import { discountPercent, isDiscountLine, readInvoiceDiscount, writeInvoiceDiscount } from './invoiceDiscount';
 import { listMyBoughtTeas } from './myBoughtTeas';
 import { freightRateWriteRefusal } from './freightRateDoor';
@@ -33,12 +33,12 @@ import { accountHostingStopped, anyoneMayHost, HOSTING_STOPPED_SAYS, hostApprove
 import { HOST_TEA_MEDIA_KEY, isWalkthroughMedia, mayShowWalkthrough, sessionEndsAt, sessionHasEnded, sessionInstant as sessionStart, sessionMoment, type SessionTimes, WALKTHROUGH_MEDIA_CACHE } from './sessionWalkthrough';
 import { CONTRIBUTOR_EFFECTIVELY_PUBLISHED_SQL, publicLeadHostSql } from './sessionHost';
 import { areaGivesAwayTheWay, isAreaRefusal, readTableArea } from './hostTableArea';
-import { signedWayPhotoUrl, signWayGuide, WAY_HOST, WAY_SIGNED_SECONDS, wayMediaVerdict } from './wayMedia';
+import { signedWayPhotoUrl, signWayGuide, SIT_HOLDER, WAY_HOST, WAY_SIGNED_SECONDS, wayMediaVerdict } from './wayMedia';
 import { MAX_WAY_FILM_BYTES, WAY_FILM_KEY, wayFilmExtension, wayFilmRange, wayFilmRefusal } from './wayFilm';
 import { guestLinkSessions, withoutForeignGuestLinks, type GuestLinkCaller } from './guestLinkHolders';
 import { createHostedTable, tableInstant, tableSlug, tableWallTime, type HostedTableDoor } from './hostTable';
 import { changeHostedTable, hostTableGuests, markWhoCame, ownHostedTable, readTableChange, reviewHostedTableGuestBook, sayNoToGuest, SEAT_OF_A_GUEST_STILL_COMING, seatsTaken, seatsTakenSql, waitingGuest, type OwnHostedTable } from './hostTableGuests';
-import { createsCustomer, linkDoorFullAnswer, looksUpByContact, photoConsentValue, seatContact, seatDoorRule, seatIdFromKey, seatKey, seatRequirement, seatStatusFor, usesSeatKey } from './seatRequest';
+import { approvedSeatSourceSql, createsCustomer, hasApprovedSeatSourceSql, linkDoorFullAnswer, looksUpByContact, photoConsentValue, seatContact, seatDoorRule, seatIdFromKey, seatKey, seatRequirement, seatStatusFor, usesSeatKey } from './seatRequest';
 import { guestNotesFor, saveGuestNote } from './hostGuestNotes';
 import { hostRecord, hostRecordFileName, hostsAnyTable } from './hostRecord';
 import { advanceWaitingLists, cancelGuestSeat, NEXT_WAITLIST_POSITION_SQL, offerFreedSeats, offerNextAsMain, offerOn, offerShownUntil, recordSeatNotice, releaseSeats, seatNoticesFor, sessionHasBegun } from './waitingList';
@@ -7167,7 +7167,7 @@ const handleRecordInvoiceRefund:Handler=async(request,env,params)=>{
 };
 
 async function shipmentTeaTrail(env:Env,accountId:string,invoiceId:string):Promise<D1PreparedStatement[]>{
- const invoice=await env.DB.prepare('SELECT i.invoice_number,i.customer_library_account_id,c.user_id FROM invoices i LEFT JOIN customers c ON c.id=i.customer_id AND c.account_id=i.account_id WHERE i.id=? AND i.account_id=?').bind(invoiceId,accountId).first() as any;
+ const invoice=await env.DB.prepare('SELECT i.invoice_number,i.customer_library_account_id,b.user_id FROM invoices i LEFT JOIN invoice_buyer_identity b ON b.invoice_id=i.id AND b.account_id=i.account_id WHERE i.id=? AND i.account_id=?').bind(invoiceId,accountId).first() as any;
  if(!invoice?.user_id)return [];
  const libraryAccount=invoice.customer_library_account_id||accountId;
  const lines=await env.DB.prepare(`SELECT l.id AS line_id,l.quantity,l.quantity_unit,p.* FROM invoice_line_items l JOIN products p ON p.id=l.product_id AND p.account_id=l.account_id WHERE l.invoice_id=? AND l.account_id=?`).bind(invoiceId,accountId).all();
@@ -13122,7 +13122,8 @@ const handleRSVP: Handler = async (request, env, params) => {
     ...(repeat ? { repeat: true } : {}),
   }, statusCode);
   const keyedSeat = async () => keyedSeatId
-    ? env.DB.prepare('SELECT magic_token, status FROM event_attendees WHERE id = ? AND event_id = ? AND account_id = ?')
+    ? env.DB.prepare(`SELECT magic_token, status FROM event_attendees ea
+        WHERE id = ? AND event_id = ? AND account_id = ? AND ${hasApprovedSeatSourceSql('ea')}`)
       .bind(keyedSeatId, event.id, accountId).first<Record<string, unknown>>()
     : null;
   const earlier = await keyedSeat();
@@ -13135,11 +13136,13 @@ const handleRSVP: Handler = async (request, env, params) => {
     const phoneSuffix = phone_number ? phone_number.replace(/\D/g, '').slice(-9) : null;
     const existing = phoneSuffix
       ? await env.DB.prepare(
-          `SELECT magic_token, status FROM event_attendees
-           WHERE event_id = ? AND (phone_number = ? OR (length(?) = 9 AND phone_number LIKE ?))`
+          `SELECT magic_token, status FROM event_attendees ea
+           WHERE event_id = ? AND ${hasApprovedSeatSourceSql('ea')}
+             AND (phone_number = ? OR (length(?) = 9 AND phone_number LIKE ?))`
         ).bind(event.id, phone_number, phoneSuffix, `%${phoneSuffix}`).first()
       : await env.DB.prepare(
-          `SELECT magic_token, status FROM event_attendees WHERE event_id = ? AND ${contactField} = ?`
+          `SELECT magic_token, status FROM event_attendees ea
+           WHERE event_id = ? AND ${contactField} = ? AND ${hasApprovedSeatSourceSql('ea')}`
         ).bind(event.id, contactValue).first();
 
     if (existing) {
@@ -13199,8 +13202,9 @@ const handleRSVP: Handler = async (request, env, params) => {
   // another phone), is handed that seat, not a second one. The allocator
   // refuses a second row for the same person inside its write as well.
   const ownSeat = async () => seatUserId
-    ? env.DB.prepare(`SELECT magic_token, status FROM event_attendees
+    ? env.DB.prepare(`SELECT magic_token, status FROM event_attendees ea
         WHERE event_id = ? AND account_id = ? AND user_id = ? AND status IN ('confirmed', 'requested', 'waitlist')
+          AND ${hasApprovedSeatSourceSql('ea')}
         ORDER BY CASE status WHEN 'confirmed' THEN 0 ELSE 1 END, created_at ASC LIMIT 1`)
       .bind(event.id, accountId, seatUserId).first<Record<string, unknown>>()
     : null;
@@ -13412,7 +13416,7 @@ const handleGetRSVP: Handler = async (_request, env, params) => {
      JOIN events e ON e.id = ea.event_id
      JOIN accounts a ON a.id = e.account_id
      LEFT JOIN venues v ON v.id = e.venue_id AND v.account_id = e.account_id
-     WHERE ea.magic_token = ?`
+     WHERE ea.magic_token = ? AND ea.account_id = e.account_id AND ${approvedSeatSourceSql('e', 'ea')}`
   ).bind(params.token).first();
 
   if (!attendee) return guestPageResponse({ error: 'RSVP not found' }, 404);
@@ -13581,8 +13585,8 @@ const handleUpdateRSVP: Handler = async (request, env, params) => {
   const attendee = await env.DB.prepare(
     `SELECT ea.*, e.total_capacity, e.claim_window_minutes, e.id as eid
      FROM event_attendees ea
-     JOIN events e ON e.id = ea.event_id
-     WHERE ea.magic_token = ?`
+     JOIN events e ON e.id = ea.event_id AND e.account_id = ea.account_id
+     WHERE ea.magic_token = ? AND ${approvedSeatSourceSql('e', 'ea')}`
   ).bind(params.token).first();
 
   if (!attendee) return json({ error: 'RSVP not found' }, 404);
@@ -13870,7 +13874,7 @@ const handleGetPostSession: Handler = async (_request, env, params) => {
             e.lifecycle_status, e.recap_status
      FROM event_attendees ea
      JOIN events e ON e.id = ea.event_id AND e.account_id = ea.account_id
-     WHERE ea.magic_token = ?`
+     WHERE ea.magic_token = ? AND ${approvedSeatSourceSql('e', 'ea')}`
   ).bind(params.token).first();
 
   if (!attendee) return json({ error: 'RSVP not found' }, 404);
@@ -13907,7 +13911,7 @@ const handleSubmitTastingNotes: Handler = async (request, env, params) => {
     `SELECT ea.id, ea.event_id, ea.account_id, ea.status, ea.attended, e.lifecycle_status
      FROM event_attendees ea
      JOIN events e ON e.id = ea.event_id AND e.account_id = ea.account_id
-     WHERE ea.magic_token = ?`
+     WHERE ea.magic_token = ? AND ${approvedSeatSourceSql('e', 'ea')}`
   ).bind(params.token).first();
 
   if (!attendee) return json({ error: 'RSVP not found' }, 404);
@@ -14078,8 +14082,8 @@ const handleFindRSVP: Handler = async (request, env, params) => {
   }
 
   let attendee = await env.DB.prepare(
-    `SELECT magic_token, status, email FROM event_attendees
-      WHERE event_id = ? AND (${lookupField} = ?${accountUserId ? ' OR user_id = ?' : ''})`
+    `SELECT magic_token, status, email FROM event_attendees ea
+      WHERE event_id = ? AND (${lookupField} = ?${accountUserId ? ' OR user_id = ?' : ''}) AND ${hasApprovedSeatSourceSql('ea')}`
   ).bind(event.id, lookupValue, ...(accountUserId ? [accountUserId] : [])).first();
 
   // Phone fallback: match on last 9 digits to handle "+886 912 345 678" vs "+886912345678" vs "0912 345 678"
@@ -14088,7 +14092,8 @@ const handleFindRSVP: Handler = async (request, env, params) => {
     if (digits.length >= 9) {
       const suffix = digits.slice(-9);
       attendee = await env.DB.prepare(
-        `SELECT magic_token, status, email FROM event_attendees WHERE event_id = ? AND phone_number LIKE ?`
+        `SELECT magic_token, status, email FROM event_attendees ea
+          WHERE event_id = ? AND phone_number LIKE ? AND ${hasApprovedSeatSourceSql('ea')}`
       ).bind(event.id, `%${suffix}`).first();
     }
   }
@@ -15833,17 +15838,38 @@ const handleClaimInquiry:Handler=async(request,env,params)=>{
  if(!isValidTrackingToken(params.ref))return json({error:'Order not found'},404);
  const inquiry=await env.DB.prepare('SELECT id,account_id,converted_invoice_id FROM inquiries WHERE tracking_token_hash=?').bind(await sha256Hex(params.ref)).first() as any;
  if(!inquiry?.converted_invoice_id)return json({error:'Order not found'},404);
- const invoice=await env.DB.prepare('SELECT customer_id,customer_name FROM invoices WHERE id=? AND account_id=?').bind(inquiry.converted_invoice_id,inquiry.account_id).first() as any;
- if(invoice?.customer_id){const owner=await env.DB.prepare('SELECT user_id FROM customers WHERE id=? AND account_id=?').bind(invoice.customer_id,inquiry.account_id).first() as any;if(owner?.user_id&&owner.user_id!==user.userId)return json({error:'This order is already kept by another customer'},409);}
- const known=await env.DB.prepare('SELECT id FROM customers WHERE user_id=? AND account_id=? ORDER BY created_at LIMIT 1').bind(user.userId,inquiry.account_id).first() as any;
- const customerId=known?.id??`web_${inquiry.account_id}_${user.userId}`;
  const membership=await getActiveAccount(request,env);const libraryAccount='error' in membership?null:membership.accountId;
  const lease=await claimInvoiceLinkLease(env,inquiry.account_id,inquiry.converted_invoice_id);if(!lease)return json({error:'Order is being updated; retry'},409);
- try{if(lease.invoice.customer_id&&lease.invoice.customer_id!==invoice.customer_id)return json({error:'Order ownership changed; reload'},409);
- await env.DB.batch([env.DB.prepare("INSERT OR IGNORE INTO customers(id,account_id,user_id,name,email,source) VALUES(?,?,?,?,?,'claimed_order')").bind(customerId,inquiry.account_id,user.userId,invoice.customer_name||user.name||'Customer',user.email),env.DB.prepare(`UPDATE invoices SET customer_id=?,customer_library_account_id=COALESCE(customer_library_account_id,?)
- WHERE account_id=? AND (id=? OR source_inquiry_id=?)
- AND EXISTS(SELECT 1 FROM invoices original WHERE original.id=? AND original.account_id=? AND original.fulfillment_claim_token=?)`
- ).bind(customerId,libraryAccount,inquiry.account_id,inquiry.converted_invoice_id,inquiry.id,inquiry.converted_invoice_id,inquiry.account_id,lease.claimToken)]);
+ try{
+ const invoice = lease.invoice;
+ if (invoice.deleted_at) return json({error:'Order not found'},404);
+ const known = await env.DB.prepare('SELECT id FROM linked_customer_accounts WHERE user_id=? AND account_id=? ORDER BY created_at LIMIT 1')
+   .bind(user.userId, inquiry.account_id).first<{ id: string }>();
+ const customerId = known?.id ?? `web_${inquiry.account_id}_${user.userId}`;
+ // A tracking claim covers the order and its split portions. Recheck every
+ // portion at the write so a concurrent save cannot grant conflicting access.
+ const claimAllowed = `EXISTS (
+   SELECT 1 FROM invoices root WHERE root.account_id = ? AND root.id = ? AND root.fulfillment_claim_token = ?
+ ) AND NOT EXISTS (
+   SELECT 1 FROM invoices portion
+   LEFT JOIN invoice_buyer_identity b ON b.account_id = portion.account_id AND b.invoice_id = portion.id
+   LEFT JOIN invoice_keep_grants k ON k.account_id = portion.account_id AND k.invoice_id = portion.id
+   WHERE portion.account_id = ? AND (portion.id = ? OR portion.source_inquiry_id = ?) AND portion.deleted_at IS NULL
+     AND (b.user_id <> ? OR k.user_id <> ?)
+ )`;
+ const claimBindings = [inquiry.account_id, inquiry.converted_invoice_id, lease.claimToken,
+   inquiry.account_id, inquiry.converted_invoice_id, inquiry.id, user.userId, user.userId];
+ const [, updated] = await env.DB.batch([
+   env.DB.prepare(`INSERT OR IGNORE INTO customers (id, account_id, user_id, name, email, source)
+     SELECT ?, ?, ?, ?, ?, 'claimed_order' WHERE ${claimAllowed}`)
+     .bind(customerId, inquiry.account_id, user.userId, invoice.customer_name || user.name || 'Customer', user.email, ...claimBindings),
+   env.DB.prepare(`UPDATE invoices SET customer_id = ?, customer_library_account_id = COALESCE(customer_library_account_id, ?)
+     WHERE account_id = ? AND (id = ? OR source_inquiry_id = ?) AND deleted_at IS NULL AND ${claimAllowed}
+       AND EXISTS (SELECT 1 FROM linked_customer_accounts c WHERE c.account_id = ? AND c.id = ? AND c.user_id = ?)`)
+     .bind(customerId, libraryAccount, inquiry.account_id, inquiry.converted_invoice_id, inquiry.id, ...claimBindings,
+       inquiry.account_id, customerId, user.userId),
+ ]);
+ if (!updated.meta.changes) return json({error:'This order is already kept by another customer or has changed'},409);
  // Tea credit closed: no read here at all, as before Launch 5.
  if (hostCreditOpen(env)) {
    const { results: linkedOrders } = await env.DB.prepare(
@@ -16214,7 +16240,7 @@ const createInquiry: Handler = async (request, env, _params, ctx) => {
       const buyer=await optionalAuthenticatedUser(request,env);
       const buyerMembership=buyer?await getActiveAccount(request,env):null;
       const buyerLibrary=buyerMembership&&!('error' in buyerMembership)?buyerMembership.accountId:null;
-      const knownBuyer=buyer?await env.DB.prepare('SELECT id FROM customers WHERE user_id=? AND account_id=? ORDER BY created_at LIMIT 1').bind(buyer.userId,accountId).first() as any:null;
+      const knownBuyer=buyer?await env.DB.prepare('SELECT id FROM linked_customer_accounts WHERE user_id=? AND account_id=? ORDER BY created_at LIMIT 1').bind(buyer.userId,accountId).first() as any:null;
       const buyerId=buyer?(knownBuyer?.id??`web_${accountId}_${buyer.userId}`):null;
       const requestId = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
       const invoiceId = crypto.randomUUID();
@@ -20915,6 +20941,7 @@ const handleVerifyConfirm: Handler = async (request, env) => {
      JOIN events e ON e.id = ea.event_id
      WHERE ea.account_id = ? AND e.account_id = ?
        AND (ea.phone_number = ? OR lower(ea.email) = lower(?))
+       AND ${approvedSeatSourceSql('e', 'ea')}
      ORDER BY e.event_date DESC`
   ).bind(customer.account_id, customer.account_id, contact, contact).all();
 
@@ -20945,7 +20972,8 @@ const handleGetJourney: Handler = async (request, env, params) => {
     `SELECT ea.id, ea.account_id, ea.event_id
      FROM event_attendees ea
      JOIN events e ON e.id = ea.event_id AND e.account_id = ea.account_id
-     WHERE ea.magic_token = ? AND (ea.phone_number = ? OR lower(ea.email) = lower(?))`
+     WHERE ea.magic_token = ? AND (ea.phone_number = ? OR lower(ea.email) = lower(?))
+       AND ${approvedSeatSourceSql('e', 'ea')}`
   ).bind(token, contact, contact).first();
 
   if (!tokenRow) {
@@ -20968,6 +20996,7 @@ const handleGetJourney: Handler = async (request, env, params) => {
      WHERE (ea.phone_number = ? OR lower(ea.email) = lower(?))
        AND ea.account_id = ? AND e.account_id = ?
        AND ea.status = 'confirmed' AND ea.attended = 1
+       AND ${approvedSeatSourceSql('e', 'ea')}
      ORDER BY e.event_date ASC`
   ).bind(contact, contact, tokenRow.account_id, tokenRow.account_id).all();
 
@@ -25676,21 +25705,20 @@ const handleGetMyWishlist: Handler = async (request, env) => {
 
 // GET /api/me/orders — invoices belonging to the authed user.
 // Matches invoices to the caller by:
-//   1. customer_id → customers.user_id (canonical link), OR
+//   1. An explicit buyer link or a save for this invoice, OR
 //   2. customer email/whatsapp matching users.email / users.phone (legacy invoices
 //      created before a customer record was linked to the user account).
-// Scoped to the active account. Returns a stable shape the UI can render without
-// further lookups (invoice number, status, total, currency, created_at, line count).
+// Email and phone fallback is scoped to the active account.
 const MY_ORDER_OWNERSHIP_SQL = `(
- i.customer_id IN (SELECT id FROM customers WHERE user_id=? AND account_id=i.account_id)
- OR (i.account_id=? AND ((?!='' AND i.customer_id IN(SELECT id FROM customers WHERE LOWER(email)=? AND account_id=i.account_id))
+ ${EXPLICIT_INVOICE_ACCESS_SQL}
+ OR (i.account_id=? AND ((?!='' AND EXISTS(SELECT 1 FROM invoice_buyer_identity b WHERE LOWER(b.email)=? AND b.account_id=i.account_id AND b.invoice_id=i.id))
  OR (?!='' AND REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(COALESCE(i.customer_whatsapp,''),' ',''),'-',''),'(',''),')',''),'+','')=?)))
 )`;
 
 async function customerOrderContext(request:Request,env:Env){
  const user=await optionalAuthenticatedUser(request,env);if(!user)return null;
  // Legacy email/phone matching remains restricted to a membership this caller proves.
- // Explicit customer.user_id purchases are readable across stores without seller access.
+ // Explicit ownership and invoice saves are readable across stores without seller access.
  const membership=await getActiveAccount(request,env);
  const accountId='error' in membership?'':membership.accountId;
  return {...user,accountId};
@@ -25706,7 +25734,7 @@ async function loadMyOrderOwnership(env: Env, userId: string, accountId: string)
   ).bind(userId).first() as { email: string | null; phone: string | null } | null;
   const email = (userRow?.email || '').trim().toLowerCase();
   const phone = normalizeOrderPhone(userRow?.phone);
-  return { predicate: MY_ORDER_OWNERSHIP_SQL, bindings: [userId, accountId, email, email, phone, phone] };
+  return { predicate: MY_ORDER_OWNERSHIP_SQL, bindings: [userId, userId, accountId, email, email, phone, phone] };
 }
 
 const handleGetMyOrders: Handler = async (request, env) => {
@@ -25733,11 +25761,6 @@ const handleGetMyBoughtTeas: Handler = async (request, env) => {
 async function listMyOrders(env: Env, userId: string, legacyAccountId: string) {
   const ownership = await loadMyOrderOwnership(env, userId, legacyAccountId);
 
-  // Build the WHERE clause: include rows linked via customers.user_id, plus any
-  // fallback match on customer_whatsapp == users.phone. customers.email is the
-  // strongest match — we OR it in via subquery so multiple customer rows linked
-  // to this user all flow through. Empty strings short-circuit to NULL so we
-  // don't match invoices with blank customer fields.
   const result = await env.DB.prepare(
     `SELECT i.id,i.account_id, i.invoice_number, i.status, i.display_currency, i.created_at,
             COALESCE(t.line_total, 0) as line_total,
@@ -25901,14 +25924,13 @@ const handleGetMyOrderDetail: Handler = async (request, env, params) => {
 };
 
 // The facts the Tea Chest needs about one order the caller owns (Launch 1).
-// `linkedToUser` is the strongest ownership match: the order's customer row is
-// linked to this user. Email and phone matches are weaker; chestKeep decides.
+// Tea Chest requires explicit invoice access, independently of legacy contact matching.
 async function boughtOrderForChest(
   env: Env, userId: string, invoice: Record<string, any>, lines: Record<string, any>[], payment: unknown,
 ): Promise<BoughtOrder> {
   const linked = await env.DB.prepare(
-    `SELECT 1 FROM invoices i WHERE i.id = ? AND i.customer_id IN (SELECT id FROM customers WHERE user_id = ? AND account_id = i.account_id)`,
-  ).bind(invoice.id, userId).first();
+    `SELECT 1 FROM invoices i WHERE i.id = ? AND i.account_id = ? AND ${EXPLICIT_INVOICE_ACCESS_SQL}`,
+  ).bind(invoice.id, invoice.account_id, userId, userId).first();
   return { userId, invoice, lines, payment, linkedToUser: Boolean(linked) };
 }
 
@@ -26156,7 +26178,7 @@ const handleGetMyJourney: Handler = async (request, env) => {
 
   // Find the customer record linked to this user account
   const customer = await env.DB.prepare(
-    `SELECT id, name, created_at FROM customers WHERE user_id = ? AND account_id = ? LIMIT 1`
+    `SELECT id, name, created_at FROM linked_customer_accounts WHERE user_id = ? AND account_id = ? LIMIT 1`
   ).bind(userId, accountId).first() as Record<string, any> | null;
 
   const emptyBase = {
@@ -26228,10 +26250,10 @@ const handleGetMyJourney: Handler = async (request, env) => {
   const sessions = await env.DB.prepare(
     `SELECT ea.id as attendee_id, ea.event_id, e.title, e.slug, e.event_date, e.flyer_image_url
      FROM event_attendees ea
-     JOIN events e ON e.id = ea.event_id
-     WHERE ea.customer_id = ? AND ea.status = 'confirmed' AND ea.attended = 1
+     JOIN events e ON e.id = ea.event_id AND e.account_id = ea.account_id
+     WHERE ea.customer_id = ? AND ea.account_id = ? AND ea.status = 'confirmed' AND ea.attended = 1 AND ${approvedSeatSourceSql('e', 'ea')}
      ORDER BY e.event_date ASC`
-  ).bind(customer.id).all();
+  ).bind(customer.id, accountId).all();
 
   const sessionsAttended = sessions.results.length;
   const seals = (sessions.results as Record<string, any>[]).map(s => ({
@@ -28778,13 +28800,8 @@ const handleKeepPayInvoice: Handler = async (request, env, params) => {
   const token = typeof body.token === 'string' ? body.token : null;
   const { link } = await resolvePayAccess(env, contributor, auth, token);
   if (!link?.invoice_id) return json({ error: 'This link has no invoice to keep' }, 404);
-  const kept = await keepInvoiceForUser(env, link.account_id, link.invoice_id, auth, contributor.user_id);
+  const kept = await keepInvoiceForUser(env, link.account_id, link.invoice_id, auth, link.id, contributor.user_id);
   if (!kept.ok) return json({ error: kept.error, ...(kept.code ? { code: kept.code } : {}) }, kept.status);
-  if (!kept.already) {
-    await ensureContactRelationship(env, link.account_id, kept.customerId, 'buyer', 'workflow', 'invoice', link.invoice_id);
-    await logPlatformAction(env, 'pay_invoice.kept', auth.userId, auth.email, 'invoice', link.invoice_id,
-      { link_id: link.id, customer_id: kept.customerId, linked: kept.linked }, link.account_id, null);
-  }
   return json({ ok: true, invoice_id: link.invoice_id, already: kept.already });
 };
 
@@ -33910,6 +33927,8 @@ const routes: [string, string, Handler][] = [
     readPublic: sessionTeaReader,
     ownPlacesAccount: async (env, userId) => (await personalInventoryAccount(env.DB, userId))?.id ?? null,
     appOrigin,
+    sessionRsvpSql: env => `e.status = 'active' AND ${PUBLIC_EVENT_DIRECT} AND ${sessionLinkHostSql(env)}`,
+    sessionGuestSql: privateHostDoorSql,
     optionalUser: async (request, env) => {
       if (!isAuthed(request)) return null;
       const actor = await requireAuthenticatedUser(request, env);
@@ -34822,6 +34841,9 @@ const requestHandler = {
       const shortLived = walkthrough || HOST_TEA_MEDIA_KEY.test(key);
       headers.set('Cache-Control', familyVerdict === 'signed' || familyVerdict === 'public' ? 'private, no-cache'
         : shortLived ? WALKTHROUGH_MEDIA_CACHE : 'public, max-age=31536000, immutable');
+      if (wayVerdict === 'signed' && url.searchParams.get('for')?.startsWith(SIT_HOLDER)) {
+        headers.set('Cache-Control', 'private, no-store');
+      }
       if (walkthrough) headers.set('Referrer-Policy', 'no-referrer');
       const body = request.method === 'HEAD' ? null : obj.body;
       return cors(new Response(body, { status: filmRange ? 206 : 200, headers }), corsOrigin);

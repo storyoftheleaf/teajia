@@ -29,6 +29,30 @@
 
 export type SeatDoor = 'request' | 'link' | 'open' | null;
 
+/** A historic self-attested row is evidence only for a casual Pour sit. */
+export function approvedSeatSourceSql(event: string, attendee: string): string {
+  return `(${event}.casual_sit = 1 OR ${attendee}.source IS NOT 'sit_link')`;
+}
+
+/** The same provenance check for queries starting from a seat alone. */
+export function hasApprovedSeatSourceSql(attendee: string): string {
+  return `(${attendee}.source IS NOT 'sit_link' OR EXISTS (SELECT 1 FROM events seat_event
+    WHERE seat_event.id = ${attendee}.event_id AND seat_event.account_id = ${attendee}.account_id AND seat_event.casual_sit = 1))`;
+}
+
+/** Bind the signed-in user's ID twice. An unlinked seat needs a unique verified email. */
+export function attendeeIdentitySql(attendee: string): string {
+  return `(${attendee}.user_id = ? OR (
+    ${attendee}.user_id IS NULL AND EXISTS (
+      SELECT 1 FROM users u WHERE u.id = ? AND u.email_verified_at IS NOT NULL
+        AND lower(trim(u.email)) = lower(trim(${attendee}.email))
+    )
+    AND 1 = (SELECT count(*) FROM event_attendees other WHERE other.event_id = ${attendee}.event_id
+      AND other.account_id = ${attendee}.account_id AND lower(trim(other.email)) = lower(trim(${attendee}.email))
+      AND ${hasApprovedSeatSourceSql('other')})
+  ))`;
+}
+
 /** How this session's door behaves for a seat request. */
 export type SeatDoorRule = 'link' | 'request' | 'older' | 'closed';
 

@@ -8,10 +8,10 @@
 // A sit made here is an ordinary session (an `events` row, its teas in
 // `event_tea_menu`), so the thank-you, the guest book, photographs from the
 // table, the recap and the Tea Table all work as they do for a session that
-// was invited ahead. What differs is the door: one link, /sit/<code>, that the
-// host sends to everyone. Anyone holding it sees the teas and the host's note.
-// Until the end of the day of the sit it also shows the way in. A signed-in
-// person who says they were there gets a seat and their own thank-you link.
+// was invited ahead. A casual sit's /sit/<code> link is itself the door:
+// guests can see the teas and the host's note and say they were there.
+// A scheduled session can use the same address format while keeping its
+// existing RSVP, confirmed guest and attendance rules.
 //
 // Stock follows remove_stock (mcp.ts): a guarded decrement, the listing, the
 // ledger, and Sold Out when a tea on sale reaches zero. A pour is never
@@ -23,8 +23,10 @@ import { issueAfterSitLink } from './afterSitAccess';
 import { tableSlug } from './hostTable';
 import { servedTeasOf } from './publicSessions';
 import type { PublicProductReader } from './sessionTeas';
-import { SIT_HOLDER, signWayGuide } from './wayMedia';
-import { sessionInstant, sitWayEndsAt, sitWayOpen } from '../../shared/sessionEnd';
+import { sitWayHolder, signWayGuide } from './wayMedia';
+import { sessionHasEnded, sessionInstant, sessionEndsAt, sitWayEndsAt, sitWayOpen } from '../../shared/sessionEnd';
+import { approvedSeatSourceSql, attendeeIdentitySql } from './seatRequest';
+import { mayShowWalkthrough } from './sessionWalkthrough';
 
 type PourEnv = { DB: D1Database; JWT_SECRET?: string };
 type Handler<E> = (request: Request, env: E, params: Record<string, string>) => Promise<Response>;
@@ -41,6 +43,9 @@ type Deps<E> = {
   appOrigin: (env: E) => string;
   /** The signed-in caller when the request carries a valid sign-in, else null. Never refuses. */
   optionalUser?: (request: Request, env: E) => Promise<string | null>;
+  /** The normal RSVP and guest doors over events e and accounts a. */
+  sessionRsvpSql: (env: E) => string;
+  sessionGuestSql: (env: E) => string;
 };
 
 export const SIT_CODE_FORMAT = /^[a-f0-9]{24}$/;
@@ -48,9 +53,6 @@ export const SIT_TITLE_MAX = 120;
 export const SIT_NOTE_MAX = 4000;
 export const POUR_NAME_MAX = 240;
 export const POUR_GRAMS_MAX = 2000;
-/** The holder a way photograph is signed for when the sit's link shows it. */
-export const sitWayHolder = (eventId: string) => `${SIT_HOLDER}${eventId}`;
-
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
 const hex = (bytes: Uint8Array) => Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
 const newSitCode = () => hex(crypto.getRandomValues(new Uint8Array(12)));
@@ -97,6 +99,7 @@ type SitRow = {
   casual_sit: number; address_text: string | null; map_link: string | null; venue_guide: string | null;
   location_id: string | null; location_name: string | null;
 };
+type LinkedSit = SitRow & { rsvp_open: number; guest_open: number };
 const SIT_COLUMNS = `e.id, e.account_id, e.slug, e.title, e.event_date, e.event_end_date, e.timezone,
   e.lifecycle_status, e.status, e.sit_link_code, e.casual_sit, e.address_text, e.map_link, e.venue_guide,
   e.location_id, e.location_name`;
@@ -154,7 +157,7 @@ async function hostSit<E extends PourEnv>(deps: Deps<E>, env: E, sit: SitRow) {
     note: note?.session_notes ?? null,
     place: sit.location_id ? { id: sit.location_id, name: sit.location_name } : null,
     has_way: Boolean(sit.address_text || sit.map_link || sit.venue_guide),
-    way_open: sitWayOpen(sit),
+    way_open: sit.casual_sit === 1 ? sitWayOpen(sit) : !sessionHasEnded(sit),
     teas: await pouredAt(env.DB, sit),
   };
 }
@@ -303,8 +306,8 @@ export function pourSitRoutes<E extends PourEnv>(deps: Deps<E>): [string, string
   };
 
   // PUT /api/admin/pour/sits/:id { title?, note?, place_id?, link? }: name it,
-  // say a word to the guests, choose the place whose way in it shows, or give
-  // a session that was invited ahead its one link.
+  // say a word to the guests, choose a place, or create or remove the shared
+  // link without changing the session's RSVP door.
   const changeSit: Handler<E> = async (request, env, { id }) => {
     const host = await deps.requireHost(request, env);
     if ('error' in host) return host.error;
@@ -323,6 +326,9 @@ export function pourSitRoutes<E extends PourEnv>(deps: Deps<E>): [string, string
     if (body.link === true && !sit.sit_link_code) {
       await env.DB.prepare(`UPDATE events SET sit_link_code = ? WHERE id = ? AND account_id = ? AND sit_link_code IS NULL`)
         .bind(newSitCode(), sit.id, host.accountId).run();
+    } else if (body.link === false) {
+      await env.DB.prepare(`UPDATE events SET sit_link_code = NULL WHERE id = ? AND account_id = ?`)
+        .bind(sit.id, host.accountId).run();
     }
     if (body.place_id !== undefined) {
       if (body.place_id === null) {
@@ -445,10 +451,24 @@ export function pourSitRoutes<E extends PourEnv>(deps: Deps<E>): [string, string
 
   const findByCode = (env: E, code: string) => SIT_CODE_FORMAT.test(code)
     ? env.DB.prepare(
-      `SELECT ${SIT_COLUMNS} FROM events e JOIN accounts shop ON shop.id = e.account_id AND shop.status = 'active'
+      `SELECT ${SIT_COLUMNS}, (${deps.sessionRsvpSql(env)}) AS rsvp_open, (${deps.sessionGuestSql(env)}) AS guest_open
+       FROM events e JOIN accounts a ON a.id = e.account_id AND a.status = 'active'
        WHERE e.sit_link_code = ? AND e.lifecycle_status <> 'cancelled'`,
-    ).bind(code).first<SitRow>()
+    ).bind(code).first<LinkedSit>()
     : Promise.resolve(null);
+
+  const checkedSeat = (env: E, sit: SitRow, userId: string) => {
+    const casual = sit.casual_sit === 1;
+    const identitySql = casual ? 'ea.user_id = ?' : attendeeIdentitySql('ea');
+    const identityBinds = casual ? [userId] : [userId, userId];
+    return env.DB.prepare(
+      `SELECT ea.id, ea.attended
+       FROM event_attendees ea JOIN events e ON e.id = ea.event_id AND e.account_id = ea.account_id
+       WHERE e.id = ? AND e.account_id = ? AND e.sit_link_code = ? AND ea.status = 'confirmed'
+         AND ${approvedSeatSourceSql('e', 'ea')} AND ${identitySql}
+       ORDER BY ea.user_id IS NULL, ea.attended DESC, ea.created_at, ea.id LIMIT 1`,
+    ).bind(sit.id, sit.account_id, sit.sit_link_code, ...identityBinds).first<{ id: string; attended: number | null }>();
+  };
 
   const limited = async (request: Request, env: E, code: string) => {
     const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
@@ -457,49 +477,60 @@ export function pourSitRoutes<E extends PourEnv>(deps: Deps<E>): [string, string
       ?? (SIT_CODE_FORMAT.test(code) ? await deps.limit(request, env, `sit:${code}`) : null);
   };
 
-  // GET /api/sit/:code: what anyone holding the link sees.
+  // GET /api/sit/:code: a scheduled session projects private details only
+  // to a signed-in confirmed guest. Its regular RSVP can still be opened.
   const open: Handler<E> = async (request, env, { code }) => {
     const refused = await limited(request, env, code);
     if (refused) return refused;
-    let sit = await findByCode(env, code);
-    if (!sit) return gone();
-    sit = await settleSit(env.DB, sit);
+    const linked = await findByCode(env, code);
+    if (!linked) return gone();
+    const casual = linked.casual_sit === 1;
+    const sit = await settleSit(env.DB, linked);
+    const userId = deps.optionalUser ? await deps.optionalUser(request, env) : null;
+    const seat = userId && (casual || linked.guest_open === 1) ? await checkedSeat(env, sit, userId) : null;
+    if (!casual && !seat) {
+      const rsvpPath = linked.rsvp_open === 1 && !sessionHasEnded(sit) ? `/event/${encodeURIComponent(sit.slug)}` : null;
+      return reply({ access: 'approval', rsvp_path: rsvpPath });
+    }
     const [note, poured] = await Promise.all([
       env.DB.prepare(`SELECT session_notes FROM event_attendee_recaps WHERE event_id = ? AND account_id = ?`)
         .bind(sit.id, sit.account_id).first<{ session_notes: string | null }>(),
       servedTeasOf(env.DB, deps.readPublic(env), sit),
     ]);
-    const userId = deps.optionalUser ? await deps.optionalUser(request, env) : null;
-    const seat = userId ? await env.DB.prepare(
-      `SELECT 1 FROM event_attendees WHERE event_id = ? AND account_id = ? AND user_id = ? AND status = 'confirmed' AND attended = 1`,
-    ).bind(sit.id, sit.account_id, userId).first() : null;
-    const endsAt = sitWayEndsAt(sit);
-    const wayOpen = sitWayOpen(sit) && Boolean(sit.address_text || sit.map_link || sit.venue_guide);
+    const endsAt = casual ? sitWayEndsAt(sit) : sessionEndsAt(sit);
+    const wayOpen = (casual ? sitWayOpen(sit) : mayShowWalkthrough('confirmed', sit, true))
+      && endsAt !== null && Boolean(sit.address_text || sit.map_link || sit.venue_guide);
     return reply({
+      access: casual ? 'casual' : 'confirmed',
       title: sit.title, date: sit.event_date, timezone: sit.timezone,
       happened: sit.lifecycle_status === 'completed' || sit.lifecycle_status === 'archived',
-      // Whether the signed-in person already has their seat here.
-      seated: Boolean(seat),
+      seated: seat?.attended === 1,
       note: note?.session_notes ?? null,
       teas: poured,
       way: wayOpen ? {
         place: sit.location_name, address: sit.address_text, map_link: sit.map_link, ends_at: endsAt,
-        guide: sit.venue_guide ? await signWayGuide(env.JWT_SECRET, sit.venue_guide, sitWayHolder(sit.id), { endsAt }) : null,
+        guide: sit.venue_guide ? await signWayGuide(env.JWT_SECRET, sit.venue_guide, sitWayHolder(code, casual ? null : seat?.id), { endsAt }) : null,
       } : null,
     });
   };
 
-  // POST /api/sit/:code/join: a signed-in person says they were at this table.
-  // They get a seat and their own thank-you link, which is where notes,
-  // photographs and keeping a tea already live.
+  // POST /api/sit/:code/join: self-attestation is for casual sits only.
+  // Scheduled guests need both a confirmed seat and recorded attendance.
   const join: Handler<E> = async (request, env, { code }) => {
     const refused = await limited(request, env, code);
     if (refused) return refused;
     const guest = await deps.requireUser(request, env);
     if ('error' in guest) return guest.error;
-    let sit = await findByCode(env, code);
-    if (!sit) return gone();
-    sit = await settleSit(env.DB, sit);
+    const linked = await findByCode(env, code);
+    if (!linked) return gone();
+    const sit = await settleSit(env.DB, linked);
+    const refusedSeat = () => refuse('Ask your host about this sit.', 'sit_seat', 403);
+    if (sit.casual_sit !== 1) {
+      const seat = linked.guest_open === 1 ? await checkedSeat(env, sit, guest.userId) : null;
+      if (seat?.attended !== 1) return refusedSeat();
+      const issued = await issueAfterSitLink(env.DB, { attendeeId: seat.id, eventId: sit.id, accountId: sit.account_id }, { code, userId: guest.userId });
+      return issued ? reply({ credential: issued.credential }) : refusedSeat();
+    }
     if (sit.lifecycle_status !== 'completed' && sit.lifecycle_status !== 'archived') {
       return refuse('This sit has not happened yet.', 'sit_not_yet', 409);
     }
@@ -509,17 +540,18 @@ export function pourSitRoutes<E extends PourEnv>(deps: Deps<E>): [string, string
     await env.DB.prepare(
       `INSERT INTO event_attendees (id, event_id, account_id, user_id, full_name, email, status, attended, magic_token, source)
        SELECT ?, ?, ?, ?, ?, ?, 'confirmed', 1, ?, 'sit_link'
-       WHERE NOT EXISTS (SELECT 1 FROM event_attendees WHERE event_id = ? AND account_id = ? AND user_id = ?)`,
+       WHERE EXISTS (SELECT 1 FROM events WHERE id = ? AND account_id = ? AND sit_link_code = ? AND casual_sit = 1)
+         AND NOT EXISTS (SELECT 1 FROM event_attendees WHERE event_id = ? AND account_id = ? AND user_id = ?)`,
     ).bind(crypto.randomUUID(), sit.id, sit.account_id, guest.userId, fullName, person?.email ?? guest.email ?? null,
-      hex(crypto.getRandomValues(new Uint8Array(24))), sit.id, sit.account_id, guest.userId).run();
+      hex(crypto.getRandomValues(new Uint8Array(24))), sit.id, sit.account_id, code, sit.id, sit.account_id, guest.userId).run();
     // A seat the host has since marked as not there stays that way: the link is for those who came.
     const seat = await env.DB.prepare(
       `SELECT id FROM event_attendees WHERE event_id = ? AND account_id = ? AND user_id = ? AND status = 'confirmed' AND attended = 1
        ORDER BY created_at ASC LIMIT 1`,
     ).bind(sit.id, sit.account_id, guest.userId).first<{ id: string }>();
-    if (!seat) return refuse('Ask your host about this sit.', 'sit_seat', 403);
-    const issued = await issueAfterSitLink(env.DB, { attendeeId: seat.id, eventId: sit.id, accountId: sit.account_id });
-    return issued ? reply({ credential: issued.credential }) : refuse('Ask your host about this sit.', 'sit_seat', 403);
+    if (!seat) return refusedSeat();
+    const issued = await issueAfterSitLink(env.DB, { attendeeId: seat.id, eventId: sit.id, accountId: sit.account_id }, { code, userId: guest.userId });
+    return issued ? reply({ credential: issued.credential }) : refusedSeat();
   };
 
   return [

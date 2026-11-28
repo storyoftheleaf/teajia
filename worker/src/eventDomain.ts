@@ -1,4 +1,5 @@
 import { OLDER_CONFIRMED_SEATS_SQL, SEAT_OF_A_GUEST_STILL_COMING } from './hostTableGuests';
+import { hasApprovedSeatSourceSql } from './seatRequest';
 import { sessionHasEnded, type SessionTimes } from '../../shared/sessionEnd';
 export type EventLifecycle =
   | 'draft'
@@ -278,6 +279,7 @@ function onePersonGuard(accountId: string, eventId: string, operation: ReservePa
   return {
     sql: `NOT EXISTS (SELECT 1 FROM event_attendees mine
       WHERE mine.event_id = ? AND mine.account_id = ? AND mine.status IN ${LIVE_SEAT_STATUSES}
+        AND ${hasApprovedSeatSourceSql('mine')}
         AND (mine.user_id = ? OR lower(mine.email) = lower(?) OR mine.phone_number = ?))`,
     values: [eventId, accountId, identity.userId, identity.email, identity.phone],
   };
@@ -290,6 +292,7 @@ function confirmedOnceGuard(accountId: string, eventId: string, operation: Reser
     sql: `NOT EXISTS (SELECT 1 FROM event_attendees me
       JOIN event_attendees other ON other.event_id = me.event_id AND other.account_id = me.account_id
         AND other.id <> me.id AND other.status = 'confirmed'
+        AND ${hasApprovedSeatSourceSql('other')}
         AND ((me.user_id IS NOT NULL AND other.user_id = me.user_id)
           OR (NULLIF(me.email, '') IS NOT NULL AND lower(other.email) = lower(me.email))
           OR (NULLIF(me.phone_number, '') IS NOT NULL AND other.phone_number = me.phone_number))
