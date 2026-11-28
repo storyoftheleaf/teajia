@@ -1,5 +1,7 @@
 # Tea Wisdom: one composed entry per tea
 
+> Design and examples behind the shared Wisdom composer. The [current delivery plan](../../docs/CONSOLIDATED_DIRECTION.md) determines which work proceeds.
+
 Status: plan, awaiting Adrian's decisions (2026-11-23). Follows `todo/plans/tea-wisdom-pilot-action-plan.md`.
 
 ## The problem Adrian named

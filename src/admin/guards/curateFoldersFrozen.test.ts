@@ -8,7 +8,7 @@ import { isTestSupportFile, REPO_ROOT } from './sourceFiles.testkit';
 // src/components/TeaCompass/ (live at /admin/compass) and
 // src/components/CurateV2/ (at /admin/compass/v2) are being replaced by one new
 // Curate built in a neutral folder, src/components/curate/ (see
-// todo/plans/manage-rebuild.md, root cause 2). So neither folder may gain a
+// https://github.com/storyoftheleaf/teajia/blob/4eb502f99c40509176472e9fede440243d23e3ef/todo/plans/manage-rebuild.md, root cause 2). So neither folder may gain a
 // file. Fixes to the files already there are fine.
 //
 // Each list below is every non-test file in the folder, subfolders included,

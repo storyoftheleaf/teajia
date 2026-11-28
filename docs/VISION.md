@@ -1,6 +1,6 @@
 # Teajia — Vision & Strategy (April 2026)
 
-> **Marked 2026-11-25.** The philosophy here stands. The "what exists" lists are from April 2026 and are out of date: read [PILLAR.md](PILLAR.md) for the site today, [SECTIONS.md](SECTIONS.md) for the proposed sections, and [the tea houses plan](../todo/plans/tea-houses.md) for building tea houses as an offering.
+> April 2026 product philosophy. The current section names, hosting rules and access promises live in [the Pillar](PILLAR.md) and [section map](SECTIONS.md).
 
 ## What Teajia Is
 

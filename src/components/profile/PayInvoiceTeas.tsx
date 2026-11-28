@@ -12,6 +12,7 @@ import { useExactUsd } from './useExactUsd';
 import { useAppStore } from '../../lib/store';
 import type { InventoryItem } from '../../types';
 import type { PayLinkTeaLine } from './types';
+import { invoiceKeepTeas } from './PayInvoiceGuide';
 
 /**
  * The teas on an invoice, at the top of its pay page, drawn as the shop draws
@@ -107,7 +108,8 @@ export function PayInvoiceTeas({ lines, invoiceNumber = null, onAddToCart, disco
   const before = at > 0 ? order[at - 1] : undefined;
   const after = at >= 0 ? order[at + 1] : undefined;
   const tastingRow = tastingId ? byId.get(tastingId) : undefined;
-  const joinTeas = useMemo(() => rows.map(row => ({ name: row.card.name, amount: row.amount.label ?? `${row.amount.grams}g` })), [rows]);
+  // Two packs of one tea are one row here, as on the sign-up page.
+  const joinTeas = useMemo(() => invoiceKeepTeas(lines), [lines]);
   if (lines.length === 0) return null;
   return (
     <section aria-label="What this pays for" data-testid="pay-invoice-teas">

@@ -20931,8 +20931,22 @@ const handleVerifyConfirm: Handler = async (request, env) => {
   if (!consumed.meta?.changes) return json(genericError, 401);
 
   if (purpose === 'signin') {
-    const user = await env.DB.prepare(`SELECT id, email, username, name, role, platform_role, session_version, email_verified_at FROM users WHERE lower(email) = lower(?) AND ${independentLogin} LIMIT 1`).bind(contact).first();
-    if (!user) return json(genericError, 401);
+    let user = await env.DB.prepare(`SELECT id, email, username, name, role, platform_role, session_version, email_verified_at FROM users WHERE lower(email) = lower(?) AND ${independentLogin} LIMIT 1`).bind(contact).first();
+    // A code to an address with no account at all makes the account: the code
+    // proved the address, exactly as Google's verified email does. Someone
+    // arriving from an invoice types their email once, never a password
+    // (found 2026-11-28: the code was sent, then refused as "invalid").
+    // Any existing row for the address, verified or not, is left alone.
+    if (!user) {
+      const anyRow = await env.DB.prepare('SELECT 1 FROM users WHERE lower(email) = lower(?) LIMIT 1').bind(contact).first();
+      if (anyRow || !/^[^\s@,;<>]+@[^\s@,;<>]+\.[^\s@,;<>]+$/.test(contact)) return json(genericError, 401);
+      const id = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
+      await env.DB.prepare(
+        "INSERT INTO users (id, email, username, name, password_hash, role, email_verified_at) VALUES (?, ?, NULL, '', '', 'user', datetime('now'))"
+      ).bind(id, contact).run();
+      user = await env.DB.prepare('SELECT id, email, username, name, role, platform_role, session_version, email_verified_at FROM users WHERE id = ?').bind(id).first();
+      if (!user) return json(genericError, 401);
+    }
     if (!user.email_verified_at) {
       return restError(403, 'Complete signup verification or password recovery first', 'email_verification_required');
     }

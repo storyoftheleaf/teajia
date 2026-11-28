@@ -1,17 +1,23 @@
 # Launch Validation
 
-> **This is the only canonical checklist for Adrian/manual work, operator validation, editorial work, deployed-environment checks, and external decisions.** Implementation tracks and reference docs may explain procedures, but they must not maintain duplicate completion status.
+> **This is the evidence record for human, operator, editorial and deployed-environment checks.** Direction sets the order and the conditions for exercising the checks below.
 
 **Created:** 2026-07-13  
 **Launch status:** Incomplete
 
-## Technical closure precondition
+## Flagship journeys
 
-Before the technical program can honestly be called closed, the reading-memory/saved-story system must be **wired into a real durable user flow or removed completely**, with focused route/state coverage. This is implementation work owned by Track 1, not a manual validation checkbox.
+Record dated results here as people complete the journeys in [Direction](CONSOLIDATED_DIRECTION.md). Keep evidence references private where appropriate.
+
+| Journey | Real-world evidence to record |
+|---|---|
+| One flagship sale | Physical lot and count, reconciled payment and movement, dispatch, buyer-confirmed delivery and access to their own receipt. |
+| One hosted table | Consenting guest followed the invitation, returned to the same tea, kept or withdrew their contribution, and confirmed the intended audience. |
+| One published edition | Rights and byline approved, exact edition published, reader followed a tea and returned, replacement and withdrawal checked. |
 
 ## A. Launch-required validation
 
-These checks are required before claiming a real-world launch. Fixtures, local mocks, and code inspection cannot complete them.
+Select the checks that support the release or operating claim being made. The second-shop checks belong to that rollout. Fixtures, local mocks, and code inspection cannot complete them.
 
 - [ ] **Deploy and verify the production boundary.** Publish the implementation branch through the normal `teajiafinal` path. On the deployed site, verify same-origin browser API access, CSP behavior, service-worker registration/update behavior, and absence of retired stock-media or prohibited hardcoded-origin requests.
 - [ ] **Receive a real Resend OTP.** Request a sign-in code in the deployed environment, receive it in a real inbox, complete verification, and confirm failures/retries remain explicit without exposing the code in logs. Check the guest/event verification path through the same delivery abstraction.
@@ -68,7 +74,7 @@ These do not block launch unless Adrian explicitly promotes one into section A.
 
 When an item closes, append a short indented evidence note beneath it containing the date, environment/person, and observable result. Link a deployment, screenshot, log, or business record when appropriate, but never paste secrets, OTP values, private customer details, or personal contributor material into this file.
 
-If a check fails, leave it unchecked and record the failure in the owning active track. Do not create another launch checklist.
+If a check fails, leave it unchecked and link the observed failure to the affected journey in Direction. Do not create another launch checklist.
 
 ## US checkout and PayPal acceptance: 2026-11-19
 
@@ -76,4 +82,4 @@ Adrian authorized US-only shipping and live PayPal activation after an actual US
 
 Local tests cover US address collection, immediate tea payment for confirmed stock, review holds, separate shipping balances, duplicate receipts, signed webhook confirmation without a browser return, and refusal to dispatch before shipping is confirmed and paid. Customer screenshots marked TEST-PREVIEW use mocked production payment responses. Sandbox acceptance is real provider evidence; mocked live checkout is not evidence of a real-money capture. Production publication is tracked by the immutable release runner, not this checklist.
 
-The outbound per-kilo rate remains an owner input. Until then, shipping is manually quoted in Orders and charged later through the existing customer link. Saving a shipping quote does not send a new message automatically. Refunds must be performed in PayPal and recorded in Teajia.
+The outbound per-kilo rate remains an owner input. Until then, shipping is manually quoted in Orders and charged later through the existing customer link. Current notification eligibility and recovery are documented in [Shipping payment notifications](SHIPPING_PAYMENT_NOTIFICATIONS.md). Refunds must be performed in PayPal and recorded in Teajia.

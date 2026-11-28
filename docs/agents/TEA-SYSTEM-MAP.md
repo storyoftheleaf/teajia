@@ -2,16 +2,16 @@
 
 The one map of how a tea moves through Teajia, from the moment Adrian meets it to the moment someone drinks it and comes back. Read this before you change any step, so you know what the step reaches and who owns it. Written 2026-11-27 from the code on `main`, the open pull requests and the day's threads.
 
-Whiteboards for Adrian (same content, drawn):
+Related diagrams from the November 27 review:
 
 - [The tea system, end to end](https://claude.ai/artifact/RE2RbTsE1SJAMZoy8UdvhS): this map.
 - [Teajia, section by section](https://claude.ai/artifact/VmvoJCULgNWbmerUqiVY5i): the whole site. Each section carries a card to its detailed board.
 - Section boards, one per part of the site: [Read](https://claude.ai/artifact/ScMi5emjDXfuChAQDaTjNC), [Tea Table, sessions and people](https://claude.ai/artifact/8TLB9JJKRuU8grsi4KTkVo), [Tea Houses](https://claude.ai/artifact/8t3JqANYy58JP4reJ2kJrc), [Your Table](https://claude.ai/artifact/MySjydyn6bxEfK9D6moVr2). Shop and Manage open this map's board.
 - [How people use Teajia](https://claude.ai/artifact/CmADPt5RhNZUerbdmnfQwB): each kind of person, what they touch and do, and where their path is thin.
-- [Switch-on tracker](https://claude.ai/artifact/XphiutT5eeqzZAXTZJEYrZ): every switch, open PR and decision that stands between today and the whole site on. Keep its State column true.
+- [Switch-on tracker](https://claude.ai/artifact/XphiutT5eeqzZAXTZJEYrZ): rollout status at the time of that review.
 - Child boards: [Bringing a tea in](https://claude.ai/artifact/5wWBCaREDvXyoSiCAu4pAf) (steps 1 to 6, the intake plan), [From sample to sent link](https://claude.ai/artifact/Cw9iVkjtje3bjMBcpFeTZf) (steps 2 to 9), [New tea to Tea Wisdom](https://claude.ai/artifact/8N9HcPPeDqHmfUbZbLdT21) (step 7), [Wisdom Review](https://claude.ai/artifact/2MZWE6AFWwCmih1PonbesE) (Adrian's approvals in step 7).
 
-**Keep it true.** When you change a step, its doors or its tools, change its row here and the whiteboard in the same piece of work. When a gap below is closed, move it out of "Missing" and say which PR closed it.
+**Keep it true.** When you change a step, its doors or its tools, change its row here and the whiteboard in the same piece of work. Use [Direction](../CONSOLIDATED_DIRECTION.md) for the work order and [Launch Validation](../LAUNCH_VALIDATION.md) for participant evidence.
 
 ## The short answer
 
@@ -24,7 +24,7 @@ Every step exists and works on its own. What is missing are the joins between st
 | 1 Find it | A tea or sample comes in by talk, photo, paste, typing or an agent | The Library's Bring in sheet (`src/components/curate/BringInSheet.tsx`: "Sample, or bought?" then New tea, New teaware or Import files; Stock's Add tea and the command palette open it with `?bring=1`), Curate Source sheet (with the mic), package scan, Curate Import, Stock Bulk intake (`/admin/intake`), AR Create voice handoff | `curate_add_tea`, `intake_*`, `create_tea` | [CURATE-AGENTS.md](CURATE-AGENTS.md), [curate-intake.md](../claude/curate-intake.md) | 2 |
 | 2 The tea card | One card per tea in the Library, grouped by supplier with their face | Manage › Curate › Library (`/admin/compass`, code in `src/components/TeaCompass`; new parts in `src/components/curate/`). The face opens `/admin/vendors/:id` | `curate_get_tea`, `curate_update_tea`, `curate_get_vendor`, `curate_save_vendor` | [CURATE_WORKSPACE.md](../CURATE_WORKSPACE.md) | 3, 4, 6 |
 | 3 Taste and decide | Taste it, then Want or Reject | Taste on the card (score, terms, notes); after a tasting of a tea in Stock the Library asks the leaf used and takes it off as a tasting use (`src/components/curate/LeafUsedAfterTasting.tsx`); Stock › Samples (grams used) | `set_tasting`, `curate_update_tea` (`wants`) | [CURATE-AGENTS.md](CURATE-AGENTS.md) | 4 or 6 |
-| 4 Buy and bring home | A supplier order or an invoice becomes a purchase on its way | Order shop stock on the card; invoice Import; Purchases (`/admin/purchase-orders`) and Logistics for each leg | `curate_order`, `intake_finalize`, `update_delivery_tracking` | [PURCHASE_LOGISTICS.md](../PURCHASE_LOGISTICS.md), [invoice-intake-flow.md](../invoice-intake-flow.md) | 5 |
+| 4 Buy and bring home | A supplier order or an invoice becomes a purchase on its way | Order shop stock on the card; invoice Import; Purchases (`/admin/purchase-orders`) and Logistics for each leg | `curate_order`, `intake_finalize`, `update_delivery_tracking` | [PURCHASE_LOGISTICS.md](../PURCHASE_LOGISTICS.md), [Curate intake](../claude/curate-intake.md) | 5 |
 | 5 Approve the arrival | Adrian says yes to what came, line by line | Manage delivery on the card, Stock › Received & incoming, Curate › Orders, the Ledger | `record_arrival`, `curate_approve_arrival`, `curate_reject_arrival` | [CURATE-AGENTS.md](CURATE-AGENTS.md) (Agent-led invoices and arrivals) | 6 |
 | 6 Add to Stock | A private Stock tea with amount, cost and its currency, and a price | Add to Stock on the card; the card then offers the quote's grams and cost to confirm (`src/components/curate/StockFromQuote.tsx`: a recount, and the cost with its currency); the Stock panel | `curate_promote_tea`, `add_stock`, `update_tea_pricing` | [money.md](../claude/money.md) | 7 |
 | 7 Make it public | Main photo, write-up, Tea Wisdom, then shown in the shop | Main photo from the Library photo viewer; Write it up (Stock › Story, `/admin/products/:id/story`); Wisdom Base list on the Stock panel (`WisdomNeedsList`); visibility on Stock. The Tea Wisdom entry comes from the `/tea-wisdom` chain as repo files | `set_tea_image`, `set_tea_visibility`, `/tea-wisdom` | [TEA-WISDOM-AGENTS.md](TEA-WISDOM-AGENTS.md), [PRODUCT_DESCRIPTION_STYLE.md](../PRODUCT_DESCRIPTION_STYLE.md), [TEA_WISDOM_BASE.md](../TEA_WISDOM_BASE.md) | 8 |
@@ -41,30 +41,10 @@ Every step exists and works on its own. What is missing are the joins between st
 - **Problems** go to `incident_ledger` and `/account/fixes`, never onto a page.
 - **Aside.** Curate version 2 (`/admin/compass/v2`, `/admin/curate/v2`) is not the live Curate. Build in today's Curate.
 
-## In flight (2026-11-27)
+## Connections to check when tracing a tea
 
-| PR | What it joins | State |
-|---|---|---|
-| 586 | Step 2: each card says where the tea is, now past the write-up (priced, main photo, public, Tea Wisdom entry); one Waiting for you list (arrivals, samples to taste, chosen not in Stock, amount, cost, write-up, public with no Tea Wisdom entry yet) | Open |
-| 568 | Step 2: the vendor page opens every record and its contacts | Open, ready for review |
-| 579 | Step 4: freight rates live with each logistics company | Live |
-| this thread | Step 4: "shop default" on a tea opens Shipping rates (`?serviceId=shop`) with its form ready; Curate arrivals on the way are one list by supplier; agents get `list_freight_rates` and `set_tea_freight_service` | Open |
-| 585 | Step 7: Palace Grade page, loose leaf only | Open |
-| 588 | Step 8: collections show the shelf price when no quote is typed; freight passed on at cost | Live |
-| 583 | Steps 8 and 9: invoices link puer teas; payment details are one paste box | Live |
-| 577 | Steps 2 to 8: supplier face, Add to Stock wording, Write it up and Add to collection on the Library card | Live |
+- For a known purchase, trace the same supplier, exact tea, quote and counted holding across Bring in, Stock and reorder. A historical opening balance can legitimately have no supplier.
+- Distinguish the shop’s published description from the approved Wisdom entry. A tea marked “Public, no Tea Wisdom entry yet” can be researched privately while it remains on offer.
+- When an agent or the Stock screen reopens a low-stock tea, verify which supplier and quote the operator reaches. When another system records the sale, compare the tenant, invoice and movement identities before treating the records as the same transaction.
 
-## Missing or not joined up
-
-In the order recommended to fix them. Nothing here is built without Adrian's yes.
-
-Closed: the tea's path used to stop at "Written up". PR 586 (commit c215452) carries it on through priced, main photo, public and Tea Wisdom entry, and adds "Public, no Tea Wisdom entry yet" to Waiting for you, which is the signal gap 3 below asked for. A place in a collection is not on the path yet.
-
-Closed: freight at cost went live with PR 588, with the money docs changed in the same piece of work.
-
-1. **Two doors skip the Library.** Bulk intake and the agent's `create_tea` make a Stock tea with no supplier, quote or tasting behind it. Stock's Add tea now opens the Library's Bring in sheet (intake plan step 2, 2026-11-27).
-2. **Two Taste doors, four approve doors, and Add to Stock arrives empty.** A new Stock tea starts with no counted amount and no price, and nothing asks. Intake plan step 4 (2026-11-27): after Add to Stock the card offers the quote's grams and cost to confirm, and a tasting of a tea in Stock asks the leaf used afterwards.
-3. **Two write-ups.** The Story description is live the moment it is saved. The Tea Wisdom entry lives in `data/tea-reference/entries/` and is live only after a push. The signal between them is now built: "Public, no Tea Wisdom entry yet" in Waiting for you (PR 586, open). The chain still runs only on Adrian's word.
-4. **The selling half has tools but no agent guide.** Collections, invoices, payment and dispatch tools exist (step 8 and 9 rows above) and only this table names them. Recommended: a short "Selling" section in `CURATE-AGENTS.md`.
-5. **i64os has its own tea sale and invoice tools** (`create_tea_sale`, `create_tea_invoice`, `mark_tea_sale_paid`, `purchase_tea_inventory`) beside the `teajia_*` ones and Teajia's own invoices. Nothing written says whether they make the same records. Recommended: check, then document or retire them, so one sale never sits in two ledgers.
-6. **Low stock does not lead back to the supplier in the Stock view.** For agents this is closed: `list_low_stock` names the Library tea, supplier and last quote (PR 595). The Stock view still has no way to open the supplier's card.
+[Original November 27 integration findings and release notes](https://github.com/storyoftheleaf/teajia/blob/4eb502f99c40509176472e9fede440243d23e3ef/docs/agents/TEA-SYSTEM-MAP.md)
