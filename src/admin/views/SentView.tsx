@@ -51,7 +51,7 @@ const SentView: React.FC = () => {
     queryFn: () => sendsApi.list({ kind: kind === 'invoice' || kind === 'collection' ? kind : undefined, q: q || undefined, limit: 200 }),
     staleTime: 30_000,
   });
-  const sends = data?.sends ?? [];
+  const sends = Array.isArray(data?.sends) ? data.sends : [];
   return (
     <div className="max-w-3xl mx-auto px-4 md:px-6 py-6 space-y-4">
       <h1 className={T.h1}>Everything sent</h1>

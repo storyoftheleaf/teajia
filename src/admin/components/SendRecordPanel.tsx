@@ -24,7 +24,8 @@ export const SendRecordPanel: React.FC<{ kind: 'invoice' | 'collection'; id: str
     staleTime: 30_000,
   });
   if (isLoading) return <p className={`text-ui-12 text-tea-text-sec ${className}`}>Reading what happened to it…</p>;
-  if (isError || !data) return <p className={`text-ui-12 text-tea-text-sec ${className}`}>What happened to it could not be read just now.</p>;
+  // Anything but a record (an error page, an empty answer) reads as unreadable, never as a crash of the screen around it.
+  if (isError || !data || !Array.isArray(data.teas) || !data.opens) return <p className={`text-ui-12 text-tea-text-sec ${className}`}>What happened to it could not be read just now.</p>;
   return <SendRecordBody record={data} className={className} />;
 };
 
