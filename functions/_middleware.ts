@@ -417,10 +417,18 @@ export function isLinkGatedPath(path: string): boolean {
 }
 
 /** A collection sent to someone: its own title, note and picture. */
+/**
+ * A collection's public read takes about three seconds (2026-11-28, measured
+ * live), so the 2.5 s the product lookup uses let every collection preview
+ * fall back to the homepage. Only crawlers wait for this, and chat apps give
+ * a preview longer than that.
+ */
+const SHARED_LINK_LOOKUP_MS = 6000;
+
 export async function collectionMeta(slug: string, workerOrigin: URL): Promise<Meta | null> {
   try {
     const res = await fetch(new URL(`/api/public/c/${encodeURIComponent(slug)}`, workerOrigin), {
-      signal: AbortSignal.timeout(2500),
+      signal: AbortSignal.timeout(SHARED_LINK_LOOKUP_MS),
     });
     if (!res.ok) return null;
     const body = (await res.json()) as {
@@ -444,7 +452,7 @@ export async function collectionMeta(slug: string, workerOrigin: URL): Promise<M
 export async function eventMeta(slug: string, workerOrigin: URL): Promise<Meta | null> {
   try {
     const res = await fetch(new URL(`/api/events/${encodeURIComponent(slug)}/public`, workerOrigin), {
-      signal: AbortSignal.timeout(2500),
+      signal: AbortSignal.timeout(SHARED_LINK_LOOKUP_MS),
     });
     if (!res.ok) return null;
     const e = (await res.json()) as { title?: string; subtitle?: string | null; description?: string | null; flyer_image_url?: string | null };
