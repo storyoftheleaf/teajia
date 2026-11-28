@@ -30945,7 +30945,7 @@ const handleNetworkCatalog: Handler = async (request, env) => {
     // Currency conversion helper: convert an amount from fromCurrency to toCurrency via USD.
     // Returns null when a required rate is missing.
     const convert = (amount: number, fromCurrency: string, toCurrency: string): number | null => {
-      if (wholesaleCurrenciesMatch(fromCurrency, toCurrency)) return amount;
+      if (amount === 0 || wholesaleCurrenciesMatch(fromCurrency, toCurrency)) return amount;
       const fromRate = rates.get(canonicalCurrency(fromCurrency) ?? '');
       const toRate = rates.get(canonicalCurrency(toCurrency) ?? '');
       if (!fromRate || !toRate) return null;
@@ -30956,53 +30956,32 @@ const handleNetworkCatalog: Handler = async (request, env) => {
     let wholesalePricePerGramCaller: number | null = null;
     let fxUnavailable = false;
 
-    // Resolve the curator's retail per gram in the curator's display currency.
+    // A fixed retail price already has a unit. A cost-derived quote needs
+    // both the recorded quantity and the currency the supplier was paid in.
     if (p.curator_fixed_retail_usd != null) {
-      // fixed_retail_price_usd is already per-gram in USD. Convert to curator's currency.
-      const inCuratorCurrency = convert(p.curator_fixed_retail_usd as number, 'USD', curatorCurrency);
-      if (inCuratorCurrency === null) {
-        retailPricePerGramCurator = p.curator_fixed_retail_usd as number;
-        fxUnavailable = true;
-      } else {
-        retailPricePerGramCurator = inCuratorCurrency;
-      }
-    } else if (p.curator_cost_amount != null && p.curator_cost_amount > 0) {
-      // Cost-based: cost_per_gram (in cost_currency) * markup → retail in cost_currency.
-      // Then convert to curator currency for display. cost_amount is the total
-      // cost for quantity_purchased, the same shape addPricingFields divides
-      // out for the shop's own catalogue, so this must divide by it too before
-      // the markup is applied. A cake bought for 1,200 CNY as 2,000 g of leaf
-      // costs 0.6 CNY a gram, not 1,200: skipping the division here once
-      // quoted a network listing at 2,000 times its real price.
-      const costCurrency = isUnrecordedCurrency(p.curator_cost_currency) ? 'USD' : p.curator_cost_currency;
-      const markup = (p.curator_markup_multiplier as number) ?? CURATOR_FALLBACK_MARKUP;
+      retailPricePerGramCurator = convert(p.curator_fixed_retail_usd, 'USD', curatorCurrency);
+      fxUnavailable = retailPricePerGramCurator === null;
+    } else {
+      const costAmount = p.curator_cost_amount as number | null;
+      const costCurrency = p.curator_cost_currency as string | null;
       const quantityPurchased = p.curator_quantity_purchased as number | null;
-      // No recorded quantity means no honest per-gram cost to derive from;
-      // leave the price null rather than treating the total cost as per-gram.
-      if (quantityPurchased && quantityPurchased > 0) {
-        const costPerGramInCostCurrency = (p.curator_cost_amount as number) / quantityPurchased;
-        const retailInCostCurrency = costPerGramInCostCurrency * markup;
-        const converted = convert(retailInCostCurrency, costCurrency, curatorCurrency);
-        if (converted === null) {
-          retailPricePerGramCurator = retailInCostCurrency;
-          fxUnavailable = true;
-        } else {
-          retailPricePerGramCurator = converted;
+      if (costAmount != null && costAmount >= 0 && quantityPurchased && quantityPurchased > 0) {
+        if (costAmount === 0) {
+          // The recorded cost is a gift or sample. Zero does not need a rate.
+          retailPricePerGramCurator = 0;
+        } else if (costCurrency && !isUnrecordedCurrency(costCurrency)) {
+          const markup = (p.curator_markup_multiplier as number) ?? CURATOR_FALLBACK_MARKUP;
+          const retailInCostCurrency = (costAmount / quantityPurchased) * markup;
+          retailPricePerGramCurator = convert(retailInCostCurrency, costCurrency, curatorCurrency);
+          fxUnavailable = retailPricePerGramCurator === null;
         }
       }
     }
 
-    // Compute the caller's effective wholesale once retail is known.
-    //   wholesale = retail_in_curator_currency * (marginPct / 100)  → convert to caller currency
-    if (retailPricePerGramCurator !== null && !fxUnavailable) {
+    if (retailPricePerGramCurator !== null) {
       const wholesaleInCuratorCurrency = retailPricePerGramCurator * (marginPct / 100);
-      const converted = convert(wholesaleInCuratorCurrency, curatorCurrency, callerCurrency);
-      if (converted === null) {
-        fxUnavailable = true;
-        wholesalePricePerGramCaller = null;
-      } else {
-        wholesalePricePerGramCaller = converted;
-      }
+      wholesalePricePerGramCaller = convert(wholesaleInCuratorCurrency, curatorCurrency, callerCurrency);
+      fxUnavailable = wholesalePricePerGramCaller === null;
     }
 
     return {

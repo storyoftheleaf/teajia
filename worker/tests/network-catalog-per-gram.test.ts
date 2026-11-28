@@ -138,6 +138,52 @@ describe('the wholesale catalogue prices by the gram, not by the cake', () => {
     expect(profile.fx_unavailable).toBe(true);
   });
 
+  it.each([null, '', 'UNK'])('withholds cost-derived prices when the stored currency is %j', async (currency) => {
+    const db = await seed();
+    db.sqlite.prepare("UPDATE product_listings SET cost_currency = ? WHERE id = 'listing-cake'").run(currency);
+    db.sqlite.prepare("INSERT OR REPLACE INTO exchange_rates (currency, rate_to_usd) VALUES ('Yuan', 7.1)").run();
+
+    const profile = await fetchCatalog(db);
+    expect(profile.retail_price_per_gram_curator).toBeNull();
+    expect(profile.wholesale_price_per_gram_caller).toBeNull();
+  });
+
+  it('uses an explicit USD retail price even if the underlying cost has no currency', async () => {
+    const db = await seed();
+    db.sqlite.prepare("UPDATE accounts SET currency_default = 'USD' WHERE id IN (?, ?)").run(CURATOR, CALLER);
+    db.sqlite.prepare("UPDATE product_listings SET cost_currency = 'UNK', fixed_retail_price_usd = 1.8 WHERE id = 'listing-cake'").run();
+
+    const profile = await fetchCatalog(db);
+    expect(profile.retail_currency).toBe('USD');
+    expect(profile.retail_price_per_gram_curator).toBe(1.8);
+    expect(profile.wholesale_price_per_gram_caller).toBe(1.8);
+  });
+
+  it.each([null, 1.8])('withholds both prices if the curator currency cannot be converted (USD override %j)', async (fixedRetailUsd) => {
+    const db = await seed();
+    db.sqlite.prepare("UPDATE accounts SET currency_default = 'AUD' WHERE id = ?").run(CURATOR);
+    db.sqlite.prepare("DELETE FROM exchange_rates WHERE currency = 'AUD'").run();
+    db.sqlite.prepare("UPDATE product_listings SET fixed_retail_price_usd = ? WHERE id = 'listing-cake'").run(fixedRetailUsd);
+
+    const profile = await fetchCatalog(db);
+    expect(profile.retail_currency).toBe('AUD');
+    expect(profile.retail_price_per_gram_curator).toBeNull();
+    expect(profile.wholesale_price_per_gram_caller).toBeNull();
+    expect(profile.fx_unavailable).toBe(true);
+  });
+
+  it('keeps a deliberate zero cost even when a currency was unnecessary', async () => {
+    const db = await seed();
+    db.sqlite.prepare("UPDATE accounts SET currency_default = 'AUD' WHERE id = ?").run(CALLER);
+    db.sqlite.prepare("DELETE FROM exchange_rates WHERE currency = 'AUD'").run();
+    db.sqlite.prepare("UPDATE product_listings SET cost_amount = 0, cost_currency = NULL WHERE id = 'listing-cake'").run();
+
+    const profile = await fetchCatalog(db);
+    expect(profile.retail_price_per_gram_curator).toBe(0);
+    expect(profile.wholesale_price_per_gram_caller).toBe(0);
+    expect(profile.fx_unavailable).toBe(false);
+  });
+
   it('quotes nothing for a listing with a cost but no recorded quantity', async () => {
     // Without a quantity there is no honest per-gram figure. The old code read
     // the total cost as if it were per gram; a future edit that restores that
