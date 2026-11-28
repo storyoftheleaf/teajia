@@ -13,6 +13,7 @@ import { useToast } from './Toast';
 import { ConfirmModal } from './ConfirmModal';
 import { SplitOrderModal } from './SplitOrderModal';
 import { EditOrderModal } from './EditOrderModal';
+import { useStepParam } from '../../hooks/useStepParam';
 import { QuickInvoiceModal } from './QuickInvoiceModal';
 import { Button } from '../../components/shared/Button';
 import { OrderAttribution } from './OrderAttribution';
@@ -178,7 +179,8 @@ export const OrdersView = () => {
 
   // Split & Edit modal state
   const [splitInvoice, setSplitInvoice] = useState<DbOrder | null>(null);
-  const [editInvoice, setEditInvoice] = useState<DbOrder | null>(null);
+  // The invoice being edited is a step in the address, so Back closes it.
+  const [editId, setEditId] = useStepParam('edit');
 
   // Quick Invoice + link-later state
   const [showQuickInvoice, setShowQuickInvoice] = useState(false);
@@ -242,6 +244,10 @@ export const OrdersView = () => {
     }
   });
   const orders = tokenScoped ? ordersQuery.data || [] : [];
+  const editInvoice = editId
+    ? orders.find(order => order.id === editId) ?? (viewingInvoice?.id === editId ? viewingInvoice : null)
+    : null;
+  const setEditInvoice = (order: DbOrder | null) => setEditId(order ? order.id : null);
   const isLoading = !tokenScoped || ordersQuery.isPending;
   const refetch = ordersQuery.refetch;
 
@@ -663,7 +669,7 @@ export const OrdersView = () => {
                             </>
                           )}
                           {canShipNoChargeOrder(order) && <Button variant="secondary" size="sm" onClick={() => { void openNoChargeShipConfirm(order); }} icon={<PackageCheck size={12} />} title="Fulfill no-charge order">FULFILL</Button>}
-                          {(order.status === 'Draft' || isPending) && <Button variant="ghost" size="sm" onClick={() => setEditInvoice(order)} icon={<Pencil size={14} />} title="Edit Order" />}
+                          {!isVoid && <Button variant="ghost" size="sm" onClick={() => setEditInvoice(order)} icon={<Pencil size={14} />} title="Edit invoice" />}
                           {isPending && order.payment_status === 'unpaid' && !order.inventory_deducted && <Button variant="ghost" size="sm" onClick={() => setSplitInvoice(order)} icon={<Scissors size={14} />} title="Split Order" />}
                           <OrderPayCopyButton payment={order.payment} invoiceNumber={order.invoice_number} />
                           <Button
@@ -817,7 +823,7 @@ export const OrdersView = () => {
                         icon={<Eye size={16} />}
                       />
                       <MobileActions
-                        canEdit={order.status === 'Draft' || isPending}
+                        canEdit={!isVoid}
                         canSplit={isPending && order.payment_status === 'unpaid' && !order.inventory_deducted}
                         isVoid={isVoid}
                         canCancel={order.status !== 'Filled'}
@@ -1067,6 +1073,10 @@ export const OrdersView = () => {
                             <Check size={18} /> Accept &amp; Make Order
                         </button>
                      </div>
+                )}
+
+                {viewingInvoice.status !== 'Draft' && viewingInvoice.status !== 'Void' && (
+                  <button type="button" onClick={() => setEditInvoice(viewingInvoice)} className="mt-8 w-full min-h-tap border border-tea-border rounded-xl text-tea-text-sec hover:text-tea-text flex items-center justify-center gap-2"><Pencil size={16} /> Edit invoice</button>
                 )}
 
                 {canShip(viewingInvoice) && (
