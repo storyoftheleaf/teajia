@@ -1,7 +1,7 @@
 // Pouring, and the sit it makes (Adrian, 2026-11-27).
 //
 // A host pulls a tea out and taps it on the pour page: the tea joins that
-// day's sit, and the weight, when one is typed, comes out of stock. Nothing
+// day's sit. For a stock-linked tea, entering weight requires stock authority. Nothing
 // has to be started first. The first pour of a day makes the day's sit; a sit
 // can also be made on its own, for a day to come or one already gone.
 //
@@ -31,6 +31,42 @@ import { mayShowWalkthrough } from './sessionWalkthrough';
 type PourEnv = { DB: D1Database; JWT_SECRET?: string };
 type Handler<E> = (request: Request, env: E, params: Record<string, string>) => Promise<Response>;
 type Host = { accountId: string; userId?: string | null; email?: string | null };
+type StockAuthority = {
+  userId: string | null;
+  ownerId: string | null;
+  shopStock: boolean;
+  personal: boolean;
+};
+
+async function readStockAuthority(db: D1Database, host: Host): Promise<StockAuthority> {
+  const userId = host.userId ?? null;
+  const row = await db.prepare(
+    `SELECT a.owner_user_id, a.personal_inventory_user_id, m.role,
+            EXISTS (
+              SELECT 1 FROM json_each(CASE WHEN json_valid(m.permissions) THEN m.permissions ELSE '{}' END, '$.bundles')
+              WHERE value = 'stock' AND json_type(CASE WHEN json_valid(m.permissions) THEN m.permissions ELSE '{}' END, '$.bundles') = 'array'
+            ) AS staff_stock
+       FROM accounts a LEFT JOIN account_members m ON m.account_id = a.id AND m.user_id = ? AND m.status = 'active'
+      WHERE a.id = ? AND a.status = 'active'`,
+  ).bind(userId, host.accountId).first<{
+    owner_user_id: string | null; personal_inventory_user_id: string | null; role: string | null; staff_stock: number;
+  }>();
+  const ownerId = row?.owner_user_id ?? null;
+  const personal = Boolean(row?.personal_inventory_user_id);
+  const shopStock = Boolean(userId && row && (personal
+    ? row.personal_inventory_user_id === userId && ownerId === userId && row.role === 'owner'
+    : ownerId === userId || (ownerId === null && row.role === 'owner') || (row.role === 'staff' && row.staff_stock === 1)));
+  return { userId: row ? userId : null, ownerId, shopStock, personal };
+}
+
+function canMovePourStock(authority: StockAuthority, holdingOwner: string | null) {
+  if (authority.personal && !authority.shopStock) return false;
+  if (holdingOwner !== null && holdingOwner === authority.userId) return true;
+  return authority.shopStock && (holdingOwner === null || holdingOwner === authority.ownerId);
+}
+
+const stockRefusal = () => refuse('Only the stock owner or staff with Stock permission for this shop can change these grams.', 'pour_stock_permission', 403);
+
 type Guest = { userId: string; email?: string | null; name?: string | null };
 
 type Deps<E> = {
@@ -125,14 +161,14 @@ async function settleSit(db: D1Database, sit: SitRow, now = Date.now()): Promise
 
 type PouredRow = {
   id: string; product_id: string | null; name: string | null; poured_grams: number | null;
-  stock_taken_grams: number | null; image_url: string | null; stock_grams: number | null;
+  stock_taken_grams: number | null; stock_owner_id: string | null; stock_product_id: string | null; image_url: string | null; stock_grams: number | null;
 };
 
-async function pouredAt(db: D1Database, sit: { id: string; account_id: string }) {
+async function pouredAt(db: D1Database, sit: { id: string; account_id: string }, authority: StockAuthority) {
   const { results } = await db.prepare(
     `SELECT m.id, m.product_id,
             COALESCE(NULLIF(trim(m.custom_name), ''), NULLIF(trim(p.given_name), ''), NULLIF(trim(p.product_name), '')) AS name,
-            m.poured_grams, m.stock_taken_grams, p.image_url, p.stock_grams
+            m.poured_grams, m.stock_taken_grams, p.owner_user_id AS stock_owner_id, p.id AS stock_product_id, p.image_url, p.stock_grams
      FROM event_tea_menu m
      LEFT JOIN products p ON p.id = m.product_id AND p.account_id = m.account_id
      WHERE m.account_id = ? AND m.event_id = ?
@@ -141,12 +177,13 @@ async function pouredAt(db: D1Database, sit: { id: string; account_id: string })
   return results.map(row => ({
     id: row.id, product_id: row.product_id, name: row.name ?? '', grams: row.poured_grams,
     // The shelf held less than was poured: the host sees it, once, on the pour itself.
-    short: row.poured_grams !== null && row.product_id !== null && Number(row.stock_taken_grams ?? 0) < row.poured_grams,
+    short: row.poured_grams !== null && row.stock_taken_grams !== null && row.stock_taken_grams < row.poured_grams,
+    can_take_back: !(Number(row.stock_taken_grams ?? 0) > 0 && row.stock_product_id) || canMovePourStock(authority, row.stock_owner_id),
     image_url: row.image_url, stock_grams: row.stock_grams,
   }));
 }
 
-async function hostSit<E extends PourEnv>(deps: Deps<E>, env: E, sit: SitRow) {
+async function hostSit<E extends PourEnv>(deps: Deps<E>, env: E, sit: SitRow, authority: StockAuthority) {
   const note = await env.DB.prepare(
     `SELECT session_notes FROM event_attendee_recaps WHERE event_id = ? AND account_id = ?`,
   ).bind(sit.id, sit.account_id).first<{ session_notes: string | null }>();
@@ -158,7 +195,7 @@ async function hostSit<E extends PourEnv>(deps: Deps<E>, env: E, sit: SitRow) {
     place: sit.location_id ? { id: sit.location_id, name: sit.location_name } : null,
     has_way: Boolean(sit.address_text || sit.map_link || sit.venue_guide),
     way_open: sit.casual_sit === 1 ? sitWayOpen(sit) : !sessionHasEnded(sit),
-    teas: await pouredAt(env.DB, sit),
+    teas: await pouredAt(env.DB, sit, authority),
   };
 }
 
@@ -201,8 +238,8 @@ async function takeStock(db: D1Database, host: Host, productId: string, grams: n
     if (!taken) continue;
     const after = Number(taken.stock_grams);
     const statements = [
-      db.prepare(`UPDATE product_listings SET stock_grams = MAX(0, stock_grams - ?), updated_at = datetime('now') WHERE id = ?`)
-        .bind(amount, `list_${productId}`),
+      db.prepare(`UPDATE product_listings SET stock_grams = MAX(0, stock_grams - ?), updated_at = datetime('now') WHERE id = ? AND account_id = ?`)
+        .bind(amount, `list_${productId}`, host.accountId),
       db.prepare(
         `INSERT INTO stock_ledger (id, product_id, delta, balance_after, movement_unit, reason, movement_type, user_email, note, account_id)
          VALUES (?, ?, ?, ?, 'gram', 'SAMPLE', 'sample_use', ?, ?, ?)`,
@@ -223,7 +260,7 @@ export function pourSitRoutes<E extends PourEnv>(deps: Deps<E>): [string, string
   const teas: Handler<E> = async (request, env) => {
     const host = await deps.requireHost(request, env);
     if ('error' in host) return host.error;
-    const [{ results }, rateRows] = await Promise.all([
+    const [{ results }, rateRows, authority] = await Promise.all([
       env.DB.prepare(
         `SELECT * FROM products
          WHERE account_id = ? AND type NOT IN ('Teaware', 'Misc') AND COALESCE(status, 'Active') <> 'Archived'
@@ -231,6 +268,7 @@ export function pourSitRoutes<E extends PourEnv>(deps: Deps<E>): [string, string
          ORDER BY created_at DESC, id DESC LIMIT 800`,
       ).bind(host.accountId).all<Record<string, unknown>>(),
       env.DB.prepare('SELECT currency, rate_to_usd FROM exchange_rates').all<{ currency: string; rate_to_usd: number }>(),
+      readStockAuthority(env.DB, host),
     ]);
     // The shelf price of a gram, read now from cost and freight (worker/src/productPricing.ts); null prints a dash.
     const rates = new Map(rateRows.results.map(row => [row.currency, row.rate_to_usd]));
@@ -240,7 +278,7 @@ export function pourSitRoutes<E extends PourEnv>(deps: Deps<E>): [string, string
       teas: results.map(row => {
         const price = addPricingFields(row, rates, freight).retail_price_per_gram_usd;
         return {
-          id: row.id, name: text(row.given_name) ?? row.product_name, product_name: row.product_name, chinese_name: row.chinese_name,
+          id: row.id, can_deduct: canMovePourStock(authority, text(row.owner_user_id)), name: text(row.given_name) ?? row.product_name, product_name: row.product_name, chinese_name: row.chinese_name,
           type: row.type, classification: row.classification, year: row.year,
           image_url: text(row.image_url) ?? text(row.bag_photo_url), stock_grams: row.stock_grams, status: row.status,
           created_at: row.created_at, sample: Number(row.is_sample) === 1 || row.inventory_purpose === 'sample' ? 1 : 0,
@@ -264,7 +302,8 @@ export function pourSitRoutes<E extends PourEnv>(deps: Deps<E>): [string, string
        ORDER BY substr(e.event_date, 1, 10) DESC, e.created_at DESC LIMIT 8`,
     ).bind(host.accountId, day).all<SitRow>();
     const settled = await Promise.all(results.map(sit => settleSit(env.DB, sit)));
-    return reply({ sits: await Promise.all(settled.map(sit => hostSit(deps, env, sit))) });
+    const authority = await readStockAuthority(env.DB, host);
+    return reply({ sits: await Promise.all(settled.map(sit => hostSit(deps, env, sit, authority))) });
   };
 
   // POST /api/admin/pour/sits { date, timezone, title? }: a sit with no tea yet,
@@ -276,7 +315,7 @@ export function pourSitRoutes<E extends PourEnv>(deps: Deps<E>): [string, string
     const zone = validZone(body?.timezone);
     if (typeof body?.date !== 'string' || !DAY.test(body.date) || !zone) return refuse('Say which day.', 'pour_day');
     const sit = await makeSit(env.DB, host.accountId, body.date, zone, typeof body.title === 'string' ? body.title : undefined);
-    return reply({ sit: await hostSit(deps, env, sit) }, 201);
+    return reply({ sit: await hostSit(deps, env, sit, await readStockAuthority(env.DB, host)) }, 201);
   };
 
   /** The host's own account beside the shop: their tea spaces are kept there. */
@@ -361,7 +400,7 @@ export function pourSitRoutes<E extends PourEnv>(deps: Deps<E>): [string, string
         ).bind(sit.id, host.accountId, note).run();
       }
     }
-    return reply({ sit: await hostSit(deps, env, (await readSit(env.DB, host.accountId, id))!) });
+    return reply({ sit: await hostSit(deps, env, (await readSit(env.DB, host.accountId, id))!, await readStockAuthority(env.DB, host)) });
   };
 
   // POST /api/admin/pour { date, timezone, sit_id?, product_id? | name?, grams? }:
@@ -376,13 +415,15 @@ export function pourSitRoutes<E extends PourEnv>(deps: Deps<E>): [string, string
 
     const productId = typeof body?.product_id === 'string' && body.product_id ? body.product_id : null;
     const typed = typeof body?.name === 'string' ? body.name.trim() : '';
+    const authority = await readStockAuthority(env.DB, host);
     let teaName = typed;
     if (productId) {
       const product = await env.DB.prepare(
-        `SELECT COALESCE(NULLIF(trim(given_name), ''), product_name) AS name FROM products
+        `SELECT COALESCE(NULLIF(trim(given_name), ''), product_name) AS name, owner_user_id FROM products
          WHERE id = ? AND account_id = ? AND type NOT IN ('Teaware', 'Misc') AND personal_offer_source_id IS NULL`,
-      ).bind(productId, host.accountId).first<{ name: string }>();
+      ).bind(productId, host.accountId).first<{ name: string; owner_user_id: string | null }>();
       if (!product) return refuse('That tea is not on this shelf.', 'pour_tea', 404);
+      if (grams !== null && !canMovePourStock(authority, product.owner_user_id)) return stockRefusal();
       teaName = product.name;
     }
     if (!teaName || teaName.length > POUR_NAME_MAX) return refuse('Choose a tea, or type its name.', 'pour_tea');
@@ -411,7 +452,7 @@ export function pourSitRoutes<E extends PourEnv>(deps: Deps<E>): [string, string
       await env.DB.prepare(`UPDATE event_tea_menu SET stock_taken_grams = ? WHERE id = ? AND account_id = ?`)
         .bind(taken, menuId, host.accountId).run();
     }
-    return reply({ poured: menuId, sit: await hostSit(deps, env, sit) }, 201);
+    return reply({ poured: menuId, sit: await hostSit(deps, env, sit, authority) }, 201);
   };
 
   // DELETE /api/admin/pour/:menuId: the wrong tea was tapped. The row goes and
@@ -420,33 +461,44 @@ export function pourSitRoutes<E extends PourEnv>(deps: Deps<E>): [string, string
     const host = await deps.requireHost(request, env);
     if ('error' in host) return host.error;
     const row = await env.DB.prepare(
-      `DELETE FROM event_tea_menu WHERE id = ? AND account_id = ? RETURNING event_id, product_id, stock_taken_grams`,
-    ).bind(menuId, host.accountId).first<{ event_id: string; product_id: string | null; stock_taken_grams: number | null }>();
+      `SELECT m.event_id, m.product_id, m.stock_taken_grams, p.id AS stock_product_id, p.owner_user_id
+         FROM event_tea_menu m LEFT JOIN products p ON p.id = m.product_id AND p.account_id = m.account_id
+        WHERE m.id = ? AND m.account_id = ?`,
+    ).bind(menuId, host.accountId).first<{
+      event_id: string; product_id: string | null; stock_taken_grams: number | null;
+      stock_product_id: string | null; owner_user_id: string | null;
+    }>();
     if (!row) return gone();
     const back = Number(row.stock_taken_grams ?? 0);
-    if (row.product_id && back > 0) {
+    const authority = await readStockAuthority(env.DB, host);
+    if (row.stock_product_id && back > 0 && !canMovePourStock(authority, row.owner_user_id)) return stockRefusal();
+    const deleted = await env.DB.prepare(
+      `DELETE FROM event_tea_menu WHERE id = ? AND account_id = ? AND product_id IS ? AND stock_taken_grams IS ?`,
+    ).bind(menuId, host.accountId, row.product_id, row.stock_taken_grams).run();
+    if (!deleted.meta?.changes) return gone();
+    if (row.stock_product_id && back > 0) {
       const returned = await env.DB.prepare(
         `UPDATE products SET stock_grams = COALESCE(stock_grams, 0) + ? WHERE id = ? AND account_id = ? RETURNING stock_grams, status`,
-      ).bind(back, row.product_id, host.accountId).first<{ stock_grams: number; status: string | null }>();
+      ).bind(back, row.stock_product_id, host.accountId).first<{ stock_grams: number; status: string | null }>();
       if (returned) {
         const statements = [
-          env.DB.prepare(`UPDATE product_listings SET stock_grams = stock_grams + ?, updated_at = datetime('now') WHERE id = ?`)
-            .bind(back, `list_${row.product_id}`),
+          env.DB.prepare(`UPDATE product_listings SET stock_grams = stock_grams + ?, updated_at = datetime('now') WHERE id = ? AND account_id = ?`)
+            .bind(back, `list_${row.stock_product_id}`, host.accountId),
           env.DB.prepare(
             `INSERT INTO stock_ledger (id, product_id, delta, balance_after, movement_unit, reason, movement_type, user_email, note, account_id)
              VALUES (?, ?, ?, ?, 'gram', 'MANUAL_ADJUST', 'return', ?, 'A pour taken back', ?)`,
-          ).bind(crypto.randomUUID(), row.product_id, back, Number(returned.stock_grams), host.email ?? null, host.accountId),
+          ).bind(crypto.randomUUID(), row.stock_product_id, back, Number(returned.stock_grams), host.email ?? null, host.accountId),
         ];
         // A tea the pour sold out is on sale again, as a count that finds stock does.
         if (returned.status === 'Sold Out') {
           statements.push(env.DB.prepare(`UPDATE products SET status = 'Active', sold_out_at = NULL WHERE id = ? AND account_id = ? AND status = 'Sold Out'`)
-            .bind(row.product_id, host.accountId));
+            .bind(row.stock_product_id, host.accountId));
         }
         await env.DB.batch(statements);
       }
     }
     const sit = await readSit(env.DB, host.accountId, row.event_id);
-    return reply({ sit: sit ? await hostSit(deps, env, sit) : null });
+    return reply({ sit: sit ? await hostSit(deps, env, sit, authority) : null });
   };
 
   const findByCode = (env: E, code: string) => SIT_CODE_FORMAT.test(code)
