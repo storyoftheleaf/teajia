@@ -280,6 +280,8 @@ export const OrdersView = () => {
     try {
       const items = await api.invoices.getItems(invoice.id);
       if (!requestIsCurrent()) return;
+      // Closed (or Back pressed) while the lines were loading: stay closed.
+      if (openingInvoice.current !== invoice.id) return;
       setViewingInvoice({ ...invoice, items });
       // Fetch timeline
       try {
@@ -307,7 +309,11 @@ export const OrdersView = () => {
     }
     if (viewingInvoice?.id === invoiceParam || openingInvoice.current === invoiceParam) return;
     const order = orders.find(candidate => candidate.id === invoiceParam);
-    if (!order) return;
+    if (!order) {
+      // Your Table lists up to 200 invoices; the page shows 50. Read more once.
+      if (!ordersQuery.isFetching && pageSize < 200) setPageSize(200);
+      return;
+    }
     openingInvoice.current = invoiceParam;
     void handleView(order);
   }, [invoiceParam, orders]);
