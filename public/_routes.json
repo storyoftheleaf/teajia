@@ -16,6 +16,11 @@
     "/tea-atlas/*",
     "/article/*",
     "/shop/product/*",
+    "/c/*",
+    "/event/*",
+    "/sit/*",
+    "/sits/casual/*",
+    "/people/*",
     "/sitemap-products.xml"
   ],
   "exclude": []

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { canonicalUrlFor, isTeaAtlasPath, isMcpPageRequest, isWorkerProxyPath, MCP_PAGE_META, onRequest, readPublishStatesAtEdge, resetReadStatesCacheForTests, resolveStaticReadMeta, STATIC_META } from './_middleware';
+import { canonicalUrlFor, collectionMeta, eventMeta, sharedLinkMeta, isTeaAtlasPath, isMcpPageRequest, isWorkerProxyPath, MCP_PAGE_META, onRequest, readPublishStatesAtEdge, resetReadStatesCacheForTests, resolveStaticReadMeta, STATIC_META } from './_middleware';
 import { ARTICLE_LIVE, isReadPathPublic, isUngatedReadPath } from '../src/pages/read/articleLive';
 
 describe('Pages protocol proxy', () => {
@@ -358,5 +358,47 @@ describe('teajia.com/mcp is a page for people and an endpoint for clients', () =
     await onRequest({ request: req({ method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' }), env: { WORKER_ORIGIN: 'https://worker.example' }, next } as any);
     expect(next).not.toHaveBeenCalled();
     expect((upstream.mock.calls[0] as unknown as [Request])[0].url).toBe('https://worker.example/mcp');
+  });
+});
+
+describe('links people send one another preview as themselves', () => {
+  afterEach(() => vi.unstubAllGlobals());
+  const origin = new URL('https://worker.example');
+
+  it('a pay link and a tea sit say what they are, and name nobody', () => {
+    expect(sharedLinkMeta('/people/tiya-abc/pay')?.title).toBe('Pay by link');
+    expect(sharedLinkMeta('/sit/AB12')?.title).toBe('A tea sit · Teajia');
+    expect(sharedLinkMeta('/sits/casual/a-sit')?.title).toBe('A tea sit · Teajia');
+    for (const path of ['/people/tiya-abc', '/people/tiya-abc/favorites', '/sit', '/']) {
+      expect(sharedLinkMeta(path), path).toBeNull();
+    }
+  });
+
+  it('a collection carries its own title, note and picture', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => Response.json({
+      collection: { title: 'Teas for Tiya', note: 'Three rock teas.', hero_image_url: 'https://media.teajia.co/c/hero.jpg' },
+      items: [{ image_url: null }], account: { name: 'Teajia' },
+    })));
+    expect(await collectionMeta('teas-for-tiya', origin)).toEqual({
+      title: 'Teas for Tiya', description: 'Three rock teas.', image: 'https://www.teajia.com/api/media/c/hero.jpg',
+    });
+  });
+
+  it('a collection with no note says how many teas and who chose them', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => Response.json({
+      collection: { title: 'Spring', curator_display_name: 'Adrian' },
+      items: [{ image_url: 'https://example.com/a.jpg' }, {}], account: null,
+    })));
+    expect(await collectionMeta('spring', origin)).toEqual({
+      title: 'Spring', description: '2 teas chosen by Adrian.', image: 'https://example.com/a.jpg',
+    });
+  });
+
+  it('a session shows its title and flyer, and a missing one falls back to the site', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => Response.json({ title: 'Saturday rock tea', subtitle: 'Four Wuyi teas', flyer_image_url: 'https://example.com/f.jpg', location_name: 'My house' })));
+    expect(await eventMeta('sat', origin)).toEqual({ title: 'Saturday rock tea · Teajia', description: 'Four Wuyi teas', image: 'https://example.com/f.jpg' });
+    vi.stubGlobal('fetch', vi.fn(async () => Response.json({ error: 'Event not found' }, { status: 404 })));
+    expect(await eventMeta('gone', origin)).toBeNull();
+    expect(await collectionMeta('gone', origin)).toBeNull();
   });
 });

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { LogoEmblem } from '../Logos';
 import { PUBLIC_REFERENCE_ROUTES } from '../navigationConnections';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
+import { INSTAGRAM_URL } from '../../lib/siteMeta';
 
 const links: { label: string; to?: string; href?: string }[] = [
   { label: 'Read', to: '/read' },
@@ -12,7 +13,7 @@ const links: { label: string; to?: string; href?: string }[] = [
   { label: 'People', to: PUBLIC_REFERENCE_ROUTES.people },
   { label: 'Tea Wisdom', to: PUBLIC_REFERENCE_ROUTES.wisdom },
   { label: 'About', to: '/about' },
-  { label: 'Instagram', href: 'https://instagram.com/teajia.journal' },
+  { label: 'Instagram', href: INSTAGRAM_URL },
   { label: 'Contact', href: 'mailto:hello@teajia.com' },
 ];
 
