@@ -20925,7 +20925,7 @@ const handleVerifyConfirm: Handler = async (request, env) => {
     // Any existing row for the address, verified or not, is left alone.
     if (!user) {
       const anyRow = await env.DB.prepare('SELECT 1 FROM users WHERE lower(email) = lower(?) LIMIT 1').bind(contact).first();
-      if (anyRow) return json(genericError, 401);
+      if (anyRow || !/^[^\s@,;<>]+@[^\s@,;<>]+\.[^\s@,;<>]+$/.test(contact)) return json(genericError, 401);
       const id = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
       await env.DB.prepare(
         "INSERT INTO users (id, email, username, name, password_hash, role, email_verified_at) VALUES (?, ?, NULL, '', '', 'user', datetime('now'))"
