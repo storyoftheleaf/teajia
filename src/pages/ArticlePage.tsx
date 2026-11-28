@@ -23,9 +23,7 @@ import type { DbArticle } from '../types';
 import { SharePanel, type SharePage } from '../components/article/SharePanel';
 import { KeepArticle } from '../components/article/KeepArticle';
 import { useArticleWisdomReferences } from './wisdom/ArticleWisdomLinks';
-import { buildPublicProductHref } from '../lib/publicProductNavigation';
-
-export type ArticleTeaReference = { id: string; name: string; detail: string; href: string };
+import { useArticleTeaReferences, type ArticleTeaReference } from '../components/article/useArticleTeaReferences';
 
 const ARTICLE_TEAS_PER_PAGE = 6;
 
@@ -39,28 +37,6 @@ export function paginateArticleTeaReferences(teas: ArticleTeaReference[]): Artic
 
 export function paginateQaItems<T extends { q: string; a: string }>(items: T[]): T[][] {
   return items.map(item => [item]);
-}
-
-export function normalizeArticleTeaReferences(rows: unknown): ArticleTeaReference[] {
-  if (!Array.isArray(rows)) return [];
-  const seen = new Set<string>();
-  const references: ArticleTeaReference[] = [];
-  for (const value of rows) {
-    if (!value || typeof value !== 'object') continue;
-    const row = value as Record<string, unknown>;
-    const id = typeof row.id === 'string' ? row.id.trim() : '';
-    if (!id || seen.has(id)) continue;
-    seen.add(id);
-    const name = String(row.name ?? row.product_name ?? '').trim();
-    if (!name) continue;
-    const detail = [row.type, row.origin_region, row.origin, row.year]
-      .filter(part => typeof part === 'string' && part.trim())
-      .map(String)
-      .filter((part, index, all) => all.indexOf(part) === index)
-      .join(' · ');
-    references.push({ id, name, detail, href: buildPublicProductHref(row) });
-  }
-  return references;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -2529,26 +2505,20 @@ export default function ArticlePage() {
     retry: false,
   });
 
-  const { data: articleTeaRows } = useQuery<Array<Record<string, unknown>>>({
-    queryKey: ['public-xref', 'article-products', article?.id],
-    queryFn: () => api.publicXref.articles(article!.id),
-    enabled: !!article?.id,
-    staleTime: 5 * 60 * 1000,
-  });
+  const teas = useArticleTeaReferences(article);
 
   // The public Wisdom pages this piece cites get a reference page of their own, after its teas.
   const wisdomRefs = useArticleWisdomReferences(article?.wisdom_claim_uses);
   const pages = useMemo(() => {
     if (!article) return [];
     const built = buildPages(article);
-    const teas = normalizeArticleTeaReferences(articleTeaRows);
     if (teas.length === 0 && wisdomRefs.length === 0) return built;
     const endIndex = built.findIndex(page => page.kind === 'end');
     const insertAt = endIndex >= 0 ? endIndex : built.length;
     const teaPages = paginateArticleTeaReferences(teas).map(pageTeas => ({ kind: 'tea_references' as const, teas: pageTeas }));
     const wisdomPages = paginateArticleTeaReferences(wisdomRefs).map(refs => ({ kind: 'tea_references' as const, teas: refs, heading: 'In the Wisdom pages' }));
     return [...built.slice(0, insertAt), ...teaPages, ...wisdomPages, ...built.slice(insertAt)];
-  }, [article, articleTeaRows, wisdomRefs]);
+  }, [article, teas, wisdomRefs]);
   const total = pages.length;
 
   // A link from a creator profile ends in #quote-<contributor id>. That page

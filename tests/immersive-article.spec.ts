@@ -44,6 +44,7 @@ test.beforeEach(async ({ page }) => {
   await page.route('https://images.unsplash.com/**', route => route.fulfill({
     path: PHOTO, contentType: 'image/jpeg', headers: { 'Access-Control-Allow-Origin': '*' },
   }));
+  await page.route('**/api/public/xref/articles/test-immersive/products', route => route.fulfill({ json: [] }));
   // Stub both possible API origins for the by-slug fetch.
   await page.route('**/api/**/articles/**', (route) => {
     if (route.request().url().includes(ARTICLE.slug) || route.request().url().includes('by-slug')) {
@@ -173,4 +174,57 @@ test('immersive reader keeps the app navigation and carries its own back control
 
   // And it still carries its own back control, so the read is never a trap.
   await expect(page.getByTestId('immersive-back')).toBeVisible();
+});
+
+test('published immersive editions show only their distinct public tea references', async ({ page }, testInfo) => {
+  const articlePath = '/article/the-rock-remembers';
+  const productPath = '/shop/product/moonlight-white?store=fixture-estate';
+  const inlinePath = '/shop/product/inline-tea?store=fixture-estate';
+  const attached = {
+    id: 'fixture-tea', slug: 'moonlight-white', product_name: 'Moonlight White',
+    type: 'White', origin_region: 'Yunnan', year: '2025',
+    account_slug: 'fixture-estate', public_path: productPath,
+  };
+  const alreadyLinked = {
+    id: 'inline-tea', product_name: 'Tea already linked in the story',
+    account_slug: 'fixture-estate', public_path: '/shop/product/da-hong-pao?store=fixture-estate',
+  };
+  let withdrawn = false;
+  await page.route('**/api/public/xref/articles/test-immersive/products', route =>
+    route.fulfill({ json: withdrawn ? [] : [attached, attached, alreadyLinked] }));
+  await page.route('**/api/articles/the-rock-remembers', route => route.fulfill({
+    json: { ...ARTICLE, blocks: ARTICLE.blocks.map(block => block.type === 'product_link'
+      ? { ...block, href: inlinePath }
+      : block) },
+  }));
+  await page.route('**/api/s/fixture-estate/products/moonlight-white', route => route.fulfill({
+    json: { ...attached, stock_grams: 100, status: 'Active', retail_price_per_gram_usd: 0.3 },
+  }));
+
+  await page.goto(articlePath);
+  const references = page.getByRole('region', { name: 'Teas in this piece' });
+  const tea = references.getByRole('link', { name: /Moonlight White/ });
+  await expect(tea).toHaveAttribute('href', productPath);
+  await expect(references.getByRole('link')).toHaveCount(1);
+  await expect(page.getByRole('link', { name: /Da Hong Pao/ })).toHaveAttribute('href', inlinePath);
+  await expect(page.getByText('Tea already linked in the story')).toHaveCount(0);
+  await references.scrollIntoViewIfNeeded();
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  await references.screenshot({ path: testInfo.outputPath('edition-tea-references.png') });
+
+  await tea.click();
+  await expect(page).toHaveURL(productPath);
+  await expect(page.getByRole('heading', { name: 'Moonlight White', exact: true }).first()).toBeVisible();
+  await page.goBack();
+  await expect(page).toHaveURL(articlePath);
+  await expect(tea).toBeVisible();
+
+  // A hidden or withdrawn product is omitted by the published xref response.
+  // The reader must render no reference section or fallback when nothing remains.
+  withdrawn = true;
+  const withdrawnReferences = page.waitForResponse('**/api/public/xref/articles/test-immersive/products');
+  await page.reload();
+  await withdrawnReferences;
+  await expect(page.getByTestId('immersive-article')).toBeVisible();
+  await expect(references).toHaveCount(0);
 });
