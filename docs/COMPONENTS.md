@@ -43,6 +43,14 @@ cropper or a photo picker that skips the editor.
 Photos the shop's analysis reads whole (package scans, imports, receipts,
 evidence) skip the editor; the guard above lists each one with its reason.
 
+## What a pasted link shows
+
+| Need | Use | Lives in |
+|---|---|---|
+| The site's title, line, preview picture and Instagram address | `SITE_TITLE`, `SITE_DESCRIPTION`, `SITE_PREVIEW_IMAGE_PATH`, `INSTAGRAM_URL` (index.html carries the same words; a test holds them together) | `src/lib/siteMeta.ts` |
+| A page's own preview for chat apps and search (Read, articles, products, collections, sessions, invoices, sits, /mcp) | one more branch in the edge function, and its path in `public/_routes.json` | `functions/_middleware.ts` |
+| A preview picture | one more entry in `CARDS`, then `npm run share:site` | `scripts/share-site-cards.mjs` |
+
 ## A tea, as the shop shows it
 
 | Need | Use | Lives in |
@@ -106,6 +114,8 @@ The interactive reference for cards, panels and tasting is `/preview/tea-ui/`
 | Coming back to the tasting after joining | `tastingReturnPath` | same file |
 | Continue with Google | `${API_URL}/api/auth/google?return=<path>` | `SignInPage.tsx`, `SignUpPage.tsx` |
 | Who is signed in | `useAuth()` | `src/hooks/useAuth.ts` |
+| The teas an invoice sent someone to keep, at the head of sign-in and sign-up | `KeepTeaserHead` with `keepTeaserFor(destination)` | `src/components/auth/KeepTeaserHead.tsx`, `src/lib/keepTeaser.ts` |
+| An invoice's teas as one row a tea (two packs added up) | `invoiceKeepTeas(lines)` | `src/components/profile/PayInvoiceGuide.tsx` |
 
 Never write `/signin?returnTo=...` by hand.
 

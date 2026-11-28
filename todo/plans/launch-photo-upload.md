@@ -1,5 +1,7 @@
 # Launch photographs: getting them onto the site
 
+> Photo preparation and original shot-list instructions. Select images for a named offer, place or edition. The [current delivery plan](../../docs/CONSOLIDATED_DIRECTION.md) determines which work proceeds.
+
 **For:** an agent picking this up cold. **Written:** 2026-09-24. **Owner of the pictures:** Adrian. **Your job:** take the files he hands you, prepare them, put each one in its place on the live site, and prove every one is showing.
 
 Two lists say WHICH pictures, WHAT each shows, and WHAT SHAPE. They are the source of truth; this file is only the how.

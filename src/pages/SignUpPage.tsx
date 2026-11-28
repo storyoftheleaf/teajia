@@ -5,7 +5,8 @@ import { authPagePath, authReturnTo } from '../lib/authNavigation';
 import { Icons } from '../components/Icons';
 import { API_URL, clearPendingSignup, restorePendingSignup, type PendingSignup } from '../lib/api';
 import { useHeldTitle } from '../hooks/useHeldTitle';
-import { keepTeaserFor, teaCountWords } from '../lib/keepTeaser';
+import { keepTeaserFor } from '../lib/keepTeaser';
+import { KeepTeaserHead } from '../components/auth/KeepTeaserHead';
 
 const inputClass = "w-full bg-tea-surface border border-tea-border rounded-md px-3 py-2 text-ui-14 text-tea-text focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors placeholder-tea-text-dim";
 const labelClass = "block label-caps text-tea-text-sec mb-1.5";
@@ -168,18 +169,7 @@ export default function SignUpPage() {
   return (
     <div className="max-w-md mx-auto px-4 pt-12 pb-nav-gap-lg">
       {keeping ? (
-        <div className="mb-8" data-testid="signup-keeping">
-          <p className="label-caps text-tea-gold mb-2">From {keeping.from}</p>
-          <h1 className="h2">Keep your <span className="italic text-tea-readgold">{teaCountWords(keeping.teas.length)}</span></h1>
-          <ul className="mt-4 border-t border-tea-border">
-            {keeping.teas.map(tea => (
-              <li key={`${tea.name}|${tea.amount}`} className="flex items-center gap-3 border-b border-tea-border py-2">
-                <span className="min-w-0 flex-1 font-body text-ui-15 text-tea-text">{tea.name}</span>
-                {tea.amount && <span className="shrink-0 font-body text-ui-13 tabular-nums text-tea-text-sec">{tea.amount}</span>}
-              </li>
-            ))}
-          </ul>
-        </div>
+        <KeepTeaserHead keeping={keeping} />
       ) : (
       <div className="text-center mb-8">
         <p className="label-caps text-tea-gold mb-2">Teajia</p>

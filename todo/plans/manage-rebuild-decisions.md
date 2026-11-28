@@ -1,5 +1,7 @@
 # Manage rebuild decisions
 
+> Dated owner decisions about Manage and the sourcing workflow. The [current delivery plan](../../docs/CONSOLIDATED_DIRECTION.md) determines which work proceeds.
+
 Adrian approved these 17 decisions on 2026-11-16. The question IDs refer to `todo/plans/tasting-tighten.md` and `todo/plans/manage-rebuild.md` at Git revision `164df368e`. The standing instructions in the rebuild plan still govern the work, including before-and-after screenshots for Adrian’s approval of visible changes.
 
 ## Tasting

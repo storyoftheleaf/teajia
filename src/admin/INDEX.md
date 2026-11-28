@@ -27,4 +27,4 @@
 - Register a new Manage room in `src/components/manageNav.ts` (with its gate in `navigationConnections.ts`) and update [`docs/SITE_MAP.md`](../../docs/SITE_MAP.md) when routes change.
 - Routing or navigation-label changes require explicit confirmation.
 
-Open admin and platform cleanup belongs in [`docs/tracks/08-platform-hardening.md`](../../docs/tracks/08-platform-hardening.md), not in copied route inventories.
+Open admin and platform cleanup belongs in [`docs/CONSOLIDATED_DIRECTION.md`](../../docs/CONSOLIDATED_DIRECTION.md), not in copied route inventories.

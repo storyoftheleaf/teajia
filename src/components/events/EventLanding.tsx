@@ -20,6 +20,7 @@ import { yourTableLine } from '../../lib/yourTablePlace';
 import { SessionSeriesLine } from './SessionSeriesLine';
 import { sessionClock } from '../../../shared/sessionClock';
 import { sessionHasEnded } from '../../../shared/sessionEnd';
+import { SITE_TITLE } from '../../lib/siteMeta';
 
 // ── Public Tea Menu Preview ───────────────────────────────────────────────
 interface PublicTeaMenuProps {
@@ -294,7 +295,7 @@ const EventLanding: React.FC = () => {
     }
 
     return () => {
-      document.title = 'Teajia · A Home for Tea';
+      document.title = SITE_TITLE;
     };
   }, [event]);
 

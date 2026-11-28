@@ -1,10 +1,10 @@
 # Teajia
 
-A unified tea journal, magazine, shop, and inventory management platform.
+Read the [Pillar](docs/PILLAR.md) for the product, [Direction](docs/CONSOLIDATED_DIRECTION.md) for current work and the [document guide](docs/INDEX.md) for technical references.
 
 ## Structure
 
-- **Public site** (`/`, `/magazine`, `/learn`, `/shop`, `/consult`, `/about`) -- Editorial tea journal with magazine articles, photo essays, curated shop, learning hub, and consulting services.
+- **Public site** — Read, Tea table, Tea spaces and Shop. The [section map](docs/SECTIONS.md) explains how these connect.
 - **Admin** (`/admin/*`) -- Private inventory management, invoicing, cost tracking, and analytics. Protected by JWT auth.
 - **Worker API** (`worker/`) -- Cloudflare Worker backend with D1 (SQLite) database for products, invoices, exchange rates, and auth.
 

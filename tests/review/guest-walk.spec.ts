@@ -1,5 +1,5 @@
 /**
- * W1, the guest, start to finish (todo/plans/review-prompts/sol-w1-guest-walk.md).
+ * W1, the guest, start to finish (https://github.com/storyoftheleaf/teajia/blob/4eb502f99c40509176472e9fede440243d23e3ef/todo/plans/review-prompts/sol-w1-guest-walk.md).
  *
  * One guest, Mei, does everything a guest can do across the five launches, on
  * the review rig, in order. Run it once per size, on a fresh rig each time

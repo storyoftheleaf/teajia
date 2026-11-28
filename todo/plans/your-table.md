@@ -1,5 +1,7 @@
 # Your Table: the person's own table, as a real place
 
+> Original account grouping and return-navigation decisions. The [current delivery plan](../../docs/CONSOLIDATED_DIRECTION.md) determines which work proceeds.
+
 Status: proposal, 2026-11-25. Nothing built. It waits on Adrian's yes in [docs/SECTIONS.md](../../docs/SECTIONS.md), decision 6.
 
 > **Revised 2026-11-25, second pass.** Your Table also gains two doors from [guests-and-tea-masters.md](guests-and-tea-masters.md): "Host a table" and "add your table" (private, area only), and favourites in three kinds (articles, shop teas, Tea Chest teas).
@@ -68,7 +70,7 @@ Changes here touch `src/components/AccountPanel/` and routing in `src/App.tsx`, 
 - Reminders or nudges to taste, post or come back.
 - A second tasting screen. The one tasting screen stays the only one.
 - New tile names. Any label change is a separate question to Adrian.
-- A separate Connections page inside Your Table. People are under the Tea Table and places are under Tea Houses. See [connections-page.md](connections-page.md).
+- A separate Connections page inside Your Table. People are under the Tea Table and places are under Tea Houses. See [connections-page.md](https://github.com/storyoftheleaf/teajia/blob/4eb502f99c40509176472e9fede440243d23e3ef/todo/plans/connections-page.md).
 
 ## Open questions
 
