@@ -239,7 +239,9 @@ export async function saveTableTeas(db: D1Database, table: Table, teas: TableTea
     const order = index + 1;
     if (tea.id && kept.has(tea.id)) {
       keptIds.add(tea.id);
-      statements.push(db.prepare(`UPDATE event_tea_menu SET product_id = ?, custom_name = ?, custom_description = ?, photo_url = ?, brew_order = ?
+      // A tea poured from a shelf keeps the tea it was poured from, so the grams can still go back (tablePour.ts).
+      statements.push(db.prepare(`UPDATE event_tea_menu SET product_id = CASE WHEN poured_at IS NOT NULL THEN product_id ELSE ? END,
+          custom_name = CASE WHEN poured_at IS NOT NULL THEN custom_name ELSE ? END, custom_description = ?, photo_url = ?, brew_order = ?
         WHERE id = ? AND event_id = ? AND account_id = ?`)
         .bind(productId, name, tea.from, tea.photo_url, order, tea.id, table.id, table.account_id));
     } else {
@@ -256,6 +258,14 @@ export async function saveTableTeas(db: D1Database, table: Table, teas: TableTea
       .bind(...removed).first<{ n: number }>();
     if (Number(written?.n ?? 0) > 0) {
       return refuse('A guest has written about a tea you took off, so it stays on the table.', 'table_tea_written', 409);
+    }
+  }
+  if (removed.length) {
+    // A pour that took grams off a shelf is taken back on the pour page, where the grams go back with it.
+    const taken = await db.prepare(`SELECT COUNT(*) AS n FROM event_tea_menu WHERE id IN (${marks(removed)}) AND COALESCE(stock_taken_grams, 0) > 0`)
+      .bind(...removed).first<{ n: number }>();
+    if (Number(taken?.n ?? 0) > 0) {
+      return refuse('A tea you took off was poured by weight. Take it back on the pour page, so its grams go back on the shelf.', 'table_tea_poured', 409);
     }
   }
   for (const id of removed) {

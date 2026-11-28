@@ -7,6 +7,8 @@ export type PourTea = {
   created_at: string | null; sample: number;
   /** What a gram sells for on the shelf, in US dollars; null where it is not known. */
   price_per_gram?: number | null;
+  /** At a host's own table: the shop's shelf or the host's own chest. */
+  shelf?: 'shop' | 'chest';
 };
 export type PouredTea = {
   id: string; product_id: string | null; name: string; grams: number | null; short: boolean;

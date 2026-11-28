@@ -7,7 +7,7 @@
 // While Launch 2 is closed (on the site, or still on the worker), and for
 // anyone who is not this table's host, the page is the site's own not-found
 // page, the same as an address that never existed (A10-3, A10-8).
-import { useRef, type FormEvent, type ReactElement } from 'react';
+import { Suspense, lazy, useRef, type FormEvent, type ReactElement } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Navigate, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Button } from '../components/shared/Button';
@@ -31,6 +31,9 @@ import { fewHostsOpen } from '../lib/fewHosts';
 import { PART_QUERY, partView } from '../lib/closedPart';
 import { SiteNotFound } from '../components/SiteNotFound';
 import { LoadFailed } from '../components/shared/LoadFailed';
+
+// The shop's own pour page, given this table: it pours into the table's tea list (`?pour=1`).
+const PourView = lazy(() => import('../admin/views/PourView'));
 
 const PART_NAMES: Record<HostTablePart, string> = { guests: 'Guests', teas: 'Teas', way: 'The way in', after: 'After' };
 const PART_COMPONENTS: Record<HostTablePart, (props: HostTablePartProps) => ReactElement> = {
@@ -57,12 +60,14 @@ function OwnTable() {
     ...PART_QUERY,
   });
   const view = partView(table);
+  const [pouring] = useStepParam('pour');
 
   if (!signedIn) return <Navigate replace to={authPagePath('signin', pathname + search)} />;
   if (!id || view.state === 'closed' || (table.error as { status?: number } | null)?.status === 403) return <SiteNotFound />;
   let content;
   if (!isSessionReady || view.state === 'loading' || view.state === 'off') content = <p className={hostText} role="status">Opening the table…</p>;
   else if (view.state === 'failed') content = <LoadFailed sentence="Could not open the table just now." onRetry={view.retry} />;
+  else if (pouring) return <Suspense fallback={null}><PourView tableId={id} /></Suspense>;
   else content = <TableParts tableId={id} detail={view.data} />;
   return (
     <main className="mx-auto w-full max-w-lg px-4 pt-6 pb-nav" data-host-page="table">
