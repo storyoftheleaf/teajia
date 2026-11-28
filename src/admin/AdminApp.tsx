@@ -96,6 +96,7 @@ import { MagazineView } from './views/MagazineView';
 import { ContributorsView } from './views/ContributorsView';
 import { CollectionsView } from './views/CollectionsView';
 import { CollectionEditView } from './views/CollectionEditView';
+import SentView from './views/SentView';
 import { InboundCollectionView } from './views/InboundCollectionView';
 import { CatalogBrowse } from './views/CatalogBrowse';
 import { NetworkLanding } from './views/NetworkLanding';
@@ -596,6 +597,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
               <Route path="samples" element={<Navigate to={carryQuery("/admin/compass?sampleOrder=manage", location.search)} replace />} />
 
               {/* Operations: staff, admin, owner */}
+              <Route path="sent" element={<ProtectedRoute hasAccess={hasSellBundle} isLoggingIn={!isLoggedIn}><PageTransition><SentView /></PageTransition></ProtectedRoute>} />
               <Route path="activity" element={<ProtectedRoute hasAccess={hasSellBundle} isLoggingIn={!isLoggedIn}><PageTransition><ActivityView products={products} canManageInventory={canManageInventory} /></PageTransition></ProtectedRoute>} />
               <Route path="activity-logs" element={<Navigate to={carryQuery("/admin/activity?tab=log", location.search)} replace />} />
               <Route path="people" element={<ProtectedRoute hasAccess={canUsePeople} isLoggingIn={!isLoggedIn}><PageTransition><PeopleView userRole={userRole || 'user'} /></PageTransition></ProtectedRoute>} />

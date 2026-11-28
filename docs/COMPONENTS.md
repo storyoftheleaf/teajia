@@ -80,7 +80,7 @@ there, so the shop page keeps being the one place the tea is drawn.
 | The cart pill and the "added" moment | `CartIndicator`, `CartToast`, `CartFlyAnimation` | `src/components/shared/` |
 | Send saved teas as a collection | `SendAsCollection` | `src/components/shop/SendAsCollection.tsx` |
 | Collection cart prices (server) | `collectionCart.ts` | `worker/src/collectionCart.ts` |
-| What happened to a sent invoice or collection link (opened, teas looked at, saved, tasted, ordered, paid) | `SendRecordPanel` (Manage), `sendsApi`; record a moment with `recordLinkSignal` | `src/admin/components/SendRecordPanel.tsx`, `src/lib/sendsApi.ts`, `worker/src/sendRecords.ts` |
+| What happened to a sent invoice or collection link (opened, teas looked at, saved, tasted, ordered, paid) | `SendRecordPanel` (Manage), the list of all of them `SentView` (`/admin/sent`), `sendsApi`; record a moment with `recordLinkSignal` | `src/admin/components/SendRecordPanel.tsx`, `src/lib/sendsApi.ts`, `worker/src/sendRecords.ts` |
 
 There is one cart. A collection's or invoice's Add goes into it.
 

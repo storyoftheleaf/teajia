@@ -492,6 +492,13 @@ export const OrdersView = () => {
 
           <button
             type="button"
+            onClick={() => navigate('/admin/sent')}
+            className="tap-target shrink-0 px-2 text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec hover:text-tea-text active:scale-[0.98]"
+          >
+            Sent
+          </button>
+          <button
+            type="button"
             onClick={() => setShowSettlements(true)}
             className="tap-target shrink-0 px-2 text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec hover:text-tea-text active:scale-[0.98]"
           >
