@@ -36,7 +36,7 @@ it('preserves every original row and cell at every migration boundary and leaves
   // (practice lines), 0151 is taken on another branch, 0153 (vendor face
   // originals) is schema only, and 0155 (short codes) writes no rows against this old shop.
   expect(versions).toEqual(['0127', '0128', '0129', '0130', '0131', '0132', '0133', '0134',
-    '0135', '0136', '0138', '0139', '0140', '0141', '0143', '0144', '0145', '0146', '0147', '0148', '0149', '0150', '0152', '0153', '0155', '0156', '0157', '0158', '0159', '0160']);
+    '0135', '0136', '0138', '0139', '0140', '0141', '0143', '0144', '0145', '0146', '0147', '0148', '0149', '0150', '0152', '0153', '0155', '0156', '0157', '0158', '0159', '0160', '0161']);
 });
 
 describe.each([false, true])('older Tea Chest, switches open = %s', open => {

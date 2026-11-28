@@ -11,13 +11,20 @@ export type SessionTeaOffer = {
 };
 
 /**
+ * A tea of Teajia's own shop that is not for sale on this sit: `wisdom` is the
+ * site path of its Wisdom page where one exists, `ask` the shop's WhatsApp
+ * number for "Ask about this tea".
+ */
+export type SessionTeaAsk = { wisdom?: string; ask?: string };
+
+/**
  * A name-only tea carries its name only. A real tea carries its page, year,
  * type and place, and an `offer` (with the price) only when its owner marked
  * it for sale.
  */
 export type PublicSessionTea =
-  | { kind: 'name'; id: string | null; name: string }
-  | {
+  | { kind: 'name'; id: string | null; name: string } & SessionTeaAsk
+  | SessionTeaAsk & {
     kind: 'tea'; id: string | null; name: string; href: string | null;
     year: string | null; type: string | null; place: string | null;
     offer?: SessionTeaOffer;

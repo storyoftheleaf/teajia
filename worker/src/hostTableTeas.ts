@@ -239,7 +239,9 @@ export async function saveTableTeas(db: D1Database, table: Table, teas: TableTea
     const order = index + 1;
     if (tea.id && kept.has(tea.id)) {
       keptIds.add(tea.id);
-      statements.push(db.prepare(`UPDATE event_tea_menu SET product_id = CASE WHEN stock_taken_grams > 0 THEN product_id ELSE ? END, custom_name = ?, custom_description = ?, photo_url = ?, brew_order = ?
+      // A tea poured from a shelf keeps the tea it was poured from, so the grams can still go back (tablePour.ts).
+      statements.push(db.prepare(`UPDATE event_tea_menu SET product_id = CASE WHEN poured_at IS NOT NULL THEN product_id ELSE ? END,
+          custom_name = CASE WHEN poured_at IS NOT NULL THEN custom_name ELSE ? END, custom_description = ?, photo_url = ?, brew_order = ?
         WHERE id = ? AND event_id = ? AND account_id = ?`)
         .bind(productId, name, tea.from, tea.photo_url, order, tea.id, table.id, table.account_id));
     } else {

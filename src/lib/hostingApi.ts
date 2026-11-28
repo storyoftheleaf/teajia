@@ -52,6 +52,8 @@ export interface HostedTableSummary {
   lifecycle_status: string;
   /** The area the public page shows, when the host gave one. In the list, so a new table can start from it. */
   area_hint?: string | null;
+  /** The saved place the table sits at (a tea space, when it is one), in the list answer. */
+  space_id?: string | null;
   guests: { confirmed: number; requested: number; waitlist: number };
   link: string;
 }

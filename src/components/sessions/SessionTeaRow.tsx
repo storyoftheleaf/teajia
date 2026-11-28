@@ -1,8 +1,9 @@
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import type { PublicSessionTea } from '../../../shared/sessionTea';
 import { publicProductToInventoryItem } from '../../lib/adapters';
 import { useAppStore } from '../../lib/store';
 import { normalizeProduct } from '../../lib/storefrontApi';
+import { buildWhatsAppUrl } from '../../lib/whatsapp';
 import type { InventoryItem } from '../../types';
 import { useShopPrice } from '../shop/shopPrice';
 import { TeaLedgerRow } from '../shop/TeaLedger';
@@ -25,14 +26,27 @@ export function sessionOfferItem(product: Record<string, unknown>): InventoryIte
 
 type RowIdentity = Pick<InventoryItem, 'name' | 'year' | 'type' | 'origin'>;
 
+/** "Ask about this tea": WhatsApp to the shop, for a tea with no price on the row. */
+function AskAboutTea({ name, ask }: { name: string; ask: string }) {
+  return (
+    <a href={buildWhatsAppUrl(ask, `Hello, I would like to ask about ${name}.`)} target="_blank" rel="noreferrer"
+      data-testid="ask-about-tea"
+      className="tap-target shrink-0 whitespace-nowrap text-ui-13 text-tea-text-sec underline underline-offset-4 hover:text-tea-text">
+      Ask about this tea
+    </a>
+  );
+}
+
 /** A real tea in the shop's row; for sale when `sale` carries the product. */
-export function SaleTeaRow({ identity, sale, href, count, onOpen }: {
+export function SaleTeaRow({ identity, sale, href, count, onOpen, ask }: {
   identity: RowIdentity;
   sale?: InventoryItem | null;
   href: string | null;
   count?: SaleCount;
   /** Opens the tea in place (a link's own tea page) instead of leaving for its page. */
   onOpen?: () => void;
+  /** The shop's WhatsApp number, for a tea that is not for sale here. */
+  ask?: string;
 }) {
   const navigate = useNavigate();
   const shopPrice = useShopPrice();
@@ -51,7 +65,7 @@ export function SaleTeaRow({ identity, sale, href, count, onOpen }: {
         trailing={sale && href ? (
           <TeaWeighControl item={{ ...sale, name: identity.name }} preferredGrams={50} formatPrice={shopPrice.symbolTotal}
             href={href} count={count ?? (sale.exactPackPriceUsd == null ? 'weigh' : 'pack')} />
-        ) : undefined}
+        ) : ask ? <AskAboutTea name={identity.name} ask={ask} /> : undefined}
       />
     </div>
   );
@@ -65,7 +79,10 @@ export function SessionTeaRow({ tea, onOpen }: { tea: PublicSessionTea; onOpen?:
         <div className="flex min-h-tap items-center gap-2 py-3 sm:gap-2.5">
           {/* An empty plate keeps the name in line with the rows that have one. */}
           <span className="tea-save-tile invisible shrink-0" aria-hidden="true" />
-          <h3 className="min-w-0 break-words font-display text-ui-18 font-medium leading-tight text-tea-text lg:text-ui-20">{tea.name}</h3>
+          <h3 className="min-w-0 flex-1 break-words font-display text-ui-18 font-medium leading-tight text-tea-text lg:text-ui-20">
+            {tea.wisdom ? <Link to={tea.wisdom} className="hover:text-tea-gold">{tea.name}</Link> : tea.name}
+          </h3>
+          {tea.ask && <AskAboutTea name={tea.name} ask={tea.ask} />}
         </div>
       </div>
     );
@@ -75,9 +92,10 @@ export function SessionTeaRow({ tea, onOpen }: { tea: PublicSessionTea; onOpen?:
     <SaleTeaRow
       identity={{ name: tea.name, year: tea.year ?? '', type: tea.type ?? '', origin: tea.place ?? '' }}
       sale={sale}
-      href={tea.href}
+      href={tea.href ?? tea.wisdom ?? null}
       count={tea.offer?.count}
       onOpen={onOpen}
+      ask={tea.offer ? undefined : tea.ask}
     />
   );
 }
