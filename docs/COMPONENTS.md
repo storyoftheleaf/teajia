@@ -33,7 +33,7 @@ cropper or a photo picker that skips the editor.
 |---|---|---|
 | Anyone adds a photo: crop, drag, zoom, straighten | `usePhotoEditor()`: `editPhoto(file)` / `editPhotos(files)` and render `{photoEditor}` | `src/components/shared/usePhotoEditor.tsx` |
 | The editor itself (only reach for it when the hook can't do it, such as reframing a photo already saved) | `SquareCropModal` | `src/components/shared/SquareCropModal.tsx` |
-| Open on the face | automatic for fixed shapes; `centreFace` | `src/lib/faceFrame.ts` |
+| Open on the face | automatic for fixed shapes; the `centreFace` option | `src/components/shared/usePhotoEditor.tsx`, finder in `src/lib/faceFrame.ts` |
 | A photo shown at its own shape (events, posts, teaware, shop photos) | `editPhoto(file, { freeShape: true })` | same hook |
 | A person's photograph: thumbnail, zoom, shape choice, Crop | `PhotographThumb`, `PhotographZoom`, `PhotographShapeChoice`, `PhotographCrop` | `src/components/shared/Photographs.tsx` |
 | Crop maths, framed output size | `cropToSquareBlob`, `framedOutputSize` | `src/lib/cropImage.ts` |
