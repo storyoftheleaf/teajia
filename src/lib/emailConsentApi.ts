@@ -1,5 +1,6 @@
 // Email about tea: the caller's own answers, and the sign-up box carried
 // across Google. Words and rules are in ./emailConsent.
+import { useEffect, useRef, useState } from 'react';
 import { API_URL, authedFetch } from './api';
 
 export type EmailConsentHost = { host_user_id: string; name: string; allowed: boolean; decided_at: string | null };
@@ -24,7 +25,8 @@ export const emailConsentApi = {
   },
   get: (): Promise<MyEmailConsent> => authedFetch(mine()),
   setTeajia: (consent: boolean): Promise<MyEmailConsent> => authedFetch(mine(), { method: 'PUT', body: JSON.stringify({ consent }) }),
-  finishSignup: (consent: boolean): Promise<MyEmailConsent> => authedFetch(`${mine()}/signup`, { method: 'POST', body: JSON.stringify({ consent }) }),
+  finishSignup: (consent: boolean, by: 'google' | 'code' = 'google'): Promise<MyEmailConsent> =>
+    authedFetch(`${mine()}/signup`, { method: 'POST', body: JSON.stringify({ consent, by }) }),
   setHost: (hostUserId: string, allowed: boolean): Promise<MyEmailConsent> =>
     authedFetch(`${mine()}/hosts/${encodeURIComponent(hostUserId)}`, { method: 'PUT', body: JSON.stringify({ allowed }) }),
 };
@@ -58,4 +60,20 @@ export function takeSignupEmailConsent(now = Date.now()): boolean | null {
 export function finishHeldSignupEmailConsent() {
   const held = takeSignupEmailConsent();
   if (held !== null) void emailConsentApi.finishSignup(held).catch(() => undefined);
+}
+
+/**
+ * The sign-up box's state: ticked when the page opens, except where a ticked
+ * box is not consent. A box the person has touched keeps their answer.
+ */
+export function useSignupEmailConsent() {
+  const [checked, setChecked] = useState(false);
+  const touched = useRef(false);
+  useEffect(() => {
+    let live = true;
+    void emailConsentApi.signupDefault().then(ticked => { if (live && !touched.current) setChecked(ticked); });
+    return () => { live = false; };
+  }, []);
+  const choose = (value: boolean) => { touched.current = true; setChecked(value); };
+  return { checked, choose };
 }

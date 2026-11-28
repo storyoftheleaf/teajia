@@ -131,4 +131,31 @@ describe('email code sign-in', () => {
     expect(confirmed.status).toBe(200);
     expect(confirmed.body.user.id).toBe('owner');
   });
+
+  it('makes the account when the code went to an address that has none, so a newcomer never meets "invalid"', async () => {
+    const db = await shopWithOwner();
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const requested = await post(db, '/api/verify/request', { contact: 'Tia@Example.test', purpose: 'signin' }, { DEV_RETURN_VERIFY_CODES: 'true' });
+    expect(requested.status).toBe(202);
+    const confirmed = await post(db, '/api/verify/confirm', { contact: 'tia@example.test', code: requested.body.code, purpose: 'signin' });
+    expect(confirmed.status).toBe(200);
+    expect(confirmed.body).toMatchObject({ token: expect.any(String), user: { email: 'tia@example.test' } });
+    const row = db.sqlite.prepare('SELECT email, email_verified_at, password_hash FROM users WHERE lower(email) = ?').get('tia@example.test') as Record<string, unknown>;
+    expect(row).toMatchObject({ email: 'tia@example.test', password_hash: '' });
+    expect(row.email_verified_at).toBeTruthy();
+    // Signing in again with a new code finds the same account, never a second one.
+    const again = await post(db, '/api/verify/request', { contact: 'tia@example.test', purpose: 'signin' }, { DEV_RETURN_VERIFY_CODES: 'true' });
+    expect(again.status).toBe(429); // the 60-second wait applies to the newcomer too
+    expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM users WHERE lower(email) = ?').get('tia@example.test')).toEqual({ n: 1 });
+  });
+
+  it('never takes over an unfinished sign-up someone else started for that address', async () => {
+    const db = await shopWithOwner();
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    db.sqlite.prepare(`INSERT INTO users (id, email, name, password_hash, role) VALUES ('half', 'half@example.test', '', 'x', 'user')`).run();
+    const requested = await post(db, '/api/verify/request', { contact: 'half@example.test', purpose: 'signin' }, { DEV_RETURN_VERIFY_CODES: 'true' });
+    const confirmed = await post(db, '/api/verify/confirm', { contact: 'half@example.test', code: requested.body.code, purpose: 'signin' });
+    expect(confirmed.status).toBe(403);
+    expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM users WHERE lower(email) = ?').get('half@example.test')).toEqual({ n: 1 });
+  });
 });

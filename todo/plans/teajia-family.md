@@ -1,5 +1,7 @@
 # Teajia family: member pages, photographs in the tasting, photographs on teas
 
+> Member and photograph decisions used by the family implementation. The [current delivery plan](../../docs/CONSOLIDATED_DIRECTION.md) determines which work proceeds.
+
 > **Pointer added 2026-11-26.** The Tea Chest and the tasting journal described here are the base of Launch 1 in [guests-and-tea-masters-build.md](guests-and-tea-masters-build.md): a guest keeps a tea, and tastes from their own chest.
 >
 > **Pointer added 2026-11-25.** Two proposed plans build on this one: [tea-table.md](tea-table.md), one public page of what the family shares, and [your-table.md](your-table.md), the person's own table as a real page. The section map is [docs/SECTIONS.md](../../docs/SECTIONS.md). The decisions below are not reopened. One line is affected if Adrian confirms the proposal: "Not building ... or feed" gains the Tea Table as a named exception. Also note the status line below says "Not live" while the body says merged to main on 2026-11-21; the body is the later word.

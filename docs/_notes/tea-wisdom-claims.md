@@ -1,6 +1,6 @@
 # Tea Wisdom claims — the contract the pilot builds against
 
-Status: pilot contract v2, 2026-11-23 (after Fable review). Plan: [todo/plans/tea-wisdom-pilot-action-plan.md](../../todo/plans/tea-wisdom-pilot-action-plan.md). Types: [src/wisdom/reference/claims.ts](../../src/wisdom/reference/claims.ts).
+Status: pilot contract v2, 2026-11-23 (after Fable review). Plan: [todo/plans/tea-wisdom-pilot-action-plan.md](https://github.com/storyoftheleaf/teajia/blob/4eb502f99c40509176472e9fede440243d23e3ef/todo/plans/tea-wisdom-pilot-action-plan.md). Types: [src/wisdom/reference/claims.ts](../../src/wisdom/reference/claims.ts).
 
 **Draft means off the site, not secret.** This repo is public. Draft pages, the claim ledger, withdrawn revision text and `data/tea-reference/private/` can all be read on GitHub. The ledger never holds source excerpts. Excerpts stay short (single table rows) in `translations.json`.
 

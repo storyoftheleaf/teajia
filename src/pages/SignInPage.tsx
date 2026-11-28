@@ -6,6 +6,11 @@ import { api, API_URL, ApiError } from '../lib/api';
 import { authPagePath, authReturnTo } from '../lib/authNavigation';
 import { TYPOGRAPHY_CLASSES } from '../designTokens';
 import { useHeldTitle } from '../hooks/useHeldTitle';
+import { keepTeaserFor } from '../lib/keepTeaser';
+import { KeepTeaserHead } from '../components/auth/KeepTeaserHead';
+import { SIGNUP_EMAIL_CONSENT_LABEL } from '../lib/emailConsent';
+import { emailConsentApi, holdSignupEmailConsent, useSignupEmailConsent } from '../lib/emailConsentApi';
+import { EmailConsentBox } from '../components/shared/EmailConsentBox';
 
 const inputClass = "w-full bg-tea-surface border border-tea-border rounded-md min-h-tap px-3 py-2 text-ui-16 text-tea-text focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors placeholder-tea-text-dim";
 const labelClass = `${TYPOGRAPHY_CLASSES.label} block text-tea-text-sec mb-1`;
@@ -31,7 +36,13 @@ export default function SignInPage() {
   const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
   const [codeSent, setCodeSent] = useState(false);
-  const [passwordMode, setPasswordMode] = useState(true);
+  // Sent here by an invoice's "Log in to save": the page shows the teas, and
+  // starts on the emailed code, which signs in a returning person and makes
+  // the account for a new one, with one box and no password.
+  const [keeping] = useState(() => keepTeaserFor(destination));
+  const [passwordMode, setPasswordMode] = useState(!keeping);
+  // A newcomer from an invoice joins here, so the sign-up box comes with them.
+  const emailUpdates = useSignupEmailConsent();
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [requestRetryable, setRequestRetryable] = useState(false);
@@ -131,6 +142,7 @@ export default function SignInPage() {
     setLoading(true);
     try {
       await auth.signInWithCode(identifier.trim(), code);
+      if (keeping) void emailConsentApi.finishSignup(emailUpdates.checked, 'code').catch(() => undefined);
     } catch (err: unknown) {
       setError((err as Error)?.message || 'Incorrect code. Please try again.');
     } finally {
@@ -141,14 +153,21 @@ export default function SignInPage() {
 
   return (
     <div className="w-full max-w-sm mx-auto px-5 pt-6 sm:pt-10 pb-nav-gap">
+      {keeping ? <KeepTeaserHead keeping={keeping} className="mb-5" /> : (
       <header className="mb-5">
         <h1 className={`${TYPOGRAPHY_CLASSES.h2} text-tea-text`}>Sign in</h1>
         <p className={`${TYPOGRAPHY_CLASSES.bodyLight} text-tea-text-sec mt-1`}>Welcome back.</p>
         {returnHint && <p className="text-ui-12 text-tea-text-sec mt-2">{returnHint}</p>}
       </header>
+      )}
+
+      {keeping && <div className="mb-4" data-testid="signin-email-consent">
+        <EmailConsentBox id="signin-email-updates" checked={emailUpdates.checked} onChange={emailUpdates.choose} label={SIGNUP_EMAIL_CONSENT_LABEL} />
+      </div>}
 
       <a
         href={`${API_URL}/api/auth/google?return=${encodeURIComponent(authPagePath('signin', destination))}`}
+        onClick={() => { if (keeping) holdSignupEmailConsent(emailUpdates.checked); }}
         className="flex min-h-tap w-full items-center justify-center gap-3 rounded-md border border-tea-border bg-tea-surface px-3 py-2 text-ui-14 text-tea-text transition-colors hover:bg-tea-elevated"
       >
             <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">

@@ -1,5 +1,5 @@
 /**
- * Curate v2: the journeys it must walk (todo/plans/curate-v2-journeys.md).
+ * Curate v2: the journeys it must walk (https://github.com/storyoftheleaf/teajia/blob/4eb502f99c40509176472e9fede440243d23e3ef/todo/plans/curate-v2-journeys.md).
  * Every step says what is on screen, which tab is lit, and where Back lands.
  * Phone size only: this is what Adrian holds at the vendor's table.
  */

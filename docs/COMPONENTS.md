@@ -75,6 +75,7 @@ there, so the shop page keeps being the one place the tea is drawn.
 | An admin number field | `enteredNumber()`, `enteredCostCell()` | `src/admin/productUpdatePayload.ts` |
 | Choosing grams or packs and adding to the cart | `TeaQuantityPicker`, `TeaWeighControl` | `src/components/shop/` |
 | The cart's contents and actions | the cart in the store | `src/lib/store.ts` |
+| An invoice's pay link to hand to someone (short, `teajia.com/i/<number>-<12 of the token>`) | `short_url` on the invoice's `payment`; built by `invoiceShortPath()` | `shared/invoiceShortLink.ts` |
 | The cart panel (shop, owner order, buying basket, in process) | `CartPanel` with `mode` | `src/components/shared/CartPanel.tsx` (`PublicCart`, `AdminCart`, `BuyingBasket`, `InProcess` sit behind it) |
 | One cart line | `CartItemRow` | `src/components/shared/CartItem.tsx` |
 | The cart pill and the "added" moment | `CartIndicator`, `CartToast`, `CartFlyAnimation` | `src/components/shared/` |
@@ -104,6 +105,8 @@ The interactive reference for cards, panels and tasting is `/preview/tea-ui/`
 | Coming back to the tasting after joining | `tastingReturnPath` | same file |
 | Continue with Google | `${API_URL}/api/auth/google?return=<path>` | `SignInPage.tsx`, `SignUpPage.tsx` |
 | Who is signed in | `useAuth()` | `src/hooks/useAuth.ts` |
+| The teas an invoice sent someone to keep, at the head of sign-in and sign-up | `KeepTeaserHead` with `keepTeaserFor(destination)` | `src/components/auth/KeepTeaserHead.tsx`, `src/lib/keepTeaser.ts` |
+| An invoice's teas as one row a tea (two packs added up) | `invoiceKeepTeas(lines)` | `src/components/profile/PayInvoiceGuide.tsx` |
 | Asking whether Teajia or a host may email someone about tea (a box, its words, the saved answer) | `EmailConsentBox`, words in `src/lib/emailConsent.ts`, `emailConsentApi`; senders ask `mayEmailAboutTea` | `src/components/shared/EmailConsentBox.tsx`, `src/lib/emailConsentApi.ts`, `worker/src/emailConsent.ts` |
 
 Never write `/signin?returnTo=...` by hand.

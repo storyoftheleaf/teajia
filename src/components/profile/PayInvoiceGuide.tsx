@@ -7,6 +7,8 @@ import { authPagePath } from '../../lib/authNavigation';
 import { holdKeepTeaser, type KeepTeaser } from '../../lib/keepTeaser';
 import { holdReturnPlace } from '../../hooks/useReturnPlace';
 import { keepPayInvoice } from '../../lib/payInvoiceKeepApi';
+import type { PayLinkTeaLine } from './types';
+import { invoiceShortPath, shortLinkOrigin } from '../../../shared/invoiceShortLink';
 
 const KEEP_PARAM = 'keep';
 
@@ -21,6 +23,21 @@ export function invoiceJoinPath(teaser: Omit<KeepTeaser, 'path'>, mode: 'signup'
   holdKeepTeaser({ ...teaser, path: window.location.pathname });
   holdReturnPlace();
   return authPagePath(mode, `${window.location.pathname}?${back.toString()}`);
+}
+
+// The teas as sign-up, sign-in and the tasting's join card show them: one row a tea, two packs of one tea added up.
+export function invoiceKeepTeas(lines: readonly PayLinkTeaLine[]) {
+  const rows = new Map<string, { name: string; quantity: number; unit: 'g' | 'piece' }>();
+  for (const line of lines) {
+    const key = `${line.product_id ?? line.name}|${line.unit}`;
+    const row = rows.get(key);
+    if (row) row.quantity += line.quantity;
+    else rows.set(key, { name: line.name, quantity: line.quantity, unit: line.unit });
+  }
+  return [...rows.values()].map(row => ({
+    name: row.name,
+    amount: row.unit === 'g' ? `${row.quantity}g` : `${row.quantity} ${row.quantity === 1 ? 'piece' : 'pieces'}`,
+  }));
 }
 
 /**
@@ -89,6 +106,13 @@ export function PayInvoiceAfter({ kept, collection }: {
   );
 }
 
+/** The short form of this invoice's address when it has one, else the address itself. */
+export function invoiceLinkToSend(location: Pick<Location, 'href' | 'origin' | 'search'>): string {
+  const search = new URLSearchParams(location.search);
+  const path = invoiceShortPath(search.get('reference'), search.get('t'));
+  return path ? `${shortLinkOrigin(location.origin)}${path}` : location.href;
+}
+
 /**
  * For the shop that sent it: the link to copy, sitting with the amount and
  * the reference it asks for (Adrian, 2026-11-27).
@@ -97,7 +121,7 @@ export function PayInvoiceSend() {
   const [copied, setCopied] = useState(false);
   const copy = async () => {
     try {
-      await navigator.clipboard.writeText(window.location.href);
+      await navigator.clipboard.writeText(invoiceLinkToSend(window.location));
       setCopied(true);
     } catch { /* the address bar still has it */ }
   };

@@ -281,6 +281,7 @@ import { anyoneHostsOpen } from '../../src/lib/anyoneHosts';
 import { articleWisdomClaimUseRoutes, moveClaimUsesWithBlocks, publicArticleClaimUses } from './articleWisdomClaimUses';
 import { applyFamilyProfileWrite, familyPageAllowsPay, familyPageRoutes, familyPageTierOf, pageWord } from './familyPages'; import { FAMILY_LAST_ACTIVE_COLUMN, FAMILY_PAGE_NOT_HIDDEN_SQL, QUOTE_TASTING_NOT_HIDDEN, personTastings } from './familyPersonTastings'; import { PEOPLE_LIST_COLUMNS, arrangePeopleList } from './peopleList'; import { familyMediaVerdict } from './familyMedia'; import { acknowledgementOpen } from './photographCredit';
 import { normalizeShelfWhatsApp } from '../../shared/shelfContact';
+import { invoiceShortPath, parseInvoiceShortCode, shortLinkOrigin } from '../../shared/invoiceShortLink';
 import { readPersonalTeaMoney } from '../../src/lib/personalTeaMoney';
 import { approvedShelfOfferSql, getOrderableShelfSlug, getPublicShelf, personalInventoryAccessSql, readOfferInput, recordedChestCostSql, shelfContactSql } from './personalShelf';
 import { decideSampleTastingRepeat, sampleTastingEditKey, type StoredSampleTasting } from './sampleTastingRepeat';
@@ -4574,6 +4575,12 @@ export interface InvoicePaymentInfo {
   recipient_slug: string | null;
   recipient_name: string | null;
   pay_url: string | null;
+  /**
+   * The same link, short: teajia.com/i/<invoice number>-<12 of the token>.
+   * What every place that hands a link to a person gives out. Null exactly
+   * when pay_url is; pay_url stays the long form the site's own pages parse.
+   */
+  short_url: string | null;
   has_methods: boolean;
   /** Line items plus shipping, in USD. There is no total column on invoices. */
   total_usd: number;
@@ -4687,6 +4694,7 @@ const NO_PAYMENT: InvoicePaymentInfo = {
   recipient_slug: null,
   recipient_name: null,
   pay_url: null,
+  short_url: null,
   has_methods: false,
   total_usd: 0,
   paid_usd: 0,
@@ -4964,6 +4972,7 @@ async function resolveInvoicePayments(
         recipient_slug: contributorId,
         recipient_name: recipientName,
         pay_url: null,
+        short_url: null,
         has_methods: false,
       });
       continue;
@@ -4981,23 +4990,28 @@ async function resolveInvoicePayments(
         recipient_slug: contributorId,
         recipient_name: recipientName,
         pay_url: null,
+        short_url: null,
         has_methods: true,
       });
       continue;
     }
 
+    const token = await shareTokenFor(invoice, contributorId);
+    const payUrl = withShareToken(buildPayUrl(
+      env,
+      contributorId,
+      linked ? ((account?.slug as string | null) ?? null) : null,
+      amounts.outstanding_usd,
+      invoice.invoice_number ?? null,
+      invoice.display_currency ?? null,
+    ), token);
+    const shortPath = invoiceShortPath(invoice.invoice_number, token);
     resolved.set(invoice.id, {
       ...amounts,
       recipient_slug: contributorId,
       recipient_name: recipientName,
-      pay_url: withShareToken(buildPayUrl(
-        env,
-        contributorId,
-        linked ? ((account?.slug as string | null) ?? null) : null,
-        amounts.outstanding_usd,
-        invoice.invoice_number ?? null,
-        invoice.display_currency ?? null,
-      ), await shareTokenFor(invoice, contributorId)),
+      pay_url: payUrl,
+      short_url: shortPath ? `${shortLinkOrigin(appOrigin(env))}${shortPath}` : payUrl,
       has_methods: true,
     });
   }
@@ -6884,7 +6898,7 @@ const handleFulfillInvoice: Handler = async (request, env) => {
       lineItems,
       amountUsd,
       orderUrl,
-      payment?.pay_url ?? null,
+      payment?.short_url ?? payment?.pay_url ?? null,
     )).catch(() => { /* non-critical */ });
   }
 
@@ -20925,8 +20939,22 @@ const handleVerifyConfirm: Handler = async (request, env) => {
   if (!consumed.meta?.changes) return json(genericError, 401);
 
   if (purpose === 'signin') {
-    const user = await env.DB.prepare(`SELECT id, email, username, name, role, platform_role, session_version, email_verified_at FROM users WHERE lower(email) = lower(?) AND ${independentLogin} LIMIT 1`).bind(contact).first();
-    if (!user) return json(genericError, 401);
+    let user = await env.DB.prepare(`SELECT id, email, username, name, role, platform_role, session_version, email_verified_at FROM users WHERE lower(email) = lower(?) AND ${independentLogin} LIMIT 1`).bind(contact).first();
+    // A code to an address with no account at all makes the account: the code
+    // proved the address, exactly as Google's verified email does. Someone
+    // arriving from an invoice types their email once, never a password
+    // (found 2026-11-28: the code was sent, then refused as "invalid").
+    // Any existing row for the address, verified or not, is left alone.
+    if (!user) {
+      const anyRow = await env.DB.prepare('SELECT 1 FROM users WHERE lower(email) = lower(?) LIMIT 1').bind(contact).first();
+      if (anyRow || !/^[^\s@,;<>]+@[^\s@,;<>]+\.[^\s@,;<>]+$/.test(contact)) return json(genericError, 401);
+      const id = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
+      await env.DB.prepare(
+        "INSERT INTO users (id, email, username, name, password_hash, role, email_verified_at) VALUES (?, ?, NULL, '', '', 'user', datetime('now'))"
+      ).bind(id, contact).run();
+      user = await env.DB.prepare('SELECT id, email, username, name, role, platform_role, session_version, email_verified_at FROM users WHERE id = ?').bind(id).first();
+      if (!user) return json(genericError, 401);
+    }
     if (!user.email_verified_at) {
       return restError(403, 'Complete signup verification or password recovery first', 'email_verification_required');
     }
@@ -28562,6 +28590,50 @@ async function resolveLocalPaymentAmount(
   };
 }
 
+// The short invoice link, teajia.com/i/<invoice number>-<12 of the token>,
+// answered with the long pay link it stands for (Adrian, 2026-11-27). The
+// edge function at functions/i/[code].ts redirects to it, so the pay page is
+// the same page an old long link opens. The lookup needs both halves: the
+// invoice number and the token's first twelve characters (48 bits). Anything
+// that does not match exactly one live invoice is a 404, never a near miss.
+const handleResolveInvoiceShortLink: Handler = async (request, env, params) => {
+  // The answer carries the full token, so guessing is slowed per address.
+  const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+  if (!checkRateLimit(`invoice-link:${ip}`, 30, 60000)) return json({ error: 'Too many requests' }, 429);
+  const parsed = parseInvoiceShortCode(params.code);
+  if (!parsed) return json({ error: 'Link not found' }, 404);
+  const matches = await env.DB.prepare(
+    `SELECT psl.token, psl.contributor_id, i.id, i.account_id, i.invoice_number, i.status, i.payment_status,
+            i.display_currency, i.payment_recipient_user_id, i.sold_by_user_id, i.shipping_cost_usd
+       FROM payment_share_links psl
+       JOIN invoices i ON i.id = psl.invoice_id
+      WHERE psl.token >= ? AND psl.token < ? AND i.invoice_number = ? AND i.deleted_at IS NULL
+      LIMIT 2`
+  ).bind(parsed.tokenPrefix, `${parsed.tokenPrefix}g`, parsed.reference).all();
+  const rows = (matches.results ?? []) as Array<Record<string, any>>;
+  if (rows.length !== 1) return json({ error: 'Link not found' }, 404);
+  const row = rows[0];
+  const payment = await resolveInvoicePayment(env, {
+    id: String(row.id), account_id: String(row.account_id),
+    invoice_number: row.invoice_number ?? null, status: row.status ?? null,
+    payment_status: row.payment_status ?? null, display_currency: row.display_currency ?? null,
+    payment_recipient_user_id: row.payment_recipient_user_id ?? null, sold_by_user_id: row.sold_by_user_id ?? null,
+    shipping_cost_usd: Number(row.shipping_cost_usd || 0),
+  });
+  let longUrl = payment.pay_url;
+  if (!longUrl) {
+    // Paid, void or otherwise not asking for money: the long link still opens
+    // the invoice sheet, so the short one does too, without an amount to send.
+    const store = await env.DB.prepare(
+      `SELECT a.slug FROM contributor_accounts ca JOIN accounts a ON a.id = ca.account_id
+        WHERE ca.contributor_id = ? AND ca.account_id = ? AND a.public_enabled = 1 AND a.status = 'active'`
+    ).bind(row.contributor_id, row.account_id).first<{ slug: string | null }>();
+    longUrl = withShareToken(buildPayUrl(env, String(row.contributor_id), store?.slug ?? null, 0, row.invoice_number ?? null), String(row.token));
+  }
+  const target = new URL(longUrl);
+  return noStoreJson({ path: `${target.pathname}${target.search}` });
+};
+
 const handleGetPublicPaymentMethods: Handler = async (request, env, params) => {
   const contributor = await env.DB.prepare('SELECT id, user_id, account_id, display_name, business_name, portrait_url, avatar_url, page_tier FROM contributors c WHERE c.id = ? AND c.is_published = 1 AND ' + FAMILY_PAGE_NOT_HIDDEN_SQL)
     .bind(params.slug).first<Record<string, any>>();
@@ -28976,7 +29048,8 @@ const handleMintInvoicePayLink: Handler = async (request, env, params) => {
   await logPlatformAction(env, 'pay_access.invoice_link_shared', ctx.userId, ctx.email, 'invoice', row.id as string,
     { recipient_slug: payment.recipient_slug }, ctx.accountId, ctx.accountId);
   return json({
-    url: payment.pay_url,
+    url: payment.short_url ?? payment.pay_url,
+    pay_url: payment.pay_url,
     invoice_number: (row.invoice_number as string | null) ?? null,
     customer_name: (row.customer_name as string | null) ?? null,
     customer_whatsapp: (row.customer_whatsapp as string | null) ?? null,
@@ -34397,6 +34470,7 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/public/people/:slug/top-teas/photos/:photoId', handleGetTopTeaPhoto],
   ['PUT', '/api/public/people/:slug/top-teas/:slot', handlePutTopTea],
   ['DELETE', '/api/public/people/:slug/top-teas/:slot', handleDeleteTopTea],
+  ['GET', '/api/public/invoice-links/:code', handleResolveInvoiceShortLink],
   ['GET', '/api/public/people/:slug/payment-methods', handleGetPublicPaymentMethods],
   ['GET', '/api/public/people/:slug/pay-access', handleGetPayAccess],
   ['POST', '/api/public/people/:slug/pay-access/request', handleRequestPayAccess],
@@ -34903,7 +34977,7 @@ const requestHandler = {
               payment_recipient_user_id: row.payment_recipient_user_id ?? null, sold_by_user_id: row.sold_by_user_id ?? null,
               shipping_cost_usd: Number(row.shipping_cost_usd || 0),
             });
-            return payment.pay_url ?? null;
+            return payment.short_url ?? payment.pay_url ?? null;
           },
         },
         // A host's yes over MCP takes the admin approval's own reservation (Launch 2, H12).

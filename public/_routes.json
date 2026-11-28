@@ -4,6 +4,7 @@
     "/assets/*",
     "/read-assets/*",
     "/api/*",
+    "/i/*",
     "/oauth/*",
     "/mcp",
     "/media/*",

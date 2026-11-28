@@ -7,7 +7,7 @@
 -- user_email_hosts                host by host, whether that host may email
 --                                 them, and when they said so.
 -- email_consent_log               every answer as it was given: when, where
---                                 (signup, signup-google, account) and which
+--                                 (signup, signup-google, signup-code, account) and which
 --                                 version of the words was shown.
 ALTER TABLE users ADD COLUMN email_updates_consent INTEGER CHECK (email_updates_consent IN (0, 1));
 ALTER TABLE users ADD COLUMN email_updates_consent_at TEXT;
@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS email_consent_log (
   user_id         TEXT NOT NULL,
   host_user_id    TEXT,
   consent         INTEGER NOT NULL CHECK (consent IN (0, 1)),
-  source          TEXT NOT NULL CHECK (source IN ('signup', 'signup-google', 'account')),
+  source          TEXT NOT NULL CHECK (source IN ('signup', 'signup-google', 'signup-code', 'account')),
   wording_version TEXT NOT NULL,
   created_at      TEXT NOT NULL
 );

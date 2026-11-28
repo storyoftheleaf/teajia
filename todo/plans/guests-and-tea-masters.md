@@ -1,5 +1,7 @@
 # Guests and tea masters: the two roles everything hangs on
 
+> Historical source for Adrian’s November guest and host decisions. The section names and release stages below reflect the proposal at that time. The [current delivery plan](../../docs/CONSOLIDATED_DIRECTION.md) determines which work proceeds.
+
 > **The build is in its own file (2026-11-26):** [guests-and-tea-masters-build.md](guests-and-tea-masters-build.md) cuts this plan into five launches and numbered work packages, with the rules for running it across several agents. This file is the why; that file is the how and the order. The whiteboard shows both: https://claude.ai/artifact/VmvoJCULgNWbmerUqiVY5i
 
 Status: proposal, 2026-11-25, revised 2026-11-26 from Adrian's second round of answers. Nothing here is built under these words. It is the second pass of the section overhaul in [docs/SECTIONS.md](../../docs/SECTIONS.md), written from Adrian's answers to five questions on 2026-11-25 and from a full read of the documents and the code that day. The first pass drew the sections. This one says what they are for.
@@ -689,9 +691,9 @@ Adrian asked for one more pass over the whole thing: the holes, and what he had 
 - The build: [guests-and-tea-masters-build.md](guests-and-tea-masters-build.md), launches 1 to 5 and their work packages.
 
 - The sections: [docs/SECTIONS.md](../../docs/SECTIONS.md). The other three plans of the overhaul: [tea-table.md](tea-table.md), [tea-houses.md](tea-houses.md), [your-table.md](your-table.md).
-- People: [teajia-family.md](teajia-family.md), [tea-master-onboarding.md](tea-master-onboarding.md), [creator-profiles.md](creator-profiles.md), `worker/src/familyPages.ts`, `worker/src/peopleList.ts`, `src/pages/ContributorProfilePage.tsx`.
+- People: [teajia-family.md](teajia-family.md), [tea-master-onboarding.md](https://github.com/storyoftheleaf/teajia/blob/4eb502f99c40509176472e9fede440243d23e3ef/todo/plans/tea-master-onboarding.md), [creator-profiles.md](creator-profiles.md), `worker/src/familyPages.ts`, `worker/src/peopleList.ts`, `src/pages/ContributorProfilePage.tsx`.
 - Voice and agent tools: [docs/claude/mcp.md](../../docs/claude/mcp.md), `worker/src/mcpTools/events.ts`.
-- Sessions: [docs/superpowers/specs/2026-08-10-events-platform-rebuild-design.md](../../docs/superpowers/specs/2026-08-10-events-platform-rebuild-design.md), `worker/src/eventDomain.ts`, `src/pages/GuestInviteClaimPage.tsx`.
+- Sessions: [docs/superpowers/specs/2026-08-10-events-platform-rebuild-design.md](https://github.com/storyoftheleaf/teajia/blob/4eb502f99c40509176472e9fede440243d23e3ef/docs/superpowers/specs/2026-08-10-events-platform-rebuild-design.md), `worker/src/eventDomain.ts`, `src/pages/GuestInviteClaimPage.tsx`.
 - Home: `src/pages/HomeV2Page.tsx`.
-- Favourites: `src/components/profile/ProfileFavoritesEditor.tsx`, [docs/tracks/01-launch-integrity.md](../../docs/tracks/01-launch-integrity.md).
-- The broader ideas: [docs/TEAJIA_WORKING_BRIEF.md](../../docs/TEAJIA_WORKING_BRIEF.md), [docs/VISION.md](../../docs/VISION.md).
+- Favourites: `src/components/profile/ProfileFavoritesEditor.tsx`, [docs/tracks/01-launch-integrity.md](https://github.com/storyoftheleaf/teajia/blob/4eb502f99c40509176472e9fede440243d23e3ef/docs/tracks/01-launch-integrity.md).
+- The broader ideas: [docs/TEAJIA_WORKING_BRIEF.md](https://github.com/storyoftheleaf/teajia/blob/4eb502f99c40509176472e9fede440243d23e3ef/docs/TEAJIA_WORKING_BRIEF.md), [docs/VISION.md](../../docs/VISION.md).

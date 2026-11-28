@@ -67,6 +67,8 @@ describe('email about tea', () => {
     const again = await (await call('POST', '/api/me/email-consent/signup', 'guest', { consent: true })).json() as any;
     expect(again.teajia.consent).toBe(false);
     expect(await mayEmailAboutTea(env().DB, 'guest')).toBe(false);
+    await call('POST', '/api/me/email-consent/signup', 'host-b', { consent: true, by: 'code' });
+    expect(database.sqlite.prepare('SELECT source FROM email_consent_log WHERE user_id = ?').get('host-b')).toEqual({ source: 'signup-code' });
     const log = database.sqlite.prepare('SELECT consent, source, wording_version FROM email_consent_log WHERE user_id = ? ORDER BY created_at, rowid').all('guest');
     expect(log).toEqual([
       { consent: 1, source: 'signup-google', wording_version: EMAIL_CONSENT_WORDING_VERSION },

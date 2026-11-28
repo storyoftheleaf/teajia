@@ -4546,7 +4546,7 @@ CREATE TABLE IF NOT EXISTS email_consent_log (
   user_id         TEXT NOT NULL,
   host_user_id    TEXT,
   consent         INTEGER NOT NULL CHECK (consent IN (0, 1)),
-  source          TEXT NOT NULL CHECK (source IN ('signup', 'signup-google', 'account')),
+  source          TEXT NOT NULL CHECK (source IN ('signup', 'signup-google', 'signup-code', 'account')),
   wording_version TEXT NOT NULL,
   created_at      TEXT NOT NULL
 );

@@ -17,7 +17,7 @@ type Handler<E> = (request: Request, env: E, params: Record<string, string>) => 
 type Deps<E> = {
   requireUser: (request: Request, env: E) => Promise<{ userId: string } | { error: Response }>;
 };
-export type EmailConsentSource = 'signup' | 'signup-google' | 'account';
+export type EmailConsentSource = 'signup' | 'signup-google' | 'signup-code' | 'account';
 
 function privateJson(value: unknown, status = 200) {
   const response = Response.json(value, { status });
@@ -135,14 +135,16 @@ export function emailConsentRoutes<E extends EmailConsentEnv>(deps: Deps<E>): [s
     return privateJson(await readEmailConsent(env.DB, user.userId));
   };
 
-  // The box from the sign-up page, after Google brought the person back. It
-  // is kept only when the person has not answered yet: an answer already
-  // given, on the account page or an earlier sign-up, stands.
+  // The sign-up box, once the person is signed in by Google or by an emailed
+  // code (which makes the account for a newcomer). It is kept only when the
+  // person has not answered yet: an answer already given stands.
   const finishSignup: Handler<E> = async (request, env) => {
     const user = await deps.requireUser(request, env);
     if ('error' in user) return user.error;
-    const consent = await readBoolean(request, 'consent');
+    const body = await request.json().catch(() => null) as Record<string, unknown> | null;
+    const consent = typeof body?.consent === 'boolean' ? body.consent : null;
     if (consent === null) return privateJson({ error: 'Say consent: true or false.' }, 400);
+    const source: EmailConsentSource = body?.by === 'code' ? 'signup-code' : 'signup-google';
     const at = new Date().toISOString();
     // The log line rides in the same batch, and only when the answer was kept.
     await env.DB.batch([
@@ -150,8 +152,8 @@ export function emailConsentRoutes<E extends EmailConsentEnv>(deps: Deps<E>): [s
         .bind(consent ? 1 : 0, at, user.userId),
       env.DB.prepare(
         `INSERT INTO email_consent_log (id, user_id, host_user_id, consent, source, wording_version, created_at)
-         SELECT ?, id, NULL, ?, 'signup-google', ?, ? FROM users WHERE id = ? AND email_updates_consent_at = ?`
-      ).bind(crypto.randomUUID(), consent ? 1 : 0, EMAIL_CONSENT_WORDING_VERSION, at, user.userId, at),
+         SELECT ?, id, NULL, ?, ?, ?, ? FROM users WHERE id = ? AND email_updates_consent_at = ?`
+      ).bind(crypto.randomUUID(), consent ? 1 : 0, source, EMAIL_CONSENT_WORDING_VERSION, at, user.userId, at),
     ]);
     return privateJson(await readEmailConsent(env.DB, user.userId));
   };
