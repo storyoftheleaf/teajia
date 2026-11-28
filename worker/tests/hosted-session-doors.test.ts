@@ -97,6 +97,26 @@ const slugOf = (id: string) => `${id}-k3x9q2m7wz`;
 /** A guide as a guest reads it, with each photograph's signature taken off (wayMedia.ts signs them per answer). */
 const unsigned = (guide: unknown) => typeof guide === 'string' ? guide.replace(/\?exp=\d+&for=[^&"]+&sig=[0-9a-f]{64}/g, '') : guide;
 
+it('uses the ordinary RSVP request when an old self-attested row exists for a scheduled table', async () => {
+  table('approved-rsvp', 'shop', { door: 'request' });
+  db.sqlite.prepare(`INSERT INTO event_attendees
+      (id, account_id, event_id, user_id, full_name, email, status, magic_token, attended, source)
+    VALUES ('stale-pour-seat', 'shop', 'approved-rsvp', ?, ?, ?, 'confirmed', 'old-shared-sit-seat', 1, 'sit_link')`)
+    .run(ana.userId, ana.name, `${ana.userId}@test.dev`);
+  expect((await call('/api/rsvp/old-shared-sit-seat')).status).toBe(404);
+  expect((await call('/api/rsvp/old-shared-sit-seat/post-session')).status).toBe(404);
+
+  const response = await call(`/api/events/${slugOf('approved-rsvp')}/rsvp`, {
+    actor: ana, method: 'POST', body: { full_name: ana.name, email: `${ana.userId}@test.dev` },
+  });
+  expect(response.status).toBe(201);
+  const requested = await response.json() as { status: string; magic_token: string };
+  expect(requested.status).toBe('requested');
+  expect(requested.magic_token).not.toBe('old-shared-sit-seat');
+  expect(db.sqlite.prepare(`SELECT source FROM event_attendees WHERE id = 'stale-pour-seat'`).get())
+    .toEqual({ source: 'sit_link' });
+});
+
 function guest(id: string, eventId: string, accountId: string, status: string) {
   db.sqlite.prepare(`INSERT INTO event_attendees (id, account_id, event_id, full_name, phone_number, status, magic_token)
     VALUES (?, ?, ?, ?, ?, ?, ?)`).run(id, accountId, eventId, `Guest ${id}`, `+62 811 000 ${id}`, status, `token-${id}`);

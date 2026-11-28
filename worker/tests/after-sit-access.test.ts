@@ -50,7 +50,7 @@ const save = (credential: string, userId?: string, action = 'save', selectedShop
   }, { credential, action });
 
 beforeEach(() => {
-  db = new SqliteD1('migrations', '0130'); // 0130 adds events.is_tasting, which the recap reads
+  db = new SqliteD1('migrations', '0158'); // After-sit checks distinguish casual Pour seats from approved scheduled seats.
   seedIdentity(db, { userId: 'guest', accountId: 'shop-a' });
   seedIdentity(db, { userId: 'different', accountId: 'shop-b' });
   seedIdentity(db, { userId: 'duplicate', accountId: 'shop-a' });

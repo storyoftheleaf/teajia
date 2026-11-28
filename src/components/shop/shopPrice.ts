@@ -44,7 +44,7 @@ import type { CostCurrency } from '../../types';
  *
  *   TeaInventory, Shop, SharedCollection, AlcoveCard, TeawareAlcoveCard,
  *   CompareView, CollectionTab, MyCollection, PublicCart, CartItem,
- *   PopupModal, ProductPage.
+ *   ProductPage.
  *
  * `CartItem` renders once per basket row, so the live subscription count is
  * higher than the component count, and a full basket on the product page is

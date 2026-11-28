@@ -4,12 +4,12 @@ import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { useNotesStore } from '../../lib/notesStore';
 import { api } from '../../lib/api';
 import { useRates, useShopFreightDefault } from '../../admin/hooks/useAdminData';
-import { curateShelfPreview } from './curatePricing';
-import { quotedUnit, tastingLine, listName, splitStockCode } from './curateV2Model';
-import { CURRENCY_LABELS } from './PricingRow';
-import { removeTeaFromDraftOrders } from './orderBuy';
-import { DEFAULT_GRAMS } from './types';
-import { BottomSheet } from './CurateSheet';
+import { curateShelfPreview } from '../curate/curatePricing';
+import { quotedUnit, tastingLine, listName, splitStockCode } from '../curate/curateV2Model';
+import { CURRENCY_LABELS } from '../curate/PricingRow';
+import { removeTeaFromDraftOrders } from '../curate/orderBuy';
+import { DEFAULT_GRAMS } from '../curate/types';
+import { BottomSheet } from '../curate/CurateSheet';
 import { syncCompassEntries } from '../../lib/teaCompassSync';
 // The old Curate's own pieces, mounted rather than copied, so a fix to one is
 // a fix to both Curates.
@@ -19,7 +19,7 @@ import { libraryInlinePatch } from '../TeaCompass/libraryCardWorkflow';
 import { TeaRecordFields } from '../TeaCompass/TeaRecordFields';
 import { TeaReviewDialog } from '../TeaCompass/TeaReviewDialog';
 import { AssistantReview } from '../TeaCompass/TeaRecordAssistant';
-import type { TeaCompassEntry } from './types';
+import type { TeaCompassEntry } from '../curate/types';
 
 interface TeaFaceProps {
   entryId: string;

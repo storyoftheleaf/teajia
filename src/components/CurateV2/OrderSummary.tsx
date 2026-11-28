@@ -1,11 +1,11 @@
-import { orderLinePrice, listName } from './curateV2Model';
+import { orderLinePrice, listName } from '../curate/curateV2Model';
 import React, { useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Check, Minus, Plus } from 'lucide-react';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { useLedgerStore } from '../../lib/ledgerStore';
-import type { TeaCompassEntry, TeaForm } from './types';
-import { GRAM_PRESETS, DEFAULT_GRAMS } from './types';
+import type { TeaCompassEntry, TeaForm } from '../curate/types';
+import { GRAM_PRESETS, DEFAULT_GRAMS } from '../curate/types';
 import type { Currency } from '../../admin/types';
 
 interface OrderSummaryProps {

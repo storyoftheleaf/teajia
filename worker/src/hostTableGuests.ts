@@ -10,6 +10,7 @@
 // same transaction as the seat is taken.
 
 import { sessionMoment } from './sessionWalkthrough';
+import { approvedSeatSourceSql } from './seatRequest';
 import { serveGuestBookReview } from './sessionGuestBook';
 import { reviewGuestBookPhotos } from './sessionGuestBookPhotos';
 import { isAreaRefusal, readTableArea } from './hostTableArea';
@@ -81,6 +82,7 @@ export function sqlNow(now?: number): string {
  */
 export const OLDER_CONFIRMED_SEATS_SQL = (event: string) => `(SELECT COUNT(*) FROM event_attendees older
       WHERE older.event_id = ${event}.id AND older.account_id = ${event}.account_id AND older.status = 'confirmed'
+        AND ${approvedSeatSourceSql(event, 'older')}
         AND NOT EXISTS (SELECT 1 FROM event_party_members seat
           WHERE seat.participation_id = older.id AND seat.event_id = older.event_id AND seat.account_id = older.account_id))`;
 

@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 const read = (rel: string) => readFileSync(new URL(rel, import.meta.url), 'utf8');
 
 describe('supplier link', () => {
-  for (const rel of ['../../components/TeaCompass/VendorStrip.tsx', '../../components/CurateV2/VendorStrip.tsx']) {
+  for (const rel of ['../../components/TeaCompass/VendorStrip.tsx', '../../components/curate/VendorStrip.tsx']) {
     it(`${rel} opens the customer route, not an unread ?customer= param`, () => {
       const source = read(rel);
       expect(source).not.toContain('/admin/people?customer=');

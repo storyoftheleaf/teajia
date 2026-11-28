@@ -47,7 +47,7 @@ async function keep(credential: string, userId: string, teaId: string) {
 }
 
 beforeEach(() => {
-  db = new SqliteD1('migrations', '0128');
+  db = new SqliteD1('migrations', '0158');
   seedIdentity(db, { userId: 'guest-a', accountId: 'shop-a' });
   seedIdentity(db, { userId: 'guest-b', accountId: 'shop-a' });
   db.exec(`

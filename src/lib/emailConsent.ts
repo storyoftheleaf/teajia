@@ -20,7 +20,7 @@ export const ACCOUNT_EMAIL_TEAJIA_LABEL = 'Teajia may email me about new teas an
 export const ACCOUNT_EMAIL_HOSTS_HEADING = 'Hosts who may email me';
 
 /** Said once on the account page, where it matters. */
-export const ORDER_EMAILS_LINE = 'Emails about your orders always come.';
+export const ORDER_EMAILS_LINE = 'Emails about orders and updates will always come to me.';
 
 /**
  * Countries where a box ticked in advance is not consent (GDPR and UK GDPR,

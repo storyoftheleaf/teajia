@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { teaSourcingConnections } from './teaSourcingConnections';
-import type { ShopOrder } from '../components/CurateV2/shopOrders';
+import type { ShopOrder } from '../components/curate/shopOrders';
 import type { InventoryReceipt } from '../admin/types';
 const order = (id: string, tea: string, productId?: string) => ({ id, vendorName: 'Same supplier', items: [{ compassEntryId: tea, productId }] }) as ShopOrder;
 const receipt = (id: string, source: string, product?: string) => ({ id, source_kind: 'purchase_order', source_ref: source, lines: product ? [{product_id: product}] : [] }) as InventoryReceipt;

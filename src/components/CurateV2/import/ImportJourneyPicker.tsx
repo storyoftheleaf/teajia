@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import type { CurateJourney } from '../types';
+import type { CurateJourney } from '../../curate/types';
 import { filterImportJourneys } from './importReviewDomain';
 import type { LookupState } from '../../../lib/api';
 

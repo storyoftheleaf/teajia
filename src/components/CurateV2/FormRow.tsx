@@ -1,6 +1,6 @@
 import React from 'react';
 import { TEA_FORMS } from '../../wisdom';
-import type { TeaForm } from './types';
+import type { TeaForm } from '../curate/types';
 
 interface FormRowProps {
   selected?: TeaForm;
