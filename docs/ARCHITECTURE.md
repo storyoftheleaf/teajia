@@ -1,6 +1,6 @@
 # Teajia Architecture
 
-> Last reviewed: 2026-07-12 for documentation routing. Technical content originated 2026-04-27 and must be verified against current code before implementation. For current state see `STATE_OF_THE_SITE.md`; for active hardening see `tracks/08-platform-hardening.md`.
+> Last reviewed: 2026-07-12 for documentation routing. Technical content originated 2026-04-27 and must be verified against current code before implementation. For the current product and selected repairs, see [the Pillar](PILLAR.md) and [Direction](CONSOLIDATED_DIRECTION.md).
 
 ## 1. Tenancy & Account Model
 

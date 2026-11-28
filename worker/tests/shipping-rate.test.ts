@@ -301,8 +301,8 @@ describe('nothing else in the shop decides the rate', () => {
     // Records of what was done in the past are exempt, since correcting a
     // record is falsifying it; these are the files that instruct.
     const docs: Array<[string, string]> = [
-      ['invoice-intake-flow.md', read('../../docs/invoice-intake-flow.md')],
-      ['build-plan.md', read('../../docs/build-plan.md')],
+      ['docs/CURATE_WORKSPACE.md', read('../../docs/CURATE_WORKSPACE.md')],
+      ['docs/PURCHASE_LOGISTICS.md', read('../../docs/PURCHASE_LOGISTICS.md')],
       ['CLAUDE.md', read('../../CLAUDE.md')],
       ['docs/claude/money.md', read('../../docs/claude/money.md')],
     ];

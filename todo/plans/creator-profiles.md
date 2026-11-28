@@ -1,5 +1,7 @@
 # Creator profiles
 
+> Creator profile decisions and historical design details. The [current delivery plan](../../docs/CONSOLIDATED_DIRECTION.md) determines which work proceeds.
+
 Written 2026-09-19, planning only — no product code in this pass. Branch
 `claude/creator-profiles`, worktree `.claude/worktrees/creator-profiles`.
 
