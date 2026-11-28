@@ -45,6 +45,19 @@ describe('the invoice editor', () => {
     expect(timeline(db)).toEqual(['Invoice TJB-00007 edited: name "Tia" to "Tiya"; date 2026-11-27 to 2026-11-26.']);
   });
 
+  it('renames the customer record when it carried the old name, and leaves a differently named one alone', async () => {
+    const db = seed();
+    db.sqlite.prepare(`INSERT INTO customers (id, account_id, name) VALUES ('c1', 'acc-one', 'Tia')`).run();
+    db.sqlite.prepare(`UPDATE invoices SET customer_id = 'c1' WHERE id = 'inv-1'`).run();
+    const res = await put(db, '/api/invoices/inv-1/details', { customer_name: 'Tiya' });
+    expect(await res.json()).toMatchObject({ customer_renamed: true });
+    expect((db.sqlite.prepare(`SELECT name FROM customers WHERE id = 'c1'`).get() as any).name).toBe('Tiya');
+
+    db.sqlite.prepare(`UPDATE customers SET name = 'Tiya Rao' WHERE id = 'c1'`).run();
+    await put(db, '/api/invoices/inv-1/details', { customer_name: 'T. Rao' });
+    expect((db.sqlite.prepare(`SELECT name FROM customers WHERE id = 'c1'`).get() as any).name).toBe('Tiya Rao');
+  });
+
   it('refuses a date that is not a day, and another account cannot reach the invoice', async () => {
     const db = seed();
     expect((await put(db, '/api/invoices/inv-1/details', { invoice_date: '2026-02-30' })).status).toBe(400);
