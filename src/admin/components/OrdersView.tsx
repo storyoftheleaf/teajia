@@ -22,6 +22,7 @@ import { OrderClaimsFlag, OrderPaymentsPanel } from './OrderPayments';
 import { useAppStore } from '../../lib/store';
 import { SettlementLedger } from './SettlementLedger';
 import { OrderShipping } from './OrderShipping';
+import { SendRecordPanel } from './SendRecordPanel';
 import { TYPOGRAPHY_CLASSES as T } from '../../designTokens';
 
 const ROW_HEIGHT = 36;
@@ -525,6 +526,14 @@ export const OrdersView = () => {
             </span>
           )}
 
+          <Button
+            variant="plain"
+            type="button"
+            onClick={() => navigate('/admin/sent')}
+            className="tap-target shrink-0 px-2 text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec hover:text-tea-text active:scale-[0.98]"
+          >
+            Sent
+          </Button>
           <button
             type="button"
             onClick={() => setShowSettlements(true)}
@@ -918,6 +927,8 @@ export const OrdersView = () => {
                   layout="block"
                   className="mb-6"
                 />}
+
+                {viewingInvoice.status !== 'Void' && <SendRecordPanel kind="invoice" id={viewingInvoice.id} className="mb-6" />}
 
                 {notificationLabel(viewingInvoice) && <p role="status" className="mb-6 rounded-md border border-tea-border bg-tea-surface p-3 text-ui-13 text-tea-text-sec">{notificationLabel(viewingInvoice)}</p>}
 

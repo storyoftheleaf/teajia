@@ -1,5 +1,6 @@
 import { casualSitPublicationRoutes } from './casualSitPublications';
 import { EXPLICIT_INVOICE_ACCESS_SQL, invoiceKeptBy, keepInvoiceForUser, sendsInvoice } from './payInvoiceKeep';
+import { collectionSendRecord, invoiceSendRecord, listSends, recordLinkSignal, viewerIsSender, visitorKey } from './sendRecords';
 import { discountLinePercent, discountPercent, isDiscountLine, readInvoiceDiscount, writeInvoiceDiscount } from './invoiceDiscount';
 import { describeLineChange, planInvoiceDetailsEdit } from './invoiceEdit';
 import { listMyBoughtTeas } from './myBoughtTeas';
@@ -28927,6 +28928,15 @@ const handleGetPayAccess: Handler = async (request, env, params) => {
     await env.DB.prepare(
       `UPDATE payment_share_links SET open_count = open_count + 1, last_opened_at = datetime('now') WHERE id = ?`
     ).bind(link.id).run();
+    // What happened to the invoice after it was sent: sendRecords.ts.
+    if (link.invoice_id) {
+      const invoiceId = link.invoice_id;
+      const bySender = await viewerIsSender(env, link.account_id, viewer?.userId ?? null, [contributor.user_id]);
+      await recordLinkSignal(env, {
+        accountId: link.account_id, link: { kind: 'invoice', invoiceId }, signal: 'opened',
+        viewerUserId: viewer?.userId ?? null, visitorKey: await visitorKey(request, viewer?.userId ?? null, link.id), bySender,
+      });
+    }
     if (viewer && viewer.userId !== contributor.user_id && grant?.status !== 'approved') {
       await env.DB.prepare(
         `INSERT INTO payment_access_grants (id, account_id, contributor_id, grantee_user_id, granted_via, invoice_id, status, approved_at)
@@ -30582,15 +30592,107 @@ const handleGetPublicCollection: Handler = async (_request, env, params) => {
 };
 
 // Public — increment view_count (sessionStorage-guarded client call).
-const handlePublicCollectionView: Handler = async (_request, env, params) => {
+const handlePublicCollectionView: Handler = async (request, env, params) => {
   const pub = await env.DB.prepare(
-    `SELECT id, unpublished_at FROM collection_publications WHERE slug = ?`
-  ).bind(params.slug).first();
+    `SELECT cp.id, cp.unpublished_at, cp.target_type, cp.created_by_user_id, c.account_id
+       FROM collection_publications cp JOIN collections c ON c.id = cp.collection_id WHERE cp.slug = ?`
+  ).bind(params.slug).first<Record<string, any>>();
   if (!pub || pub.unpublished_at) return json({ ok: false }, 404);
   await env.DB.prepare(
     `UPDATE collection_publications SET view_count = view_count + 1 WHERE id = ?`
   ).bind(pub.id).run();
+  // A link sent to someone records who opened it and when (sendRecords.ts); the public shop's own shelf does not.
+  if (pub.target_type !== 'shop' && pub.target_type !== 'store') {
+    const viewer = await optionalAuthenticatedUser(request, env);
+    await recordLinkSignal(env, {
+      accountId: String(pub.account_id), link: { kind: 'collection', publicationId: String(pub.id) }, signal: 'opened',
+      viewerUserId: viewer?.userId ?? null, visitorKey: await visitorKey(request, viewer?.userId ?? null, String(pub.id)),
+      bySender: await viewerIsSender(env, String(pub.account_id), viewer?.userId ?? null, [pub.created_by_user_id]),
+    });
+  }
   return json({ ok: true });
+};
+
+// Public — a tea on a sent link was opened (sendRecords.ts). The page sends
+// which link it is on and the tea; the worker checks the tea is on that link
+// and never answers anything but ok, so it tells a stranger nothing.
+const handlePublicLinkTeaOpened: Handler = async (request, env) => {
+  const body = await request.json().catch(() => null) as Record<string, unknown> | null;
+  const str = (v: unknown, max = 200) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : null);
+  const tea = str(body?.tea, 120);
+  if (!body || !tea) return json({ ok: true });
+  const viewer = await optionalAuthenticatedUser(request, env);
+  if (body.kind === 'collection') {
+    const slug = str(body.slug);
+    if (!slug) return json({ ok: true });
+    const pub = await env.DB.prepare(
+      `SELECT cp.id, cp.created_by_user_id, cp.target_type, c.account_id
+         FROM collection_publications cp JOIN collections c ON c.id = cp.collection_id
+         JOIN collection_items ci ON ci.collection_id = c.id AND ci.product_id = ?
+        WHERE cp.slug = ? AND cp.unpublished_at IS NULL`
+    ).bind(tea, slug).first<Record<string, any>>();
+    if (!pub || pub.target_type === 'shop' || pub.target_type === 'store') return json({ ok: true });
+    await recordLinkSignal(env, {
+      accountId: String(pub.account_id), link: { kind: 'collection', publicationId: String(pub.id) }, signal: 'tea_opened', productId: tea,
+      viewerUserId: viewer?.userId ?? null, visitorKey: await visitorKey(request, viewer?.userId ?? null, String(pub.id)),
+      bySender: await viewerIsSender(env, String(pub.account_id), viewer?.userId ?? null, [pub.created_by_user_id]),
+    });
+    return json({ ok: true });
+  }
+  if (body.kind === 'invoice') {
+    const token = str(body.t, 200);
+    if (!isShareTokenShaped(token)) return json({ ok: true });
+    const link = await env.DB.prepare(
+      `SELECT l.id, l.account_id, l.invoice_id, c.user_id AS contributor_user_id
+         FROM payment_share_links l JOIN contributors c ON c.id = l.contributor_id
+        WHERE l.token = ? AND l.invoice_id IS NOT NULL`
+    ).bind(token).first<Record<string, any>>();
+    if (!link) return json({ ok: true });
+    // The pay page names a second line of the same tea invoice-line-N, in the order the lines were written.
+    let productId: string | null = tea;
+    const lineIndex = /^invoice-line-(\d+)$/.exec(tea);
+    if (lineIndex) {
+      const lines = await loadPayLinkTeaLines(env, String(link.invoice_id), String(link.account_id));
+      productId = lines[Number(lineIndex[1])]?.product_id ?? null;
+    } else {
+      const on = await env.DB.prepare('SELECT 1 FROM invoice_line_items WHERE invoice_id = ? AND product_id = ? LIMIT 1')
+        .bind(link.invoice_id, tea).first();
+      if (!on) productId = null;
+    }
+    if (!productId) return json({ ok: true });
+    await recordLinkSignal(env, {
+      accountId: String(link.account_id), link: { kind: 'invoice', invoiceId: String(link.invoice_id) }, signal: 'tea_opened', productId,
+      viewerUserId: viewer?.userId ?? null, visitorKey: await visitorKey(request, viewer?.userId ?? null, String(link.id)),
+      bySender: await viewerIsSender(env, String(link.account_id), viewer?.userId ?? null, [link.contributor_user_id]),
+    });
+  }
+  return json({ ok: true });
+};
+
+// Manage — every invoice and collection link sent, and what happened to each (sendRecords.ts).
+const handleListSends: Handler = async (request, env) => {
+  const ctx = await requireBundle(request, env, 'sell');
+  if ('error' in ctx) return ctx.error;
+  const url = new URL(request.url);
+  const kind = url.searchParams.get('kind');
+  const sends = await listSends(env, ctx.accountId, {
+    kind: kind === 'invoice' || kind === 'collection' ? kind : undefined,
+    limit: Number(url.searchParams.get('limit')) || 50,
+    customer: url.searchParams.get('q'),
+  });
+  return json({ sends });
+};
+
+const handleGetSend: Handler = async (request, env, params) => {
+  const ctx = await requireBundle(request, env, 'sell');
+  if ('error' in ctx) return ctx.error;
+  const record = params.kind === 'invoice'
+    ? await invoiceSendRecord(env, ctx.accountId, params.id)
+    : params.kind === 'collection'
+      ? await collectionSendRecord(env, ctx.accountId, params.id)
+      : null;
+  if (!record) return json({ error: 'Not found' }, 404);
+  return json(record);
 };
 
 // ── Saved collections — a logged-in user's shelf of collections they've been
@@ -33969,6 +34071,9 @@ const routes: [string, string, Handler][] = [
   // Public collection pages — no auth, link-gated by slug.
   ['GET',  '/api/public/c/:slug', handleGetPublicCollection],
   ['POST', '/api/public/c/:slug/view', handlePublicCollectionView],
+  ['POST', '/api/public/link-tea-opened', handlePublicLinkTeaOpened],
+  ['GET', '/api/admin/sends', handleListSends],
+  ['GET', '/api/admin/sends/:kind/:id', handleGetSend],
   ['POST', '/api/public/c/:slug/confirm', handleConfirmCollectionPicks],
 
   // A logged-in user's saved/received collection shelf (cross-account, keyed on user id).

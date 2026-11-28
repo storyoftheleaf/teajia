@@ -1,6 +1,12 @@
+<<<<<<< HEAD
 ## 2026-11-28: Invoices waiting for payment sit in Your Table
 
 Adrian: "When I receive the payment, where do I mark it as received? Inside of your table should be all of this." Your Table now lists, for anyone who sells, every invoice still owed money: number, name and amount, a buyer who pressed "I've sent payment" first. A row opens that invoice in Sales, now kept in the address as `/admin/activity?invoice=<id>`, where Edit, Record payment and what was sent sit together; "All invoices" opens Sales. A name corrected on an invoice now renames the customer record too, when the customer carried the old name. The section's word "Invoices" is a placeholder for Adrian to name. Files: `src/components/AccountPanel/invoicesWaiting.ts`, `LaunchpadView.tsx`, `OrdersView.tsx`, the details route in `worker/src/index.ts`.
+=======
+## 2026-11-28: Every invoice and collection link keeps a record of what happened to it
+
+Adrian: "Make sure all these invoices and sample sending things are getting saved, monitored and recorded, they're great sources for data." The send itself was already kept (invoices with their lines, discount and pay link; collection links with their teas and quoted prices). What was missing is what the person did with it. `link_signals` (migration `0162_link_signals.sql`, schema only) now records each opening of a pay link or collection link and of each tea on it, with the signed-in person when there is one, a per-link hash to tell visitors apart otherwise, and the shop's own looks marked apart. `worker/src/sendRecords.ts` reads it back with saves (`user_favorites`, `saved_collections`, the invoice kept to an account), tastings (`customer_tasting_journal`), orders from the link (`source_publication_id`, or a cart whose lines carry the link's `collectionSlug`) and payments (`invoice_payments`), so nothing is copied. Past sends such as TJB-00007 and Daniel's samples are in it from their own rows, with their older open counter kept. Manage shows it on the order panel, under each link a collection was sent by (`SendRecordPanel.tsx`), and in one list of everything the account has sent, newest first (Orders › Sent, `/admin/sent`, `SentView.tsx`; each seller sees their own); the connector has `list_sends` and `get_send`; `GET /api/admin/sends`.
+>>>>>>> origin/main
 
 ## 2026-11-28: Invoices are easy to fix
 

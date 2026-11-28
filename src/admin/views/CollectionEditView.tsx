@@ -21,6 +21,7 @@ import type {
   CollectionRecipient, CollectionStatus,
 } from '../../types';
 import { usePhotoEditor } from '../../components/shared/usePhotoEditor';
+import { SendRecordPanel } from '../components/SendRecordPanel';
 
 function formatWhen(iso?: string | null): string {
   if (!iso) return '—';
@@ -682,12 +683,17 @@ export const CollectionEditView: React.FC = () => {
                 {detail.publications.length > 0 && (
                   <ul className="divide-y divide-tea-border bg-tea-surface border border-tea-border rounded-xl overflow-hidden mt-1">
                     {detail.publications.map(pub => (
-                      <PublicationRow
-                        key={pub.id}
-                        pub={pub}
-                        storeNameById={storeNameById}
-                        onUnpublish={() => unpublish(pub.id)}
-                      />
+                      <React.Fragment key={pub.id}>
+                        <PublicationRow
+                          pub={pub}
+                          storeNameById={storeNameById}
+                          onUnpublish={() => unpublish(pub.id)}
+                        />
+                        {/* A link sent to someone carries what they did with it (sendRecords.ts). */}
+                        {pub.target_type !== 'store' && (
+                          <li className="px-4 md:px-6 pb-3 list-none"><SendRecordPanel kind="collection" id={pub.id} /></li>
+                        )}
+                      </React.Fragment>
                     ))}
                   </ul>
                 )}

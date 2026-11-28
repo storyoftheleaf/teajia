@@ -4530,7 +4530,7 @@ WHERE NOT EXISTS (SELECT 1 FROM pay_invoice_keeps k WHERE k.account_id = a.accou
       AND json_extract(r.details, '$.keep_id') = a.id
   );
 
--- Email about tea: the person's answers and when they gave them (migration 0160).
+-- Email about tea: the person's answers and when they gave them (migration 0161).
 ALTER TABLE users ADD COLUMN email_updates_consent INTEGER CHECK (email_updates_consent IN (0, 1));
 ALTER TABLE users ADD COLUMN email_updates_consent_at TEXT;
 CREATE TABLE IF NOT EXISTS user_email_hosts (
@@ -4551,3 +4551,21 @@ CREATE TABLE IF NOT EXISTS email_consent_log (
   created_at      TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_email_consent_log_user ON email_consent_log (user_id, created_at);
+-- 0162_link_signals.sql
+CREATE TABLE IF NOT EXISTS link_signals (
+  id             TEXT PRIMARY KEY,
+  account_id     TEXT NOT NULL,
+  link_kind      TEXT NOT NULL CHECK (link_kind IN ('invoice', 'collection')),
+  invoice_id     TEXT,
+  publication_id TEXT,
+  signal         TEXT NOT NULL CHECK (signal IN ('opened', 'tea_opened')),
+  product_id     TEXT,
+  viewer_user_id TEXT,
+  visitor_key    TEXT NOT NULL,
+  by_sender      INTEGER NOT NULL DEFAULT 0 CHECK (by_sender IN (0, 1)),
+  created_at     TEXT NOT NULL DEFAULT (datetime('now')),
+  CHECK ((link_kind = 'invoice' AND invoice_id IS NOT NULL) OR (link_kind = 'collection' AND publication_id IS NOT NULL))
+);
+CREATE INDEX IF NOT EXISTS idx_link_signals_invoice ON link_signals(invoice_id, created_at) WHERE invoice_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_link_signals_publication ON link_signals(publication_id, created_at) WHERE publication_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_link_signals_account ON link_signals(account_id, created_at);
