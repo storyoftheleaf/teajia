@@ -147,7 +147,7 @@ When Adrian says **"ship"**, follow [the Teajia release handoff](docs/claude/dep
 `/mcp` (scoped tokens, preview/confirm on every write) and `/mcp/public` (read-only). New tools go in `worker/src/mcpTools/` as a module, not into `mcp.ts`. Confirmation tickets come only from `mcpTools/tickets.ts`. Local sessions get the token via `npm run claude`.
 
 ## Open work
-Use [Direction](docs/CONSOLIDATED_DIRECTION.md) to select work and [intake](TODO.md) for new observations.
+Use [Direction](docs/CONSOLIDATED_DIRECTION.md) to select work and [intake](TODO.md) for new observations. When work is built, superseded or abandoned, close its planning entry in the same change. Follow [Keep the plan current](docs/INDEX.md#keep-the-plan-current-as-part-of-the-work) for remaining release or human checks, historical evidence and safe removal of old briefs.
 
 ## Layout and buttons — [docs/claude/layout.md](docs/claude/layout.md)
 - Desktop rail and mobile bottom bar carry the same words from `src/components/navSections.ts` (with every switch on since 2026-11-27: Read, Tea table, Tea spaces, Shop; Adrian chose "tea spaces" over "tea house": a tea house holds one or more tea spaces, and anyone can own a space) — keep them in sync. Craft is no longer a section (Adrian, 2026-11-27): Read holds three shelves, Stories (`/read`), Lessons (`/read/lessons`, what Craft became) and Wisdom (`/wisdom`, glossary at `/wisdom/glossary`). Manage rooms come from `src/components/manageNav.ts` only.

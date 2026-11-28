@@ -13,6 +13,12 @@ Start with the [Pillar](PILLAR.md) to understand the product. Open [Consolidated
 | Evidence | A release, human journey, incident or experiment yields a result | Record the revision and environment in the release receipt, a dated change in the [changelog](CHANGELOG.md), and actual operator/reader/buyer results in [Launch Validation](LAUNCH_VALIDATION.md). Keep private material in its authorized system. |
 | Historical decision | A plan has been replaced and its rationale might matter again | Move any surviving rule or outstanding obligation to the appropriate home above, fix current links and remove the superseded file. Git history retains its dated wording. Historical plans and audit findings confer no build priority. |
 
+## Keep the plan current as part of the work
+
+When a change touches a planned item, reconcile its entry in the same change. If code and tests finish the implementation, remove the build instruction. If publication or a real buyer, host or reader still needs to confirm the result, keep only that outstanding check in its evidence record and link to it from the journey if it still gates the next step. Claim each outcome only when its evidence exists.
+
+When an intake item becomes active, move it into Direction and remove the inbox entry. When a decision changes, replace the outdated rule in its owning document and update its callers. Retire a completed or abandoned brief after carrying forward any unique rule, unresolved obligation or evidence. Check inbound links and executable consumers before deleting it. Use Git history for old wording. If a finding has no bearing on a chosen journey, keep it only if you can name a concrete trigger for reconsideration.
+
 ## References by task
 
 - **Trace one tea** through intake, purchase, Stock and return. [Tea system map](agents/TEA-SYSTEM-MAP.md) · [Curate contract](CURATE_CONSUMER_CONTRACT.md) · [Receiving procedure](PURCHASE_LOGISTICS.md)
