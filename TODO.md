@@ -16,8 +16,11 @@ Capture a new observation here with the affected tea, person or step and the evi
 - [ ] Reconcile the Family photograph-storage reading and the requested legal review of “How we use photographs” before expanding that collection. _(band: you-required)_ _(effort: moderate)_ [Original acceptance request](https://github.com/storyoftheleaf/teajia/blob/4eb502f99c40509176472e9fede440243d23e3ef/TODO.md#L12)
 
 - [ ] Name the list of everything sent (Orders › Sent, `/admin/sent`, a working name) and say whether it should become its own tab in Activity. _(band: you-required)_ _(effort: quick)_
+- [ ] Confirm the three placeholder lines for the email box: on joining "Teajia and the hosts I choose may email me about teas and tables.", in settings "Teajia may email me about new teas and tables." and "Hosts who may email me" (the order line is Adrian's). _(band: you-required)_ _(effort: quick)_ [The words](src/lib/emailConsent.ts)
 
 ## Requests with a trigger
+
+- [ ] When any email other than an order email is built (Teajia letters or a host writing to guests), it sends only to people `mayEmailAboutTea` allows, for Teajia or for that host. _(band: agent-runnable)_ _(effort: quick)_ [Email answers](worker/src/emailConsent.ts)
 
 - [ ] When automatic US postage is proposed, obtain the outbound rate, currency, packed-weight allowance, minimum and covered destinations. _(band: you-required)_ _(effort: quick)_
 - [ ] When a real set or teaware range is ready to offer, confirm each member’s identity, availability, material, capacity and orderability before reopening its Shop tab. _(band: you-required)_ _(effort: moderate)_

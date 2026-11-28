@@ -8,7 +8,7 @@
  * and pay link (invoices, invoice_line_items, payment_share_links), a
  * collection link with its teas and quoted prices (collection_publications,
  * collection_items). The one thing nothing kept was what the person did with
- * it, so `link_signals` (migration 0160) records each opening of the link and
+ * it, so `link_signals` (migration 0161) records each opening of the link and
  * of each tea on it. Everything else is read from its own table, never copied:
  *
  *   saved    user_favorites (the heart), saved_collections (the collection kept)

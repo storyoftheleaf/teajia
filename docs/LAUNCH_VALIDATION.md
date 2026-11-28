@@ -29,6 +29,7 @@ Select the checks that support the release or operating claim being made. The se
 - [ ] **Complete one real inquiry → order → fulfillment loop.** A real customer starts through WhatsApp or email; Jesse confirms quantities, prices, and delivery/pickup; the order is recorded and fulfilled; stock movement and customer-visible detail are checked; customer and operator feedback is captured.
 - [ ] **Test from actual mainland China.** On a mainland network, test public pages, Read, Shop/contact fallback, sign-in OTP, Curate capture/sync, uploads, and service-worker behavior. Include real voice capture/transcription through the configured Groq path; a non-mainland VPN simulation does not close this item. Afterward, read recent `incident_ledger` rows to correlate any transport, timeout, server, or chunk-recovery failures with the observed flow.
 - [ ] **Approve Barry's real material.** Adrian supplies or approves Barry's contributor profile, article attribution, pull quotes, and personal voice. Exercise the real contributor → article → public profile path without inventing or silently rewriting Barry's words.
+- [ ] **Join with the email box on the deployed site.** A real newcomer joins once by email and password and once by Google or an invoice's emailed code. From outside Europe the box opens ticked, from a European connection it opens empty. Each answer shows in Account settings, Email, and changing it there sticks. A guest who sat with a host sees that host listed.
 - [ ] **Perform the manual editorial-boundary and smoke walkthrough.** On the deployed build, walk commerce, authentication, account switching, Read, Curate, events, Journal/Favorites/Cellar, contributor publishing, public bylines, and contact fallback. Confirm drafts do not leak, legacy author fallback remains readable, account boundaries hold in visible behavior, mobile bottom navigation does not cover actions, and only confirmed, known-stock orders can proceed to automatic checkout while uncertain orders retain review.
 
 ## Curate inventory data review
@@ -76,6 +77,12 @@ These do not block launch unless Adrian explicitly promotes one into section A.
 When an item closes, append a short indented evidence note beneath it containing the date, environment/person, and observable result. Link a deployment, screenshot, log, or business record when appropriate, but never paste secrets, OTP values, private customer details, or personal contributor material into this file.
 
 If a check fails, leave it unchecked and link the observed failure to the affected journey in Direction. Do not create another launch checklist.
+
+## Link previews on the live site: 2026-11-28
+
+PR 665 live on www.teajia.com, read with a WhatsApp user agent: the home shell carries "Teajia · A home for tea", Home's two lines and `share/teajia.png` (200, image/png); `/people/<slug>/pay` and `/sit/<code>` carry their own generic previews with `X-Robots-Tag: noindex, nofollow`; `/i/<code>` still redirects to the pay page. A collection fell back to the homepage because its public read took about 3 s against a 2.5 s limit; the follow-up raises the limit for collections and sessions.
+
+- [ ] Paste teajia.com, a collection link and a session link into WhatsApp after the cache clears and confirm each card. _(band: you-required)_
 
 ## US checkout and PayPal acceptance: 2026-11-19
 
