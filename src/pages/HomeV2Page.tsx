@@ -19,6 +19,7 @@ import StoryEditorBar from './read/StoryEditorBar';
 import type { PublicProduct } from '../types';
 import { homeBarOpen } from '../lib/homeBar';
 import { ComeToATable, FromTheTeaTable, HOME_LINES_TODAY, HomeFourDoors, TeaHousesStrip, consultPlatePath } from './home/HomeLaunchFour';
+import { INSTAGRAM_URL, SITE_DESCRIPTION, SITE_TITLE } from '../lib/siteMeta';
 
 /**
  * The home page. Cover C from the 2026-09-20 round, built beside the old page
@@ -175,15 +176,15 @@ const HomeV2Page: React.FC = () => {
     <StoryEditProvider slug={HOME_SLUG}>
     <div className="-mx-4 md:-mx-6 lg:-mr-10 lg:ml-[calc(-2.5rem-var(--teajia-sidebar-w))] lg:-mb-8 bg-tea-bg text-tea-text">
       <Helmet>
-        <title>Teajia. Fine Tea &amp; Teaware</title>
-        <meta name="description" content="Teajia is a home for tea. A place to source, study, and share with those who gather around the leaf." />
-        <meta property="og:title" content="Teajia. Fine Tea &amp; Teaware" />
-        <meta property="og:description" content="Teajia is a home for tea. A place to source, study, and share with those who gather around the leaf." />
+        <title>{SITE_TITLE}</title>
+        <meta name="description" content={SITE_DESCRIPTION} />
+        <meta property="og:title" content={SITE_TITLE} />
+        <meta property="og:description" content={SITE_DESCRIPTION} />
         <meta property="og:type" content="website" />
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="Teajia. Fine Tea &amp; Teaware" />
+        <meta name="twitter:title" content={SITE_TITLE} />
         <link rel="preload" as="image" href={TABLE_PHOTO} />
-        <meta name="twitter:description" content="Teajia is a home for tea. A place to source, study, and share with those who gather around the leaf." />
+        <meta name="twitter:description" content={SITE_DESCRIPTION} />
       </Helmet>
 
       {/* The opener: the statement beside the photograph of the table, the
@@ -333,7 +334,7 @@ const HomeV2Page: React.FC = () => {
             <Link to="/people" className="py-2 hover:text-tea-text transition-colors focus-visible:text-tea-gold">people</Link>
             <Link to="/spaces" className="py-2 hover:text-tea-text transition-colors focus-visible:text-tea-gold">spaces</Link>
             <Link to="/about" className="py-2 hover:text-tea-text transition-colors focus-visible:text-tea-gold">about</Link>
-            <a href="https://instagram.com/teajia.journal" className="py-2 hover:text-tea-text transition-colors focus-visible:text-tea-gold">instagram</a>
+            <a href={INSTAGRAM_URL} className="py-2 hover:text-tea-text transition-colors focus-visible:text-tea-gold">instagram</a>
             <a href="mailto:hello@teajia.com" className="py-2 hover:text-tea-text transition-colors focus-visible:text-tea-gold">contact</a>
           </nav>
         </div>
