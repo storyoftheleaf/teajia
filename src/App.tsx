@@ -259,6 +259,7 @@ import AtlasGate from './atlas/AtlasGate';
 import OldAtlasRedirect from './atlas/OldAtlasRedirect';
 import { usePullToRefresh } from './hooks/usePullToRefresh';
 import { hostCreditOpen } from './lib/hostCredit';
+import { INSTAGRAM_HANDLE, INSTAGRAM_URL, sectionTitle } from './lib/siteMeta';
 
 // View Transitions API feature detection (#46)
 const supportsViewTransitions = typeof document !== 'undefined' && 'startViewTransition' in document;
@@ -442,16 +443,7 @@ const AppContent = () => {
 
   // Update document title on section change
   useEffect(() => {
-    const titles: Record<Section, string> = {
-      HOME: 'Teajia · A Home for Tea',
-      MAGAZINE: 'Magazine · Teajia',
-      SHOP: 'Shop · Teajia',
-      OFFERINGS: 'Advise · Teajia',
-      EVENTS: 'Sessions · Teajia',
-      YOUR_TABLE: 'Your Table · Teajia',
-      ABOUT: 'About · Teajia',
-    };
-    document.title = titles[activeSection] ?? 'Teajia · A Home for Tea';
+    document.title = sectionTitle(activeSection);
   }, [activeSection]);
 
   const setActiveSection = useCallback((section: Section) => {
@@ -1456,7 +1448,7 @@ const AppContent = () => {
                     <div className="flex flex-col items-center">
                         <Icons.Instagram className="w-6 h-6 text-tea-gold mb-2 opacity-80 transition-transform duration-300" />
                         <span className="text-sm uppercase tracking-widest text-tea-text-sec mb-1">Follow Us</span>
-                        <a href="https://www.instagram.com/teajia.foundation/" target="_blank" rel="noopener noreferrer" className="font-serif text-xl text-tea-text hover:text-tea-gold transition-colors duration-300">@teajia.journal</a>
+                        <a href={INSTAGRAM_URL} target="_blank" rel="noopener noreferrer" className="font-serif text-xl text-tea-text hover:text-tea-gold transition-colors duration-300">@{INSTAGRAM_HANDLE}</a>
                     </div>
                 </div>
             </div>

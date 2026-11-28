@@ -4,6 +4,7 @@ Capture a new observation here with the affected tea, person or step and the evi
 
 ## Awaiting facts
 
+- [ ] Pick the words and picture a pasted teajia.com link shows; Home's own two lines are live as a placeholder, and the three options are drawn in the project's link-preview folder. Swap them in `src/lib/siteMeta.ts`, `index.html` and `npm run share:site`. _(band: you-required)_ _(effort: quick)_
 - [ ] Before offering a photographed lot from the November closeout, confirm its identity from the original evidence (15 candidates, six unmatched and two conflicting matches); pots 12, 19, 30 and 33 need identifying views, including a continuous side-to-base view for 33. _(band: you-required)_ _(effort: moderate)_ [Photo handoff](https://github.com/storyoftheleaf/teajia/blob/4eb502f99c40509176472e9fede440243d23e3ef/docs/plans/from-mac/todo/teaware-photo-handoff.md)
 
 - [ ] Recount the seven Wuyi lots flagged on 24 November before relying on their figures, and identify the unpriced Meizhan Yancha 2024 and the unnamed Yancha against the original list. _(band: you-required)_ _(effort: quick)_ [Lots and placeholder weights](https://github.com/storyoftheleaf/teajia/blob/4eb502f99c40509176472e9fede440243d23e3ef/TODO.md#L7)
@@ -24,6 +25,8 @@ Capture a new observation here with the affected tea, person or step and the evi
 - [ ] Before changing schema defaults, verify which tenant, unit, freight, cost and policy defaults still reach writes and rehearse any table rebuild with existing data. _(band: agent-runnable)_ _(effort: moderate)_ [Historical findings and safeguards](https://github.com/storyoftheleaf/teajia/blob/4eb502f99c40509176472e9fede440243d23e3ef/TODO.md#L122-L143)
 
 ## New observations
+
+- [ ] Answer the twelve questions in the Curate and Waiting plan (one list of what needs you, Curate version 2 removed) before slices 4 to 12, including the deletion of version 2; slice 1 is live and slices 2, 3, 7 and 12 need no answer. _(band: you-required)_ _(effort: moderate)_ [Curate and Waiting plan](todo/plans/curate-waiting-consolidation.md)
 
 ### Feature guide (owner walk-throughs)
 

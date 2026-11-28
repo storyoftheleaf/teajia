@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
-
-const SITE_TITLE = 'Teajia · A Home for Tea';
+import { SITE_TITLE } from '../lib/siteMeta';
 
 /**
  * Names the browser tab for as long as the page shows. App names the tab by

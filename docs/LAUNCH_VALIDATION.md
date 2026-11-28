@@ -76,6 +76,12 @@ When an item closes, append a short indented evidence note beneath it containing
 
 If a check fails, leave it unchecked and link the observed failure to the affected journey in Direction. Do not create another launch checklist.
 
+## Link previews on the live site: 2026-11-28
+
+PR 665 live on www.teajia.com, read with a WhatsApp user agent: the home shell carries "Teajia · A home for tea", Home's two lines and `share/teajia.png` (200, image/png); `/people/<slug>/pay` and `/sit/<code>` carry their own generic previews with `X-Robots-Tag: noindex, nofollow`; `/i/<code>` still redirects to the pay page. A collection fell back to the homepage because its public read took about 3 s against a 2.5 s limit; the follow-up raises the limit for collections and sessions.
+
+- [ ] Paste teajia.com, a collection link and a session link into WhatsApp after the cache clears and confirm each card. _(band: you-required)_
+
 ## US checkout and PayPal acceptance: 2026-11-19
 
 Adrian authorized US-only shipping and live PayPal activation after an actual USD14 Sandbox capture was automatically confirmed against a disposable order. The separate live app authenticated successfully, its receiving merchant ID was read from the existing PayPal Business account, and the three payment webhooks were registered. The owner completed PayPal’s contact-information confirmation personally. Credentials are held in Infisical and must be installed securely on the Worker before activation. No real customer payment was created or charged during acceptance.
