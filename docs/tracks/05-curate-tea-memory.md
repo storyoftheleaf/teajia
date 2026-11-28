@@ -19,7 +19,7 @@ Status: the starred-note curation loop is shipped; the active queue contains onl
 
 - [ ] **Render first-door readiness.** `isFirstDoorCandidate`, `firstDoorReadiness`, `FIRST_DOOR_WORKFLOW`, and `OPERATOR_SUPPORT_LINKS` are computed but not rendered. Add the readiness card to the owner/tea-master Your Table experience with progress, the next incomplete step, and existing support links.
 
-- [ ] **Resolve the orphaned brewing QR system.** `BrewingQRCard` points at six nonexistent `/craft/brew/:type` destinations and has no live importer. Either build the six guides and wire the card into a real product/sample/table-card surface, or delete the dead component and route concept. Do not leave generated QR codes pointing at missing pages.
+- [x] **Resolve the orphaned brewing QR system.** Done 2026-11-27: the unused `BrewingQRCard` was deleted with the other unused shared parts (see `docs/COMPONENTS.md`).
 
 - [ ] **Correct journal labels and empty-state links.** Change the ambiguous “Type” sort language to “By tea” while retaining the current understandable sort interaction, and add the specified quiet “Browse teas” link to `/shop` in both journal empty states.
 

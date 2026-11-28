@@ -26,12 +26,24 @@ brief, filled in:
 
 > Review the change on this branch against `origin/main` (`git diff origin/main...HEAD`).
 > Read `CODING_STANDARDS.md` and the MANDATORY sections of `CLAUDE.md` first.
+> Read `docs/COMPONENTS.md`, the catalog of shared parts, and check the
+> change for a second copy: a new component, hook or helper that does most of
+> what a listed part (or any existing code: search `src/` for it) already
+> does, a page that rebuilds a tea's content instead of opening the shop's own
+> page with an add-on on top, a new photo picker or cropper outside
+> `usePhotoEditor`, a sign-in link built by hand. Move each copy onto the
+> shared part, extending the shared part if it needs a new option. A new
+> shared part the change adds goes into the catalog.
 > Read around the changed code enough to understand it. Do not run the full
 > browser suite or the full worker suite; `npm run preflight` is the check.
 > For each real problem: fix it in the files, then list it as one line
 > (file, rule number, what you changed). If something needs a decision you
 > can't make, list it as a question instead of guessing. Ignore style
 > preferences no rule names. Return the list only.
+
+The duplicate check is part of every review, including the one-line ones:
+a second copy is the most common way this site drifts (Adrian, 2026-11-27:
+"It knows what's already built before rebuilding things").
 
 A change that only touches docs, `todo/` or prose needs no subagent: read
 it yourself against the No fine print and voice rules and go to step 4.

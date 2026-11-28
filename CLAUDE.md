@@ -21,12 +21,15 @@ Run `node scripts/tea-wisdom-compose/needs.mjs` (or read the Wisdom Base list on
 ## The tea system map
 How a tea moves from Curate to the shop, the invoice and after the cup, with each step's screen, tools, owner doc and gaps: [docs/agents/TEA-SYSTEM-MAP.md](docs/agents/TEA-SYSTEM-MAP.md). Change its row in the same commit as any change to a step.
 
+## Reuse before building: one shared part, used everywhere (Adrian, 2026-11-27)
+The site is one connected system. Before building any screen, part or feature, look it up in [docs/COMPONENTS.md](docs/COMPONENTS.md) (the catalog of shared parts) and search the code for something that already does it. Use it, and if it falls short, extend the shared part so the change lands site-wide; never copy it and edit the copy. A page that shows a tea opens the shop's own page (`LinkTeaPage`) with its add-on on top, never a rebuild of the tea's content. A new shared part goes into the catalog in the same commit, and a shared part nothing uses is deleted. `review-pr` checks every PR for a second copy.
+
 ## Tea UI reference
 
 Reuse the shared card, panel summary, and tasting parts documented in [the design system](docs/DESIGN_SYSTEM.md#tea-cards-detail-panels-and-tasting). The interactive reference runs locally at `/preview/tea-ui/`.
 
 ## Every photo added goes through the one photo editor
-Anywhere a person adds a photo, it opens in the shared editor first (`usePhotoEditor()` in `src/components/shared/usePhotoEditor.tsx`, which wraps `SquareCropModal`): crop, drag to reposition, zoom, straighten. Faces and avatars open centred on the face (`src/lib/faceFrame.ts`, on the device, served from this site); `freeShape` photos (events, posts, teaware, shop photos) open on their own shape. A photo already shown gets the same editor to reframe it, as the vendor Faces grid does. Never write a new cropper or a bare `<input type="file">` that uploads a picture straight. The exceptions are photos the shop's analysis reads whole (package scans, imports, receipts, evidence) and places that already keep the original with a frame (tastings, family photos, contributor pages). (Adrian, 2026-11-25.)
+Anywhere a person adds a photo, it opens in the shared editor first (`usePhotoEditor()` in `src/components/shared/usePhotoEditor.tsx`, which wraps `SquareCropModal`): crop, drag to reposition, zoom, straighten. Faces and avatars open centred on the face (`src/lib/faceFrame.ts`, on the device, served from this site); `freeShape` photos (events, posts, teaware, shop photos) open on their own shape. A photo already shown gets the same editor to reframe it, as the vendor Faces grid does. Never write a new cropper or a bare `<input type="file">` that uploads a picture straight. The exceptions are photos the shop's analysis reads whole (package scans, imports, receipts, evidence) and places that already keep the original with a frame (tastings, family photos, contributor pages). Guard: `src/admin/guards/onePhotoEditor.test.ts`. (Adrian, 2026-11-25.)
 
 ## Handoffs (standing rule, global)
 
