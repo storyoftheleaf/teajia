@@ -20,6 +20,7 @@ import { boughtLineChestState, boughtLineQuantityUnit, keepBoughtLine, type Boug
 import { firstTableOpen } from '../../src/lib/firstTable';
 import { createHostArticleHandlers, isHostArticleId } from './hostArticleOffers';
 import { favouritesRoutes } from './favourites';
+import { emailConsentErasureStatements, emailConsentRoutes, signupEmailConsentStatements } from './emailConsent';
 import { practiceColumnsRemoved, practiceLinesRoutes } from './practiceLines';
 import { servesAtRoutes } from './servesAt';
 import { setTeaSpaceShown, teaSpacesPageRoutes } from './teaSpacesPage';
@@ -1988,7 +1989,7 @@ const handleLogin: Handler = async (request, env) => {
 const USERNAME_PATTERN = /^[a-zA-Z0-9_.-]{3,32}$/;
 
 const handleSignup: Handler = async (request, env) => {
-  const body = await request.json() as { email?: string; password?: string; name?: string; username?: string };
+  const body = await request.json() as { email?: string; password?: string; name?: string; username?: string; email_updates?: unknown };
   const email = body.email?.trim();
   const password = body.password;
   const name = body.name;
@@ -2031,6 +2032,10 @@ const handleSignup: Handler = async (request, env) => {
   await env.DB.prepare(
     'INSERT INTO users (id, email, username, name, password_hash, role) VALUES (?, ?, ?, ?, ?, ?)'
   ).bind(id, email, username, name || '', passwordHash, 'user').run();
+  // The sign-up box: Teajia's answer, kept with when and which words were shown.
+  if (typeof body.email_updates === 'boolean') {
+    await env.DB.batch(signupEmailConsentStatements(env.DB, id, body.email_updates, 'signup'));
+  }
 
   const code = generateVerificationCode();
   const codeHash = await signVerificationCode(code, env.VERIFICATION_CODE_SECRET || env.JWT_SECRET);
@@ -2044,6 +2049,7 @@ const handleSignup: Handler = async (request, env) => {
   if (!delivery.delivered && env.DEV_RETURN_VERIFY_CODES !== 'true') {
     await env.DB.batch([
       env.DB.prepare('DELETE FROM identity_email_verifications WHERE user_id = ?').bind(id),
+      ...emailConsentErasureStatements(env.DB, id),
       env.DB.prepare('DELETE FROM users WHERE id = ?').bind(id),
     ]);
     return restError(503, 'We could not send the verification code', 'verification_delivery_failed', { retryable: delivery.retryable });
@@ -2377,6 +2383,7 @@ const handleDeleteAccount: Handler = async (request, env) => {
     env.DB.prepare('DELETE FROM refresh_tokens WHERE user_id = ?').bind(claims.sub),
     env.DB.prepare("UPDATE mcp_tokens SET revoked_at = datetime('now') WHERE user_id = ? AND revoked_at IS NULL").bind(claims.sub),
     env.DB.prepare('DELETE FROM account_members WHERE user_id = ?').bind(claims.sub),
+    ...emailConsentErasureStatements(env.DB, claims.sub),
     env.DB.prepare('DELETE FROM users WHERE id = ?').bind(claims.sub),
   ]); } catch (error) {
     // The batch is one transaction, so nothing was removed. Older records
@@ -2577,6 +2584,7 @@ const handleDeleteUser: Handler = async (request, env, params) => {
     env.DB.prepare('UPDATE event_attendees SET user_id = NULL WHERE user_id = ?').bind(userId),
     env.DB.prepare('DELETE FROM customer_tasting_journal WHERE user_id = ?').bind(personJournalOwner(userId)),
     env.DB.prepare("UPDATE mcp_tokens SET revoked_at = datetime('now') WHERE user_id = ? AND revoked_at IS NULL").bind(userId),
+    ...emailConsentErasureStatements(env.DB, userId),
     env.DB.prepare('DELETE FROM users WHERE id = ?').bind(userId),
   ]);
   await eraseFamilyPhotoFiles(env.MEDIA_BUCKET, familyPhotoKeys);
@@ -5084,6 +5092,11 @@ export interface JourneyInvoice {
   payment_date: string | null;
   fulfilled_at: string | null;
   money: JourneyMoney;
+  /**
+   * The customer saved it from its pay link, which showed them the amount to
+   * send. A Draft so kept is an invoice to pay, not an order being put together.
+   */
+  kept_from_pay_link?: boolean;
 }
 
 export interface JourneyInput {
@@ -5195,7 +5208,7 @@ function derivedStage(invoice: JourneyInvoice | null): OrderJourneyStage {
   if (!invoice) return 'received';
   if (String(invoice.status || '') === 'Void') return 'closed';
   if (invoice.fulfilled_at) return 'sent';
-  if (String(invoice.status || '') === 'Draft') return 'confirmed';
+  if (String(invoice.status || '') === 'Draft' && !invoice.kept_from_pay_link) return 'confirmed';
   const { total_usd: total, paid_usd: paid, outstanding_usd: outstanding } = invoice.money;
   // An order with no lines and no shipping has not been priced yet, whatever
   // the arithmetic says about its balance. Zero outstanding on zero total is
@@ -5230,6 +5243,7 @@ export function deriveOrderJourney(input: JourneyInput): OrderJourney {
 
 /** One order as the journey needs it. The money arrives from the payment map. */
 export interface JourneyInvoiceRow {
+  account_id?: string | null;
   shipping_quote_status?: string | null;
   id: string;
   status: string | null;
@@ -5276,6 +5290,7 @@ async function resolveOrderJourneys(
     }
   }
 
+  const kept = await invoicesKeptFromPayLink(env, invoices);
   for (const invoice of invoices) {
     const request = requests.get(invoice.id);
     journeys.set(invoice.id, deriveOrderJourney({
@@ -5288,10 +5303,32 @@ async function resolveOrderJourneys(
         payment_date: invoice.payment_date,
         fulfilled_at: invoice.fulfilled_at,
         money: payments.get(invoice.id) ?? NO_JOURNEY_MONEY,
+        kept_from_pay_link: kept.has(invoice.id),
       },
     }));
   }
   return journeys;
+}
+
+/** Which of these invoices a customer saved from the invoice's own pay link. */
+async function invoicesKeptFromPayLink(
+  env: Env,
+  invoices: Array<{ id: string; account_id?: string | null }>,
+): Promise<Set<string>> {
+  const kept = new Set<string>();
+  const accountOf = new Map(invoices.map(invoice => [invoice.id, invoice.account_id ?? null]));
+  const ids = [...accountOf.keys()].filter(Boolean);
+  for (let start = 0; start < ids.length; start += 90) {
+    const chunk = ids.slice(start, start + 90);
+    const result = await env.DB.prepare(
+      `SELECT invoice_id, account_id FROM invoice_keep_grants WHERE invoice_id IN (${chunk.map(() => '?').join(', ')})`
+    ).bind(...chunk).all();
+    for (const row of (result.results ?? []) as Array<Record<string, any>>) {
+      const account = accountOf.get(row.invoice_id as string);
+      if (account == null || account === row.account_id) kept.add(row.invoice_id as string);
+    }
+  }
+  return kept;
 }
 
 // ── Payment ledger ───────────────────────────────────────────────────────────
@@ -16600,6 +16637,7 @@ const handleGetInquiryByRef: Handler = async (request, env, params, execution) =
         payment_date: (invoice.payment_date as string | null) ?? null,
         fulfilled_at: (invoice.fulfilled_at as string | null) ?? null,
         money: payment,
+        kept_from_pay_link: (await invoicesKeptFromPayLink(env, [{ id: invoice.id as string, account_id: invoice.account_id as string }])).has(invoice.id as string),
       };
       const notification = await env.DB.prepare(
         'SELECT state FROM order_whatsapp_outbox WHERE invoice_id=? AND account_id=?'
@@ -25862,6 +25900,7 @@ async function listMyOrders(env: Env, userId: string, legacyAccountId: string) {
   // than read again: one more query for the whole page, not one per order.
   const journeys = await resolveOrderJourneys(env, rows.map(row => ({
     id: row.id as string,
+    account_id: row.account_id as string | null,
     status: row.status as string | null,
     created_at: row.created_at as string | null,
     payment_date: row.payment_date as string | null,
@@ -25943,6 +25982,7 @@ const handleGetMyOrderDetail: Handler = async (request, env, params) => {
 
   const journeys = await resolveOrderJourneys(env, [{
     id: invoice.id as string,
+    account_id: invoice.account_id as string | null,
     status: invoice.status as string | null,
     created_at: invoice.created_at as string | null,
     payment_date: (invoice.payment_date as string | null) ?? null,
@@ -34178,6 +34218,7 @@ const routes: [string, string, Handler][] = [
   ['DELETE', '/api/me/private-sits/:id/photos/:photoId', handleMemberPrivateSitPhotos],
   ['PUT', '/api/me/private-sits/:id/photos/:photoId/share', handleMemberPrivateSitPhotos],
   ...favouritesRoutes<Env>({ requireUser: requireAuthenticatedUser }),
+  ...emailConsentRoutes<Env>({ requireUser: requireAuthenticatedUser }),
   ...practiceLinesRoutes<Env>({ optionalUser: optionalAuthenticatedUser, requireUser: requireAuthenticatedUser }),
   ...servesAtRoutes<Env>(),
   ...teaSpacesPageRoutes<Env>(),

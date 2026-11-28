@@ -1840,11 +1840,11 @@ export const api = {
       });
       return handleResponse(res);
     },
-    signup: async (email: string, password: string, name: string, username?: string | null): Promise<PendingSignup> => {
+    signup: async (email: string, password: string, name: string, username?: string | null, emailUpdates?: boolean): Promise<PendingSignup> => {
       const res = await fetchWithTimeout(`${API_URL}/api/auth/signup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, name, username: username || undefined }),
+        body: JSON.stringify({ email, password, name, username: username || undefined, email_updates: emailUpdates }),
       });
       const result = await handleResponse(res) as { verification_required?: boolean; signup_token?: string };
       if (!result.verification_required || !result.signup_token) {

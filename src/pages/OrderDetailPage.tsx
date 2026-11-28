@@ -11,7 +11,7 @@ import { formatOrderAmount } from '../lib/orderMoney';
 import { PayOrderAction } from '../components/shared/PayOrderAction';
 import { ReportPaymentAction } from '../components/shared/ReportPaymentAction';
 import { OrderJourneyStatus } from '../components/shared/OrderJourneyStatus';
-import { normalizeJourney, showsPaymentActions } from '../components/shared/orderJourneyDomain';
+import { normalizeJourney, offersOrderPayment } from '../components/shared/orderJourneyDomain';
 
 function formatDate(value: string | null): string | null {
   if (!value) return null;
@@ -57,7 +57,7 @@ export default function OrderDetailPage() {
   const order = query.data;
   const isMissing = query.error instanceof ApiError && query.error.status === 404;
   const journey = normalizeJourney(order?.journey);
-  const offersPayment = order?.status !== 'Draft' && order?.status !== 'Void' && showsPaymentActions(journey, order?.payment);
+  const offersPayment = offersOrderPayment(order?.status, journey, order?.payment);
 
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 pt-8 pb-nav-gap-lg animate-[fadeIn_0.5s_ease-out]">

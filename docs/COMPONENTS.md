@@ -115,6 +115,7 @@ The interactive reference for cards, panels and tasting is `/preview/tea-ui/`
 | Who is signed in | `useAuth()` | `src/hooks/useAuth.ts` |
 | The teas an invoice sent someone to keep, at the head of sign-in and sign-up | `KeepTeaserHead` with `keepTeaserFor(destination)` | `src/components/auth/KeepTeaserHead.tsx`, `src/lib/keepTeaser.ts` |
 | An invoice's teas as one row a tea (two packs added up) | `invoiceKeepTeas(lines)` | `src/components/profile/PayInvoiceGuide.tsx` |
+| Asking whether Teajia or a host may email someone about tea (a box, its words, the saved answer) | `EmailConsentBox`, words in `src/lib/emailConsent.ts`, `emailConsentApi`; senders ask `mayEmailAboutTea` | `src/components/shared/EmailConsentBox.tsx`, `src/lib/emailConsentApi.ts`, `worker/src/emailConsent.ts` |
 
 Never write `/signin?returnTo=...` by hand.
 

@@ -4529,3 +4529,25 @@ WHERE NOT EXISTS (SELECT 1 FROM pay_invoice_keeps k WHERE k.account_id = a.accou
     WHERE r.account_id = a.account_id AND r.invoice_id = a.invoice_id AND r.action = 'pay_invoice.released'
       AND json_extract(r.details, '$.keep_id') = a.id
   );
+
+-- Email about tea: the person's answers and when they gave them (migration 0160).
+ALTER TABLE users ADD COLUMN email_updates_consent INTEGER CHECK (email_updates_consent IN (0, 1));
+ALTER TABLE users ADD COLUMN email_updates_consent_at TEXT;
+CREATE TABLE IF NOT EXISTS user_email_hosts (
+  user_id      TEXT NOT NULL,
+  host_user_id TEXT NOT NULL,
+  allowed      INTEGER NOT NULL CHECK (allowed IN (0, 1)),
+  decided_at   TEXT NOT NULL,
+  PRIMARY KEY (user_id, host_user_id)
+);
+CREATE INDEX IF NOT EXISTS idx_user_email_hosts_host ON user_email_hosts (host_user_id, allowed);
+CREATE TABLE IF NOT EXISTS email_consent_log (
+  id              TEXT PRIMARY KEY,
+  user_id         TEXT NOT NULL,
+  host_user_id    TEXT,
+  consent         INTEGER NOT NULL CHECK (consent IN (0, 1)),
+  source          TEXT NOT NULL CHECK (source IN ('signup', 'signup-google', 'signup-code', 'account')),
+  wording_version TEXT NOT NULL,
+  created_at      TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_email_consent_log_user ON email_consent_log (user_id, created_at);
