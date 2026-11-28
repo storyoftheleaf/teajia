@@ -75,6 +75,7 @@ there, so the shop page keeps being the one place the tea is drawn.
 | An admin number field | `enteredNumber()`, `enteredCostCell()` | `src/admin/productUpdatePayload.ts` |
 | Choosing grams or packs and adding to the cart | `TeaQuantityPicker`, `TeaWeighControl` | `src/components/shop/` |
 | The cart's contents and actions | the cart in the store | `src/lib/store.ts` |
+| An invoice's pay link to hand to someone (short, `teajia.com/i/<number>-<12 of the token>`) | `short_url` on the invoice's `payment`; built by `invoiceShortPath()` | `shared/invoiceShortLink.ts` |
 | The cart panel (shop, owner order, buying basket, in process) | `CartPanel` with `mode` | `src/components/shared/CartPanel.tsx` (`PublicCart`, `AdminCart`, `BuyingBasket`, `InProcess` sit behind it) |
 | One cart line | `CartItemRow` | `src/components/shared/CartItem.tsx` |
 | The cart pill and the "added" moment | `CartIndicator`, `CartToast`, `CartFlyAnimation` | `src/components/shared/` |
