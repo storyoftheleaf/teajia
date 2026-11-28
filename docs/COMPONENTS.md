@@ -90,6 +90,7 @@ there, so the shop page keeps being the one place the tea is drawn.
 | Send saved teas as a collection | `SendAsCollection` | `src/components/shop/SendAsCollection.tsx` |
 | Collection cart prices (server) | `collectionCart.ts` | `worker/src/collectionCart.ts` |
 | What happened to a sent invoice or collection link (opened, teas looked at, saved, tasted, ordered, paid) | `SendRecordPanel` (Manage), the list of all of them `SentView` (`/admin/sent`), `sendsApi`; record a moment with `recordLinkSignal` | `src/admin/components/SendRecordPanel.tsx`, `src/lib/sendsApi.ts`, `worker/src/sendRecords.ts` |
+| Fixing an invoice: name, date, notes, lines, prices, discount, shipping (any account that sells; opens from Sales as `?edit=<id>`) | `EditOrderModal` | `src/admin/components/EditOrderModal.tsx`; server `PUT /api/invoices/:id/details` and `/items`, edit words in `worker/src/invoiceEdit.ts` |
 
 There is one cart. A collection's or invoice's Add goes into it.
 

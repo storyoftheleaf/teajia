@@ -2102,7 +2102,7 @@ export const api = {
         body: JSON.stringify(data),
       });
     },
-    updateItems: async (id: string, data: { lineItems?: { product_id?: string | null; custom_name?: string | null; quantity: number; price_at_sale: number }[]; shipping_cost_usd?: number; customer_name?: string; notes?: string }) => {
+    updateItems: async (id: string, data: { lineItems?: { product_id?: string | null; custom_name?: string | null; quantity: number; price_at_sale: number }[]; shipping_cost_usd?: number; customer_name?: string; notes?: string; discount_percent?: number }) => {
       return authedFetch(`${API_URL}/api/invoices/${id}/items`, {
         method: 'PUT',
         body: JSON.stringify(data),
