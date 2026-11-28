@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { ArticleTeaReferencesPage, normalizeArticleTeaReferences, paginateArticleTeaReferences, paginateQaItems } from './ArticlePage';
+import { ArticleTeaReferencesPage, paginateArticleTeaReferences, paginateQaItems } from './ArticlePage';
+import { normalizeArticleTeaReferences } from '../components/article/useArticleTeaReferences';
 
 describe('live article tea references', () => {
   it('normalizes and deduplicates public xref products for a fixed reader page', () => {

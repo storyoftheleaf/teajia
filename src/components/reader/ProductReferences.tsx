@@ -93,39 +93,47 @@ export const ProductReferences: React.FC<ProductReferencesProps> = ({
   ...options
 }) => {
   const products = useProductReferences(options);
-  if (products.length === 0) return null;
+  return <ProductReferenceList label={label} className={className} references={products.map(product => ({
+    id: product.id,
+    name: product.name,
+    detail: [product.type, product.origin, product.year].filter(part => !!part && String(part).trim().length > 0).join(' \u00b7 '),
+    href: buildPublicProductHref({ id: product.id, slug: product.slug }),
+  }))} />;
+};
+
+export function ProductReferenceList({ label, references, className = '' }: {
+  label: string;
+  references: ReadonlyArray<{ id: string; name: string; detail: string; href: string }>;
+  className?: string;
+}) {
+  if (references.length === 0) return null;
 
   return (
-    <div className={`border-t border-tea-border pt-5 mt-8 max-w-xl mx-auto px-6 ${className}`}>
+    <section aria-label={label} className={`border-t border-tea-border pt-5 mt-8 max-w-xl mx-auto px-6 ${className}`}>
       <p className="text-ui-10 uppercase tracking-[0.18em] text-tea-text-dim mb-3">
         {label}
       </p>
       <ul className="space-y-1.5">
-        {products.map(product => {
-          const descriptor = [product.type, product.origin, product.year]
-            .filter(part => !!part && String(part).trim().length > 0)
-            .join(' \u00b7 ');
-          return (
-            <li key={product.id}>
-              <a
-                href={buildPublicProductHref({ id: product.id, slug: product.slug })}
-                onClick={e => e.stopPropagation()}
-                className="group inline-flex flex-wrap items-baseline gap-x-2 font-serif text-ui-13 leading-snug text-tea-text hover:text-tea-gold transition-colors"
-              >
-                <span className="italic">{product.name}</span>
-                {descriptor && (
-                  <>
-                    <span className="text-tea-text-dim">&middot;</span>
-                    <span className="not-italic text-tea-text-sec">{descriptor}</span>
-                  </>
-                )}
-              </a>
-            </li>
-          );
-        })}
+        {references.map(({ id, name, detail, href }) => (
+          <li key={id}>
+            <a
+              href={href}
+              onClick={e => e.stopPropagation()}
+              className="tap-target group inline-flex flex-wrap items-baseline gap-x-2 font-serif text-ui-13 leading-snug text-tea-text hover:text-tea-gold transition-colors"
+            >
+              <span className="italic">{name}</span>
+              {detail && (
+                <>
+                  <span className="text-tea-text-dim">&middot;</span>
+                  <span className="not-italic text-tea-text-sec">{detail}</span>
+                </>
+              )}
+            </a>
+          </li>
+        ))}
       </ul>
-    </div>
+    </section>
   );
-};
+}
 
 export default ProductReferences;

@@ -8,6 +8,8 @@ import type { DbArticle } from '../types';
 import { ReadingProgress } from '../components/immersive/ReadingProgress';
 import { renderBlock } from '../components/immersive/sections';
 import { SharePanel } from '../components/article/SharePanel';
+import { useArticleTeaReferences } from '../components/article/useArticleTeaReferences';
+import { ProductReferenceList } from '../components/reader/ProductReferences';
 import { KeepArticle } from '../components/article/KeepArticle';
 import { favouritesOpen } from '../lib/favouritesOpen';
 import { GlossaryScope, TermStyle, storyTermLinker } from '../components/reader/GlossaryTerms';
@@ -32,6 +34,8 @@ export default function ImmersiveArticlePage() {
     queryFn: () => api.articles.getBySlug(slug as string),
     enabled: !!slug,
   });
+
+  const teaReferences = useArticleTeaReferences(article, true);
 
   if (isLoading) return <div className="min-h-[100dvh] bg-tea-bg" data-testid="immersive-loading" />;
   if (isError || !article) return <div className="min-h-[100dvh] bg-tea-bg flex items-center justify-center text-tea-text-dim">Article not found</div>;
@@ -74,6 +78,7 @@ export default function ImmersiveArticlePage() {
               {article.author_id ? <a href={`/people/${encodeURIComponent(article.author_id)}`}>By {article.author_name}</a> : <>By {article.author_name}</>}
             </p>}
           </Fragment>)}
+          <ProductReferenceList label="Teas in this piece" references={teaReferences} />
         </article>
       </GlossaryScope>
       <ArticleWisdomLinks uses={article.wisdom_claim_uses} />
