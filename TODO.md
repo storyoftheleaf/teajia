@@ -30,6 +30,7 @@ Capture a new observation here with the affected tea, person or step and the evi
 
 ## New observations
 
+- [ ] On stock lists (Stock, Curate and the stock count page), tapping a tea's T code (VxTy) opens all of that tea's details, and the rest of the row stays plain selectable text (Adrian, 2026-11-28, later). _(band: agent-runnable)_ _(effort: moderate)_
 
 - [ ] Answer the twelve questions in the Curate and Waiting plan (one list of what needs you, Curate version 2 removed) before slices 4 to 12, including the deletion of version 2; slice 1 is live and slices 2, 3, 7 and 12 need no answer. _(band: you-required)_ _(effort: moderate)_ [Curate and Waiting plan](todo/plans/curate-waiting-consolidation.md)
 
