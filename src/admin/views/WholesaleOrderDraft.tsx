@@ -6,6 +6,7 @@ import React, {
   useState,
 } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { wholesaleCurrenciesMatch, wholesaleLineTotal } from '../../lib/wholesaleQuote';
 import { api } from '../../lib/api';
 import { useAppStore, selectHasBundle } from '../../lib/store';
 import { useShallow } from 'zustand/react/shallow';
@@ -34,17 +35,7 @@ interface DraftItem {
   key: string;
   /** Profile ID, used as display key and for deduplication. */
   profile_id: string;
-  /**
-   * Supplier's product_listing ID. Populated from:
-   *   a) existing order items (getOrder response), or
-   *   b) profile.id used as a stand-in when adding from the catalog picker.
-   * TODO: The network catalog endpoint does not yet return the supplier's
-   * listing_id (cl.id). Until it does, the profile_id is sent and the worker
-   * resolves it via the `profile_id` path once that endpoint is extended.
-   * For now, supplier_listing_id === profile_id is intentionally incorrect
-   * and will be rejected by the worker; this is the known gap until the
-   * catalog endpoint is extended to include cl.id.
-   */
+  /** Supplier's active listing ID. */
   supplier_listing_id: string;
   profile_name: string;
   origin_line: string | null;
@@ -54,10 +45,7 @@ interface DraftItem {
   /** Retail reference in supplier's currency, for display only. */
   retail_amount: number | null;
   retail_currency: string | null;
-  wholesale_margin_pct: number | null;
-  trust_tier: string | null;
   grams: number;
-  fx_unavailable: boolean;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -111,13 +99,6 @@ const isDraftEditable = (status: WholesaleOrderStatus): boolean =>
   status === 'draft' || status === 'replied';
 
 /** ISO 8601 → seconds since now. Positive = in past. */
-function secondsSince(iso: string | null | undefined): number {
-  if (!iso) return 0;
-  const d = new Date(iso);
-  return (Date.now() - d.getTime()) / 1000;
-}
-
-const TWENTY_FOUR_HOURS = 86_400;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Skeleton lines
@@ -145,7 +126,8 @@ interface CatalogPickerProps {
   onAdd: (item: DraftItem, supplier: { id: string; name: string }) => void;
   onClose: () => void;
   existingProfileIds: Set<string>;
-  orderCurrency: string;
+  orderCurrency: string | null;
+  supplierAccountId: string | null;
 }
 
 /**
@@ -154,10 +136,20 @@ interface CatalogPickerProps {
  * NULL, and a missing price must refuse to be added to the draft, not
  * silently become 0, which would add the tea at a unit price of zero.
  */
-export function canAddWholesaleProfile(
-  profile: Pick<NetworkCatalogProfile, 'curator_listing_id' | 'wholesale_price_per_gram_caller'>,
-): boolean {
-  return Boolean(profile.curator_listing_id) && profile.wholesale_price_per_gram_caller != null;
+export function wholesaleQuoteIssue(
+  profile: Pick<NetworkCatalogProfile, 'type' | 'curator_listing_id' | 'fx_unavailable' | 'wholesale_currency_caller' | 'wholesale_price_per_gram_caller' | 'curator_account_id'>,
+  orderCurrency: string | null,
+  supplierAccountId: string | null,
+): string | null {
+  if (profile.type === 'Teaware') return 'Wholesale orders use tea by weight.';
+  if (!profile.curator_listing_id) return 'Supplier has no active listing.';
+  if (profile.fx_unavailable || !profile.wholesale_currency_caller) return 'Wholesale exchange rate unavailable.';
+  if (profile.wholesale_price_per_gram_caller == null) return 'No wholesale price recorded.';
+  if (supplierAccountId && profile.curator_account_id !== supplierAccountId) return 'This draft has another supplier.';
+  if (orderCurrency && !wholesaleCurrenciesMatch(profile.wholesale_currency_caller, orderCurrency)) {
+    return 'This draft uses another currency.';
+  }
+  return null;
 }
 
 const CatalogPicker: React.FC<CatalogPickerProps> = ({
@@ -165,6 +157,7 @@ const CatalogPicker: React.FC<CatalogPickerProps> = ({
   onClose,
   existingProfileIds,
   orderCurrency,
+  supplierAccountId,
 }) => {
   const [profiles, setProfiles] = useState<NetworkCatalogProfile[] | null>(null);
   const [loading, setLoading] = useState(true);
@@ -213,7 +206,7 @@ const CatalogPicker: React.FC<CatalogPickerProps> = ({
     // Guards the click handler below, and is the last line of defense if
     // this is ever called some other way: a listing with no recorded price
     // refuses to be added rather than joining the draft at 0.
-    if (!canAddWholesaleProfile(profile)) return;
+    if (wholesaleQuoteIssue(profile, orderCurrency, supplierAccountId) || profile.wholesale_price_per_gram_caller == null) return;
     const item: DraftItem = {
       key: `draft-${profile.id}-${Date.now()}`,
       profile_id: profile.id,
@@ -227,17 +220,11 @@ const CatalogPicker: React.FC<CatalogPickerProps> = ({
         profile.chinese_name,
         profile.varietal,
       ) || null,
-      // Catalog endpoint returns per-gram prices; multiply for the per-100g
-      // display. `canAddWholesaleProfile` above already refused a null price,
-      // so this is never standing in for "no price recorded".
-      unit_price_amount: profile.wholesale_price_per_gram_caller as number,
-      unit_price_currency: profile.wholesale_currency_caller || orderCurrency,
+      unit_price_amount: profile.wholesale_price_per_gram_caller,
+      unit_price_currency: profile.wholesale_currency_caller,
       retail_amount: profile.retail_price_per_gram_curator,
       retail_currency: profile.retail_currency,
-      wholesale_margin_pct: profile.wholesale_margin_pct_for_caller,
-      trust_tier: null, // not exposed by catalog endpoint; kept on DraftItem for forward compat
       grams: 100,
-      fx_unavailable: profile.fx_unavailable ?? false,
     };
     onAdd(item, { id: profile.curator_account_id, name: profile.curator_account_name });
     // Keep picker open so buyer can add more teas in sequence.
@@ -290,13 +277,8 @@ const CatalogPicker: React.FC<CatalogPickerProps> = ({
           {filtered.map(profile => {
             // Disable when the curator has no active listing for this profile.
             // The worker requires supplier_listing_id and would 404 on submit.
-            const noSupplierListing = !profile.curator_listing_id;
-            // Disable when the listing has no recorded quantity purchased, so
-            // the catalog returns no per-gram price at all. Nothing entered
-            // is NULL: adding it anyway would join the draft at a unit price
-            // of zero, a free tea nobody priced that way.
-            const noPrice = profile.wholesale_price_per_gram_caller == null;
-            const canAdd = canAddWholesaleProfile(profile);
+            const quoteIssue = wholesaleQuoteIssue(profile, orderCurrency, supplierAccountId);
+            const canAdd = quoteIssue === null;
             return (
               <li key={profile.id}>
                 <button
@@ -310,17 +292,12 @@ const CatalogPicker: React.FC<CatalogPickerProps> = ({
                   </div>
                   <div className="font-body text-ui-12 text-tea-text-sec mt-0.5 leading-[1.4]">
                     {joinParts(profile.origin_region || profile.origin_country, profile.chinese_name, profile.varietal)}
-                    {profile.wholesale_price_per_gram_caller != null ? (
+                    {canAdd && profile.wholesale_price_per_gram_caller != null ? (
                       <span className="font-mono ml-2 text-ui-11">
                         {formatMoney(profile.wholesale_price_per_gram_caller * 100, profile.wholesale_currency_caller, 2)}/100g
                       </span>
                     ) : null}
-                    {noSupplierListing && (
-                      <span className="italic ml-2">(supplier has no active listing)</span>
-                    )}
-                    {!noSupplierListing && noPrice && (
-                      <span className="italic ml-2">(no wholesale price recorded)</span>
-                    )}
+                    {quoteIssue && <span className="italic ml-2">({quoteIssue})</span>}
                   </div>
                 </button>
               </li>
@@ -365,9 +342,7 @@ const LineItemRow: React.FC<LineItemRowProps> = ({
     }
   };
 
-  const lineTotal = item.unit_price_amount > 0 && item.grams > 0
-    ? (item.unit_price_amount / 100) * item.grams
-    : null;
+  const lineTotal = wholesaleLineTotal(item.grams, item.unit_price_amount);
 
   return (
     <div className="py-6 border-b border-tea-border">
@@ -385,36 +360,20 @@ const LineItemRow: React.FC<LineItemRowProps> = ({
 
       {/* Wholesale pricing block */}
       <div className="mb-4 space-y-1">
-        {item.fx_unavailable ? (
-          <p className="font-body italic text-ui-13 text-tea-text-sec leading-[1.5]">
-            Wholesale shown in supplier currency only. AUD conversion paused.
-          </p>
-        ) : (
-          <>
-            {item.retail_amount != null && item.retail_currency && (
-              <div className="flex items-baseline gap-3">
-                <span className="font-body text-ui-13 text-tea-text-sec w-24 shrink-0">Wholesale</span>
-                <span className="font-mono text-ui-13 text-tea-text-sec">
-                  {item.retail_currency}&nbsp;
-                  {(item.retail_amount / 100 * item.grams).toLocaleString(undefined, { maximumFractionDigits: 0 })}/100g
-                  {item.wholesale_margin_pct != null
-                    ? ` (${item.wholesale_margin_pct}%${item.trust_tier ? ` · ${item.trust_tier}` : ''})`
-                    : null}
-                </span>
-              </div>
-            )}
-            {item.unit_price_amount > 0 && (
-              <div className="flex items-baseline gap-3">
-                <span className="font-body text-ui-13 text-tea-text-sec w-24 shrink-0 invisible" aria-hidden="true">
-                  Wholesale
-                </span>
-                <span className="font-body italic text-ui-13 text-tea-text-sec">
-                  {'≈ '}{formatMoney(item.unit_price_amount, item.unit_price_currency, 2)}/100g at today's FX
-                </span>
-              </div>
-            )}
-          </>
+        {item.retail_amount != null && item.retail_currency && (
+          <div className="flex items-baseline gap-3">
+            <span className="font-body text-ui-13 text-tea-text-sec w-24 shrink-0">Retail</span>
+            <span className="font-mono text-ui-13 text-tea-text-sec">
+              {formatMoney(item.retail_amount * 100, item.retail_currency, 2)}/100g
+            </span>
+          </div>
         )}
+        <div className="flex items-baseline gap-3">
+          <span className="font-body text-ui-13 text-tea-text-sec w-24 shrink-0">Wholesale</span>
+          <span className="font-mono text-ui-13 text-tea-text-sec">
+            {formatMoney(item.unit_price_amount * 100, item.unit_price_currency, 2)}/100g
+          </span>
+        </div>
       </div>
 
       {/* Quantity + line total */}
@@ -445,9 +404,7 @@ const LineItemRow: React.FC<LineItemRowProps> = ({
         <div className="flex items-baseline gap-3">
           <span className="font-body text-ui-13 text-tea-text-sec w-24 shrink-0">Line</span>
           <span className="font-mono text-ui-14 text-tea-text">
-            {lineTotal != null
-              ? formatMoney(lineTotal, item.unit_price_currency)
-              : `${item.unit_price_currency} 0.00`}
+            {formatMoney(lineTotal, item.unit_price_currency)}
           </span>
         </div>
       </div>
@@ -473,7 +430,7 @@ const LineItemRow: React.FC<LineItemRowProps> = ({
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const WholesaleOrderDraft: React.FC = () => {
-  const { orderId } = useParams<{ orderId?: string }>();
+  const { orderId = 'new' } = useParams<{ orderId?: string }>();
   const navigate = useNavigate();
 
   const { memberships, activeAccountId, platformRole } = useAppStore(
@@ -507,7 +464,6 @@ export const WholesaleOrderDraft: React.FC = () => {
   // Derived supplier info from order detail
   const [supplierName, setSupplierName] = useState<string | null>(null);
   const [supplierAccountId, setSupplierAccountId] = useState<string | null>(null);
-  const [orderCurrency, setOrderCurrency] = useState<string>('AUD');
 
   // UI state
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -516,12 +472,6 @@ export const WholesaleOrderDraft: React.FC = () => {
   const [submitConfirming, setSubmitConfirming] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-
-  // FX stale: more than 24h since last save / order created
-  const fxStale = useMemo(() => {
-    if (!orderDetail) return false;
-    return secondsSince(orderDetail.order.updated_at) > TWENTY_FOUR_HOURS;
-  }, [orderDetail]);
 
   // ── Load existing order ────────────────────────────────────────────────────
 
@@ -537,7 +487,6 @@ export const WholesaleOrderDraft: React.FC = () => {
       setBuyerNotes(detail.order.buyer_notes ?? '');
       setSupplierName(detail.supplier.name);
       setSupplierAccountId(detail.supplier.id);
-      setOrderCurrency(detail.order.currency);
 
       // Map order items to draft items
       setItems(
@@ -551,10 +500,7 @@ export const WholesaleOrderDraft: React.FC = () => {
           unit_price_currency: it.unit_price_currency,
           retail_amount: null,
           retail_currency: null,
-          wholesale_margin_pct: null,
-          trust_tier: null,
           grams: it.grams,
-          fx_unavailable: false,
         })),
       );
     } catch {
@@ -572,26 +518,16 @@ export const WholesaleOrderDraft: React.FC = () => {
 
   // ── Derived totals ─────────────────────────────────────────────────────────
 
-  const subtotal = useMemo(
-    () =>
-      items.reduce((sum, it) => {
-        if (it.unit_price_amount <= 0 || it.grams <= 0) return sum;
-        return sum + (it.unit_price_amount / 100) * it.grams;
-      }, 0),
-    [items],
-  );
+  const editable = isDraftEditable(orderStatus);
+  const orderCurrency = (editable ? items[0]?.unit_price_currency : null)
+    ?? orderDetail?.order.currency ?? '';
+  const hasMixedCurrency = items.some(it => !wholesaleCurrenciesMatch(it.unit_price_currency, orderCurrency));
+  const subtotal = items.reduce((sum, it) => sum + wholesaleLineTotal(it.grams, it.unit_price_amount), 0);
 
   const existingProfileIds = useMemo(
     () => new Set(items.map(it => it.profile_id)),
     [items],
   );
-
-  // FX snapshot is intentionally null, the server doesn't return an explicit
-  // rate on the order detail. The fallback prose below ("rates are locked when
-  // you submit") covers what the partner needs to know without showing a half-
-  // baked rate string. When the server starts returning the snapshot rate this
-  // can populate.
-  const fxSnapshot: string | null = null;
 
   // ── Validation ─────────────────────────────────────────────────────────────
 
@@ -599,20 +535,27 @@ export const WholesaleOrderDraft: React.FC = () => {
   const canSubmit =
     items.length > 0 &&
     !hasZeroQty &&
+    !hasMixedCurrency &&
     subtotal > 0 &&
     shippingAddress.trim().length > 0;
 
   const submitBlockReason = useMemo((): string | null => {
     if (items.length === 0) return 'Add at least one tea to submit.';
     if (hasZeroQty) return 'Set a quantity above zero for each tea.';
+    if (hasMixedCurrency) return 'Use one currency for all lines before submitting.';
     if (subtotal <= 0) return 'Line totals must be greater than zero.';
     if (!shippingAddress.trim()) return 'A shipping address is required to submit.';
     return null;
-  }, [items, hasZeroQty, subtotal, shippingAddress]);
+  }, [items, hasZeroQty, hasMixedCurrency, subtotal, shippingAddress]);
 
   // ── Save draft ─────────────────────────────────────────────────────────────
 
   const saveDraft = useCallback(async () => {
+    if (hasMixedCurrency) {
+      setSaveStatus('error');
+      setSubmitError('Use one currency for all lines before saving.');
+      return;
+    }
     setSaveStatus('saving');
     setSubmitError(null);
 
@@ -629,10 +572,10 @@ export const WholesaleOrderDraft: React.FC = () => {
 
     try {
       if (persistedOrderId) {
-        await api.wholesale.updateOrder(persistedOrderId, body);
+        await api.wholesale.updateOrder(persistedOrderId, { ...body, currency: orderCurrency });
       } else {
         // New draft: requires a supplier. If none resolved yet, show error.
-        if (!supplierAccountId) {
+        if (!supplierAccountId || !orderCurrency) {
           setSaveStatus('error');
           return;
         }
@@ -660,6 +603,7 @@ export const WholesaleOrderDraft: React.FC = () => {
       setSaveStatus('error');
     }
   }, [
+    hasMixedCurrency,
     persistedOrderId,
     supplierAccountId,
     orderCurrency,
@@ -681,6 +625,7 @@ export const WholesaleOrderDraft: React.FC = () => {
     try {
       // Persist current edits before transitioning
       await api.wholesale.updateOrder(persistedOrderId, {
+        currency: orderCurrency,
         shipping_address: shippingAddress || null,
         buyer_notes: buyerNotes || null,
         items: items.map(it => ({
@@ -756,7 +701,7 @@ export const WholesaleOrderDraft: React.FC = () => {
     );
   }
 
-  const isEditable = isDraftEditable(orderStatus);
+  const isEditable = editable;
   const isReadOnly = !isEditable;
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -868,7 +813,8 @@ export const WholesaleOrderDraft: React.FC = () => {
                 onAdd={handleAddItem}
                 onClose={() => setPickerOpen(false)}
                 existingProfileIds={existingProfileIds}
-                orderCurrency={orderCurrency}
+                orderCurrency={items.length ? orderCurrency : null}
+                supplierAccountId={supplierAccountId}
               />
             )}
           </div>
@@ -937,27 +883,13 @@ export const WholesaleOrderDraft: React.FC = () => {
       {/* ── TOTALS ──────────────────────────────────────────────────────────── */}
 
       <section className="mb-8 border-t border-tea-border pt-6">
-        {/* FX stale warning */}
-        {fxStale && isEditable && (
-          <p className="font-body italic text-ui-13 text-tea-text-sec leading-[1.6] mb-4">
-            Currency rate is from yesterday. Refresh to lock today's rate.{' '}
-            <button
-              type="button"
-              onClick={() => persistedOrderId && loadOrder(persistedOrderId)}
-              className="underline underline-offset-2 hover:text-tea-text transition-colors"
-            >
-              Refresh {'→'}
-            </button>
-          </p>
-        )}
-
         {/* Subtotal */}
         <div className="flex justify-between items-baseline mb-2">
           <span className={`${TYPOGRAPHY_CLASSES.label} text-tea-text-sec`}>
             SUBTOTAL
           </span>
           <span className="font-mono text-ui-14 text-tea-text">
-            {items.length > 0
+            {items.length > 0 && !hasMixedCurrency
               ? formatMoney(subtotal, orderCurrency)
               : '—'}
           </span>
@@ -989,27 +921,14 @@ export const WholesaleOrderDraft: React.FC = () => {
             TOTAL
           </span>
           <span className="font-mono text-ui-14 text-tea-text">
-            {orderDetail?.order.total_amount != null
+            {!isEditable && !hasMixedCurrency && orderDetail?.order.total_amount != null && orderDetail.order.shipping_amount != null
               ? formatMoney(orderDetail.order.total_amount, orderCurrency)
-              : items.length > 0
+              : items.length > 0 && !hasMixedCurrency
               ? `${formatMoney(subtotal, orderCurrency)} + shipping`
               : '—'}
           </span>
         </div>
 
-        {/* FX snapshot prose */}
-        {fxSnapshot && (
-          <p className="font-body italic text-ui-11 text-tea-text-sec leading-[1.6]">
-            {fxSnapshot}. This rate is locked when you submit. Teajia's
-            confirmation keeps it.
-          </p>
-        )}
-        {!fxSnapshot && items.length > 0 && (
-          <p className="font-body italic text-ui-11 text-tea-text-sec leading-[1.6]">
-            Currency snapshot: rates are locked when you submit. Teajia's
-            confirmation keeps them.
-          </p>
-        )}
       </section>
 
       {/* ── FOOTER ACTIONS (editable states only) ─────────────────────────── */}

@@ -1251,6 +1251,7 @@ export interface WholesaleOrderCreateBody {
 
 /** Body for PUT /api/wholesale/orders/:id. */
 export interface WholesaleOrderUpdateBody {
+  currency?: string; // applied with replacement items
   shipping_address?: string | null;
   buyer_notes?: string | null;
   items?: Array<{

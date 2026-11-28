@@ -625,12 +625,14 @@ export function amountToUsd(
   amount: number,
   currency: string | null | undefined,
   rates: Map<string, number>,
+  precision: 'money' | 'unit-price' = 'money',
 ): { usd: number; rateFound: boolean } {
   const value = Number(amount);
   if (!Number.isFinite(value)) return { usd: 0, rateFound: true };
 
+  const formatAmount = precision === 'unit-price' ? (value: number) => value : roundUsd;
   const canonical = canonicalCurrency(currency);
-  if (!canonical || canonical.toUpperCase() === 'USD') return { usd: roundUsd(value), rateFound: true };
+  if (!canonical || canonical.toUpperCase() === 'USD') return { usd: formatAmount(value), rateFound: true };
 
   let rate = rates.get(canonical);
   if (rate === undefined) {
@@ -639,6 +641,6 @@ export function amountToUsd(
       if (key.toLowerCase() === lower) { rate = candidate; break; }
     }
   }
-  if (rate === undefined || !(rate > 0)) return { usd: roundUsd(value), rateFound: false };
-  return { usd: roundUsd(value / rate), rateFound: true };
+  if (rate === undefined || !(rate > 0)) return { usd: formatAmount(value), rateFound: false };
+  return { usd: formatAmount(value / rate), rateFound: true };
 }

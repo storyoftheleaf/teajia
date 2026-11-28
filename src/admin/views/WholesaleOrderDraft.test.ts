@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canAddWholesaleProfile } from './WholesaleOrderDraft';
-import type { NetworkCatalogProfile } from '../../types';
+import { wholesaleQuoteIssue } from './WholesaleOrderDraft';
 
 /**
  * Item 6: the catalog endpoint returns null for a listing whose
@@ -10,29 +9,44 @@ import type { NetworkCatalogProfile } from '../../types';
  * order at a unit price of zero. Nothing entered is NULL: a missing price
  * must refuse to be added, not become a free tea.
  */
-const baseProfile: Pick<NetworkCatalogProfile, 'curator_listing_id' | 'wholesale_price_per_gram_caller'> = {
+const baseProfile = {
+  type: 'Red',
+  curator_account_id: 'supplier',
+  wholesale_currency_caller: 'CNY',
+  fx_unavailable: false,
   curator_listing_id: 'listing-1',
   wholesale_price_per_gram_caller: 0.5,
 };
 
-describe('canAddWholesaleProfile', () => {
+describe('wholesaleQuoteIssue', () => {
+  it('accepts equivalent currency aliases and refuses different currencies or suppliers', () => {
+    expect(wholesaleQuoteIssue(baseProfile, 'Yuan', 'supplier')).toBeNull();
+    expect(wholesaleQuoteIssue(baseProfile, 'AUD', 'supplier')).toBeTruthy();
+    expect(wholesaleQuoteIssue(baseProfile, 'CNY', 'other-supplier')).toBeTruthy();
+  });
+
+  it('refuses an unavailable rate or a piece-based listing', () => {
+    expect(wholesaleQuoteIssue({ ...baseProfile, fx_unavailable: true }, null, null)).toBeTruthy();
+    expect(wholesaleQuoteIssue({ ...baseProfile, type: 'Teaware' }, null, null)).toBeTruthy();
+  });
+
   it('allows adding a listing with a recorded price and an active listing', () => {
-    expect(canAddWholesaleProfile(baseProfile)).toBe(true);
+    expect(wholesaleQuoteIssue(baseProfile, null, null)).toBeNull();
   });
 
   it('refuses a listing whose price is null, rather than treating it as free', () => {
-    expect(canAddWholesaleProfile({ ...baseProfile, wholesale_price_per_gram_caller: null })).toBe(false);
+    expect(wholesaleQuoteIssue({ ...baseProfile, wholesale_price_per_gram_caller: null }, null, null)).toBeTruthy();
   });
 
   it('allows a listing whose price is a deliberate zero', () => {
-    expect(canAddWholesaleProfile({ ...baseProfile, wholesale_price_per_gram_caller: 0 })).toBe(true);
+    expect(wholesaleQuoteIssue({ ...baseProfile, wholesale_price_per_gram_caller: 0 }, null, null)).toBeNull();
   });
 
   it('refuses a listing with no active supplier listing, price notwithstanding', () => {
-    expect(canAddWholesaleProfile({ ...baseProfile, curator_listing_id: null })).toBe(false);
+    expect(wholesaleQuoteIssue({ ...baseProfile, curator_listing_id: null }, null, null)).toBeTruthy();
   });
 
   it('refuses when both the listing and the price are missing', () => {
-    expect(canAddWholesaleProfile({ curator_listing_id: null, wholesale_price_per_gram_caller: null })).toBe(false);
+    expect(wholesaleQuoteIssue({ ...baseProfile, curator_listing_id: null, wholesale_price_per_gram_caller: null }, null, null)).toBeTruthy();
   });
 });
