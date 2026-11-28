@@ -156,3 +156,7 @@ Never write `/signin?returnTo=...` by hand.
   `/admin/compass`) and `src/components/CurateV2/` (at `/admin/compass/v2`),
   both frozen to fixes by `src/admin/guards/curateFoldersFrozen.test.ts`. New
   Curate work goes in `src/components/curate/`. Don't copy from either folder.
+  The ordering, pricing and sample parts that Curate, Stock and the buying
+  basket borrowed from `CurateV2/` (`placeOrder`, `shopOrders`,
+  `curatePricing`, `orderBuy`, `saidFiling`, the sample `CaptureCard`) now
+  live in `src/components/curate/`.

@@ -3,14 +3,14 @@ import { ArrowLeft } from 'lucide-react';
 import { api, hasToken } from '../../lib/api';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { useLedgerStore } from '../../lib/ledgerStore';
-import { quotedUnit, tastingLine, listName } from './curateV2Model';
-import { CURRENCY_LABELS } from './PricingRow';
+import { quotedUnit, tastingLine, listName } from '../curate/curateV2Model';
+import { CURRENCY_LABELS } from '../curate/PricingRow';
 import { Section } from './TodayView';
 import { VendorInfoPanel } from './VendorInfoPanel';
-import { shopStatusWords, useShopOrders, vendorOrderRows } from './shopOrders';
-import { isVendorTagged } from './VendorPicker';
-import { plainFailure } from './plainFailure';
-import type { TeaCompassEntry, VendorDetails } from './types';
+import { shopStatusWords, useShopOrders, vendorOrderRows } from '../curate/shopOrders';
+import { isVendorTagged } from '../curate/VendorPicker';
+import { plainFailure } from '../curate/plainFailure';
+import type { TeaCompassEntry, VendorDetails } from '../curate/types';
 
 interface Contact { channel: string; handle: string; label?: string }
 interface Record_ {

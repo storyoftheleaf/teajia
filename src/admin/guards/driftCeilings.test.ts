@@ -105,7 +105,7 @@ describe('very long files', () => {
     'src/admin/components/SourcesView.tsx': 2334,
     'src/admin/components/wisdom/WisdomBrowser.tsx': 1747,
     'src/App.tsx': 1532,
-    'src/components/CurateV2/CaptureCard.tsx': 1797,
+    'src/components/curate/CaptureCard.tsx': 1797,
     'src/components/CurateV2/index.tsx': 1713,
     'src/components/SinglePageRenderer.tsx': 2300,
     'src/components/TeaCompass/CaptureCard.tsx': 2196,

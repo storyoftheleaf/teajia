@@ -1,5 +1,5 @@
 import React from 'react';
-import type { CurateJourney } from '../types';
+import type { CurateJourney } from '../../curate/types';
 import type { CurateImportAnnotation, LookupState } from '../../../lib/api';
 import type { ImportReviewModel } from './importReviewDomain';
 import { ImportJourneyPicker } from './ImportJourneyPicker';

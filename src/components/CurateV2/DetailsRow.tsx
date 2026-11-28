@@ -1,11 +1,11 @@
 import React, { useId, useState } from 'react';
 import { Droplets } from 'lucide-react';
 import { STORAGE_STYLES, REGION_NAMES } from '../../wisdom';
-import type { Season, Storage, TeaType } from './types';
+import type { Season, Storage, TeaType } from '../curate/types';
 import type { TastingData } from '../../types';
 import type { TastingCategoryId } from '../../data/tastingTaxonomy';
 import { TastingProfileStrip } from '../tasting/TastingProfileStrip';
-import { AutocompleteInput } from './AutocompleteInput';
+import { AutocompleteInput } from '../curate/AutocompleteInput';
 import { CurateDisclosure } from './CuratePrimitives';
 
 interface DetailsRowProps {

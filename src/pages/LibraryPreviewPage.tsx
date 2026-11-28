@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { BrowseCard } from '../components/TeaCompass/BrowseCard';
 import { librarySupplierGroups } from '../components/TeaCompass/librarySupplierGroups';
 import { entryNeedsTasting, type TeaCompassEntry } from '../components/TeaCompass/types';
-import { shopOrderOf } from '../components/CurateV2/shopOrders';
+import { shopOrderOf } from '../components/curate/shopOrders';
 import { libraryPurchaseStateOf } from '../lib/libraryPurchaseState';
 import { toCamelCase } from '../lib/teaCompassSync';
 import type { CuratePurchaseReceipt, PurchaseOrder } from '../lib/api';

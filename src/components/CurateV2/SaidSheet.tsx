@@ -1,12 +1,12 @@
 import React, { useMemo, useState } from 'react';
 import { Loader2 } from 'lucide-react';
-import { BottomSheet } from './CurateSheet';
+import { BottomSheet } from '../curate/CurateSheet';
 import { api } from '../../lib/api';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { useNotesStore } from '../../lib/notesStore';
 import { useAppStore } from '../../lib/store';
-import { SAID_LABEL, applySaidParts, type SaidPart } from './saidFiling';
-import { plainFailure } from './plainFailure';
+import { SAID_LABEL, applySaidParts, type SaidPart } from '../curate/saidFiling';
+import { plainFailure } from '../curate/plainFailure';
 
 interface Filing { parts: SaidPart[]; keep: boolean[]; applied: boolean }
 

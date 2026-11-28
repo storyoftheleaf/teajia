@@ -4,7 +4,7 @@ import { api, hasToken } from '../../lib/api';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { Section } from './TodayView';
 import { VendorCard } from './VendorCard';
-import type { TeaCompassEntry } from './types';
+import type { TeaCompassEntry } from '../curate/types';
 
 interface Vendor { id?: string; name: string; tags?: string[] | string }
 

@@ -1,10 +1,10 @@
-import { orderLinePrice } from './curateV2Model';
+import { orderLinePrice } from '../curate/curateV2Model';
 import React, { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Minus, Plus, Check, BookOpen, BookmarkPlus, BookmarkCheck } from 'lucide-react';
 import { useLedgerStore } from '../../lib/ledgerStore';
-import type { CompassStatus, TeaCompassEntry, TeaForm } from './types';
-import { DEFAULT_GRAMS } from './types';
+import type { CompassStatus, TeaCompassEntry, TeaForm } from '../curate/types';
+import { DEFAULT_GRAMS } from '../curate/types';
 import type { Currency } from '../../admin/types';
 
 interface StatusActionsProps {

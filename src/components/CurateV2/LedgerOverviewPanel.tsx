@@ -7,8 +7,8 @@ import { CompassIcon } from './CompassIcon';
 import { useRates } from '../../admin/hooks/useAdminData';
 import { formatCurrency } from '../../admin/utils';
 import { rateToUsd } from '../../lib/currency';
-import { purchaseSpendInUsd } from './curatePricing';
-import { shopOrderAsTransaction, shopOrderIsSpend, useShopOrders } from './shopOrders';
+import { purchaseSpendInUsd } from '../curate/curatePricing';
+import { shopOrderAsTransaction, shopOrderIsSpend, useShopOrders } from '../curate/shopOrders';
 import type { LedgerTransaction } from '../../lib/ledgerStore';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

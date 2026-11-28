@@ -266,7 +266,7 @@
       "sizes": 1,
       "fonts": 0
     },
-    "src/components/CurateV2/AgentInbox.tsx": {
+    "src/components/curate/AgentInbox.tsx": {
       "colors": 0,
       "sizes": 1,
       "fonts": 0
@@ -291,7 +291,7 @@
       "sizes": 2,
       "fonts": 0
     },
-    "src/components/CurateV2/PhotoCapture.tsx": {
+    "src/components/curate/PhotoCapture.tsx": {
       "colors": 2,
       "sizes": 4,
       "fonts": 0

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import type { CurateJourney } from '../types';
+import type { CurateJourney } from '../../curate/types';
 import type { CurateImportAnnotation, CurateImportDetail, CurateImportItem, CurateImportItemUpdate, LookupState } from '../../../lib/api';
 import { buildImportReviewModel, importFinalActionLabel } from './importReviewDomain';
 import { ImportVendorGroup, type ImportVendorOption } from './ImportVendorGroup';
