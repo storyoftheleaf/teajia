@@ -30,6 +30,8 @@ Capture a new observation here with the affected tea, person or step and the evi
 
 ## New observations
 
+- [ ] Answer the twelve questions in the Curate and Waiting plan (one list of what needs you, Curate version 2 removed) before slices 4 to 12, including the deletion of version 2; slice 1 is live and slices 2, 3, 7 and 12 need no answer. _(band: you-required)_ _(effort: moderate)_ [Curate and Waiting plan](todo/plans/curate-waiting-consolidation.md)
+
 ### Feature guide (owner walk-throughs)
 
 <!-- scripts/intake-findings.mjs inserts owner findings immediately beneath this heading. Preserve each finding marker when triaging so a later sync can recognize it. -->

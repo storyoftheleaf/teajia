@@ -617,3 +617,24 @@ test.describe('Curate Library decisions and retrieval', () => {
     expect(await page.locator('#root').evaluate((root: HTMLElement) => root.inert)).toBe(false);
   });
 });
+
+test.describe('Library Waiting in the address', () => {
+  test.beforeEach(async ({ page }) => installCompassHarness(page, { compassEntries: [
+    { id: 'waiting-sample', name: 'Waiting Sample', category: 'tea', status: 'noted', sample_state: 'received', created_at: '2026-11-20T00:00:00.000Z' },
+  ] }));
+  test.afterEach(async ({ page }) => expectNoUnhandledCompassApi(page));
+
+  test('opens Waiting from a link, and back returns to All', async ({ page }) => {
+    await page.goto('/admin/compass?tab=library', { waitUntil: 'domcontentloaded' });
+    const all = page.getByRole('button', { name: /^All \d+$/ });
+    await expect(all).toHaveAttribute('aria-pressed', 'true', { timeout: 15_000 });
+    await page.getByRole('button', { name: /^Waiting \d+$/ }).click();
+    await expect(page).toHaveURL(/show=waiting/);
+    await expect(page.getByTestId('library-waiting').filter({ visible: true })).toContainText('Waiting Sample');
+    await page.goBack();
+    await expect(all).toHaveAttribute('aria-pressed', 'true');
+    await expect(page).not.toHaveURL(/show=/);
+    await page.goto('/admin/compass?tab=library&show=waiting', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByRole('button', { name: /^Waiting \d+$/ })).toHaveAttribute('aria-pressed', 'true', { timeout: 15_000 });
+  });
+});
