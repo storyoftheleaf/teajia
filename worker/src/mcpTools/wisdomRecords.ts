@@ -48,6 +48,22 @@ const slug = (s: string) => s.toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g
 const folderOf = (h: Holding) => (h.record ? new URL(h.record.replace('{id}', 'x')).pathname.split('/')[2] : null);
 const linkFor = (base: string, h: Holding, id: string) => (h.page ? h.page.replace('https://teajia.com', base).replace('{id}', id) : `${base}/wisdom`);
 
+/**
+ * The site path of a tea's own Wisdom page (a named tea), or null. Used where a
+ * tea shows by name only, so a guest can still read about it.
+ */
+export async function namedTeaPath(names: readonly (string | null | undefined)[], env: { APP_URL?: string } = {}): Promise<string | null> {
+  const wanted = names.flatMap(name => {
+    const id = slug(String(name ?? ''));
+    return id ? [id, id.replace(/^(19|20)\d\d-/, '')] : [];
+  });
+  if (!wanted.length) return null;
+  const index = await loadIndex(env);
+  const known = new Set(index?.holdings.find(h => h.name === 'namedTeas')?.ids ?? []);
+  const hit = wanted.find(id => known.has(id));
+  return hit ? `/wisdom/named/${hit}` : null;
+}
+
 export async function searchWisdom(env: { APP_URL?: string }, args: any) {
   const query = typeof args?.query === 'string' ? slug(args.query) : '';
   if (!query) return { error: 'query_required' };

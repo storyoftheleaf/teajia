@@ -1,6 +1,7 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { formalSessionCardsFor, formalSessionRecap, placeGuestItems, publicSessionRoutes } from '../src/publicSessions';
-import { isForSale, type PublicProductReader } from '../src/sessionTeas';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { formalSessionCardsFor, formalSessionRecap, placeGuestItems, publicSessionRoutes, servedTeasOf } from '../src/publicSessions';
+import { resetWisdomIndexForTests } from '../src/mcpTools/wisdomRecords';
+import { isForSale, resolveSessionTeas, type PublicProductReader } from '../src/sessionTeas';
 import { seedIdentity, SqliteD1 } from './helpers/sqliteD1';
 
 let db: SqliteD1;
@@ -106,6 +107,38 @@ describe('poured teas as records', () => {
     db.exec(`UPDATE event_post_session SET tea_ledger = '${JSON.stringify({ served_teas: [{ id: 'x', name: 'Borrowed', source: 'shop', product_id: 'foreign' }] })}'`);
     const recap = (await formalSessionRecap(D1(), readPublic, 'courtyard'))!;
     expect(recap.teas).toEqual([{ kind: 'name', id: 'x', name: 'Borrowed', items: [] }]);
+  });
+
+  it('keeps a tea the shop has not released to its name, with its Wisdom page and someone to ask', async () => {
+    seedIdentity(db, { userId: 'adrian', accountId: 'teajia', accountSlug: 'teajia' });
+    seedIdentity(db, { userId: 'host', accountId: 'host-own', accountSlug: 'host-own' });
+    db.exec(`
+      UPDATE accounts SET is_platform_owner = 1, whatsapp_number = '+62 812-3456-7890' WHERE id = 'teajia';
+      INSERT INTO products (id, account_id, type, product_name, given_name, year, origin_country, is_public, shown_in_shop, status,
+        stock_grams, cost_amount, cost_currency)
+      VALUES ('private-tea', 'teajia', 'Sheng', '2003 Yiwu loose', 'Courage', 2003, 'China', 0, 0, 'Active', 400, 10, 'Yuan');
+    `);
+    const wisdom = async (names: readonly (string | null)[]) => (names.includes('Courage') ? '/wisdom/named/courage' : null);
+    const teas = await resolveSessionTeas(D1(), readPublic, 'host-own', ['host'], [
+      { menuId: 'm1', productId: 'private-tea', name: 'Courage' },
+      { menuId: 'm2', productId: null, name: 'A typed tea' },
+    ], wisdom);
+    expect(teas[0]).toEqual({ kind: 'name', id: 'm1', name: 'Courage', wisdom: '/wisdom/named/courage', ask: '6281234567890' });
+    expect(teas[1]).toEqual({ kind: 'name', id: 'm2', name: 'A typed tea' });
+
+    // The same tea poured at the host's own table reaches the guest's page the same way.
+    db.exec(`
+      INSERT INTO events (id, account_id, slug, title, event_date) VALUES ('own-sit', 'host-own', 'own-sit', 'At home', '2026-11-28');
+      INSERT INTO event_tea_menu (id, account_id, event_id, product_id, custom_name, brew_order)
+      VALUES ('m1', 'host-own', 'own-sit', 'private-tea', 'Courage', 1);
+    `);
+    resetWisdomIndexForTests();
+    vi.stubGlobal('fetch', async () => new Response(JSON.stringify({ holdings: [{ name: 'namedTeas', ids: ['courage'] }] })));
+    try {
+      expect(await servedTeasOf(D1(), readPublic, { id: 'own-sit', account_id: 'host-own' })).toEqual([
+        { kind: 'name', id: 'm1', name: 'Courage', wisdom: '/wisdom/named/courage', ask: '6281234567890' },
+      ]);
+    } finally { vi.unstubAllGlobals(); resetWisdomIndexForTests(); }
   });
 
   it('does not treat a stale or unpriced listing as for sale', () => {
