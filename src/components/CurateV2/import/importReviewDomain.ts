@@ -1,5 +1,5 @@
 import type { CurateImportCanonicalRecord, CurateImportDetail, CurateImportDisposition, CurateImportFinalizeResult, CurateImportInventoryPurpose, CurateImportItem, CurateImportReviewedField, CurateImportVendorGroup } from '../../../lib/api';
-import type { CurateJourney } from '../types';
+import type { CurateJourney } from '../../curate/types';
 
 export interface ImportReviewItemRow {
   item: CurateImportItem;

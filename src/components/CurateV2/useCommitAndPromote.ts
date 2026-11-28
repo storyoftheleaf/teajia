@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { syncCompassEntries } from '../../lib/teaCompassSync';
 import { api, hasToken, isTransientApiError } from '../../lib/api';
-import { plainFailure } from './plainFailure';
+import { plainFailure } from '../curate/plainFailure';
 
 export interface CommitResult {
   promoted: boolean;

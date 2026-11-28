@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Leaf, X } from 'lucide-react';
 import { getTeaColor } from '../../designTokens';
 import { entryHasDeliberateInput } from '../../lib/teaCompassStore';
-import type { TeaCompassEntry } from './types';
+import type { TeaCompassEntry } from '../curate/types';
 
 interface SessionStackProps {
   sessionEntries: TeaCompassEntry[];

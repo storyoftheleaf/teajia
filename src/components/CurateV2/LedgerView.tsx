@@ -16,14 +16,14 @@ import type { Currency } from '../../admin/types';
 import { useAppStore } from '../../lib/store';
 import { api } from '../../lib/api';
 import { compressImage } from '../../lib/imageCompressor';
-import { OrderMessageSheet } from './OrderMessageSheet';
-import { VendorPicker } from './VendorPicker';
-import { releaseTeaFromOrder } from './orderBuy';
-import { orderLanded, orderMoney } from './curatePricing';
-import { SHOP_ORDERS_KEY, mergeOrders, shopOrderTotals, shopStatusWords, useShopOrders, type ShopOrder } from './shopOrders';
-import { confirmPurchase, purchaseNeedsVendor, recordPurchase } from './placeOrder';
+import { OrderMessageSheet } from '../curate/OrderMessageSheet';
+import { VendorPicker } from '../curate/VendorPicker';
+import { releaseTeaFromOrder } from '../curate/orderBuy';
+import { orderLanded, orderMoney } from '../curate/curatePricing';
+import { SHOP_ORDERS_KEY, mergeOrders, shopOrderTotals, shopStatusWords, useShopOrders, type ShopOrder } from '../curate/shopOrders';
+import { confirmPurchase, purchaseNeedsVendor, recordPurchase } from '../curate/placeOrder';
 import { useRates, useShopFreightDefault } from '../../admin/hooks/useAdminData';
-import { listName } from './curateV2Model';
+import { listName } from '../curate/curateV2Model';
 
 // ─── Currency helpers ────────────────────────────────────────────────────────
 

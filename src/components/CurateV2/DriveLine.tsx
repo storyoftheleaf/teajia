@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, hasToken } from '../../lib/api';
 import { selectIsOwnerTier, useAppStore } from '../../lib/store';
-import { plainFailure } from './plainFailure';
+import { plainFailure } from '../curate/plainFailure';
 
 const KEY = ['curate', 'drive'] as const;
 

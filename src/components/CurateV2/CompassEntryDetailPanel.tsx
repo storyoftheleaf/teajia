@@ -8,12 +8,12 @@ import { BookmarkCheck, BookmarkPlus, Check, Droplets, Share2, ShoppingBag, Star
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { TastingProfileStrip } from '../tasting/TastingProfileStrip';
 import { getDateGroup } from './BrowseCard';
-import { entryDisplayTitle } from './types';
+import { entryDisplayTitle } from '../curate/types';
 import { AddToSampleButton } from '../samples/AddToSampleButton';
-import { DecisionControl } from './DecisionControl';
+import { DecisionControl } from '../curate/DecisionControl';
 import { CreateInventoryRecordAction } from './CreateInventoryRecordAction';
 import { useLedgerStore } from '../../lib/ledgerStore';
-import { useSampleUse } from './sampleUse';
+import { useSampleUse } from '../curate/sampleUse';
 import { TastingSession } from '../tasting/TastingSession';
 import { tastingToOpenWith } from '../tasting/tastingOpenData';
 import { saveCurateTasting } from '../../lib/curateTastingSave';

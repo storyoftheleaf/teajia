@@ -4,12 +4,12 @@ import type { Currency } from '../../admin/types';
 import { useRates, useShopFreightDefault } from '../../admin/hooks/useAdminData';
 import { useLedgerStore, type LedgerLineItem, type LedgerTransaction } from '../../lib/ledgerStore';
 import { canonicalCurrency } from '../../lib/currency';
-import { ledgerItemAmount } from '../CurateV2/curatePricing';
+import { ledgerItemAmount } from '../curate/curatePricing';
 import { estimateOrderFreight, type RouteMode } from './routeFreight';
 import { useShippingRoutes } from './useShippingRoutes';
 import { useLogisticsServices } from './useLogisticsServices';
-import { releaseTeaFromOrder } from '../CurateV2/orderBuy';
-import { confirmPurchase, purchaseNeedsVendor, recordPurchase, splitDraftByRoute } from '../CurateV2/placeOrder';
+import { releaseTeaFromOrder } from '../curate/orderBuy';
+import { confirmPurchase, purchaseNeedsVendor, recordPurchase, splitDraftByRoute } from '../curate/placeOrder';
 import { Button } from './Button';
 import { Icons } from '../Icons';
 

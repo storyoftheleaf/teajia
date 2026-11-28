@@ -5,7 +5,7 @@ import { api } from '../../lib/api';
 import { useAppStore } from '../../lib/store';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { hydrateCompassEntries } from '../../lib/teaCompassSync';
-import { CaptureCard } from '../../components/CurateV2/CaptureCard';
+import { CaptureCard } from '../../components/curate/CaptureCard';
 import { TASTING_TAXONOMY } from '../../data/tastingTaxonomy';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import { PhoneSamplesList } from './inventory/phone/PhoneSamplesList';

@@ -4,7 +4,7 @@ import { isoCurrencyCode } from '../../lib/currency';
 import { mediaUrl } from '../../lib/mediaUrl';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { confirmPurchase, recordPurchase } from '../CurateV2/placeOrder';
+import { confirmPurchase, recordPurchase } from '../curate/placeOrder';
 import { useLibraryPurchases } from '../../lib/libraryPurchaseState';
 import { ensureCompassEncounterSaved } from '../../lib/teaCompassSync';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
