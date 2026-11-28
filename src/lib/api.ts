@@ -6,6 +6,7 @@ import type { CustomerOrderDetail, TrackedOrder } from './orderTrackingTypes';
 import { createArticleApi } from './articlesApi';
 import { createHostingApi, createPlatformHostingApi, createTablesApi, type HostReach } from './hostingApi';
 import { createFavouritesApi } from './favouritesApi';
+import { createStockMovementsApi, createStockPlacesApi } from './stockPlacesApi';
 import { createCirclesApi } from './circlesApi';
 import { createHostTokensApi } from './hostTokensApi';
 import { fewHostsOpen } from './fewHosts';
@@ -1809,14 +1810,10 @@ export const api = {
       personally_tasted: boolean;
     }> }> => authedFetch(`${API_URL}/api/inventory/summaries`),
   },
-  stockMovements: {
-    create: (productId: string, body: {
-      movement_type: 'receipt' | 'sale' | 'sample_use' | 'gift' | 'waste' | 'return' | 'recount' | 'transfer';
-      unit: 'g' | 'unit'; expected_balance: number; idempotency_key: string;
-      quantity?: number; balance?: number; destination_product_id?: string;
-      note?: string; batch_id?: string; source_invoice_id?: string; source_invoice_number?: string; source_compass_entry_id?: string;
-    }, options: Pick<ApiRequestInit, 'callerRefreshesCommerce'> = {}) => authedFetch(`${API_URL}/api/products/${productId}/movements`, { method: 'POST', body: JSON.stringify(body), retryTimeouts: true, ...options }),
-  },
+  stockMovements: createStockMovementsApi({ apiUrl: API_URL, authedFetch }),
+
+  stockPlaces: createStockPlacesApi({ apiUrl: API_URL, authedFetch }),
+
   // Working Feature Guide, admin-only internal build tracker.
   featureStatus: {
     /** Map of feature_id → { stage, works, tested, visual, notes, updated_at }. */

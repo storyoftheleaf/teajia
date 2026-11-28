@@ -291,6 +291,8 @@ import { decideSampleTastingRepeat, sampleTastingEditKey, type StoredSampleTasti
 import { pinCaptureApprovalPhoto, readCapturePhotoFrame, storeCapturePhotoFrame, validCapturePhotoFrame, approvedCapturePhoto, captureApproval, captureEntry, captureEntryAllowed, capturePhotoPath, capturePhotoResponse, loadCapturePhotoReview, prepareCaptureApproval, privateCapturePhoto, shopPhotoApprovalId, shopPhotoUrl, storeCapturePhoto, validCaptureEntryId, validCapturePhotoId } from './capturePhotos';
 import { commitEditorialPilot, editorialPilotDigest, isApprovedPilotProjection, PILOT_ISSUE_SLOT, readEditorialPilot } from './articleEditorialPilot';
 import { readStoryDraft, saveStoryDraft, publishStoryDraft, storyReviewDigest } from './storyContentPublication';
+import { countAtPlace, describeSplit, isRefusal, listStockPlaces, movementGuardFor, readStockSplit, shiftPlace, writeSplitStatements, type StockSplit } from './stockPlaces';
+import { stockPlaceRoutes } from './stockPlaceRoutes';
 
 interface Env extends WorkerReleaseEnv, PayPalSandboxEnv, PayPalLiveEnv, ShippingNotificationEnv {
   DB: D1Database;
@@ -19479,6 +19481,20 @@ async function applyStockMovement(env: Env, ctx: MovementContext, productId: str
   if (current !== input.expected_balance) return { status: 409, value: { error: 'Stock balance changed', current_balance: current } };
   const delta = movementDelta(input, current); const after = current + delta;
   if (after < 0) return { status: 409, value: { error: 'Stock movement would create a negative balance', current_balance: current } };
+  // A movement that names a place moves that place by the same amount
+  // (worker/src/stockPlaces.ts), in this batch, under this movement's guard.
+  let placeBefore: StockSplit | null = null; let placeAfter: StockSplit | null = null;
+  if (input.place_id) {
+    const places = await listStockPlaces(env.DB, ctx.accountId);
+    if (!places.some(place => place.id === input.place_id)) return { status: 404, value: { error: 'Stock place not found' } };
+    placeBefore = await readStockSplit(env.DB, ctx.accountId, productId, current, places);
+    const shifted = input.place_balance != null
+      ? countAtPlace(placeBefore, input.place_id, input.place_balance, input.unit)
+      : shiftPlace(placeBefore, input.place_id, delta, input.unit);
+    if (!isRefusal(shifted) && shifted.total !== after) return { status: 409, value: { error: 'Stock balance changed', current_balance: current } };
+    if (isRefusal(shifted)) return { status: 409, value: { error: shifted.message, code: shifted.error, place_amount: shifted.available ?? 0, current_balance: current } };
+    placeAfter = shifted;
+  }
 
   let destination: any = null; let destinationBefore = 0; let destinationAfter = 0;
   if (input.movement_type === 'transfer') {
@@ -19519,6 +19535,9 @@ async function applyStockMovement(env: Env, ctx: MovementContext, productId: str
     batchId: input.batch_id, accountId: ctx.accountId, sourceCompassEntryId: input.source_compass_entry_id,
     inventoryReceiptLineId: extras.inventoryReceiptLineId, fingerprint, guard: movementGuard,
   }));
+  if (placeBefore && placeAfter) statements.push(...writeSplitStatements(env.DB,
+    { accountId: ctx.accountId, productId, email: ctx.email, note: input.note, ledgerId: id },
+    placeBefore, placeAfter, movementGuardFor(ctx.accountId, productId, movementGuard)));
   if (destination) {
     const destinationLedgerId = crypto.randomUUID();
     if (input.unit === 'g') statements.push(env.DB.prepare(`UPDATE product_listings SET stock_grams = ?, stock_known_at = ?, updated_at = datetime('now') WHERE legacy_product_id = ? AND account_id = ? AND EXISTS (SELECT 1 FROM products WHERE id = legacy_product_id AND account_id = product_listings.account_id AND stock_movement_guard = ?)`).bind(destinationAfter, knownAt, destination.id, ctx.accountId, movementGuard));
@@ -19540,7 +19559,7 @@ async function applyStockMovement(env: Env, ctx: MovementContext, productId: str
     if (raced && raced.product_id === productId && raced.movement_fingerprint === fingerprint) return { status: 200, value: await replayStockMovement(env,ctx,raced,input) };
     throw error;
   }
-  return { status: 201, value: { id, product_id: productId, movement_type: input.movement_type, delta, before_balance: current, after_balance: after, unit: input.unit, destination_product_id: destination?.id || null, destination_after_balance: destination ? destinationAfter : null } };
+  return { status: 201, value: { id, product_id: productId, movement_type: input.movement_type, delta, before_balance: current, after_balance: after, unit: input.unit, destination_product_id: destination?.id || null, destination_after_balance: destination ? destinationAfter : null, ...(placeAfter ? { place_id: input.place_id, stock_places: describeSplit(placeAfter, input.unit) } : {}) } };
 }
 
 const handleCreateStockMovement: Handler = async (request, env, params) => {
@@ -34408,6 +34427,7 @@ const routes: [string, string, Handler][] = [
   ['PUT', '/api/me/private-sits/:id/photos/:photoId/share', handleMemberPrivateSitPhotos],
   ...favouritesRoutes<Env>({ requireUser: requireAuthenticatedUser }),
   ...emailConsentRoutes<Env>({ requireUser: requireAuthenticatedUser }),
+  ...stockPlaceRoutes<Env>({ requireStock: (request, env) => requireBundle(request, env, 'stock') }),
   ...practiceLinesRoutes<Env>({ optionalUser: optionalAuthenticatedUser, requireUser: requireAuthenticatedUser }),
   ...servesAtRoutes<Env>(),
   ...teaSpacesPageRoutes<Env>(),

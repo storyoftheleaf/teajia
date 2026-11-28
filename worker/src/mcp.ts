@@ -69,6 +69,8 @@ import { curatePromotionTools } from './mcpTools/curatePromotion';
 import { curateDrivePhotosModule } from './mcpTools/curateDrivePhotos';
 import { supplierRenameTools } from './mcpTools/supplierRename';
 import { stockCountTools } from './mcpTools/stockCount';
+import { stockPlaceTools } from './mcpTools/stockPlaces';
+import { describeSplit, isRefusal, namePlace, placeShiftStatements, previewPlaceShift, readStockSplit, type PlaceRef } from './stockPlaces';
 import { supplierPhotoTools } from './mcpTools/supplierPhoto';
 import { curateDisplayNameTools } from './mcpTools/curateDisplayNames';
 import { teaPageContentTools } from './mcpTools/teaPageContent';
@@ -708,8 +710,8 @@ async function authenticateMcp(request: Request, env: Env): Promise<McpAuth | Re
 // again; the cost of that is one re-confirm, not a wrong write.
 
 type PendingMutation =
-  | { kind: 'add_stock'; accountId: string; userEmail: string; productId: string; grams: number; note: string | null }
-  | { kind: 'remove_stock'; accountId: string; userEmail: string; productId: string; grams: number; reason: string; note: string | null }
+  | { kind: 'add_stock'; accountId: string; userEmail: string; productId: string; grams: number; note: string | null; place?: PlaceRef | null }
+  | { kind: 'remove_stock'; accountId: string; userEmail: string; productId: string; grams: number; reason: string; note: string | null; place?: PlaceRef | null }
   | { kind: 'record_sale'; accountId: string; userEmail: string; actorUserId: string; actorRole: string; lines: { productId: string; grams: number; pricePerGramUsd: number }[]; customerId: string | null; customerName: string; customerWhatsapp: string | null; notes: string | null }
   | { kind: 'create_customer'; accountId: string; userEmail: string; name: string; whatsapp: string | null; email: string | null; phone: string | null; notes: string | null; tags: string[] }
   | { kind: 'update_customer'; accountId: string; userEmail: string; customerId: string; fields: Record<string, string | null> }
@@ -1408,7 +1410,16 @@ async function toolGetTea(env: Env, auth: McpAuth, args: any) {
     cost_amount: product.cost_amount ?? null,
     cost_currency: product.cost_currency ?? null,
     recent_ledger: ledger.results,
+    ...await stockPlacesFor(env, accountId, product),
   };
+}
+
+/** Where the stock is kept, for a tea whose shop has places (worker/src/stockPlaces.ts). */
+async function stockPlacesFor(env: Env, accountId: string, product: any) {
+  const unit: 'g' | 'unit' = product.type === 'Teaware' ? 'unit' : 'g';
+  const total = Number((unit === 'g' ? product.stock_grams : product.quantity_units) ?? 0);
+  const split = await readStockSplit(env.DB, accountId, String(product.id), total);
+  return split.places.length ? { stock_places: describeSplit(split, unit) } : {};
 }
 
 // ── tool: list_low_stock ──
@@ -1814,9 +1825,12 @@ async function toolAddStock(env: Env, auth: McpAuth, args: any) {
 
     const current = Number(product.stock_grams || 0);
     const next = current + grams;
+    const place = await namePlace(env.DB, auth.accountId, args?.place);
+    const placed = place ? await previewPlaceShift(env.DB, auth.accountId, productId, current, place, grams, 'g') : null;
+    if (placed && isRefusal(placed)) return { error: placed.error, message: placed.message };
     const token = await issueConfirmationToken(env, {
       kind: 'add_stock', accountId: auth.accountId, userEmail: auth.userEmail,
-      productId, grams, note,
+      productId, grams, note, place,
     }, auth.tokenId);
     return {
       preview: {
@@ -1826,6 +1840,7 @@ async function toolAddStock(env: Env, auth: McpAuth, args: any) {
         balance_before: current,
         balance_after: next,
         note,
+        ...(placed ?? {}),
       },
       confirmation_token: token,
       expires_in_seconds: PENDING_TTL_MS / 1000,
@@ -1847,6 +1862,10 @@ async function commitAddStock(env: Env, m: Extract<PendingMutation, { kind: 'add
 
   const balanceAfter = Number(product.stock_grams || 0) + m.grams;
   const batchId = await resolveUnsortedBatchId(env, m.accountId);
+  const placed = m.place
+    ? await placeShiftStatements(env.DB, { accountId: m.accountId, email: m.userEmail, note: m.note }, m.productId, 'stock_grams', Number(product.stock_grams || 0), m.place, m.grams, 'g')
+    : null;
+  if (placed && isRefusal(placed)) return { error: placed.error, message: `${placed.message} Nothing was changed.` };
 
   await env.DB.batch([
     env.DB.prepare('UPDATE products SET stock_grams = stock_grams + ? WHERE id = ? AND account_id = ?')
@@ -1866,6 +1885,7 @@ async function commitAddStock(env: Env, m: Extract<PendingMutation, { kind: 'add
       `+${m.grams}g via MCP — ${product.given_name || product.product_name}`,
       m.userEmail, 'product', m.productId, m.accountId,
     ),
+    ...(placed ? placed.statements : []),
   ]);
 
   return {
@@ -1874,6 +1894,7 @@ async function commitAddStock(env: Env, m: Extract<PendingMutation, { kind: 'add
     product: { id: product.id, name: product.given_name || product.product_name },
     delta_grams: m.grams,
     balance_after: balanceAfter,
+    ...(placed ? { stock_places: describeSplit(placed.split, 'g') } : {}),
   };
 }
 
@@ -1906,9 +1927,13 @@ async function toolRemoveStock(env: Env, auth: McpAuth, args: any) {
       };
     }
     const next = current - grams;
+    const place = await namePlace(env.DB, auth.accountId, args?.place);
+    if (place && !place.id) return { error: 'unknown_place', message: `The shop has no place called ${place.name}. See list_stock_places.` };
+    const placed = place ? await previewPlaceShift(env.DB, auth.accountId, productId, current, place, -grams, 'g') : null;
+    if (placed && isRefusal(placed)) return { error: placed.error, message: placed.message, available_at_place: placed.available ?? 0 };
     const token = await issueConfirmationToken(env, {
       kind: 'remove_stock', accountId: auth.accountId, userEmail: auth.userEmail,
-      productId, grams, reason, note,
+      productId, grams, reason, note, place,
     }, auth.tokenId);
     return {
       preview: {
@@ -1920,6 +1945,7 @@ async function toolRemoveStock(env: Env, auth: McpAuth, args: any) {
         reason,
         note,
         warning: next === 0 ? 'This deduction will set stock to zero (product will be marked Sold Out).' : null,
+        ...(placed ?? {}),
       },
       confirmation_token: token,
       expires_in_seconds: PENDING_TTL_MS / 1000,
@@ -1943,6 +1969,12 @@ async function commitRemoveStock(env: Env, m: Extract<PendingMutation, { kind: '
   if (m.grams > current) {
     return { error: 'insufficient_stock', requested_grams: m.grams, available_grams: current };
   }
+
+  // Checked before the decrement, so a place that is short refuses with nothing written.
+  const placed = m.place
+    ? await placeShiftStatements(env.DB, { accountId: m.accountId, email: m.userEmail, note: m.note }, m.productId, 'stock_grams', current, m.place, -m.grams, 'g')
+    : null;
+  if (placed && isRefusal(placed)) return { error: placed.error, message: `${placed.message} Nothing was changed.`, available_at_place: placed.available ?? 0 };
 
   // Atomic, conditional decrement. The earlier SELECT is advisory only — two
   // concurrent removes could both pass it and oversell. The `stock_grams >= ?`
@@ -1985,6 +2017,7 @@ async function commitRemoveStock(env: Env, m: Extract<PendingMutation, { kind: '
     `-${m.grams}g via MCP (${m.reason}) — ${product.given_name || product.product_name}`,
     m.userEmail, 'product', m.productId, m.accountId,
   ));
+  if (placed) stmts.push(...placed.statements);
 
   await env.DB.batch(stmts);
 
@@ -1996,6 +2029,7 @@ async function commitRemoveStock(env: Env, m: Extract<PendingMutation, { kind: '
     balance_after: balanceAfter,
     reason: m.reason,
     sold_out: balanceAfter === 0,
+    ...(placed ? { stock_places: describeSplit(placed.split, 'g') } : {}),
   };
 }
 
@@ -6524,6 +6558,7 @@ const TOOL_DEFS: ToolDefinition[] = [
         id: { type: 'string', description: 'Product id from search_tea/get_tea.' },
         grams: { type: 'number', description: 'Positive grams to add.' },
         note: { type: 'string', description: 'Optional human-readable note (e.g. "from Yunnan trip Mar 2026").' },
+        place: { type: 'string', description: 'Optional: where it is stored, e.g. "Art studio" (list_stock_places). A new name becomes a new place on confirm. Leave out and it counts as not placed yet.' },
         confirm: { type: 'string', description: 'Confirmation token from the preview response. Omit on first call.' },
       },
       required: ['id', 'grams'],
@@ -6540,6 +6575,7 @@ const TOOL_DEFS: ToolDefinition[] = [
         grams: { type: 'number' },
         reason: { type: 'string', enum: ['MANUAL_ADJUST', 'WASTE', 'SAMPLE', 'PERSONAL'], default: 'MANUAL_ADJUST' },
         note: { type: 'string' },
+        place: { type: 'string', description: 'Optional: the storage place it came out of (list_stock_places). Leave out and it comes off stock not placed yet first, then the first place in the shop\'s order.' },
         confirm: { type: 'string' },
       },
       required: ['id', 'grams'],
@@ -7341,6 +7377,7 @@ const TOOL_MODULES: ToolModule[] = [
   curateDrivePhotosModule,
   supplierRenameTools,
   stockCountTools,
+  stockPlaceTools,
   supplierPhotoTools,
   curateDisplayNameTools,
   teaPageContentTools,

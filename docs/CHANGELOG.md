@@ -1,3 +1,7 @@
+## 2026-11-28: Each tea's stock is split by where it is kept
+
+Adrian: "Split stock based on where it is stored, but just have one number." A tea still has one stock number, the one the shop sells from. Behind it, each shop now has its own storage places (a studio, a house, the shop), and the stock panel in Manage shows "Where it is kept": how much is at each place and what is not placed yet, typed in on a phone and saved in one tap. The split always adds up to the total: a sale that names no place comes off stock not placed yet first, then the first place. A movement in the panel can name a place, and a recount there counts that place. The connector's `count_stock`, `add_stock` and `remove_stock` take a `place`, and `list_stock_places`, `move_stock_between_places` and `save_stock_place` read and change the split. Customers never see it. Migration `0163_stock_places.sql` (schema only), `worker/src/stockPlaces.ts`, `shared/stockSplit.ts`, `StockPlacesSection.tsx`.
+
 ## 2026-11-28: The house line says Create
 
 Home's house line now reads "Honor the past. Live in the present. Create for the future.", Adrian's choice over Build.
