@@ -1,9 +1,9 @@
 {
   "master": "src/styles/tokens.css",
   "totals": {
-    "colors": 1590,
-    "sizes": 1649,
-    "fonts": 807
+    "colors": 1571,
+    "sizes": 1605,
+    "fonts": 788
   },
   "files": {
     "index.html": {
@@ -60,11 +60,6 @@
       "colors": 14,
       "sizes": 11,
       "fonts": 14
-    },
-    "src/admin/components/PostSessionEditor.tsx": {
-      "colors": 0,
-      "sizes": 5,
-      "fonts": 0
     },
     "src/admin/components/ProductEditPanel.tsx": {
       "colors": 0,
@@ -211,11 +206,6 @@
       "sizes": 3,
       "fonts": 0
     },
-    "src/admin/views/VendorProfileView.tsx": {
-      "colors": 3,
-      "sizes": 0,
-      "fonts": 0
-    },
     "src/admin/views/WholesaleOrderTimeline.tsx": {
       "colors": 0,
       "sizes": 5,
@@ -276,7 +266,7 @@
       "sizes": 1,
       "fonts": 0
     },
-    "src/components/CurateV2/AgentInbox.tsx": {
+    "src/components/curate/AgentInbox.tsx": {
       "colors": 0,
       "sizes": 1,
       "fonts": 0
@@ -301,7 +291,7 @@
       "sizes": 2,
       "fonts": 0
     },
-    "src/components/CurateV2/PhotoCapture.tsx": {
+    "src/components/curate/PhotoCapture.tsx": {
       "colors": 2,
       "sizes": 4,
       "fonts": 0
@@ -338,7 +328,7 @@
     },
     "src/components/LeftSidebar.tsx": {
       "colors": 2,
-      "sizes": 13,
+      "sizes": 1,
       "fonts": 0
     },
     "src/components/Logos/LogoWordmark.tsx": {
@@ -393,7 +383,7 @@
     },
     "src/components/TeaCompass/PhotoCapture.tsx": {
       "colors": 2,
-      "sizes": 4,
+      "sizes": 2,
       "fonts": 0
     },
     "src/components/TeaCompass/PricingRow.tsx": {
@@ -491,11 +481,6 @@
       "sizes": 3,
       "fonts": 0
     },
-    "src/components/profile/PaymentChooser.tsx": {
-      "colors": 0,
-      "sizes": 1,
-      "fonts": 0
-    },
     "src/components/reader/BreathPacer.tsx": {
       "colors": 0,
       "sizes": 1,
@@ -526,11 +511,6 @@
       "sizes": 1,
       "fonts": 0
     },
-    "src/components/shared/BrewingQRCard.tsx": {
-      "colors": 11,
-      "sizes": 8,
-      "fonts": 10
-    },
     "src/components/shared/BuyingBasket.tsx": {
       "colors": 0,
       "sizes": 4,
@@ -544,11 +524,6 @@
     "src/components/shared/CartItem.tsx": {
       "colors": 0,
       "sizes": 3,
-      "fonts": 0
-    },
-    "src/components/shared/CurrencyToggle.tsx": {
-      "colors": 2,
-      "sizes": 0,
       "fonts": 0
     },
     "src/components/shared/HapticSlider.tsx": {
@@ -587,11 +562,6 @@
       "fonts": 0
     },
     "src/components/shared/SectionDivider.tsx": {
-      "colors": 0,
-      "sizes": 1,
-      "fonts": 0
-    },
-    "src/components/shared/SwipeCarousel.tsx": {
       "colors": 0,
       "sizes": 1,
       "fonts": 0
@@ -663,8 +633,8 @@
     },
     "src/components/shop/alcove/AlcoveCharacterBand.tsx": {
       "colors": 0,
-      "sizes": 6,
-      "fonts": 3
+      "sizes": 1,
+      "fonts": 1
     },
     "src/components/shop/alcove/AlcoveCommerceFooter.tsx": {
       "colors": 0,
@@ -678,7 +648,7 @@
     },
     "src/components/shop/alcove/AlcoveIdentityHeader.tsx": {
       "colors": 0,
-      "sizes": 4,
+      "sizes": 2,
       "fonts": 0
     },
     "src/components/shop/alcove/AlcoveModals.tsx": {
@@ -742,9 +712,9 @@
       "fonts": 1
     },
     "src/components/tasting/TastingCard.tsx": {
-      "colors": 25,
+      "colors": 24,
       "sizes": 9,
-      "fonts": 12
+      "fonts": 10
     },
     "src/components/tasting/TastingJournal.tsx": {
       "colors": 1,
@@ -801,11 +771,6 @@
       "sizes": 1,
       "fonts": 0
     },
-    "src/pages/AccountJourneyPage.tsx": {
-      "colors": 0,
-      "sizes": 1,
-      "fonts": 0
-    },
     "src/pages/ArticlePage.tsx": {
       "colors": 50,
       "sizes": 29,
@@ -856,19 +821,9 @@
       "sizes": 1,
       "fonts": 0
     },
-    "src/pages/ProductPage.tsx": {
-      "colors": 0,
-      "sizes": 1,
-      "fonts": 0
-    },
     "src/pages/ProfilePaymentPage.tsx": {
       "colors": 0,
       "sizes": 3,
-      "fonts": 0
-    },
-    "src/pages/PublicCollectionPage.tsx": {
-      "colors": 0,
-      "sizes": 2,
       "fonts": 0
     },
     "src/pages/SignInPage.tsx": {
@@ -908,8 +863,8 @@
     },
     "src/pages/lessons/LessonsIndex.tsx": {
       "colors": 0,
-      "sizes": 10,
-      "fonts": 16
+      "sizes": 6,
+      "fonts": 12
     },
     "src/pages/read/AtlasMapOfMountains.tsx": {
       "colors": 12,
@@ -932,9 +887,9 @@
       "fonts": 14
     },
     "src/pages/read/EditablePhoto.tsx": {
-      "colors": 1,
+      "colors": 0,
       "sizes": 10,
-      "fonts": 9
+      "fonts": 8
     },
     "src/pages/read/EssayLongWayToCup.tsx": {
       "colors": 5,
@@ -1062,7 +1017,7 @@
       "fonts": 0
     },
     "src/styles/card-utilities.css": {
-      "colors": 177,
+      "colors": 176,
       "sizes": 630,
       "fonts": 19
     },

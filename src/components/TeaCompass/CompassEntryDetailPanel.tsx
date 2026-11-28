@@ -1,4 +1,4 @@
-import { TeaCupIcon } from '../shared/TeaCupIcon';
+import { TeaCup } from '../TeaCupIcon';
 import { TeaCardMetric, TeaCardMetrics } from '../tea/TeaCard';
 import { TeaPanelSummary } from '../tea/TeaPanelSummary';
 import { getThemeColor } from '../../admin/themeUtils';
@@ -224,7 +224,7 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
       <div className="tea-record-decision"><DecisionControl value={entry.decision} onChange={decision => updateEntry(entry.id, { decision })} compact /></div>
       <div className="flex items-center justify-between gap-2 py-1">
         <span className="text-ui-12 text-tea-text-dim">{entry.tasting ? 'Tasting recorded' : 'No tasting yet'}</span>
-        <button type="button" onClick={() => setTastingOpen(true)} className="tea-record-taste tap-target inline-flex min-h-tap items-center gap-1.5 rounded-md px-3 text-ui-13 font-medium" aria-label="Taste"><TeaCupIcon />Taste</button>
+        <button type="button" onClick={() => setTastingOpen(true)} className="tea-record-taste tap-target inline-flex min-h-tap items-center gap-1.5 rounded-md px-3 text-ui-13 font-medium" aria-label="Taste"><TeaCup size={19} strokeWidth={1.5} aria-hidden="true" />Taste</button>
       </div>
       {!previewEntry && !purchases.isLoading && <TeaPathLine path={path} actions={pathActions} />}
       {askLeafUsed && !tastingOpen && stockProduct && workingStock && Number(stockProduct.stockGrams ?? 0) > 0 && <LeafUsedAfterTasting stock={stockProduct} entryId={entry.id} onDone={() => setAskLeafUsed(false)} />}

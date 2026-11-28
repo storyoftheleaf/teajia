@@ -4,7 +4,7 @@ import type { InventoryReceipt } from '../admin/types';
 import { usePrivateQueryScope } from '../admin/hooks/usePrivateQueryScope';
 import { api, type CuratePurchaseReceipt } from './api';
 import { useLedgerStore, type LedgerLineItem, type LedgerTransaction } from './ledgerStore';
-import { useShopOrders, type ShopOrder } from '../components/CurateV2/shopOrders';
+import { useShopOrders, type ShopOrder } from '../components/curate/shopOrders';
 
 export interface LibraryPurchaseIdentity { entryId?: string; productId?: string; chosen?: boolean }
 export interface LibraryPurchaseQuantity {

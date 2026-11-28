@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useLedgerStore } from '../../lib/ledgerStore';
-import { useShopOrders } from '../CurateV2/shopOrders';
+import { useShopOrders } from '../curate/shopOrders';
 import { CartPanel } from './CartPanel';
 import { IN_PROCESS_STATUSES } from './inProcessStatus';
 

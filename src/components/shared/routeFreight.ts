@@ -22,7 +22,7 @@ import type { ExchangeRate } from '../../admin/types';
 import type { LedgerTransaction } from '../../lib/ledgerStore';
 import { isUnrecordedCurrency, rateToUsd } from '../../lib/currency';
 import { serviceQuotePerKgUsd, serviceRatesFromRows, type ServiceRow } from '../../lib/freightSource';
-import { ledgerItemGrams } from '../CurateV2/curatePricing';
+import { ledgerItemGrams } from '../curate/curatePricing';
 
 export interface ShippingRoute {
   id: string;

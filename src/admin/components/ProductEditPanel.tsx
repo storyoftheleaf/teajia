@@ -36,7 +36,7 @@ import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { sharedTeaRecordId, sharedTeaRecordHref } from '../../lib/sharedTeaRecord';
 import { hydrateCompassEntries } from '../../lib/teaCompassSync';
 import { useLedgerStore } from '../../lib/ledgerStore';
-import { addTeaToDraftOrder } from '../../components/CurateV2/orderBuy';
+import { addTeaToDraftOrder } from '../../components/curate/orderBuy';
 import { buildProductUpdatePayload, enteredNumber } from '../productUpdatePayload';
 import { shopRateInCurrency, shippingRateUsdFor } from '../../lib/shippingRate';
 import { isoCurrencyCode, rateToUsd } from '../../lib/currency';

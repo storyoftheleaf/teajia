@@ -6,9 +6,9 @@ import { Heart, ThumbsUp, Minus, ThumbsDown, X } from 'lucide-react';
 import { getTeaColor } from '../../designTokens';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { LIQUOR_COLORS } from '../../data/tastingTaxonomy';
-import { resolveVerdict } from './types';
-import type { TeaCompassEntry, CompassVerdict } from './types';
-import { DecisionControl } from './DecisionControl';
+import { resolveVerdict } from '../curate/types';
+import type { TeaCompassEntry, CompassVerdict } from '../curate/types';
+import { DecisionControl } from '../curate/DecisionControl';
 
 interface SessionReviewProps {
   /** The teas to sort through, typically "tasted but not yet given a verdict". */

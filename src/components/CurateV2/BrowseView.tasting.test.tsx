@@ -10,7 +10,7 @@ vi.mock('../../lib/teaCompassStore', async (loadOriginal) => {
 vi.mock('../../admin/hooks/useAdminData', () => ({ useRates: () => ({ data: undefined }) }));
 vi.mock('./BrowseCard', () => ({ BrowseCard: ({ entry }: { entry: { name: string } }) => <div>{entry.name}</div> }));
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
-import { createEmptyEntry } from './types';
+import { createEmptyEntry } from '../curate/types';
 import { BrowseView } from './BrowseView';
 
 const render = () => renderToStaticMarkup(<MemoryRouter><BrowseView onEditEntry={() => {}} onNewCapture={() => {}} /></MemoryRouter>);

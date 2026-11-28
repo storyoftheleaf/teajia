@@ -6,6 +6,7 @@ import { BookOpen, X as XIcon } from 'lucide-react';
 import { api, ApiError, AUTH_TOKEN_CHANGED_EVENT, getTokenClaims } from '../lib/api';
 import { Button } from '../components/shared/Button';
 import type { SavedCollectionRow } from '../types';
+import { authPagePath } from '../lib/authNavigation';
 
 function subscribeToSession(onChange: () => void) {
   window.addEventListener(AUTH_TOKEN_CHANGED_EVENT, onChange);
@@ -80,7 +81,7 @@ export function SharedCollectionsSection({ embedded = false }: { embedded?: bool
 
       {needsSignIn ? (
         <p className="text-ui-14 text-tea-text-sec">
-          <Link to="/signin?returnTo=%2Faccount%2Fcollections" className="tap-target inline-flex items-center text-tea-gold underline">
+          <Link to={authPagePath('signin', '/account/collections')} className="tap-target inline-flex items-center text-tea-gold underline">
             Sign in
           </Link>{' '}to see collections shared with you.
         </p>

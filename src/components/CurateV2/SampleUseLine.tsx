@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { gramsToUse, useSampleUse, whole } from './sampleUse';
+import { gramsToUse, useSampleUse, whole } from '../curate/sampleUse';
 
 /**
  * "Uses 5 g of the 10 g sample": one quiet row in the tasting sheet, shown only

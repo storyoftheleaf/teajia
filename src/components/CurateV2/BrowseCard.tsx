@@ -9,23 +9,23 @@ import {
   ShoppingBag, Droplets, AlertTriangle, Star, ChevronLeft, ChevronRight, X, RefreshCw,
   Heart, ThumbsUp, Minus, ThumbsDown,
 } from 'lucide-react';
-import type { CompassVerdict } from './types';
-import { entryDisplayTitle } from './types';
+import type { CompassVerdict } from '../curate/types';
+import { entryDisplayTitle } from '../curate/types';
 import { AddToSampleButton } from '../samples/AddToSampleButton';
 import { getTeaColor } from '../../designTokens';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { useLedgerStore } from '../../lib/ledgerStore';
 import { api } from '../../lib/api';
-import { useSampleUse } from './sampleUse';
+import { useSampleUse } from '../curate/sampleUse';
 import { TastingSession } from '../tasting/TastingSession';
 import type { TastingData } from '../../types';
 import { TastingProfileStrip } from '../tasting/TastingProfileStrip';
 import { tastingToOpenWith } from '../tasting/tastingOpenData';
 import { saveCurateTasting } from '../../lib/curateTastingSave';
 import { compressImage } from '../../lib/imageCompressor';
-import type { TeaCompassEntry } from './types';
+import type { TeaCompassEntry } from '../curate/types';
 import { LIQUOR_COLORS } from '../../data/tastingTaxonomy';
-import { DecisionControl } from './DecisionControl';
+import { DecisionControl } from '../curate/DecisionControl';
 import { CreateInventoryRecordAction } from './CreateInventoryRecordAction';
 import { usePhotoEditor } from '../shared/usePhotoEditor';
 

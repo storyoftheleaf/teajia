@@ -1,5 +1,5 @@
 import type { Product } from '../../types';
-import type { TeaCompassEntry } from '../../../components/CurateV2/types';
+import type { TeaCompassEntry } from '../../../components/curate/types';
 import { effectivePurpose } from './domain';
 import type { SampleHolding } from './phone/PhoneSamplesList';
 

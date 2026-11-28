@@ -8,11 +8,11 @@
  * and pay link (invoices, invoice_line_items, payment_share_links), a
  * collection link with its teas and quoted prices (collection_publications,
  * collection_items). The one thing nothing kept was what the person did with
- * it, so `link_signals` (migration 0159) records each opening of the link and
+ * it, so `link_signals` (migration 0160) records each opening of the link and
  * of each tea on it. Everything else is read from its own table, never copied:
  *
  *   saved    user_favorites (the heart), saved_collections (the collection kept)
- *            and the invoice kept to an account (customers.user_id)
+ *            and the invoice kept to an account (pay_invoice_keeps, customers.user_id)
  *   tasted   customer_tasting_journal
  *   ordered  invoices made from the link: source_publication_id, or an order
  *            request whose cart lines carry the link's collectionSlug
@@ -260,7 +260,7 @@ export async function invoiceSendRecord(env: Db, accountId: string, invoiceId: s
       WHERE i.id = ? AND i.account_id = ?`,
   ).bind(invoiceId, accountId).first<Row>();
   if (!invoice) return null;
-  const [lineRows, payRows, shareLink, grants, signals] = await Promise.all([
+  const [lineRows, payRows, shareLink, grants, signals, keeps] = await Promise.all([
     env.DB.prepare(
       `SELECT li.product_id, li.custom_name, li.quantity, li.quantity_unit, li.price_at_sale,
               COALESCE(p.given_name, p.product_name) AS product_name, p.type
@@ -276,12 +276,19 @@ export async function invoiceSendRecord(env: Db, accountId: string, invoiceId: s
       `SELECT g.grantee_user_id FROM payment_access_grants g WHERE g.invoice_id = ? AND g.granted_via = 'link'`,
     ).bind(invoiceId).all<Row>(),
     signalsFor(env, { kind: 'invoice', invoiceId }),
+    // Saved from its pay link (pay_invoice_keeps, migration 0159).
+    env.DB.prepare(
+      `SELECT k.user_id, COALESCE(NULLIF(TRIM(u.name), ''), u.email) AS name
+         FROM pay_invoice_keeps k LEFT JOIN users u ON u.id = k.user_id
+        WHERE k.account_id = ? AND k.invoice_id = ?`,
+    ).bind(accountId, invoiceId).all<Row>(),
   ]);
+  const keptRows = keeps.results ?? [];
   const lines = lineRows.results ?? [];
   const teaLines = lines.filter(line => !isDiscountLine(line));
   const discountLine = lines.find(line => isDiscountLine(line));
   const productIds = [...new Set(teaLines.map(line => line.product_id).filter(Boolean).map(String))];
-  const people = viewerIds(signals, [invoice.customer_user_id, ...(grants.results ?? []).map(g => g.grantee_user_id)])
+  const people = viewerIds(signals, [invoice.customer_user_id, ...keptRows.map(k => k.user_id), ...(grants.results ?? []).map(g => g.grantee_user_id)])
     .filter(id => id !== invoice.sold_by_user_id && id !== invoice.payment_recipient_user_id);
   const { saved, tasted } = await savesAndTastings(env, people, productIds);
   const opened = teaOpenCounts(signals);
@@ -320,7 +327,10 @@ export async function invoiceSendRecord(env: Db, accountId: string, invoiceId: s
     live: !invoice.deleted_at && invoice.status !== 'Void',
     teas,
     opens: opensFrom(signals, shareLink ? { times: Number(shareLink.open_count) || 0, last_at: shareLink.last_opened_at ?? null } : null),
-    kept_by: invoice.customer_user_id ? [{ name: String(invoice.customer_user_name ?? invoice.customer_name ?? 'Someone'), at: null }] : [],
+    kept_by: [...new Set([
+      ...keptRows.map(k => String(k.name ?? 'Someone')),
+      ...(invoice.customer_user_id ? [String(invoice.customer_user_name ?? invoice.customer_name ?? 'Someone')] : []),
+    ])].map(name => ({ name, at: null })),
     money: {
       subtotal_usd: money(subtotal),
       discount_percent: discountLine ? num(String(discountLine.custom_name).match(/[\d.]+/)?.[0]) : null,

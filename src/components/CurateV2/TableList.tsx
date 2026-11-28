@@ -2,12 +2,12 @@ import { CapturePhotoImage } from '../curate/CapturePhotoImage';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Mic, Square, Loader2 } from 'lucide-react';
 import { selectTableEntries, useTeaCompassStore } from '../../lib/teaCompassStore';
-import { parseTeaInput } from './InputParser';
+import { parseTeaInput } from '../curate/InputParser';
 import { REGION_NAMES } from '../../wisdom';
-import type { TeaCompassEntry } from './types';
-import { linePriceFields, quotedUnit, readLinePrice, tastingLine, listName } from './curateV2Model';
-import { VendorPicker } from './VendorPicker';
-import { CURRENCY_LABELS } from './PricingRow';
+import type { TeaCompassEntry } from '../curate/types';
+import { linePriceFields, quotedUnit, readLinePrice, tastingLine, listName } from '../curate/curateV2Model';
+import { VendorPicker } from '../curate/VendorPicker';
+import { CURRENCY_LABELS } from '../curate/PricingRow';
 import type { Currency } from '../../admin/types';
 
 interface TableListProps {

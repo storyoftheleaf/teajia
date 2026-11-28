@@ -10,7 +10,7 @@ import {
 import { api, hasToken } from '../../lib/api';
 import { compressImage } from '../../lib/imageCompressor';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
-import type { VendorDetails } from './types';
+import type { VendorDetails } from '../curate/types';
 import { usePhotoEditor } from '../shared/usePhotoEditor';
 
 interface VendorInfoPanelProps {

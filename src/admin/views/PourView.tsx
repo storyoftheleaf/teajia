@@ -1,5 +1,5 @@
 // The pour page (Adrian, 2026-11-27): pull a tea out, tap it, type the weight
-// or skip it. The tea joins that day's sit and the grams come out of stock.
+// or skip it. The tea joins that day's sit and the grams come out of stock when you have permission.
 // Nothing is started first: the day's sit is made by its first pour, and it
 // can be named, placed and sent afterwards. The worker side is
 // worker/src/pourSit.ts.
@@ -11,6 +11,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Delete, Share2 } from 'lucide-react';
 import { API_URL, authedFetch } from '../../lib/api';
 import { mediaUrl } from '../../lib/mediaUrl';
+import { useAppStore } from '../../lib/store';
 import { TYPOGRAPHY_CLASSES, getTeaLedgerTones } from '../../designTokens';
 import { useTheme } from '../../context/ThemeContext';
 import { useStepParam } from '../../hooks/useStepParam';
@@ -27,6 +28,11 @@ const send = (method: string, path: string, body?: unknown) =>
 const grams = (value: number | null) => (value === null ? '' : `${value} g`);
 
 export default function PourView() {
+  const accountId = useAppStore(state => state.activeAccountId);
+  return <PourShelf key={accountId} />;
+}
+
+function PourShelf() {
   const today = useMemo(() => localDay(new Date()), []);
   const timezone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC', []);
   const [day, setDay] = useStepParam('day', today);
@@ -163,8 +169,11 @@ export default function PourView() {
                   <span className={`${TYPOGRAPHY_CLASSES.mono} text-tea-text-sec`}>
                     {grams(poured.grams)}{poured.short ? ', more than the shelf held' : ''}
                   </span>
-                  <Button type="button" variant="quiet" size="sm" className="tap-target" disabled={busy}
+                  <Button type="button" variant="quiet" size="sm" className="tap-target" disabled={busy || !poured.can_take_back}
                     aria-label={`Take back ${poured.name}`} onClick={() => takeBack(poured.id)}>Take back</Button>
+                  {!poured.can_take_back && (
+                    <span className={`${TYPOGRAPHY_CLASSES.bodyLight} text-tea-text-sec`}>Stock access needed to take back</span>
+                  )}
                 </li>
               ))}
             </ol>
@@ -239,7 +248,9 @@ export default function PourView() {
       </div>
 
       <NumberPad open={Boolean(teaId) && (Boolean(tea) || (teaId === 'name' && Boolean(typedName)))}
-        name={tea ? tea.name : typedName} shelf={tea ? `${tea.stock_grams ?? 0} g on the shelf` : undefined}
+        name={tea ? tea.name : typedName}
+        shelf={tea?.can_deduct ? `${tea.stock_grams ?? 0} g on the shelf` : undefined}
+        canWeigh={!tea || tea.can_deduct === true}
         busy={busy} onClose={back} onPour={pour} />
       {sit && (
         <SitSheet open={sheet === 'open'} sit={sit} busy={busy} onClose={back}
@@ -251,12 +262,21 @@ export default function PourView() {
 
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', 'back'] as const;
 
-function NumberPad({ open, name, shelf, busy, onClose, onPour }: {
-  open: boolean; name: string; shelf?: string; busy: boolean; onClose: () => void; onPour: (grams: number | null) => void;
+function NumberPad({ open, name, shelf, canWeigh, busy, onClose, onPour }: {
+  open: boolean; name: string; shelf?: string; canWeigh: boolean; busy: boolean; onClose: () => void; onPour: (grams: number | null) => void;
 }) {
   const [typed, setTyped] = useState('');
   useEffect(() => { if (open) setTyped(''); }, [open, name]);
   const weight = gramsOf(typed);
+
+  if (!canWeigh) {
+    return (
+      <BottomSheet open={open} onOpenChange={next => { if (!next) onClose(); }} title={name}
+        description="Stock access is needed to deduct grams.">
+        <Button type="button" className="tap-target" disabled={busy} onClick={() => onPour(null)}>Record without weight</Button>
+      </BottomSheet>
+    );
+  }
 
   return (
     <BottomSheet open={open} onOpenChange={next => { if (!next) onClose(); }} title={name} description={shelf}>
@@ -302,9 +322,6 @@ function SitSheet({ open, sit, busy, onClose, onChange }: {
     api('/places').then(result => { if (live && Array.isArray(result?.places)) setPlaces(result.places); }, () => undefined);
     return () => { live = false; };
   }, [open]);
-  // A session invited ahead has no link of its own until its host asks for one.
-  useEffect(() => { if (open && !sit.link) onChange({ link: true }); }, [open, sit.id, sit.link]); // eslint-disable-line react-hooks/exhaustive-deps
-
   const spaces = places.filter(place => place.space);
   const others = places.filter(place => !place.space);
   const link = sit.link ?? '';
@@ -350,13 +367,22 @@ function SitSheet({ open, sit, busy, onClose, onChange }: {
         </label>
 
         <div className="flex flex-col gap-2 border-t border-tea-border pt-3">
-          <p className={`${TYPOGRAPHY_CLASSES.mono} break-all text-tea-text-sec`}>{link}</p>
+          <p className={TYPOGRAPHY_CLASSES.bodyLight}>
+            {sit.casual ? 'Anyone with the link can open this casual sit.' : 'Guests keep their existing RSVP and approval rules.'}
+          </p>
+          {link && <p className={`${TYPOGRAPHY_CLASSES.mono} break-all text-tea-text-sec`}>{link}</p>}
           <div className="flex flex-wrap justify-end gap-2">
-            {canShare && (
-              <Button type="button" variant="secondary" className="tap-target" disabled={!link}
-                onClick={() => { void navigator.share({ title: sit.title, url: link }).catch(() => undefined); }}>Share</Button>
-            )}
-            <Button type="button" className="tap-target" disabled={!link} onClick={copy}>{copied ? 'Copied' : 'Copy link'}</Button>
+            {link ? (
+              <>
+                <Button type="button" variant="quiet" className="tap-target" disabled={busy}
+                  onClick={() => { setCopied(false); onChange({ link: false }); }}>Turn off link</Button>
+                {canShare && (
+                  <Button type="button" variant="secondary" className="tap-target" disabled={busy}
+                    onClick={() => { void navigator.share({ title: sit.title, url: link }).catch(() => undefined); }}>Share</Button>
+                )}
+                <Button type="button" className="tap-target" disabled={busy} onClick={copy}>{copied ? 'Copied' : 'Copy link'}</Button>
+              </>
+            ) : <Button type="button" className="tap-target" disabled={busy} onClick={() => onChange({ link: true })}>Create link</Button>}
           </div>
         </div>
       </div>

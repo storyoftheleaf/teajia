@@ -11,6 +11,7 @@
 // instead, and the shop's owner holds the session either way.
 
 import { readSessionServedTeas } from './sessionServedTeas';
+import { approvedSeatSourceSql, attendeeIdentitySql, hasApprovedSeatSourceSql } from './seatRequest';
 
 type Db = D1Database;
 
@@ -41,26 +42,17 @@ type Seat = {
 
 type Outcome = { status: number; body: Record<string, unknown> };
 
-// The signed-in person is the seat's own account, or, for a seat booked
-// without one, the only seat at this session under their verified email.
-const seatBelongsTo = `(a.user_id = ? OR (
-  a.user_id IS NULL
-  AND EXISTS (SELECT 1 FROM users u WHERE u.id = ? AND u.email_verified_at IS NOT NULL
-    AND lower(trim(u.email)) = lower(trim(a.email)))
-  AND 1 = (SELECT count(*) FROM event_attendees other WHERE other.event_id = a.event_id
-    AND lower(trim(other.email)) = lower(trim(a.email)))
-))`;
-
 /**
  * Whether this person still holds a confirmed seat at the event, on the same
- * rule as joining (seatBelongsTo). The tasting a guest's first open makes
+ * rule as joining. The tasting a guest's first open makes
  * (eventTastingId) is the table's own: a member whose seat is given back,
  * said no to or moved to waiting no longer reads it (A3).
  */
 export async function holdsEventTastingSeat(db: Db, session: { event_id: string; account_id: string }, userId: string) {
   const row = await db.prepare(
     `SELECT 1 AS ok FROM event_attendees a
-      WHERE a.event_id = ? AND a.account_id = ? AND a.status = 'confirmed' AND ${seatBelongsTo} LIMIT 1`,
+      WHERE a.event_id = ? AND a.account_id = ? AND a.status = 'confirmed'
+        AND ${hasApprovedSeatSourceSql('a')} AND ${attendeeIdentitySql('a')} LIMIT 1`,
   ).bind(session.event_id, session.account_id, userId, userId).first<{ ok: number }>();
   return Boolean(row);
 }
@@ -80,16 +72,16 @@ export async function joinEventTasting(db: Db, token: string, user: { userId: st
     `SELECT a.id AS attendee_id, a.status, a.user_id, a.email, e.id AS event_id, e.account_id, e.title,
             e.is_tasting, e.lifecycle_status, e.total_capacity, shop.owner_user_id
      FROM event_attendees a
-     JOIN events e ON e.id = a.event_id
+     JOIN events e ON e.id = a.event_id AND e.account_id = a.account_id
      JOIN accounts shop ON shop.id = e.account_id
-     WHERE a.magic_token = ?`,
+     WHERE a.magic_token = ? AND ${approvedSeatSourceSql('e', 'a')}`,
   ).bind(token).first<Seat>();
   if (!seat) return { status: 404, body: { error: 'RSVP not found' } };
   if (Number(seat.is_tasting) !== 1 || ['cancelled', 'archived'].includes(seat.lifecycle_status)) {
     return { status: 404, body: { error: 'This session is not a tasting.' } };
   }
   if (seat.status !== 'confirmed') return { status: 403, body: { error: 'The tasting opens to confirmed seats.' } };
-  const mine = await db.prepare(`SELECT 1 AS ok FROM event_attendees a WHERE a.id = ? AND ${seatBelongsTo}`)
+  const mine = await db.prepare(`SELECT 1 AS ok FROM event_attendees a WHERE a.id = ? AND ${attendeeIdentitySql('a')}`)
     .bind(seat.attendee_id, user.userId, user.userId).first<{ ok: number }>();
   if (!mine) return { status: 403, body: { error: 'Sign in with the account linked to your seat.' } };
 

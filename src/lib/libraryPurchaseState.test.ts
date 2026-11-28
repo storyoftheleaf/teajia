@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { libraryPurchaseStateOf, purchaseStateLabel } from './libraryPurchaseState';
 import type { LedgerTransaction, LedgerLineItem } from './ledgerStore';
 import type { InventoryReceipt } from '../admin/types';
-import { shopOrderOf } from '../components/CurateV2/shopOrders';
+import { shopOrderOf } from '../components/curate/shopOrders';
 import type { PurchaseOrder } from './api';
 const item: LedgerLineItem = { id: 'line', name: 'Tea', compassEntryId: 'tea', productId: 'product', quantityUnits: 2, unitWeightGrams: 357, pricePerUnit: 0, priceIsPerGram: false, currency: 'Yuan', addedAt: '' };
 const tx: LedgerTransaction = { id: 'local', direction: 'purchase', status: 'confirmed', purchaseOrderId: 'po', items: [item], counterpartyName: 'Vendor', currency: 'Yuan', photos: [], createdAt: '', updatedAt: '' };
