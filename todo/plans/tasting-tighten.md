@@ -1,6 +1,8 @@
 # Tasting: the map and the tightening list
 
-> Written 2026-11-11 from a read-only, line-by-line pass over `src/components/tasting/` and every door into it. Part of [manage-rebuild.md](manage-rebuild.md). Adrian's rule: the tasting interface is tightened, never stripped. Nothing marked "small visible" or "real change" is built without his yes. Items marked "invisible" change no look and may be built and proven with tests.
+> Historical inspection of the tasting screens at the revision below. The [current delivery plan](../../docs/CONSOLIDATED_DIRECTION.md) determines which work proceeds.
+
+> Written 2026-11-11 from a read-only, line-by-line pass over `src/components/tasting/` and every door into it. Part of [manage-rebuild.md](https://github.com/storyoftheleaf/teajia/blob/4eb502f99c40509176472e9fede440243d23e3ef/todo/plans/manage-rebuild.md). Adrian's rule: the tasting interface is tightened, never stripped. Nothing marked "small visible" or "real change" is built without his yes. Items marked "invisible" change no look and may be built and proven with tests.
 >
 > Line numbers are as of commit `dc9dbd6`. Existing tasting unit tests pass (56 files, 280 tests).
 

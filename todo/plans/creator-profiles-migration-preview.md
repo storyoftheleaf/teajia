@@ -1,5 +1,7 @@
 # Migration 0021 preview: links learn their platform
 
+> Historical preview for migration 0021. The [current delivery plan](../../docs/CONSOLIDATED_DIRECTION.md) determines which work proceeds.
+
 Written 2026-09-19, revised 2026-09-19 after a correction: the first version
 of this migration dropped the web address on any link that fell to platform
 "other", keeping only its old label. That has been fixed. This is the

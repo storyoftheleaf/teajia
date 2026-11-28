@@ -1,5 +1,7 @@
 # Tea Wisdom composed entries for every tea
 
+> Conditional expansion proposal. Revisit when another tea family needs reference coverage for an actual edition or offer. The [current delivery plan](../../docs/CONSOLIDATED_DIRECTION.md) determines which work proceeds.
+
 Status: plan only, not started (Adrian, 2026-11-24). Builds on [tea-wisdom-composed-entry.md](tea-wisdom-composed-entry.md), where the ripe pu'er pilot is live for eight teas.
 
 ## Goal
