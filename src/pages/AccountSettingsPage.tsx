@@ -9,6 +9,7 @@ import { Icons } from '../components/Icons';
 import { useTheme } from '../context/ThemeContext';
 import { TYPOGRAPHY_CLASSES } from '../designTokens';
 import { anyoneHostsOpen } from '../lib/anyoneHosts';
+import { EmailConsentSettings } from '../components/account/EmailConsentSettings';
 
 const inputClass = "w-full bg-tea-surface border border-tea-border rounded-md px-3 min-h-tap py-2 text-ui-16 text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors";
 const labelClass = "block label-caps text-tea-text-sec mb-1.5";
@@ -256,6 +257,8 @@ export default function AccountSettingsPage() {
             </div>
             <p className="mt-2 text-ui-12 text-tea-text-dim">Remembered on this device.</p>
           </section>
+
+          <EmailConsentSettings />
         </div>
       </div>
 

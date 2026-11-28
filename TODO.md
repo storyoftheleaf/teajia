@@ -15,7 +15,11 @@ Capture a new observation here with the affected tea, person or step and the evi
 - [ ] For a tea selected for an edition, resolve any held Wisdom claim against its source and keep disputed wording private until reviewed. _(band: you-required)_ _(effort: moderate)_ [Held teas and requested corrections](https://github.com/storyoftheleaf/teajia/blob/4eb502f99c40509176472e9fede440243d23e3ef/TODO.md#L9-L11)
 - [ ] Reconcile the Family photograph-storage reading and the requested legal review of “How we use photographs” before expanding that collection. _(band: you-required)_ _(effort: moderate)_ [Original acceptance request](https://github.com/storyoftheleaf/teajia/blob/4eb502f99c40509176472e9fede440243d23e3ef/TODO.md#L12)
 
+- [ ] Confirm the three placeholder lines for the email box: on joining "Teajia and the hosts I choose may email me about teas and tables.", in settings "Teajia may email me about new teas and tables." and "Hosts who may email me" (the order line is Adrian's). _(band: you-required)_ _(effort: quick)_ [The words](src/lib/emailConsent.ts)
+
 ## Requests with a trigger
+
+- [ ] When any email other than an order email is built (Teajia letters or a host writing to guests), it sends only to people `mayEmailAboutTea` allows, for Teajia or for that host. _(band: agent-runnable)_ _(effort: quick)_ [Email answers](worker/src/emailConsent.ts)
 
 - [ ] When automatic US postage is proposed, obtain the outbound rate, currency, packed-weight allowance, minimum and covered destinations. _(band: you-required)_ _(effort: quick)_
 - [ ] When a real set or teaware range is ready to offer, confirm each member’s identity, availability, material, capacity and orderability before reopening its Shop tab. _(band: you-required)_ _(effort: moderate)_
@@ -25,6 +29,8 @@ Capture a new observation here with the affected tea, person or step and the evi
 - [ ] Before changing schema defaults, verify which tenant, unit, freight, cost and policy defaults still reach writes and rehearse any table rebuild with existing data. _(band: agent-runnable)_ _(effort: moderate)_ [Historical findings and safeguards](https://github.com/storyoftheleaf/teajia/blob/4eb502f99c40509176472e9fede440243d23e3ef/TODO.md#L122-L143)
 
 ## New observations
+
+- [ ] Answer the twelve questions in the Curate and Waiting plan (one list of what needs you, Curate version 2 removed) before slices 4 to 12, including the deletion of version 2; slice 1 is live and slices 2, 3, 7 and 12 need no answer. _(band: you-required)_ _(effort: moderate)_ [Curate and Waiting plan](todo/plans/curate-waiting-consolidation.md)
 
 ### Feature guide (owner walk-throughs)
 

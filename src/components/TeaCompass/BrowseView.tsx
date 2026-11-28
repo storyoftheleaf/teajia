@@ -32,6 +32,8 @@ import { useAppStore } from '../../lib/store';
 import { buildEntryPossessionMap } from './libraryPossession';
 import { hydrateCompassEntries } from '../../lib/teaCompassSync';
 import { Link, useNavigate } from 'react-router-dom';
+import { useStepParam } from '../../hooks/useStepParam';
+import { LoadFailed } from '../shared/LoadFailed';
 import { VendorFace } from '../vendors/VendorFace';
 import { vendorFacePhoto } from '../vendors/vendorFaces';
 import { useSampleStore } from '../../samples/sampleStore';
@@ -136,7 +138,11 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
   const { data: rates = [] } = useRates();
   const purchases = useLibraryPurchases();
   const { data: suppliers = [] } = useCustomers();
-  const [showRejected, setShowRejected] = useState(false);
+  // Which Library tab is showing lives in the address (?show=), so Waiting can
+  // be linked to and browser back leaves it (CLAUDE.md, "Back and forward").
+  const [showStep, setShowStep] = useStepParam('show', 'all');
+  const showRejected = showStep === 'rejected';
+  const browseFilter: BrowseFilter = (['all', 'to_taste', 'selected', 'waiting'] as string[]).includes(showStep) ? showStep as BrowseFilter : 'all';
   const [activeTastingId, setActiveTastingId] = useState<string | null>(null);
   const [collapsedSuppliers, setCollapsedSuppliers] = useState<Set<string>>(() => new Set());
   const [localPreference, setLocalPreference] = useState(readLibraryPricePreference);
@@ -149,7 +155,7 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
   const sampleSets = useSampleStore((s) => s.sampleSets);
   const sampleSetNames = useMemo(() => new Map(sampleSets.map((set) => [set.id, set.name || 'Untitled batch'])), [sampleSets]);
   const openSampleBatch = (setId: string) => navigate(`/admin/compass?tab=library&sampleOrder=manage&set=${encodeURIComponent(setId)}`);
-  const { entries, browseFilter, setBrowseFilter, browseSort, setBrowseSort, browseLayout, setBrowseLayout, libraryFilters, setLibraryFilters, removeEntry, hydrationStatus } = useTeaCompassStore();
+  const { entries, browseSort, setBrowseSort, browseLayout, setBrowseLayout, libraryFilters, setLibraryFilters, removeEntry, hydrationStatus } = useTeaCompassStore();
   const [cleanupDismissed, setCleanupDismissed] = useState(false);
   const [sortSheetOpen, setSortSheetOpen] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
@@ -263,12 +269,6 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
         return arr.sort(byDateDesc);
     }
   }, [browseSort, rates]);
-
-  // Guard malformed values that predate the versioned persisted migration.
-  React.useEffect(() => {
-    const valid: BrowseFilter[] = ['all', 'to_taste', 'selected', 'waiting'];
-    if (!valid.includes(browseFilter as BrowseFilter)) setBrowseFilter('all');
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [internalSearchQuery, setInternalSearchQuery] = useState('');
   // When an external query is provided (from the tab-level search bar), use it; otherwise use internal
@@ -389,6 +389,14 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
 
   // Supplier sections stay stable as the selected sort changes inside each group.
   const renderSuppliers = (result: TeaCompassEntry[]) => {
+    // Waiting is only true once Stock has been read: never "nothing is
+    // waiting" while it is still loading or when the read failed.
+    if (!showRejected && browseFilter === 'waiting' && possessionLoading) {
+      return <p role="status" className="py-8 text-center text-ui-12 text-tea-text-sec" data-testid="library-waiting-loading">Reading Stock…</p>;
+    }
+    if (!showRejected && browseFilter === 'waiting' && possessionError) {
+      return <LoadFailed className="justify-center py-8" sentence="Stock could not be read, so Waiting can't say what needs you." onRetry={() => { setPossessionError(false); setPossessionLoading(true); setPossessionRetry(n => n + 1); }} />;
+    }
     if (result.length === 0) {
       const message = showRejected ? 'No rejected teas match this view.' : browseFilter === 'selected' ? 'Nothing chosen yet.'
         : browseFilter === 'to_taste' ? 'No teas waiting to be tasted.'
@@ -625,7 +633,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
           <button
             key={opt.value}
             type="button"
-            onClick={() => { setShowRejected(false); setBrowseFilter(opt.value); }}
+            onClick={() => setShowStep(opt.value === 'all' ? null : opt.value)}
             aria-pressed={!showRejected && browseFilter === opt.value}
             aria-label={`${opt.label} ${opt.count}`}
             className={`tap-target inline-flex min-h-tap items-center gap-2 rounded-md border px-3 py-2 text-ui-12 transition-colors ${
@@ -643,7 +651,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
           </button>
         ))}
 
-        <button type="button" onClick={() => setShowRejected(!showRejected)} aria-pressed={showRejected} aria-label={`Rejected ${rejectedEntries.length}`}
+        <button type="button" onClick={() => setShowStep(showRejected ? null : 'rejected')} aria-pressed={showRejected} aria-label={`Rejected ${rejectedEntries.length}`}
           className={`tap-target inline-flex min-h-tap items-center gap-2 rounded-md border px-3 py-2 text-ui-12 ${showRejected ? 'border-tea-gold bg-tea-accent-sub text-tea-text' : 'border-tea-border bg-tea-bg text-tea-text-sec'}`}>
           <span>Rejected</span><span className="sr-only"> {rejectedEntries.length}</span>
         </button>
